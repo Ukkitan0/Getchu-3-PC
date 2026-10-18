@@ -1,0 +1,36 @@
+# Original retail PS2 binaries, ISO pieces, saves, copied disc assets
+SCUS_975.01
+*.iso
+*.iso.*
+*.chd
+*.p2s
+*.gs.zst
+*.elf
+*.irx
+disc/
+game/
+assets/
+original/
+# Machine-code-derived C and analysis artifacts, generated locally
+ae3_scalar_leaves.c
+ae3_scalar_leaves.h
+ae3_control_leaves.c
+ae3_control_leaves.h
+libae3_scalar.*
+libae3_control.*
+ae3_*_windows.*
+*_report.json
+call_graph.json
+entry_reachability.json
+*.obj
+*.o
+*.dll
+*.lib
+*.so
+*.exe
+*.pdb
+__pycache__/
+*.py[cod]
+build/
+dist/
+.vscode/
