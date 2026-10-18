@@ -9,4 +9,6 @@ cc -std=c11 -O1 -fPIC -shared ae3_scalar_leaves.c -o libae3_scalar.so
 cc -std=c11 -O1 -fPIC -shared ae3_control_leaves.c -o libae3_control.so
 python3 test_bulk.py 8
 python3 test_cfg.py 10
+cc -std=c11 -O1 ae3_native_dispatch.c ae3_scalar_leaves.c ae3_control_leaves.c test_dispatch.c -o ae3_dispatch_test
+./ae3_dispatch_test
 echo 'Native C scalar and bounded-CFG translators passed local reference tests.'
