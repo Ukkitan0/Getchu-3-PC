@@ -22,7 +22,10 @@ clang-cl /nologo /std:c11 /O2 /c ae3_scalar_leaves.c /Fobuild\ae3_scalar_leaves.
 if errorlevel 1 exit /b 1
 clang-cl /nologo /std:c11 /O2 /c ae3_control_leaves.c /Fobuild\ae3_control_leaves.obj
 if errorlevel 1 exit /b 1
+clang-cl /nologo /std:c11 /O2 /c ae3_native_dispatch.c /Fobuild\ae3_native_dispatch.obj
+if errorlevel 1 exit /b 1
 echo [AE3] Compiled native C into x64 object files (NOT a playable executable).
 echo [AE3] build\ae3_scalar_leaves.obj
 echo [AE3] build\ae3_control_leaves.obj
+echo [AE3] build\ae3_native_dispatch.obj
 exit /b 0
