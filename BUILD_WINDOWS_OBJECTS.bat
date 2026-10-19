@@ -40,5 +40,9 @@ clang-cl /nologo /std:c11 /O2 /c ae3_stack_leaves.c /Fobuild\ae3_stack_leaves.ob
 if errorlevel 1 exit /b 1
 clang-cl /nologo /std:c11 /O2 /c ae3_native_dispatch.c /Fobuild\ae3_native_dispatch.obj
 if errorlevel 1 exit /b 1
+clang-cl /nologo /std:c11 /O2 /c ae3_guest_execution.c /Fobuild\ae3_guest_execution.obj
+if errorlevel 1 exit /b 1
+clang-cl /nologo /std:c11 /O2 /c ae3_elf_image.c /Fobuild\ae3_elf_image.obj
+if errorlevel 1 exit /b 1
 echo [AE3] Compiled x64 object files (NOT a playable executable).
 exit /b 0
