@@ -15,6 +15,7 @@
 #include "ae3_ee_timer3.h"
 #include "ae3_boot_timer3_syscalls.h"
 #include "ae3_boot_post_patch.h"
+#include "ae3_boot_alloc_init.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,8 +33,8 @@ int main(int argc,char**argv) {
  if(argc<2||argc>6||(argc>=3&&strcmp(argv[2],"--test-kernel-fixture")&&!model_mode)||
     (argc>=4&&strcmp(argv[3],"--test-sema-hle"))||
     (argc>=5&&strcmp(argv[4],"--test-ee-alias"))||
-    (argc==6&&strcmp(argv[5],"--test-post-find")&&strcmp(argv[5],"--test-next-mmio")&&strcmp(argv[5],"--test-timer3")&&strcmp(argv[5],"--test-timer3-enabled")&&strcmp(argv[5],"--test-timer3-copy"))) {
-  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture|--test-ee-boot-model [--test-sema-hle [--test-ee-alias [--test-post-find|--test-next-mmio|--test-timer3|--test-timer3-enabled|--test-timer3-copy]]]\n",argv[0]);return 2;
+    (argc==6&&strcmp(argv[5],"--test-post-find")&&strcmp(argv[5],"--test-next-mmio")&&strcmp(argv[5],"--test-timer3")&&strcmp(argv[5],"--test-timer3-enabled")&&strcmp(argv[5],"--test-timer3-copy")&&strcmp(argv[5],"--test-timer3-copy-alloc"))) {
+  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture|--test-ee-boot-model [--test-sema-hle [--test-ee-alias [--test-post-find|--test-next-mmio|--test-timer3|--test-timer3-enabled|--test-timer3-copy|--test-timer3-copy-alloc]]]\n",argv[0]);return 2;
  }
  size_t bytes=0;uint8_t *elf=read_file(argv[1],&bytes);
  if(!elf){fprintf(stderr,"Cannot read game executable\n");return 2;}
@@ -116,7 +117,7 @@ int main(int argc,char**argv) {
              printf("TEST ONLY: running original 0x83 MIPS handler with KSEG0 aliased to current EE RAM.\n");
              printf("  BIOS/kernel was not initialized: no authentic startup kernel bytes are claimed.\n");
              AE3_EEMemoryBus bus;ae3_ee_bus_init(&bus,ram,RAM_SIZE);
-             if(argc==6&&(!strcmp(argv[5],"--test-next-mmio")||!strcmp(argv[5],"--test-timer3")||!strcmp(argv[5],"--test-timer3-enabled")||!strcmp(argv[5],"--test-timer3-copy"))) {
+             if(argc==6&&(!strcmp(argv[5],"--test-next-mmio")||!strcmp(argv[5],"--test-timer3")||!strcmp(argv[5],"--test-timer3-enabled")||!strcmp(argv[5],"--test-timer3-copy")||!strcmp(argv[5],"--test-timer3-copy-alloc"))) {
                 /* Explicitly artificial values, with the exact offset
                    relationship required by the retail reconciliation code. */
                 if(ae3_ee_bus_write32(&bus,UINT32_C(0x80000300),AE3_FIND_ENTRY)!=AE3_EE_BUS_OK||
@@ -166,7 +167,7 @@ int main(int argc,char**argv) {
                     printf("Kernel data absent: stopped before third syscall, no synthetic address inserted.\n");
                 }else if(stage==AE3_POST_NEXT_INIT) {
                     printf("Original reconciliation reached next real init JAL at %08X.\n",post.cpu.pc);
-                    if(!strcmp(argv[5],"--test-next-mmio")||!strcmp(argv[5],"--test-timer3")||!strcmp(argv[5],"--test-timer3-enabled")||!strcmp(argv[5],"--test-timer3-copy")) {
+                    if(!strcmp(argv[5],"--test-next-mmio")||!strcmp(argv[5],"--test-timer3")||!strcmp(argv[5],"--test-timer3-enabled")||!strcmp(argv[5],"--test-timer3-copy")||!strcmp(argv[5],"--test-timer3-copy-alloc")) {
                         AE3_BootNextInit next;
                         if(ae3_boot_next_init_enter(&next,&post)!=AE3_NEXT_YIELDED ||
                            ae3_boot_next_init_slice(&next,&bus,40)!=AE3_NEXT_MMIO_PENDING){
@@ -200,7 +201,7 @@ int main(int argc,char**argv) {
                             printf("EXPERIMENTAL EE Timer3 model: MODE=%08X, original guest result %s, PC=%08X, retired=%llu\n",
                                timer.mode,result==AE3_TIMER_BOOT_RETURNED?"returned to first-init caller":"next SetSyscall JAL pending",
                                resume.cpu.pc,(unsigned long long)resume.cpu.retired);
-                            if(!strcmp(argv[5],"--test-timer3-copy")){
+                            if(!strcmp(argv[5],"--test-timer3-copy")||!strcmp(argv[5],"--test-timer3-copy-alloc")){
                                AE3_Timer3Syscalls t3sys;
                                if(result!=AE3_TIMER_BOOT_NEXT_CALL||
                                   ae3_timer3_syscalls_enter(&t3sys,&resume)!=AE3_TS_YIELDED){
@@ -263,6 +264,43 @@ int main(int argc,char**argv) {
                                printf("EXPERIMENTAL: original 40-byte Copy -> 00082000, two FlushCache requests, six original guest 0x5B lookups and seven SetSyscall registrations. Returned to %08X (retired %llu).\n",
                                      later.cpu.pc,(unsigned long long)later.cpu.retired);
                                printf("FlushCache behavior is recorded in compatibility mode, NOT authentic PS2 cache coherency.\n");
+                               if(!strcmp(argv[5],"--test-timer3-copy-alloc")){
+                                  AE3_BootAllocInit alloc;
+                                  if(ae3_boot_alloc_enter(&alloc,&later)!=AE3_ALLOC_YIELDED){
+                                     fprintf(stderr,"Original 0x4404B0 allocator entry rejected\n");
+                                     free(elf);free(ram);return 39;
+                                  }
+                                  unsigned fills=0;
+                                  AE3_AllocResult ar=AE3_ALLOC_YIELDED;
+                                  for(unsigned step=0;step<20000;step++){
+                                     ar=ae3_boot_alloc_slice(&alloc,&bus,1000);
+                                     if(ar==AE3_ALLOC_NEXT_CALL_PENDING||ar==AE3_ALLOC_RETURNED)break;
+                                     if(ar==AE3_ALLOC_ZERO_FILL_REQUEST){
+                                        if(ae3_boot_alloc_dispatch_zero(&alloc,&bus)!=AE3_ALLOC_YIELDED){
+                                           fprintf(stderr,"Original native translated memset could not run\n");
+                                           free(elf);free(ram);return 40;
+                                        }
+                                        fills++;
+                                     }else if(ar!=AE3_ALLOC_YIELDED){
+                                        fprintf(stderr,"Retail allocator stopped at %08X status=%d\n",alloc.cpu.pc,ar);
+                                        free(elf);free(ram);return 41;
+                                     }
+                                  }
+                                  if(ar!=AE3_ALLOC_NEXT_CALL_PENDING||fills!=1||alloc.pointer_stores!=128||
+                                     alloc.freelist_stores!=66||alloc.cpu.pc!=AE3_ALLOC_NEXT_CALL){
+                                     fprintf(stderr,"Original pointer chain/free list initialization mismatch\n");
+                                     free(elf);free(ram);return 42;
+                                  }
+                                  printf("EXPERIMENTAL: original 0x4404B0 allocator cleared 8192 bytes via native-C translated MMI memset; original MIPS built 128 pointers and a 64-node free list; now at next guest JAL %08X. Total retired=%llu (translated memset not counted).\n",
+                                     alloc.cpu.pc,(unsigned long long)alloc.cpu.retired);
+                                  if(ae3_boot_alloc_follow_intc(&alloc,&bus)!=AE3_ALLOC_INTC_SYSCALL){
+                                     fprintf(stderr,"Original interrupt setup wrapper did not reach kernel boundary\n");
+                                     free(elf);free(ram);return 43;
+                                  }
+                                  printf("ORIGINAL AddIntcHandler syscall 0x10 pending at %08X (cause=%u handler=%08X next=%u); no BIOS response supplied. Total retired=%llu.\n",
+                                     alloc.cpu.pc,(unsigned)alloc.cpu.gpr[4][0],(unsigned)alloc.cpu.gpr[5][0],
+                                     (unsigned)alloc.cpu.gpr[6][0],(unsigned long long)alloc.cpu.retired);
+                               }
                             }
                             printf("Original MIPS mode branch executed with explicit hardware state, not authentic boot-time BIOS settings.\n");
                         }
