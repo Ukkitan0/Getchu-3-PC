@@ -216,7 +216,7 @@ void layout(HWND wnd){
 }
 LRESULT CALLBACK viewProc(HWND hwnd,UINT msg,WPARAM w,LPARAM l){
     if(msg==WM_ERASEBKGND)return 1;
-    if(msg==WM_SIZE){gRenderer.resize(std::max(1,LOWORD(l)),std::max(1,HIWORD(l)));return 0;}
+    if(msg==WM_SIZE){gRenderer.resize(std::max(1,int(LOWORD(l))),std::max(1,int(HIWORD(l))));return 0;}
     if(msg==WM_PAINT){
         PAINTSTRUCT ps{};BeginPaint(hwnd,&ps);EndPaint(hwnd,&ps);
         gRenderer.render();return 0;
