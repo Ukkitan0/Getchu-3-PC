@@ -133,3 +133,26 @@ Windows outputs are object files to link into a later native game runtime, **not
 - `test_guest_execution.c`, `test_elf_image.c`: original-code integration tests; `test_*.py`: differential comparisons with independent MIPS decoding.
 
 The generated C, ELF/ISO, disassembly and game assets stay out of public Git history. See [STATUS.md](STATUS.md) and [CHECKPOINT_GUEST_RUNTIME.md](CHECKPOINT_GUEST_RUNTIME.md) for exact validation and blockers.
+
+## Experimental guest-owned EE startup kernel model (2026-10-18)
+
+The new `ae3_ee_boot_services.{h,c}` consumes the retail executable's **actual**
+`SetupThread` and `SetupHeap` syscall arguments, validates them against shared
+physical EE RAM, and records a consistent main thread + heap in host-owned
+compatibility-kernel state. The return stack pointer is computed as
+`stack_base + stack_size - reserve`; `reserve=16` is an **explicit test policy**,
+**not a verified Sony BIOS return value**. The model rejects unmapped and
+stack/heap-overlapping ranges atomically. Nothing is injected into the game's
+kernel-reserved RAM and BIOS code is not emulated.
+
+Run `build/ae3_boot_probe SCUS_975.01 --test-ee-boot-model --test-sema-hle --test-ee-alias`
+to exercise the entire currently supported retail startup chain through both
+original `FindAddress` calls using the policy-based model. Without any options,
+`ae3_boot_probe` still stops at the unimplemented authentic `SetupThread` call.
+
+`test_ee_boot_services.c` verifies original ELFs, guest stack/heap arguments,
+no-side-effect error paths and valid service dispatch. The integration test
+compares the new mode against the former hardcoded regression fixture and
+checks that instruction counts and both guest handler results agree. These
+checks **do not establish BIOS accuracy or playability**. Native-compiled C
+is still a subset of the game's executable and does not produce graphics.
