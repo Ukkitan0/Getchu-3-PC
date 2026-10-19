@@ -22,6 +22,8 @@ python3 test_calls.py 3
 cc -std=c11 -O1 -fPIC -shared ae3_stack_leaves.c -L. -lae3_resumable -Wl,-rpath,'$ORIGIN' -o libae3_stack.so
 python3 test_stack.py 2
 python3 test_branch_call_paths.py
+python3 test_backward_structure.py
+python3 test_backward_call_paths.py
 # Link the verified shared objects instead of recompiling ~4 MB of generated C.
 cc -std=c11 -O0 ae3_native_dispatch.c test_dispatch.c -L. -lae3_scalar -lae3_control -lae3_loop -lae3_resumable -lae3_calls -lae3_stack -Wl,-rpath,'$ORIGIN' -o ae3_dispatch_test
 ./ae3_dispatch_test
