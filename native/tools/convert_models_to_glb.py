@@ -20,7 +20,8 @@ MAX_BYTES=512*1024*1024
 
 
 def export_models(extracted: Path, output: Path, ae3: str = "ae3",
-                  *, max_models=MAX_MODELS, runner=subprocess.run) -> dict:
+                  *, max_models=MAX_MODELS, animations=False,
+                  runner=subprocess.run) -> dict:
     extracted = extracted.resolve(strict=True)
     output = output.resolve()
     if not extracted.is_dir():
@@ -57,6 +58,11 @@ def export_models(extracted: Path, output: Path, ae3: str = "ae3",
             continue
         command=[ae3,"gltf",str(source),"--out",str(destination),
                  "--textures",str(extracted)]
+        if animations:
+            # MIT ae3-sdk matches I3M named tracks to source skeletons
+            # only when its independent match/coverage gates both pass.
+            # --anims with no list requests this conservative auto-pairing.
+            command.append("--anims")
         try:
             result=runner(command,capture_output=True,timeout=120,check=False)
             if result.returncode!=0 or not expected.is_file():
@@ -70,6 +76,8 @@ def export_models(extracted: Path, output: Path, ae3: str = "ae3",
     report={
         "format":"getchu3-native-i3d-to-glb/v1",
         "offline_ae3_sdk":True,
+        "requested_original_i3m_animation_pairing": bool(animations),
+        "animation_pairing_coverage_unverified_until_glb_inspection": True,
         "original_i3d_bin_files":len(models),
         "all_i3d_extension_files":candidates,
         "results":dict(sorted(counts.items())),
@@ -87,8 +95,11 @@ def main(argv=None):
     p.add_argument("--extracted",type=Path,required=True)
     p.add_argument("--out",type=Path,required=True)
     p.add_argument("--ae3",default="ae3",help="Installed ae3-sdk 'ae3' executable")
+    p.add_argument("--animations",action="store_true",
+                   help="Bake original named I3M bone tracks into GLBs through "
+                        "ae3-sdk's conservative resolution/coverage gates")
     args=p.parse_args(argv)
-    report=export_models(args.extracted,args.out,args.ae3)
+    report=export_models(args.extracted,args.out,args.ae3,animations=args.animations)
     print(json.dumps(report,indent=2))
     return 1 if report["results"].get("failed",0) else 0
 
