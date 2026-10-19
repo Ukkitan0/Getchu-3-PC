@@ -88,17 +88,18 @@ class BulkRecompileTests(unittest.TestCase):
             out = work / 'cpp'
             entries = work / 'entries'
             with patch.object(b, 'check_elf', return_value=b.EXPECTED_ELF_SHA), \
-                    patch.object(b.subprocess, 'run') as run:
+                    patch.object(b, 'compile_cached', return_value={
+                        'mode': 'translated', 'units': 1, 'gameplay_verified': False
+                    }) as run:
                 result = b.main(['--elf', str(elf), '--eerecomp', str(tool),
                                  '--out', str(entries), '--cpp-out', str(out)])
             self.assertEqual(result, 0)
             run.assert_called_once()
-            args = run.call_args.args[0]
-            self.assertEqual(args[0], str(tool.resolve()))
-            self.assertEqual(args[1], str(elf.resolve()))
-            self.assertIn('--entries', args)
-            self.assertEqual(args[args.index('--entries') + 1], str((entries / 'entries.txt').resolve()))
-            self.assertIn('--out', args)
+            args = run.call_args.args
+            self.assertEqual(args[0], tool)
+            self.assertEqual(args[1], elf)
+            self.assertEqual(args[2], entries / 'entries.txt')
+            self.assertEqual(args[3], out)
             self.assertTrue(out.is_dir())
 
 
