@@ -40,7 +40,8 @@ AE3_GetEntryResult ae3_guest_get_entry_slice(AE3_GuestGetEntry *s,
        if(delay||w!=0x24436710u)return AE3_GET_ENTRY_UNSUPPORTED;
        wr(&next,3,sx((uint32_t)r(&next,2)+0x6710u));break;
     case 0x8007600c:
-       if(delay||w)return AE3_GET_ENTRY_UNSUPPORTED;break;
+       if(delay||w)return AE3_GET_ENTRY_UNSUPPORTED;
+       break;
     case 0x80076010:case 0x80076020:{
        if(w!=(pc==0x80076010?0x8c620000u:0x8c620004u)||
           (pc==0x80076020&&!delay))return AE3_GET_ENTRY_UNSUPPORTED;
