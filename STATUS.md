@@ -1,3 +1,11 @@
+# 2026-10-18 EE memory-bus update
+
+- True EE virtual/physical RAM aliases and optional BIOS/scratchpad mappings implemented in `ae3_ee_memory_bus.[ch]`.
+- Original `FindAddress` MIPS handler now fetches through shared physical RAM, not a disconnected KSEG0 buffer.
+- Explicitly test-only boot diagnostic reaches `0x0043FDC4` after **1,626,728 retired instructions**; both FindAddress results are zero because no boot-time BIOS has initialized EE kernel RAM.
+- Later PCSX2 RAM snapshot parity: original handler finds `0x80014F0C` after 21,444 reads and returns zero for the second query after 131,073 reads. The snapshot is not a substitute BIOS.
+- This is not a playable build or successful original BIOS boot. Real SetupThread/SetupHeap semantics, kernel memory population, IOP and graphics still missing.
+
 # Current milestone — registered EE syscalls and original FindAddress guest handler
 
 **Experimental. Not playable.** The previous stopping point at `SetSyscall` has
