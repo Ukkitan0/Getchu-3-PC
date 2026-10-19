@@ -11,7 +11,11 @@
 | **Unified guest execution interface** | **1,646** | Routes to appropriate executor; preserves PC, registers, RAM, and fault-retry state |
 | **EE ELF image loader** | 1 retail PT_LOAD segment | Maps executable byte-for-byte and clears BSS in 32 MB guest RAM |
 
-The guest execution adapter and ELF loader are written in portable C11 (`ae3_guest_execution.c/.h`, `ae3_elf_image.c/.h`). They compile as Windows x64 COFF objects with `clang-cl`, without requiring copyrighted game code in the repository. The Linux integration tests passed using the verified retail executable. The original execution entry at `0x00100134` is **not yet translated**; the adapter explicitly rejects it rather than claiming the game booted.
+**Expanded retail startup execution (verified):** The bounded native C boot chain now executes the initial 143,836 original instructions, enters the first actual `JAL` at `0x001002C4`, runs its original stack-pattern fill routine at `0x001036D8` (24,576 additional 128-bit stores across 384 KiB), returns to `0x001002CC`, and continues to the real `SetupThread` syscall at `0x001002FC`. In total the chain retires **315,897 guest instructions** without fabricating a kernel return value. The `SetupThread` syscall itself has not been implemented. See [CHECKPOINT_BOOT_EXPANDED.md](CHECKPOINT_BOOT_EXPANDED.md).
+
+**Full ELF section inventory:** `full_elf_inventory.py` now exports **1,351,830 EE `.text` words** and **3,200 VU 64-bit packets**, including raw words that LLVM cannot decode. This is exhaustive *binary indexing*, not full game decompilation. The generated disassembly is local/private and excluded from GitHub.
+
+The guest execution adapter and ELF loader are written in portable C11 (`ae3_guest_execution.c/.h`, `ae3_elf_image.c/.h`). They compile as Windows x64 COFF objects with `clang-cl`, without requiring copyrighted game code in the repository. The Linux integration tests passed using the verified retail executable. The original execution entry at `0x00100134` is not in the general translated-function adapter; a separate bounded startup runner reaches the first kernel syscall, but system services and complete game startup are still unsupported.
 
 These 1,646 entries are conservative **candidate** functions, not verified complete-game coverage. We still lack EE full 128-bit/MMI/COP1/VU instructions, sufficient caller/function coverage, EE/IOP/BIOS services, PS2 graphics, audio and disc/game runtime integration.
 
@@ -47,7 +51,12 @@ Windows outputs are object files to link into a later native game runtime, **not
 - `call_lift.py`, `stack_lift.py`, `extend_stack.py`, `loop_stack.py`: call/return, conditionals, backward edges and whitelisted indirect targets.
 - `ae3_native_dispatch.c/h`: legacy per-kind dispatch; `ae3_guest_execution.c/h`: unified host-facing dispatch with a single typed frame.
 - `ae3_elf_image.c/h`: checked, transactional ELF32 little-endian MIPS guest-memory mapping.
-- `audit_boot_entry.py`: verifies actual initial 29 MMI PADDUW zero clears, four HI/LO clears, and 32 COP1 register clears; does not simulate them.
+- `audit_boot_entry.py`: statically validates the reset instructions.
+- `ae3_boot_prefix.c/.h`: the actual guest entrypoint register/FPR reset and BSS clear.
+- `ae3_boot_memory_fill.c/.h`: the actual first `JAL` callee, copying a 128-bit pattern over 384 KiB of EE stack RAM.
+- `ae3_boot_thread_setup.c/.h`: the real next register/setup instructions stopping at `SetupThread` syscall, with no fabricated kernel response.
+- `full_elf_inventory.py`: exhaustive `.text` word inventory and separately indexed VU microcode packets (not full C decompilation).
+- `test_boot_prefix.c`, `test_boot_memory_fill.c`, `test_boot_thread_setup.c`: sliced state, memory faults, original register arguments, and UBSan/ASan regression checks.
 - `test_guest_execution.c`, `test_elf_image.c`: original-code integration tests; `test_*.py`: differential comparisons with independent MIPS decoding.
 
 The generated C, ELF/ISO, disassembly and game assets stay out of public Git history. See [STATUS.md](STATUS.md) and [CHECKPOINT_GUEST_RUNTIME.md](CHECKPOINT_GUEST_RUNTIME.md) for exact validation and blockers.
