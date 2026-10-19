@@ -10,9 +10,12 @@ on:
       - 'tools/test_windows_fastlane.py'
       - 'tools/synthetic_aot_smoke.py'
       - 'tools/synthetic_ctors_smoke.py'
+      - 'tools/synthetic_pages_smoke.py'
+      - 'tools/test_synthetic_pages_smoke.py'
       - 'tools/run_synthetic_aot_windows.ps1'
       - 'tools/test_synthetic_aot*.py'
       - 'RUN_BULK_NATIVE_WINDOWS.ps1'
+      - 'tools/test_synthetic_aot_contract.py'
       - 'fastlane/ci_stub/**'
 
 jobs:
