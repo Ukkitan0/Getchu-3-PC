@@ -23,6 +23,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m unittest discover -s native/tools -p 'test_prepare_owned_assets.py' -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s native/tools -p 'test_convert_models_to_glb.py' -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Validate native-only local asset-preparation PowerShell syntax
         shell: pwsh
         run: |
