@@ -14,6 +14,7 @@
 #include "ae3_boot_timer3_resume.h"
 #include "ae3_ee_timer3.h"
 #include "ae3_boot_timer3_syscalls.h"
+#include "ae3_boot_post_patch.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -226,6 +227,42 @@ int main(int argc,char**argv) {
                                printf("EXPERIMENTAL guest syscall dispatch: original 0x5A MIPS handler copied 1856 source bytes 006A2678 -> KSEG0 80076000, then reached %08X (retired %llu).\n",
                                   t3sys.cpu.pc,(unsigned long long)t3sys.cpu.retired);
                                printf("This is a guest payload copy with compatibility-kernel dispatcher, NOT a verified BIOS exception path.\n");
+                               AE3_BootPostPatch later;
+                               if(ae3_boot_post_patch_enter(&later,&t3sys)!=AE3_PP_YIELDED){
+                                  fprintf(stderr,"Original post-kernel-copy guest entry rejected\n");
+                                  free(elf);free(ram);return 35;
+                               }
+                               unsigned copied40=0,flushes=0,registered=0,lookups=0;
+                               AE3_PostPatchResult post_result=AE3_PP_YIELDED;
+                               for(unsigned cycle=0;cycle<30000;cycle++){
+                                  post_result=ae3_boot_post_patch_slice(&later,&bus,1000);
+                                  if(post_result==AE3_PP_RETURNED)break;
+                                  switch(post_result){
+                                    case AE3_PP_YIELDED:break;
+                                    case AE3_PP_COPY_REQUEST:copied40++;goto dispatch_post;
+                                    case AE3_PP_FLUSH_REQUEST:flushes++;goto dispatch_post;
+                                    case AE3_PP_REGISTER_REQUEST:registered++;goto dispatch_post;
+                                    case AE3_PP_GET_ENTRY_REQUEST:lookups++;goto dispatch_post;
+                                    default:fprintf(stderr,"Guest post-patch halted: %d at %08X\n",
+                                       (int)post_result,later.cpu.pc);
+                                       free(elf);free(ram);return 36;
+                                  }
+                                  continue;
+                                  dispatch_post:
+                                  if(ae3_boot_post_patch_dispatch(&later,&bus,&syscall_kernel)!=AE3_PP_YIELDED){
+                                     fprintf(stderr,"Guest post-patch service unavailable at %08X\n",later.cpu.pc);
+                                     free(elf);free(ram);return 37;
+                                  }
+                               }
+                               if(post_result!=AE3_PP_RETURNED||copied40!=1||flushes!=2||
+                                  registered!=7||lookups!=6||later.cpu.pc!=0x0043FE78||
+                                  memcmp(ram+0x82000,ram+0x6a2db8,40)!=0){
+                                  fprintf(stderr,"Original post-patch registration/copy loop mismatch\n");
+                                  free(elf);free(ram);return 38;
+                               }
+                               printf("EXPERIMENTAL: original 40-byte Copy -> 00082000, two FlushCache requests, six original guest 0x5B lookups and seven SetSyscall registrations. Returned to %08X (retired %llu).\n",
+                                     later.cpu.pc,(unsigned long long)later.cpu.retired);
+                               printf("FlushCache behavior is recorded in compatibility mode, NOT authentic PS2 cache coherency.\n");
                             }
                             printf("Original MIPS mode branch executed with explicit hardware state, not authentic boot-time BIOS settings.\n");
                         }
