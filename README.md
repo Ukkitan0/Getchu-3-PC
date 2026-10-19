@@ -42,3 +42,37 @@ The loop translator supports short backward conditional branches and direct jump
 64-bit high-half EE GPR lanes, 128-bit MMI, COP1/VU, indirect control flow, mid-function calls, multiple-return shapes, system services, IOP boot, GS/VIF/GIF, audio, disc streaming, controller input, and save-card behavior. A real PC port requires integration and tests for all of these, as well as auditing candidate function boundaries.
 
 The **next milestone** is an explicit resumable guest-context/PC model for loops and indirect dispatch, then integration of native GS/VU rendering and IOP services. No placeholder or emulator wrapper is represented here as a native port.
+
+## Incremental native scheduler (2026-10-18)
+
+The canonical source generator `resume_lift.py` produces `ae3_resumable_leaves.c/h`
+from the verified USA retail ELF. It exposes **1,470 candidate scalar routines**
+(1,163 straight-line, 168 forward-control-flow, 139 bounded loops) through a
+PC-resumable instruction-slice interface. Program counter, pending delay-slot
+branch/return decisions, and retired instruction count are persistent in
+`AE3_ResumeFrame`. The public native dispatcher exposes:
+
+```c
+AE3_ResumeFrame frame;
+ae3_native_frame_init(&frame, entry_pc);
+int result = ae3_run_native_slice(&context, &frame, budget);
+/* AE3_RESUME_YIELDED (1) => call again with same frame and guest context.
+   AE3_RESUME_DONE (0) => routine returned.
+   AE3_RESUME_MEMORY_FAULT (-1) => memory mapping needed, retry same PC.
+   AE3_RESUME_UNKNOWN (-2) => unsupported entry.
+   AE3_RESUME_INVALID (-4) => invalid or inconsistent frame. */
+```
+
+Run `AE3_ELF=/path/to/SCUS_975.01 bash BUILD_AND_TEST_LINUX.sh` to regenerate
+translated code, build the shared libraries, run all differential suites, and
+run the C dispatcher integration test. On Windows, run `BUILD_WINDOWS_OBJECTS.bat`
+with VS/Clang and Python available; this compiles five native COFF objects.
+No Windows game EXE or full PS2 runtime exists yet.
+
+The `ae3_resumable_leaves.c/h` files are **derived from the copyrighted game
+executable**, generated locally, and excluded from this public repository.
+
+*Known limitations:* R5900 EE high 64-bit GPR lanes, MMI, COP1/COP2, VU,
+indirect calls and returns, external IOP/BIOS/SIF devices, sound, GS/GIF/VIF,
+level assets and a complete playable runtime remain unimplemented. Candidate
+instruction addresses can still be data rather than verified code boundaries.
