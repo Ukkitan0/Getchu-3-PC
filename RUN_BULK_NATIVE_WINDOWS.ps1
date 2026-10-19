@@ -48,6 +48,17 @@ if (-not $Elf -or -not (Test-Path -LiteralPath $Elf -PathType Leaf)) {
 $Elf = (Resolve-Path -LiteralPath $Elf).Path
 $ActualHash = (Get-FileHash -LiteralPath $Elf -Algorithm SHA256).Hash
 if ($ActualHash -ne $ExpectedHash) { Fail "Wrong executable: $ActualHash, expected $ExpectedHash" }
+# A requested game run or code/VU exploration requires an ISO. Check *before*
+# downloading toolchains or spending hours translating the game executable.
+if ($Run -or $ExploreRounds -gt 0) {
+    if (-not $Disc -or -not (Test-Path -LiteralPath $Disc -PathType Leaf)) {
+        Fail 'Native execution/exploration requires -Disc with a valid locally owned ISO.'
+    }
+}
+if ($Disc) {
+    if (-not (Test-Path -LiteralPath $Disc -PathType Leaf)) { Fail "Disc image not found: $Disc" }
+    $Disc = (Resolve-Path -LiteralPath $Disc).Path
+}
 $Upstream = Join-Path $Workspace 'ps2-web-recomp'
 if (-not (Test-Path -LiteralPath (Join-Path $Upstream '.git'))) {
     RunProcess 'git' @('clone','https://github.com/snuri00/ps2-web-recomp.git',$Upstream)
