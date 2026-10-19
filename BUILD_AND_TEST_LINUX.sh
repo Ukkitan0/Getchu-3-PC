@@ -145,7 +145,7 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
   ae3_guest_find_address.c ae3_boot_post_find.c ae3_boot_next_init.c \
   ae3_ee_timer3.c ae3_boot_timer3_resume.c ae3_guest_kernel_copy.c ae3_boot_timer3_syscalls.c \
   ae3_ee_boot_services.c ae3_guest_get_entry.c ae3_boot_post_patch.c \
-  ae3_boot_probe.c -o build/ae3_boot_probe
+  ae3_boot_alloc_init.c ae3_boot_probe.c -o build/ae3_boot_probe
 ./build/ae3_boot_probe "$AE3_ELF"
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture --test-sema-hle
@@ -168,3 +168,10 @@ python3 test_boot_services_integration.py build/ae3_boot_probe "$AE3_ELF"
 ./build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model --test-sema-hle --test-ee-alias --test-timer3-enabled
 
 ./build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model --test-sema-hle --test-ee-alias --test-timer3-copy
+
+# Original next initialization: retail -1 sentinel, translated 8-KiB MMI
+# zero fill, 128 original pointer links, 64-node original free list.
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_ee_memory_bus.c \
+  ae3_boot_alloc_init.c test_boot_alloc_init.c -o build/test_boot_alloc_init
+./build/test_boot_alloc_init "$AE3_ELF"
+./build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model --test-sema-hle --test-ee-alias --test-timer3-copy-alloc
