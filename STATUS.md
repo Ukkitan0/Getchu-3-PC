@@ -1,3 +1,15 @@
+# October 19 — Timer 2 registers configured by original retail MIPS
+
+- After the real AddIntcHandler wrapper, the game now executes 74 further
+  original instructions in compatibility mode: 8 MODE-read/branch instructions
+  and 66 instructions in its guest SetT2_COUNT, COMP, MODE and COP0/ERET
+  helper path, ending at `EnableIntc` call PC `0x004405C8`.
+- Three Timer 2 MMIO writes flow through guest KSEG1 aliases to one physical
+  native register bank. The already-running branch skips COUNT/COMP writes.
+- Explicit COP0 Status=0 is an experimental supplied test fixture, not BIOS.
+- Regression tests run under GCC and Clang sanitizer setups; 3 Win64 COFF
+  modules compile. Default boot continues to stop at `SetupThread`.
+
 # 2026-10-19 — INTC AddIntcHandler through actual Timer 2 MODE boundary
 
 - Original EE syscall `0x10` cause 11, handler `0x00440A50` is registered
