@@ -1,0 +1,31 @@
+cmake_minimum_required(VERSION 3.22)
+project(Getchu3Native LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+# NATIVE HOST-OS CODE ONLY. Absolutely no ps2-web-recomp, PCSX2,
+# EE interpreter, IOP interpreter, GIF/VIF/GS/DMA hardware models.
+add_library(Getchu3Assets STATIC src/archive.cpp)
+target_include_directories(Getchu3Assets PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+if(MSVC)
+    target_compile_options(Getchu3Assets PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(Getchu3Assets PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+add_executable(Getchu3AssetProbe src/asset_probe.cpp)
+target_link_libraries(Getchu3AssetProbe PRIVATE Getchu3Assets)
+if(WIN32)
+    add_executable(Getchu3Native WIN32 src/app_win32.cpp)
+    target_link_libraries(Getchu3Native PRIVATE Getchu3Assets d3d11 dxgi d3dcompiler
+                          user32 gdi32 comdlg32)
+    target_compile_definitions(Getchu3Native PRIVATE UNICODE _UNICODE)
+    if(MSVC)
+        target_compile_options(Getchu3Native PRIVATE /W4 /permissive-)
+    endif()
+endif()
+
+enable_testing()
+add_executable(Getchu3ArchiveTests tests/archive_test.cpp)
+target_link_libraries(Getchu3ArchiveTests PRIVATE Getchu3Assets)
+add_test(NAME NativeISOAndVFIArchiveRoundtrip COMMAND Getchu3ArchiveTests)
