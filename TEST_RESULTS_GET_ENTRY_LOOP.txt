@@ -1,0 +1,22 @@
+Getchu-3-PC — original game-installed EE GetEntryAddress checkpoint
+Date: 2026-10-19
+Input: retail US SCUS_975.01 SHA256 5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63
+
+PASSED clang  -O2 -Wall -Wextra -Werror: copied GetEntryAddress 7-query test
+PASSED clang  -O2 -Wall -Wextra -Werror: full post-kernel-copy 6-handler loop
+PASSED clang  -O1 -g -fsanitize=address,undefined: both new test binaries
+PASSED previous test_boot_timer3_syscalls.c regression
+PASSED previous test_ee_syscall_kernel.c regression
+PASSED bash -n BUILD_AND_TEST_LINUX.sh
+PASSED clang-cl /W4 /WX Windows x64 COFF compilation: ae3_guest_get_entry.c,
+       ae3_boot_post_patch.c, ae3_ee_syscall_kernel.c
+PASSED native Linux boot probe --test-ee-boot-model --test-sema-hle
+       --test-ee-alias --test-timer3-copy:
+       321851 retired original guest instructions through 0x0043FE78;
+       Copy(40), FlushCache(0,2), 6 GetEntryAddress results from original MIPS
+       and guest memory table, 7 SetSyscall registrations.
+PASSED original no-flags boot probe stops at actual SetupThread syscall.
+
+NOT EXECUTED: native Windows boot-diagnostic exe (Windows SDK headers absent
+in Linux container); full historical code generation tests not repeated.
+NOT PROVIDED: playable native Windows Ape Escape 3; authentic Sony EE BIOS.
