@@ -16,6 +16,8 @@ on:
       - 'tools/synthetic_aot_smoke.py'
       - 'tools/synthetic_ctors_smoke.py'
       - 'tools/synthetic_pages_smoke.py'
+      - 'tools/synthetic_overlay_smoke.py'
+      - 'tools/run_synthetic_overlay_windows.ps1'
       - 'tools/test_synthetic_pages_smoke.py'
       - 'tools/run_synthetic_aot_windows.ps1'
       - 'tools/test_synthetic_aot*.py'
@@ -105,6 +107,11 @@ jobs:
         run: |
           $toolchain = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
           & "tools/run_synthetic_aot_windows.ps1" -Upstream "$env:RUNNER_TEMP\upstream" -Compiler "$env:RUNNER_TEMP\tools-build\Release\eerecomp.exe" -RuntimeBuild "$env:RUNNER_TEMP\runtime-build" -VcpkgToolchain $toolchain -FixtureMode pages -TimeoutSeconds 60
+      - name: Capture and recompile genuinely unpacked MIPS code in native Windows runtime
+        shell: pwsh
+        run: |
+          $toolchain = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
+          & "tools/run_synthetic_overlay_windows.ps1" -Upstream "$env:RUNNER_TEMP\upstream" -Compiler "$env:RUNNER_TEMP\tools-build\Release\eerecomp.exe" -RuntimeBuild "$env:RUNNER_TEMP\runtime-build" -VcpkgToolchain $toolchain -TimeoutSeconds 60
       - name: Compile Win32 WebGPU renderer against verified official wgpu-native
         shell: pwsh
         run: |
@@ -137,6 +144,10 @@ jobs:
             ${{ runner.temp }}/runtime-build/ae3-aot-constructors/aot-smoke-stderr.txt
             ${{ runner.temp }}/runtime-build/ae3-aot-constructors/aot-smoke-stdout.txt
             ${{ runner.temp }}/runtime-build/ae3-aot-pages/aot-smoke-result.json
+            ${{ runner.temp }}/runtime-build/ae3-aot-overlay/overlay-aot-result.json
+            ${{ runner.temp }}/runtime-build/ae3-aot-overlay/first-run.stderr.txt
+            ${{ runner.temp }}/runtime-build/ae3-aot-overlay/recompiled-run.stderr.txt
+            ${{ runner.temp }}/runtime-build/ae3-aot-overlay/misses.txt
             ${{ runner.temp }}/runtime-build/ae3-aot-pages/aot-smoke-stderr.txt
             ${{ runner.temp }}/runtime-build/ae3-aot-pages/aot-smoke-stdout.txt
             ${{ runner.temp }}/runtime-build/ae3-aot-smoke/aot-smoke-stdout.txt
