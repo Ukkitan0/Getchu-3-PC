@@ -145,7 +145,9 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
   ae3_guest_find_address.c ae3_boot_post_find.c ae3_boot_next_init.c \
   ae3_ee_timer3.c ae3_boot_timer3_resume.c ae3_guest_kernel_copy.c ae3_boot_timer3_syscalls.c \
   ae3_ee_boot_services.c ae3_guest_get_entry.c ae3_boot_post_patch.c \
-  ae3_boot_alloc_init.c ae3_boot_probe.c -o build/ae3_boot_probe
+  ae3_boot_alloc_init.c ae3_ee_intc_kernel.c ae3_boot_post_intc.c \
+  ae3_boot_intc_critical.c ae3_ee_timer2.c ae3_boot_timer2_continue.c \
+  ae3_boot_timer2_setup.c ae3_boot_probe.c -o build/ae3_boot_probe
 ./build/ae3_boot_probe "$AE3_ELF"
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture --test-sema-hle
@@ -182,3 +184,11 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_ee_memory_bus.c \
   ae3_boot_alloc_init.c ae3_ee_intc_kernel.c ae3_boot_post_intc.c \
   ae3_boot_intc_critical.c test_boot_post_intc.c -o build/test_boot_post_intc
 ./build/test_boot_post_intc "$AE3_ELF"
+
+# Retail EE Timer2 MMIO startup continuation: genuine COP0/ERET guest
+# SetT2_COUNT/COMP/MODE calls, KSEG1 aliases, and injected MMIO faults.
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_ee_memory_bus.c \
+  ae3_ee_timer2.c ae3_boot_timer2_continue.c ae3_boot_timer2_setup.c \
+  test_timer2_boot.c -o build/test_timer2_boot
+./build/test_timer2_boot "$AE3_ELF"
+./build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model --test-sema-hle --test-ee-alias --test-timer2-mode
