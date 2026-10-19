@@ -73,10 +73,31 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_boot_semaphore_init.c \
 cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
   ae3_boot_memory_fill.c ae3_boot_thread_setup.c ae3_boot_kernel_bridge.c \
   ae3_boot_init_prefix.c ae3_boot_semaphore_init.c ae3_ee_sema_kernel.c \
-  ae3_boot_hook_init.c test_boot_hook_init.c -o build/test_boot_hook_init
+  ae3_ee_syscall_kernel.c ae3_boot_hook_init.c test_boot_hook_init.c -o build/test_boot_hook_init
 ./build/test_boot_hook_init "$AE3_ELF"
 cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
   ae3_boot_memory_fill.c ae3_boot_thread_setup.c ae3_boot_kernel_bridge.c \
   ae3_boot_init_prefix.c ae3_boot_semaphore_init.c ae3_ee_sema_kernel.c \
-  ae3_boot_hook_init.c ae3_boot_probe.c -o build/ae3_boot_probe
+  ae3_ee_syscall_kernel.c ae3_boot_hook_init.c ae3_boot_probe.c -o build/ae3_boot_probe
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture --test-sema-hle
+
+# Execute both original SetSyscall 0x74 registrations, then route the
+# actual syscall 0x83 to its guest handler without fabricating a result.
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
+  ae3_boot_memory_fill.c ae3_boot_thread_setup.c ae3_boot_kernel_bridge.c \
+  ae3_boot_init_prefix.c ae3_boot_semaphore_init.c ae3_ee_sema_kernel.c \
+  ae3_ee_syscall_kernel.c ae3_boot_hook_init.c test_boot_syscall_registry.c \
+  -o build/test_boot_syscall_registry
+./build/test_boot_syscall_registry "$AE3_ELF"
+
+# Guest SetSyscall 0x74 table, authentic handler instructions, explicit KSEG0
+# memory mapping, and two actual FindAddress wrapper invocations.
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_syscall_kernel.c \
+  test_ee_syscall_kernel.c -o build/test_ee_syscall_kernel
+./build/test_ee_syscall_kernel
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
+  ae3_boot_memory_fill.c ae3_boot_thread_setup.c ae3_boot_kernel_bridge.c \
+  ae3_boot_init_prefix.c ae3_boot_semaphore_init.c ae3_ee_sema_kernel.c \
+  ae3_ee_syscall_kernel.c ae3_boot_hook_init.c ae3_guest_find_address.c \
+  test_boot_syscall_registry.c -o build/test_boot_syscall_registry
+./build/test_boot_syscall_registry "$AE3_ELF"
