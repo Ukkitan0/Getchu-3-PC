@@ -32,7 +32,7 @@ def compare(stack,state):
     for index,expected in enumerate(state['frames']):
         actual=stack.frames[index]
         for name in ('entry','pc','pending','target','return_pc','return_target','leaf_active','reserved','retired'):
-            assert getattr(actual,name)==expected[name], (index,name,getattr(actual,name),expected[name],hex(stack.entry))
+            assert getattr(actual,name)==expected[name], (index,name,getattr(actual,name),expected[name],hex(stack.entry),hex(actual.pc),hex(expected['pc']), actual.pending, expected['pending'])
         for name,_ in Frame._fields_:
             assert getattr(actual.leaf,name)==expected['leaf'][name],(index,name,getattr(actual.leaf,name),expected['leaf'][name])
 
@@ -52,7 +52,7 @@ def oracle_step(state,bodies,leafwords,regs,memory):
     pc=a['pc']
     try:w,kind,arg=bodies[a['entry']][pc]
     except KeyError:return -4
-    if a['pending']!=({'call_slot':1,'jalr_slot':1,'return_slot':2}.get(kind,0)):return -4
+    if a['pending']!=({'call_slot':1,'jalr_slot':1,'return_slot':2,'branch_slot':3}.get(kind,0)):return -4
     if kind=='call':
         regs[31]=pc+8
         a.update(target=arg,pending=1,pc=pc+4)
@@ -64,6 +64,22 @@ def oracle_step(state,bodies,leafwords,regs,memory):
         if target not in bodies and target not in leafwords:return -2
         regs[31]=pc+8
         a.update(target=target,pending=1,pc=pc+4)
+    elif kind=='branch':
+        op=w>>26;rs=(w>>21)&31;rt=(w>>16)&31
+        x,y=regs[rs],regs[rt]
+        def signed64(n):return n-(1<<64) if n&(1<<63) else n
+        if op==4:take=x==y
+        elif op==5:take=x!=y
+        elif op==6:take=signed64(x)<=0
+        elif op==7:take=signed64(x)>0
+        elif op==1 and rt==0:take=signed64(x)<0
+        elif op==1 and rt==1:take=signed64(x)>=0
+        else:return -4
+        target=pc+4+4*((w&0xffff)-65536 if w&0x8000 else w&0xffff)
+        a.update(target=target if take else pc+8,pending=3,pc=pc+4)
+    elif kind=='jump':
+        target=((pc+4)&0xf0000000)|((w&0x3ffffff)<<2)
+        a.update(target=target,pending=3,pc=pc+4)
     elif kind=='return':
         a.update(return_target=regs[31]&0xffffffff,pending=2,pc=pc+4)
     else:
@@ -73,7 +89,9 @@ def oracle_step(state,bodies,leafwords,regs,memory):
             return -4
         rc=instr(w,regs,memory)
         if rc:return rc
-        if kind in ('call_slot','jalr_slot'):
+        if kind=='branch_slot':
+            a.update(pc=a['target'],pending=0,target=0)
+        elif kind in ('call_slot','jalr_slot'):
             a.update(pc=pc+4,pending=0)
             if a['target'] in leafwords:
                 a['leaf_active']=1
@@ -102,12 +120,12 @@ def run(trials=2):
     dll.ae3_stack_init.argtypes=[ctypes.POINTER(Stack),ctypes.c_uint32]
     dll.ae3_run_stack_slice.argtypes=[ctypes.POINTER(Ctx),ctypes.POINTER(Stack),ctypes.c_uint32]
     dll.ae3_run_stack_slice.restype=ctypes.c_int
-    callers,nested,indirect,_=lift.collect()
+    callers,nested,indirect,_,flow,_=lift.collect()
     leaves,_=rl.collect()
     bodies={a:{pc:(w,k,v) for pc,w,k,v in code} for a,code in callers.items()}
     leafwords={a:{pc:w for pc,w,_,_ in code} for a,(code,_) in leaves.items()}
     assert dll.ae3_stack_count()==len(callers)
-    stats={'callers':len(callers),'nested_candidates':len(nested),'indirect_candidates':len(indirect),'trials':0,'slices':0,'nested_entered':0,
+    stats={'callers':len(callers),'nested_candidates':len(nested),'indirect_candidates':len(indirect),'branch_caller_candidates':len(flow),'branch_slots':0,'trials':0,'slices':0,'nested_entered':0,
            'max_stack_depth':0,'jal_delay_checkpoints':0,'completed':0,'faulted':0,'yielded':0}
     for entry in callers:
         for trial in range(trials):
@@ -132,6 +150,7 @@ def run(trials=2):
                 stats['max_stack_depth']=max(stats['max_stack_depth'],frame.depth)
                 stats['nested_entered']+=int(frame.depth>1)
                 stats['jal_delay_checkpoints']+=int(bool(expected['frames']) and expected['frames'][-1]['pending']==1)
+                stats['branch_slots']+=int(bool(expected['frames']) and expected['frames'][-1]['pending']==3)
                 if got==0:stats['completed']+=1;break
                 if got<0:stats['faulted']+=1;break
                 stats['yielded']+=1
@@ -175,6 +194,7 @@ def run(trials=2):
     bad=Stack();dll.ae3_stack_init(ctypes.byref(bad),entry)
     assert dll.ae3_run_stack_slice(ctypes.byref(ctx),ctypes.byref(bad),64)==-2
     assert bad.frames[0].pc==0x0010CD28
+    assert bad.frames[0].target==0, 'Rejected JALR must not mutate pending call target'
     assert ctx.gpr[31]==0x710000
     stats['indirect_unknown_rejected']=1
     unknown=Stack();dll.ae3_stack_init(ctypes.byref(unknown),0xDEADBEEF)
