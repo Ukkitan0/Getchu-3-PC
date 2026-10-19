@@ -75,7 +75,8 @@ AE3_PostPatchResult ae3_boot_post_patch_slice(AE3_BootPostPatch *s,
     case 0x004403A0:case 0x004403A4:
        if(word!=(pc==0x4403a0?0x24a52db8u:0x34842000u)||delay)return AE3_PP_UNSUPPORTED;
        if(pc==0x4403a0)put(&next,5,sext32((uint32_t)reg(&next,5)+0x2db8u));
-       else put(&next,4,reg(&next,4)|0x2000u);break;
+       else put(&next,4,reg(&next,4)|0x2000u);
+       break;
     case 0x004403A8:case 0x004403B0:case 0x004403B8:case 0x004403C4:case 0x004403D0:{
        const uint32_t target=(pc==0x4403a8?0x4402e0:
             (pc==0x4403b0||pc==0x4403b8)?0x435d60:
