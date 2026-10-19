@@ -9,6 +9,7 @@
 #include <wrl/client.h>
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
