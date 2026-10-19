@@ -22,7 +22,9 @@ AE3_FindResult ae3_guest_find_begin(AE3_GuestFindAddress *out,
        hook->invoked_handler_pc!=AE3_FIND_ENTRY ||
        hook->cpu.in_delay_slot || hook->registered!=2 ||
        ((uint32_t)reg(&hook->cpu,31)!=UINT32_C(0x0043FDA4) &&
-        (uint32_t)reg(&hook->cpu,31)!=UINT32_C(0x0043FDB8)))
+        (uint32_t)reg(&hook->cpu,31)!=UINT32_C(0x0043FDB8) &&
+        (uint32_t)reg(&hook->cpu,31)!=UINT32_C(0x0043FDE4) &&
+        (uint32_t)reg(&hook->cpu,31)!=UINT32_C(0x0043FE00)))
        return AE3_FIND_INVALID;
     *out=(AE3_GuestFindAddress){0};
     out->cpu=hook->cpu;
@@ -48,7 +50,9 @@ static AE3_FindResult run_slice(AE3_GuestFindAddress *s,
     if(!s||!ee || s->cpu.in_delay_slot>1 || s->done>1 ||
        (s->return_pc&3)||
        (s->return_pc!=UINT32_C(0x0043FDA4) &&
-        s->return_pc!=UINT32_C(0x0043FDB8)) ||
+        s->return_pc!=UINT32_C(0x0043FDB8) &&
+        s->return_pc!=UINT32_C(0x0043FDE4) &&
+        s->return_pc!=UINT32_C(0x0043FE00)) ||
        (!s->done && (s->cpu.pc<AE3_FIND_ENTRY || s->cpu.pc>=AE3_FIND_END || (s->cpu.pc&3))))
        return AE3_FIND_INVALID;
     if(s->done)return AE3_FIND_RETURNED;
