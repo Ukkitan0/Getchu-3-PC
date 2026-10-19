@@ -1,6 +1,7 @@
 #include "ae3/archive.hpp"
 #include "ae3/tim2.hpp"
 #include "ae3/lua_stage.hpp"
+#include "ae3/controller_timeline.hpp"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -25,11 +26,14 @@ using namespace DirectX;
 namespace fs = std::filesystem;
 
 namespace {
-constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104;
+constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104, kSignalTrigger=105;
 HWND gMain=nullptr,gList=nullptr,gView=nullptr,gInfo=nullptr;
 std::unique_ptr<ae3::Archive> gArchive;
 std::unique_ptr<ae3::NativeStageWorld> gNativeWorld;
 std::unique_ptr<ae3::LuaStage> gNativeStage;
+std::vector<ae3::NativeControllerTimeline> gControllerTimelines;
+std::chrono::steady_clock::time_point gLastScriptTick=std::chrono::steady_clock::now();
+std::size_t gScriptEventCount=0;
 std::wstring gSource, gError, gProgress;
 float gYaw=.4f,gX=0,gZ=-5,gHeight=2.5f;
 bool gKeys[256]={};
@@ -239,6 +243,9 @@ void loadArchive(const fs::path& path){
             SendMessageW(gList,LB_ADDSTRING,0,reinterpret_cast<LPARAM>(name.c_str()));
         }
         gSource=path.wstring();
+        gControllerTimelines.clear();
+        gNativeStage.reset();
+        gNativeWorld.reset();
         gRenderer.clearTexture();
         gArchive=std::move(mounted);
         std::wstringstream info;info<<L"Native mount: "<<gArchive->entries().size()
@@ -277,6 +284,14 @@ void openRecoveredStage(){
         auto stage=std::make_unique<ae3::LuaStage>(*world);
         stage->executeSource(source,"area.lua");
         stage->callSetupArea("spawn_default");
+        std::vector<ae3::NativeControllerTimeline> controllers;
+        for(const auto& entity:world->entities()) {
+            if(entity.controllers.kind==ae3::ScriptValue::Kind::object)
+                controllers.emplace_back(entity.controllers);
+        }
+        gControllerTimelines=std::move(controllers);
+        gScriptEventCount=0;
+        gLastScriptTick=std::chrono::steady_clock::now();
         gNativeStage.reset();
         gNativeWorld=std::move(world);
         gNativeStage=std::move(stage);
@@ -291,12 +306,25 @@ void openRecoveredStage(){
         std::wstringstream info;
         info<<L"Executed original-style Lua 5.0 script on native CPU: "
             <<gNativeWorld->entities().size()<<L" entities, "
-            <<gNativeWorld->parameters().size()<<L" Lua params. "
+            <<gNativeWorld->parameters().size()<<L" Lua params, "
+            <<gControllerTimelines.size()<<L" running native controller timelines. ";
             <<L"ENGINE DESCRIPTORS ONLY: gameplay, collision and real level rendering still incomplete.";
         status(info.str());
     }catch(const std::exception& e){
         status(L"Native Lua 5.0 stage failed: "+wide(e.what()));
     }
+}
+void signalFirstNativeTrigger(){
+    for(auto& timeline:gControllerTimelines){
+        if(timeline.isWaitingForTrigger()){
+            const std::string trigger=timeline.waitingTriggerName();
+            const bool accepted=timeline.signal(trigger,timeline.expectedTriggerActive());
+            status(L"Native controller signal "+wide(trigger)+
+                   (accepted?L" accepted; timeline resumed.":L" was not accepted."));
+            return;
+        }
+    }
+    status(L"No native script controller currently waits on a trigger.");
 }
 void exportSelected(){
     if(!gArchive)return;
@@ -348,6 +376,8 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
             245,8,210,32,wnd,reinterpret_cast<HMENU>(INT_PTR(kExport)),inst,nullptr);
         CreateWindowW(L"BUTTON",L"Run original Lua 5.0 stage",WS_CHILD|WS_VISIBLE,
             465,8,225,32,wnd,reinterpret_cast<HMENU>(INT_PTR(kLuaStage)),inst,nullptr);
+        CreateWindowW(L"BUTTON",L"Signal Lua trigger",WS_CHILD|WS_VISIBLE,
+            700,8,155,32,wnd,reinterpret_cast<HMENU>(INT_PTR(kSignalTrigger)),inst,nullptr);
         gList=CreateWindowExW(WS_EX_CLIENTEDGE,L"LISTBOX",nullptr,
             WS_CHILD|WS_VISIBLE|WS_VSCROLL|LBS_NOTIFY|LBS_NOINTEGRALHEIGHT,
             0,0,1,1,wnd,reinterpret_cast<HMENU>(INT_PTR(kList)),inst,nullptr);
@@ -364,6 +394,7 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         if(LOWORD(w)==kOpen && HIWORD(w)==BN_CLICKED)openFile();
         if(LOWORD(w)==kExport && HIWORD(w)==BN_CLICKED)exportSelected();
         if(LOWORD(w)==kLuaStage && HIWORD(w)==BN_CLICKED)openRecoveredStage();
+        if(LOWORD(w)==kSignalTrigger && HIWORD(w)==BN_CLICKED)signalFirstNativeTrigger();
         if(LOWORD(w)==kList && HIWORD(w)==LBN_SELCHANGE && gArchive){
             auto idx=SendMessageW(gList,LB_GETCURSEL,0,0);
             if(idx!=LB_ERR && static_cast<std::size_t>(idx)<gArchive->entries().size()){
@@ -405,6 +436,35 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
             if(gKeys['E'])gHeight+=speed;
             if(gKeys[VK_LEFT])gYaw-=.025f;
             if(gKeys[VK_RIGHT])gYaw+=.025f;
+            // Runtime stage controller events run against host-monotonic
+            // time; no PlayStation 2 hardware clock or system is simulated.
+            const auto now=std::chrono::steady_clock::now();
+            const double dt=std::clamp(
+                std::chrono::duration<double>(now-gLastScriptTick).count(),0.0,0.1);
+            gLastScriptTick=now;
+            if(gNativeWorld) {
+                try{
+                    for(auto& controller:gControllerTimelines) {
+                        const auto events=controller.advance(dt);
+                        for(const auto& event:events) {
+                            ++gScriptEventCount;
+                            // Debug only: real gameplay event handlers remain
+                            // to be recovered (audio, physics, AI, messaging).
+                            std::wstringstream info;
+                            info<<L"Lua event #"<<gScriptEventCount<<L" at "
+                                <<event.gameSeconds<<L"s: "<<wide(event.opcode);
+                            const std::wstring item=info.str();
+                            if(SendMessageW(gList,LB_GETCOUNT,0,0)>1500)
+                                SendMessageW(gList,LB_DELETESTRING,0,0);
+                            SendMessageW(gList,LB_ADDSTRING,0,
+                                         reinterpret_cast<LPARAM>(item.c_str()));
+                        }
+                    }
+                }catch(const std::exception& e){
+                    status(L"Lua controller runtime stopped: "+wide(e.what()));
+                    gControllerTimelines.clear();
+                }
+            }
             gRenderer.render();
         }
         return 0;
