@@ -105,11 +105,30 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c \
   ae3_ee_memory_bus.c ae3_boot_post_find.c ae3_guest_find_address.c \
   ae3_boot_next_init.c test_boot_next_init.c -o build/test_boot_next_init
 ./build/test_boot_next_init "$AE3_ELF"
+# Original EE Timer3 MODE register model and both retail branch outcomes.
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c ae3_ee_timer3.c \
+  test_ee_timer3.c -o build/test_ee_timer3
+./build/test_ee_timer3
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c \
+  ae3_ee_memory_bus.c ae3_ee_timer3.c ae3_boot_next_init.c \
+  ae3_boot_timer3_resume.c test_boot_timer3_resume.c -o build/test_boot_timer3_resume
+./build/test_boot_timer3_resume "$AE3_ELF"
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c \
+  ae3_ee_memory_bus.c ae3_ee_timer3.c ae3_ee_syscall_kernel.c \
+  ae3_boot_next_init.c ae3_boot_timer3_resume.c ae3_guest_kernel_copy.c \
+  ae3_boot_timer3_syscalls.c test_boot_timer3_syscalls.c \
+  -o build/test_boot_timer3_syscalls
+./build/test_boot_timer3_syscalls "$AE3_ELF"
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c \
+  ae3_ee_memory_bus.c ae3_guest_kernel_copy.c test_guest_kernel_copy.c \
+  -o build/test_guest_kernel_copy
+./build/test_guest_kernel_copy "$AE3_ELF"
 cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
   ae3_boot_memory_fill.c ae3_boot_thread_setup.c ae3_boot_kernel_bridge.c \
   ae3_boot_init_prefix.c ae3_boot_semaphore_init.c ae3_ee_sema_kernel.c \
   ae3_ee_syscall_kernel.c ae3_boot_hook_init.c ae3_ee_memory_bus.c \
   ae3_guest_find_address.c ae3_boot_post_find.c ae3_boot_next_init.c \
+  ae3_ee_timer3.c ae3_boot_timer3_resume.c ae3_guest_kernel_copy.c ae3_boot_timer3_syscalls.c \
   ae3_ee_boot_services.c ae3_boot_probe.c -o build/ae3_boot_probe
 ./build/ae3_boot_probe "$AE3_ELF"
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture
@@ -128,3 +147,8 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
 ./build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model --test-sema-hle --test-ee-alias --test-post-find
 ./build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model --test-sema-hle --test-ee-alias --test-next-mmio
 python3 test_boot_services_integration.py build/ae3_boot_probe "$AE3_ELF"
+
+./build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model --test-sema-hle --test-ee-alias --test-timer3
+./build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model --test-sema-hle --test-ee-alias --test-timer3-enabled
+
+./build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model --test-sema-hle --test-ee-alias --test-timer3-copy
