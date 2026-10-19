@@ -1,3 +1,32 @@
+## Latest checkpoint — shared EE virtual/physical memory bus (2026-10-18)
+
+`ae3_ee_memory_bus.[ch]` implements **one canonical 32 MiB EE RAM image**
+accessible through KUSEG, KSEG0 (`0x80000000`), KSEG1 (`0xA0000000`),
+and the supported uncached RAM aliases. It also optionally maps owned BIOS
+ROM bytes (read-only) and scratchpad RAM. Unknown MMIO/TLB regions fault;
+no kernel bytes are fabricated. This is an address bus, **not a BIOS emulator**.
+
+The original `FindAddress` handler now accepts this bus (`ae3_guest_find_slice_bus`)
+without copying an imaginary independent KSEG0 buffer. The recorded later
+PCSX2 EE RAM still yields `0x80014F0C` and zero for the two lookups, exactly
+as in the earlier isolated reference. **At real ELF-only startup, however,
+no BIOS has initialized the reserved first 1 MiB; both searches return zero.**
+This proves address aliasing and exposes missing boot-time kernel contents,
+not a successful kernel initialization.
+
+`AE3BootProbe.exe` defaults to stopping at the genuine `SetupThread` syscall.
+For an explicitly non-authentic test continuation, set
+`AE3_BOOT_TEST_ALIAS=1` when running the Windows boot diagnostic build script,
+or on Linux use `./build/ae3_boot_probe SCUS_975.01 --test-kernel-fixture
+--test-sema-hle --test-ee-alias`. That exercises both original FindAddress
+calls using shared physical EE RAM and reaches `0x0043FDC4` after
+**1,626,728 retired MIPS instructions**, without loading any BIOS kernel
+image. Nothing here renders graphics or runs the game.
+
+Regression tests: `test_ee_memory_bus.c`, `test_findaddress_bus.c`, and
+`test_boot_probe_alias.py`. They are included in `BUILD_AND_TEST_LINUX.sh`.
+See [CHECKPOINT_EE_MEMORY_ALIAS.md](CHECKPOINT_EE_MEMORY_ALIAS.md).
+
 ## New checkpoint: registered guest syscalls and FindAddress execution (2026-10-18)
 
 The experimental EE syscall table now processes the **two original** `SetSyscall`
