@@ -61,6 +61,24 @@ class NativeBootReportTests(unittest.TestCase):
             self.assertEqual(len(report["rounds"]), 1)
             self.assertIn("No new EE code", report["prioritized_next_investigation"])
 
+    def test_actual_upstream_missing_code_and_frame_halt(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "explore_summary.json").write_text(json.dumps([
+                {"round": 1, "runner_exit_code": 0,
+                 "new_code_entries": 2, "new_code_images": 1}]))
+            (root / "explore_round_01.stderr.txt").write_text(
+                "[ee] no translated code at 0x00428AE8 (ra 0x0010033C)\n"
+                "[ee] halted: missing code at 0x00428AE8 (ra 0x0010033C)\n"
+                "[ee] stopped after 17 frames, 134200 cycles: missing code at 0x00428AE8\n")
+            report = boot_report.analyze(root)
+            self.assertEqual(report["signal_counts"]["missing_compiled_code"], 2)
+            self.assertEqual(report["maximum_reported_guest_frames"], 17)
+            self.assertTrue(report["reached_guest_frame_execution"])
+            self.assertIn("missing code", report["last_guest_halt_reason"])
+            self.assertIn("Indirect EE address", report["prioritized_next_investigation"])
+            self.assertFalse(report["original_game_execution_verified"])
+
     def test_rejects_corrupted_round_report(self):
         with tempfile.TemporaryDirectory() as folder:
             (Path(folder) / "explore_summary.json").write_text('"hello"')
