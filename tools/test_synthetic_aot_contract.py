@@ -19,6 +19,13 @@ class AotContract(unittest.TestCase):
         self.assertNotIn('https:', fixture)
         self.assertIn('0x0320F809', fixture)  # JALR dynamic callback
 
+    def test_143_callback_fixture_is_supported(self):
+        source = (ROOT/'run_synthetic_aot_windows.ps1').read_text()
+        for needle in ("'constructors'", 'synthetic_ctors_smoke.py',
+                       "'0000008f'", '$ExpectedSeeds = 143',
+                       '$ExpectedRam'):
+            self.assertIn(needle, source)
+
     def test_failure_and_timeout_handling(self):
         source = (ROOT/'run_synthetic_aot_windows.ps1').read_text()
         for required in ('Stop-Process', 'WaitForExit', 'finally',

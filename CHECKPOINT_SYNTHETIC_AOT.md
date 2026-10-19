@@ -48,3 +48,25 @@ contains `[peek] 00012000: 00001234` and an `[ee] stopped ...: Exit` line.
 Any other result is a failure and should be preserved for diagnosis.
 
 This is a native recompilation fixture, **not a commercial game test**.
+
+## Added 143-callback stress fixture
+
+`tools/synthetic_ctors_smoke.py` synthesizes **143 different** MIPS R5900
+callbacks at code addresses `0x00100200` onward and a 144-word pointer table
+terminated by zero. Each callback increments a guest register and returns via
+`JR $ra`. The real MIPS dispatcher loops through all 143 original test
+addresses with `LW`, conditional branch, delay slot and indirect `JALR`.
+At the end it stores `143` (`0000008F`) into RAM `0x00012000` and calls the
+original test syscall `Exit` (`0x04`). The explicit generated `--entries` list
+contains all 143 callback addresses.
+
+The mode is selected using `-FixtureMode constructors` in
+`tools/run_synthetic_aot_windows.ps1`; `-FixtureMode calls` remains the
+smaller default. It compiles and executes the code with the exact same Win32
+CMake build and runtime as the smaller proven smoke test.
+
+The 17 standalone Python tests for both fixtures passed locally, and
+`llvm-objdump` independently decoded the MIPS code and branch destinations.
+A successful Windows CI run is required before claiming the stress dispatcher
+actually executes in the native runtime; it is **not** a claim that 143
+commercial Ape Escape constructors have been executed.

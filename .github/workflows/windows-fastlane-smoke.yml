@@ -9,6 +9,7 @@ on:
       - 'tools/native_explore.py'
       - 'tools/test_windows_fastlane.py'
       - 'tools/synthetic_aot_smoke.py'
+      - 'tools/synthetic_ctors_smoke.py'
       - 'tools/run_synthetic_aot_windows.ps1'
       - 'tools/test_synthetic_aot*.py'
       - 'RUN_BULK_NATIVE_WINDOWS.ps1'
@@ -75,6 +76,11 @@ jobs:
         run: |
           $toolchain = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
           & "tools/run_synthetic_aot_windows.ps1" -Upstream "$env:RUNNER_TEMP\upstream" -Compiler "$env:RUNNER_TEMP\tools-build\Release\eerecomp.exe" -RuntimeBuild "$env:RUNNER_TEMP\runtime-build" -VcpkgToolchain $toolchain
+      - name: Translate and run 143 indirect MIPS callbacks in native Windows
+        shell: pwsh
+        run: |
+          $toolchain = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
+          & "tools/run_synthetic_aot_windows.ps1" -Upstream "$env:RUNNER_TEMP\upstream" -Compiler "$env:RUNNER_TEMP\tools-build\Release\eerecomp.exe" -RuntimeBuild "$env:RUNNER_TEMP\runtime-build" -VcpkgToolchain $toolchain -FixtureMode constructors -TimeoutSeconds 60
       - name: Compile Win32 WebGPU renderer against verified official wgpu-native
         shell: pwsh
         run: |
@@ -103,6 +109,9 @@ jobs:
             ${{ runner.temp }}/usage.txt
             ${{ runner.temp }}/runtime-build/ae3-aot-smoke/aot-smoke-result.json
             ${{ runner.temp }}/runtime-build/ae3-aot-smoke/aot-smoke-stderr.txt
+            ${{ runner.temp }}/runtime-build/ae3-aot-constructors/aot-smoke-result.json
+            ${{ runner.temp }}/runtime-build/ae3-aot-constructors/aot-smoke-stderr.txt
+            ${{ runner.temp }}/runtime-build/ae3-aot-constructors/aot-smoke-stdout.txt
             ${{ runner.temp }}/runtime-build/ae3-aot-smoke/aot-smoke-stdout.txt
             ${{ runner.temp }}/runtime-build/CMakeFiles/CMakeConfigureLog.yaml
             ${{ runner.temp }}/gpu-build/CMakeFiles/CMakeConfigureLog.yaml

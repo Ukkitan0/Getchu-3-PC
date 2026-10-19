@@ -8,11 +8,12 @@ param(
     [Parameter(Mandatory=$true)][string]$RuntimeBuild,
     [string]$Workspace = '',
     [string]$VcpkgToolchain = '',
+    [ValidateSet('calls', 'constructors')][string]$FixtureMode = 'calls',
     [ValidateRange(5,180)][int]$TimeoutSeconds = 30
 )
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
-if (-not $Workspace) { $Workspace = Join-Path $RuntimeBuild 'ae3-aot-smoke' }
+if (-not $Workspace) { $Workspace = Join-Path $RuntimeBuild ('ae3-aot-' + $FixtureMode) }
 New-Item -ItemType Directory -Path $Workspace -Force | Out-Null
 $elf = Join-Path $Workspace 'aot-original-test.elf'
 $entries = Join-Path $Workspace 'dynamic-entries.txt'
@@ -26,9 +27,20 @@ function InvokeChecked([string]$Command, [string[]]$Arguments) {
         throw "Command failed with exit code $($LASTEXITCODE): $Command"
     }
 }
-# Source ELF and callback entry list are synthesized from original test opcodes.
-InvokeChecked 'py' @('-3', (Join-Path $PSScriptRoot 'synthetic_aot_smoke.py'), '--out', $elf, '--entries', $entries)
-InvokeChecked 'py' @('-3', (Join-Path $PSScriptRoot 'synthetic_aot_smoke.py'), '--out', $elf, '--check')
+# Both fixtures contain only original game-free test opcodes.
+if ($FixtureMode -eq 'constructors') {
+    $Generator = Join-Path $PSScriptRoot 'synthetic_ctors_smoke.py'
+    $ExpectedRam = '0000008f' # 143 different indirect callbacks
+    $ExpectedSeeds = 143
+} else {
+    $Generator = Join-Path $PSScriptRoot 'synthetic_aot_smoke.py'
+    $ExpectedRam = '00001234'
+    $ExpectedSeeds = 1
+}
+InvokeChecked 'py' @('-3', $Generator, '--out', $elf, '--entries', $entries)
+InvokeChecked 'py' @('-3', $Generator, '--out', $elf, '--check')
+$SeedRows = @(Get-Content -LiteralPath $entries | Where-Object { $_.Trim() })
+if ($SeedRows.Count -ne $ExpectedSeeds) { throw "Expected $ExpectedSeeds dynamic code seeds, found $($SeedRows.Count)" }
 InvokeChecked $Compiler @($elf, '--entries', $entries, '--out', $generated)
 $cpp = @(Get-ChildItem -LiteralPath $generated -Filter '*.cpp' -File)
 if ($cpp.Count -eq 0) { throw 'eerecomp emitted zero generated C++ translation units' }
@@ -58,7 +70,7 @@ try {
     else { $env:PS2_PEEK = $oldPeek }
 }
 $trace = Get-Content -LiteralPath $log -Raw
-if ($trace -notmatch '(?m)^\[peek\] 00012000:\s+00001234\b') {
+if ($trace -notmatch ('(?m)^\[peek\] 00012000:\s+' + $ExpectedRam + '\b')) {
     throw "Guest direct JAL, indirect JALR, SW or RAM read failed; inspect $log"
 }
 if ($trace -notmatch '(?m)^\[ee\] stopped after .*:\s*Exit\s*$') {
@@ -67,16 +79,18 @@ if ($trace -notmatch '(?m)^\[ee\] stopped after .*:\s*Exit\s*$') {
 $result = [ordered]@{
     result = 'PASS'
     fixture = 'original game-free R5900 JAL/JALR/memory/syscall code'
+    fixture_mode = $FixtureMode
+    indirect_entry_seeds = $ExpectedSeeds
     original_commercial_code = $false
     eerecomp_cpp_units = $cpp.Count
     guest_entry = '00100100'
-    indirect_entry_seed = '00100160'
+    first_indirect_entry_seed = $SeedRows[0]
     actual_guest_store_address = '00012000'
-    actual_guest_store_value = '00001234'
+    actual_guest_store_value = $ExpectedRam
     exit_syscall = '04'
     runner_exit_code = $process.ExitCode
     trace = $log
 }
 $result | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $report -Encoding UTF8
-Write-Host 'AE3 SYNTHETIC NATIVE AOT SMOKE PASS: real original JAL/JALR, memory store, kernel Exit.'
+Write-Host ('AE3 SYNTHETIC NATIVE AOT SMOKE PASS: ' + $FixtureMode + ' / ' + $ExpectedSeeds + ' JALR entries, guest RAM and Exit.')
 Write-Host "Report: $report"
