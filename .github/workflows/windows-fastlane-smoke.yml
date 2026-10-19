@@ -8,6 +8,9 @@ on:
       - 'tools/windows_upstream_patch.py'
       - 'tools/native_explore.py'
       - 'tools/test_windows_fastlane.py'
+      - 'tools/synthetic_aot_smoke.py'
+      - 'tools/run_synthetic_aot_windows.ps1'
+      - 'tools/test_synthetic_aot*.py'
       - 'RUN_BULK_NATIVE_WINDOWS.ps1'
       - 'fastlane/ci_stub/**'
 
@@ -24,6 +27,7 @@ jobs:
         shell: pwsh
         run: |
           python -m unittest discover -s tools -p 'test_windows_fastlane.py' -v
+          python -m unittest discover -s tools -p 'test_synthetic*.py' -v
           # Full-game bulk tests consume the owner's recovered opcode inventory,
           # intentionally absent from the public GitHub source checkout.
       - name: Fetch exact known upstream revision
@@ -66,6 +70,11 @@ jobs:
           $usage = "$env:RUNNER_TEMP\usage.txt"
           $proc = Start-Process -FilePath $runner -PassThru -Wait -NoNewWindow -RedirectStandardError $usage
           if ($proc.ExitCode -ne 2) { throw "Unexpected no-argument runner exit code $($proc.ExitCode)" }
+      - name: Translate and execute game-free R5900 AOT program on real Windows runtime
+        shell: pwsh
+        run: |
+          $toolchain = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
+          & "tools/run_synthetic_aot_windows.ps1" -Upstream "$env:RUNNER_TEMP\upstream" -Compiler "$env:RUNNER_TEMP\tools-build\Release\eerecomp.exe" -RuntimeBuild "$env:RUNNER_TEMP\runtime-build" -VcpkgToolchain $toolchain
       - name: Compile Win32 WebGPU renderer against verified official wgpu-native
         shell: pwsh
         run: |
@@ -92,6 +101,9 @@ jobs:
           path: |
             ${{ runner.temp }}/windows_port_report.json
             ${{ runner.temp }}/usage.txt
+            ${{ runner.temp }}/runtime-build/ae3-aot-smoke/aot-smoke-result.json
+            ${{ runner.temp }}/runtime-build/ae3-aot-smoke/aot-smoke-stderr.txt
+            ${{ runner.temp }}/runtime-build/ae3-aot-smoke/aot-smoke-stdout.txt
             ${{ runner.temp }}/runtime-build/CMakeFiles/CMakeConfigureLog.yaml
             ${{ runner.temp }}/gpu-build/CMakeFiles/CMakeConfigureLog.yaml
           if-no-files-found: ignore
