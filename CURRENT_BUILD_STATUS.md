@@ -1,3 +1,16 @@
+# October 19 — AddIntcHandler and Timer 2 MODE boundary
+
+- The actual guest `AddIntcHandler` syscall wrapper now returns through a
+  stateful **experimental** INTC handler registry (64 entries), then executes
+  the original `BGEZL` including delay annulment in the failure case.
+- Success writes the handler ID to `0x006A2E28`. An explicitly supplied
+  COP0 Status with EIE bit clear permits the original helper at `0x43FBA0`.
+- At **323,264** test-mode retired instructions, stops **before** MIPS `LW`
+  at PC `0x00440590` reading `0x10001010` — **Timer 2 MODE**.
+- The public default diagnostic still halts at authentic `SetupThread`.
+- Original-code regression, GCC/Clang sanitizers, Windows x64 COFF all passed.
+  No Windows game build and no faithful BIOS/COP0/timer execution.
+
 # October 19 — original allocator through AddIntcHandler kernel boundary
 
 - Real 0x0043FE78 -> 0x004404B0 guest call now executes in the native
