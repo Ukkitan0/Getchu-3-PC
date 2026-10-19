@@ -1,7 +1,7 @@
 {
   "project": "Getchu-3-PC",
   "date": "2026-10-19",
-  "status": "Windows runtime overlay and iterative AOT/VU recompiler integrated, offline tested; NOT playable",
+  "status": "Win32 native compatibility + private ELF metadata reconstruction; offline tests green; game build NOT playable",
   "verified_boot_pc": "0x0041F118 (before second constructor nested math JAL)",
   "test_mode_retired_guest_instructions": 329473,
   "kernel": "experimental compatibility mode; Sony BIOS not emulated",
@@ -64,8 +64,8 @@
   "bulk_python_test_count": 8,
   "bulk_upstream_revision": "6526f4803d98e10de50bea3af104a4d26e9df033",
   "bulk_native_windows_build_verified": false,
-  "current_checkpoint": "Win32 GPU/SDL2/ClangCL compatibility and automatic indirect-call rediscovery",
-  "offline_python_tests_passed": 22,
+  "current_checkpoint": "private ELF-derived inventory fallback for clean public checkout and first Windows CI smoke bugfix",
+  "offline_python_tests_passed": 28,
   "win32_port_transformations": 11,
   "native_windows_full_build_verified": false,
   "windows_github_actions_smoke_completed": false,
@@ -76,5 +76,8 @@
     "tools/native_explore.py",
     "tools/test_windows_fastlane.py",
     ".github/workflows/windows-fastlane-smoke.yml"
-  ]
+  ],
+  "private_inventory_derived_from_elf_supported": true,
+  "retail_direct_jal_targets_reconstructed_and_matched": 12228,
+  "latest_ci_note": "First CI run failed on missing archived game-derived inventory; CI smoke updated to avoid private-only original data."
 }

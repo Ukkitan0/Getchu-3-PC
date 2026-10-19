@@ -73,3 +73,11 @@ guest runner, collects missing indirect code entry addresses, validates against
 the original instruction inventory and rebuilds translated C++ in batches. This
 is experimental source plumbing until the original ELF+ISO Windows execution succeeds.
 A no-game-data GitHub Actions Windows smoke workflow tests compilation separately.
+
+## Building from fresh public checkout (no original inventory)
+
+`tools/bulk_recompile.py` will now reconstruct `ee_text_word_inventory.tsv.gz`
+and `direct_jal_targets.tsv` automatically from the SHA-256-verified US retail
+ELF supplied through `-Elf`. The derived instruction bytes are saved **only**
+inside the private build workspace, never committed. No manual copy from the
+old checkpoint ZIP is required. See `CHECKPOINT_PRIVATE_ELF_RECONSTRUCTION.md`.

@@ -1,3 +1,14 @@
+## 2026-10-19: rebuild private opcode inventory from owned ELF (CI/public-repo fix)
+
+A fresh public checkout omits retail code bytes by design. The native bulk
+translator now derives executable instruction words and 12,228 raw JAL call
+candidates from a **SHA-256-validated owner-provided ELF** into private output.
+A synthetic ELF test verifies the automatic regeneration path, invalid ELF
+rejection, and existing-inventory reuse. **28/28 offline Python tests pass.**
+Initial Windows CI exposed the public missing-file assumption; the smoke workflow
+has been restricted to tests requiring no retail ELF/derived opcode bytes.
+A Windows game build has NOT been verified. See `CHECKPOINT_PRIVATE_ELF_RECONSTRUCTION.md`.
+
 ## 2026-10-19: native Windows runtime overlay + iterative AOT exploration (SOURCE ONLY, NOT PLAYABLE)
 
 Reused MIT upstream `snuri00/ps2-web-recomp` at pinned `6526f48`, adding Win32 SDL2

@@ -101,6 +101,13 @@ $Entries = Join-Path $Workspace 'entries'
 $Generated = Join-Path $Workspace 'generated\ae3'
 RunProcess 'py' @('-3',(Join-Path $Project 'tools\bulk_recompile.py'),'--elf',$Elf,'--out',$Entries,'--seed-mode',$SeedMode,'--eerecomp',$Compiler,'--cpp-out',$Generated)
 $EntryList = Join-Path $Entries 'entries.txt'
+$AnalysisInventory = Join-Path $Project 'analysis\full_elf\ee_text_word_inventory.tsv.gz'
+if (-not (Test-Path -LiteralPath $AnalysisInventory)) {
+    # A fresh public checkout contains NO copyrighted retail-code inventory.
+    # The bulk recompiler derives one privately from the user's verified ELF.
+    $AnalysisInventory = Join-Path $Entries 'derived_from_owned_elf\ee_text_word_inventory.tsv.gz'
+}
+if (-not (Test-Path -LiteralPath $AnalysisInventory)) { Fail 'Private EE opcode inventory was not generated' }
 $NativeBuild = Join-Path $Workspace 'build-native-ae3'
 # SDL is mandatory for an interactive native Windows test, not an optional silent omission.
 $CmakeArgs = @('-S',$Upstream,'-B',$NativeBuild,'-G','Visual Studio 17 2022','-A','x64','-T','ClangCL',"-DPS2_GENERATED=$Generated",'-DAE3_REQUIRE_SDL2=ON') + $ExtraCmake + $WgpuArgs
@@ -142,7 +149,7 @@ if ($ExploreRounds -gt 0) {
                 $ExploreExit = $LASTEXITCODE
             } finally { $ErrorActionPreference = $OldPreference }
             "explore process code: $ExploreExit" | Out-File -FilePath $Log -Append
-            RunProcess 'py' @('-3',(Join-Path $Project 'tools\native_explore.py'),'--entries',$EntryList,'--misses',$Misses,'--inventory',(Join-Path $Project 'analysis\full_elf\ee_text_word_inventory.tsv.gz'),'--report',(Join-Path $Workspace 'explore_last.json'))
+            RunProcess 'py' @('-3',(Join-Path $Project 'tools\native_explore.py'),'--entries',$EntryList,'--misses',$Misses,'--inventory',$AnalysisInventory,'--report',(Join-Path $Workspace 'explore_last.json'))
             $Summary = Get-Content -LiteralPath (Join-Path $Workspace 'explore_last.json') -Raw | ConvertFrom-Json
             if (-not $Summary.changed) { break }
             RunProcess $Compiler @($Elf,'--entries',$EntryList,'--out',$Generated)

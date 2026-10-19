@@ -1,12 +1,11 @@
-WINDOWS NATIVE ENGINE CHECKPOINT — 2026-10-19
+WINDOWS NATIVE ENGINE / PRIVATE-ELF INVENTORY CHECKPOINT — 2026-10-19
 
-OFFLINE TEST RESULTS (Linux container, NO retail ELF or ISO)
-- python3 -m unittest discover -s tools -p test_windows_fastlane.py: PASS 14/14
-- python3 -m unittest discover -s tools -p test_bulk_recompile.py: PASS 8/8
-- Total 22/22 Python tests passing.
-- tools/windows_upstream_patch.py: 11 anchor-checked Win32 changes in 5 upstream files; repeat application and full preflight failure tests pass on fixtures.
-- tools/native_explore.py: tested against actual pinned 1,351,830-row original instruction inventory. Two valid new entries merged and 2 prior entries retained.
-- GitHub Windows CI smoke workflow created but NOT EXECUTED/VERIFIED.
-- Windows ClangCL / SDL / WGPU full build NOT EXECUTED/VERIFIED.
-- No claim of title screen, game loop, playable Windows executable or GPU correctness.
-- Public repo contains no original ISO, retail ELF, generated original-game C++ or Sony BIOS.
+OFFLINE VERIFIED RESULTS — no Sony retail ELF used in these tests:
+- Local Python tests: 28 / 28 PASS (20 Win32/ELF fixture, 8 bulk inventory).
+- Validated 11 Win32 source transformations in synthetic pinned anchor fixtures.
+- Validated actual 1,351,830-word recovered instruction inventory for missing-entry merge.
+- Independently re-derived 12,228 direct JAL addresses and exact per-target counts from recovered opcode inventory, matching archived reference.
+- Synthetic original-ELF creation test rebuilt private original-EE instruction table and JAL table; caught invalid ELF types/machines/segments.
+- First real Windows CI smoke reached Python tests: 14 portable fixture tests passed; 8 private-inventory tests failed solely because those game-derived files were intentionally not committed. CI workflow changed to run standalone game-free tests.
+
+OUTSTANDING: CI native C++ toolchain build, original retail executable full translation, native Windows game boot, WebGPU renderer success and actual gameplay all NOT VERIFIED.

@@ -13,6 +13,7 @@ import gzip
 import hashlib
 import json
 from pathlib import Path
+from derive_elf_inventory import derive
 import subprocess
 import sys
 
@@ -154,8 +155,16 @@ def main(argv=None):
         p.error('--eerecomp requires both --elf and --cpp-out')
     if args.elf:
         check_elf(args.elf)
-    records, groups = load_inventory(INVENTORY)
-    calls = load_calls(STATIC_TARGETS, records)
+    inv, targets = INVENTORY, STATIC_TARGETS
+    if not inv.is_file() or not targets.is_file():
+        if not args.elf:
+            raise FileNotFoundError('Retail instruction inventory is not in the public repository. Supply --elf with your own original SCUS_975.01; private tables will be reconstructed automatically.')
+        private = args.out / 'derived_from_owned_elf'
+        print('Generating missing private EE opcode inventory and call-target table from SHA-verified retail ELF',flush=True)
+        result = derive(args.elf, private)
+        inv, targets = Path(result['inventory']), Path(result['direct_targets'])
+    records, groups = load_inventory(inv)
+    calls = load_calls(targets, records)
     ctors = load_constructors(CONSTRUCTORS, records)
     report, entries = write_outputs(args.out, records, groups, calls, ctors, args.seed_mode)
     print(json.dumps({k: v for k, v in report.items() if k != 'opcode_major_histogram'}, indent=2))
