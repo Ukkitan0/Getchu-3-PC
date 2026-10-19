@@ -6,6 +6,7 @@ static const struct {uint32_t pc,word;} code[]={
  {0x004405b0,0x0c110120},{0x004405b4,0x36100c80},
  {0x004405b8,0x0c110128},{0x004405bc,0x3404ffff},
  {0x004405c0,0x0c110124},{0x004405c4,0x0200202d},
+ {0x00440744,0x0c110124},{0x00440748,0x34840080},
  {0x00440480,0x0080282d},{0x00440484,0x3c04b000},
  {0x00440488,0x08110104},{0x0044048c,0x34841000},
  {0x00440490,0x0080282d},{0x00440494,0x3c04b000},
@@ -31,12 +32,20 @@ AE3_BootTimer2SetupResult ae3_boot_timer2_setup_enter(AE3_BootTimer2Setup *s,
  s->cop0_status=prior->cop0_status;s->active=1;
  return AE3_BT2S_YIELDED;
 }
+AE3_BootTimer2SetupResult ae3_boot_timer2_setup_recheck_enter(
+ AE3_BootTimer2Setup *s,const AE3_BootPrefix *cpu,uint32_t status){
+ if(!s||!cpu||cpu->pc!=UINT32_C(0x00440744)||cpu->in_delay_slot||
+    (status&UINT32_C(0x10000)))return AE3_BT2S_INVALID;
+ *s=(AE3_BootTimer2Setup){0};s->cpu=*cpu;s->cop0_status=status;
+ s->active=1;return AE3_BT2S_YIELDED;
+}
 AE3_BootTimer2SetupResult ae3_boot_timer2_setup_slice(
  AE3_BootTimer2Setup *s,AE3_EEMemoryBus *bus,uint32_t budget){
  if(!s||!bus||!s->active||s->cpu.in_delay_slot>1)return AE3_BT2S_INVALID;
  for(uint32_t i=0;i<budget;i++){
    uint32_t pc=s->cpu.pc,word=0;
    if(pc==AE3_T2_GUEST_NEXT_ENABLE_INTC)return AE3_BT2S_ENABLE_INTC_PENDING;
+   if(pc==UINT32_C(0x0044074c))return AE3_BT2S_RECHECK_NEXT_CALL;
    size_t j=0;
    for(;j<sizeof(code)/sizeof(code[0]);j++)if(code[j].pc==pc)break;
    if(j==sizeof(code)/sizeof(code[0]))return AE3_BT2S_UNSUPPORTED;
@@ -47,7 +56,7 @@ AE3_BootTimer2SetupResult ae3_boot_timer2_setup_slice(
    uint32_t target=delay?next.cpu.branch_target:pc+4u;
    if(delay){next.cpu.in_delay_slot=0;next.cpu.branch_target=0;}
    switch(pc){
-   case 0x004405b0:case 0x004405b8:case 0x004405c0:
+   case 0x004405b0:case 0x004405b8:case 0x004405c0:case 0x00440744:
       if(delay)return AE3_BT2S_UNSUPPORTED;
       put(&next.cpu,31,pc+8u);
       next.cpu.in_delay_slot=1;
@@ -60,6 +69,9 @@ AE3_BootTimer2SetupResult ae3_boot_timer2_setup_slice(
    case 0x004405bc:
       if(!delay)return AE3_BT2S_UNSUPPORTED;
       put(&next.cpu,4,UINT64_C(0xffff));break;
+   case 0x00440748:
+      if(!delay)return AE3_BT2S_UNSUPPORTED;
+      put(&next.cpu,4,sx((uint32_t)get(&next.cpu,4)|0x80u));break;
    case 0x004405c4:
       if(!delay)return AE3_BT2S_UNSUPPORTED;
       put(&next.cpu,4,get(&next.cpu,16));break;
@@ -124,7 +136,8 @@ AE3_BootTimer2SetupResult ae3_boot_timer2_setup_slice(
    case 0x00440474:
       if(delay||!(next.cop0_status&4u)||
          (next.error_epc!=0x004405b8u &&next.error_epc!=0x004405c0u&&
-          next.error_epc!=0x004405c8u))return AE3_BT2S_UNSUPPORTED;
+          next.error_epc!=0x004405c8u&&
+          next.error_epc!=0x0044074cu))return AE3_BT2S_UNSUPPORTED;
       next.cop0_status&=~4u;target=next.error_epc;
       break;
    default:return AE3_BT2S_UNSUPPORTED;
@@ -134,6 +147,7 @@ AE3_BootTimer2SetupResult ae3_boot_timer2_setup_slice(
    *s=next;
    if(target==AE3_T2_GUEST_NEXT_ENABLE_INTC)
        return AE3_BT2S_ENABLE_INTC_PENDING;
+   if(target==UINT32_C(0x0044074c))return AE3_BT2S_RECHECK_NEXT_CALL;
  }
  return AE3_BT2S_YIELDED;
 }

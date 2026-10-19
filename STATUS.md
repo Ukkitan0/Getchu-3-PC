@@ -1,3 +1,15 @@
+## October 19 — Timer 2 second MODE + guest event syscall (latest)
+
+Original retail instruction `0x00440710` is now executed, and both MODE
+outcomes are represented. Default MODE-enabled branch returns to the parent
+`0x0043FE88`, then the next guest initializer checks mapped global
+`0x006A1788` and reaches syscall `0x40` at `0x00435AE4`. The normal
+experimental fixture has 323,423 summed retired guest instructions,
+30 additional since the preceding checkpoint. Real compiled C regressions
+and ASan/UBSan pass. Full original ELF boot not rerun (executable absent).
+No real BIOS or playable native Windows game. Refer to
+`CHECKPOINT_TIMER2_FINISH_EVENT.md`.
+
 ## October 19 — EnableIntc + next Timer 2 MODE read checkpoint
 
 The experimental original-code chain has moved from guest `0x004405C8` to

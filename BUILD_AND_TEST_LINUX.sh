@@ -147,7 +147,8 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
   ae3_ee_boot_services.c ae3_guest_get_entry.c ae3_boot_post_patch.c \
   ae3_boot_alloc_init.c ae3_ee_intc_kernel.c ae3_boot_post_intc.c \
   ae3_boot_intc_critical.c ae3_ee_timer2.c ae3_boot_timer2_continue.c \
-  ae3_boot_timer2_setup.c ae3_boot_enable_intc.c ae3_boot_timer2_recheck.c ae3_boot_probe.c -o build/ae3_boot_probe
+  ae3_boot_timer2_setup.c ae3_boot_enable_intc.c ae3_boot_timer2_recheck.c \
+  ae3_boot_timer2_finish.c ae3_boot_event_create.c ae3_boot_probe.c -o build/ae3_boot_probe
 ./build/ae3_boot_probe "$AE3_ELF"
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture --test-sema-hle
@@ -199,3 +200,16 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c \
   ae3_ee_intc_kernel.c ae3_boot_enable_intc.c ae3_boot_timer2_recheck.c \
   test_boot_enable_intc.c -o build/test_boot_enable_intc
 ./build/test_boot_enable_intc
+
+# Original Timer2 second MODE read and branch/return; different hardware
+# states exercise the nested original SetT2_MODE COP0/ERET MMIO store.
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c \
+  ae3_ee_timer2.c ae3_boot_timer2_setup.c ae3_boot_timer2_finish.c \
+  test_boot_timer2_finish.c -o build/test_boot_timer2_finish
+./build/test_boot_timer2_finish
+
+# Original next system initialization: real 0x006A1788 global state, guest
+# descriptor stores and syscall 0x40 (stopped before experimental service).
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c \
+  ae3_boot_event_create.c test_boot_event_create.c -o build/test_boot_event_create
+./build/test_boot_event_create

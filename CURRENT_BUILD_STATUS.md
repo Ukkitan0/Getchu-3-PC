@@ -1,3 +1,19 @@
+# October 19 — second Timer 2 MODE and event initializer (newest)
+
+- Retail guest `LW` at `0x00440710` now executed through MMIO, followed by
+  original MODE branch and return to `0x0043FE88` (10 guest instructions).
+- MODE-disabled branch executes `SetT2_MODE` and nested COP0/ERET guest
+  store (+29 instructions for that branch), stopping at `0x0044074C`.
+- New original initializer enters `0x004368B8`, loads actual mapped global
+  at `0x006A1788`, sets up guest descriptor, reaches syscall 0x40 at
+  `0x00435AE4` (+20 original instructions on common uninitialized path).
+- Default experimental path now accounts for 323,423 guest instructions;
+  this is a sum of focused verified paths, not a fresh full retail ELF run.
+- Optimized and sanitizer test binaries PASS; cross-compiled three Windows
+  x64 COFF objects. Integrated executable compiles on Linux but needs the
+  user's original retail ELF for its full boot test.
+- Still NOT PLAYABLE. See CHECKPOINT_TIMER2_FINISH_EVENT.md.
+
 # October 19 — original guest EnableIntc and next Timer 2 MODE read
 
 - The authentic JAL at `0x004405C8` now calls the original `0x00436628`

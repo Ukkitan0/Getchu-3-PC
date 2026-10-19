@@ -8,6 +8,24 @@ input, sound and saves. Older recompilation efforts are reference material only.
 This public repository contains recovery tools, original implementations,
 and tests, **not** the copyrighted ISO, ELF, BIOS, ROM or game assets.
 
+## Latest checkpoint — second Timer2 MODE and event initializer
+
+- The original guest MODE read at `0x00440710` is now performed against a
+  mapped Timer 2 native register, not inferred. The enabled branch executes
+  10 original instructions and returns at `0x0043FE88`.
+- Disabled MODE follows the original SetT2_MODE guest JAL and shared
+  COP0/ERET helper to `0x0044074C` (29 instructions, 1 MMIO write). The
+  alternate prior-interrupt state stops at the original EIntr JAL.
+- The next main initializer JAL enters the genuine routine `0x004368B8`;
+  its guest global check at `0x006A1788` takes either the real skip return
+  or reaches syscall `0x40` at `0x00435AE4`. No kernel reply is faked.
+- **323,423** original instructions accounted for on the default synthetic
+  compatibility-model boot chain, +30 since the previous checkpoint.
+  Full retail ELF integration still unverified in this session, because the
+  retail executable is unavailable. Nonplayable native boot diagnostic only.
+
+See [CHECKPOINT_TIMER2_FINISH_EVENT.md](CHECKPOINT_TIMER2_FINISH_EVENT.md).
+
 ## Latest checkpoint — real EnableIntc wrapper and next initializer
 
 - The original guest program now executes its `EnableIntc` JAL at

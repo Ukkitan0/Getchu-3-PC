@@ -106,5 +106,9 @@ clang-cl /nologo /std:c11 /W4 /WX /O2 /c ae3_boot_enable_intc.c /Fobuild\ae3_boo
 if errorlevel 1 exit /b 1
 clang-cl /nologo /std:c11 /W4 /WX /O2 /c ae3_boot_timer2_recheck.c /Fobuild\ae3_boot_timer2_recheck.obj
 if errorlevel 1 exit /b 1
+clang-cl /nologo /std:c11 /W4 /WX /O2 /c ae3_boot_timer2_finish.c /Fobuild\ae3_boot_timer2_finish.obj
+if errorlevel 1 exit /b 1
+clang-cl /nologo /std:c11 /W4 /WX /O2 /c ae3_boot_event_create.c /Fobuild\ae3_boot_event_create.obj
+if errorlevel 1 exit /b 1
 echo [AE3] Compiled x64 object files (NOT a playable executable).
 exit /b 0

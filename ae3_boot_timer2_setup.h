@@ -7,6 +7,7 @@
 #define AE3_T2_GUEST_NEXT_ENABLE_INTC UINT32_C(0x004405C8)
 typedef enum AE3_BootTimer2SetupResult {
  AE3_BT2S_YIELDED=1,AE3_BT2S_ENABLE_INTC_PENDING=2,
+ AE3_BT2S_RECHECK_NEXT_CALL=3,
  AE3_BT2S_MEMORY_FAULT=-1,AE3_BT2S_UNSUPPORTED=-2,AE3_BT2S_INVALID=-3
 } AE3_BootTimer2SetupResult;
 typedef struct AE3_BootTimer2Setup {
@@ -17,6 +18,10 @@ typedef struct AE3_BootTimer2Setup {
 } AE3_BootTimer2Setup;
 AE3_BootTimer2SetupResult ae3_boot_timer2_setup_enter(AE3_BootTimer2Setup *out,
  const AE3_BootTimer2Continue *prior);
+/* Reuse the REAL SetT2_MODE/CP0/ERET code from the second Timer2 initializer.
+ * It is entered at the original JAL 0x00440744; return PC is 0x0044074C. */
+AE3_BootTimer2SetupResult ae3_boot_timer2_setup_recheck_enter(
+ AE3_BootTimer2Setup *out,const AE3_BootPrefix *cpu,uint32_t cop0_status);
 AE3_BootTimer2SetupResult ae3_boot_timer2_setup_slice(
  AE3_BootTimer2Setup *state,AE3_EEMemoryBus *bus,uint32_t budget);
 #endif

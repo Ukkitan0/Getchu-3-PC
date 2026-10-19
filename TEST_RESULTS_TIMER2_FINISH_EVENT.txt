@@ -1,0 +1,25 @@
+CLANG optimized original Timer2 tests
+PASS Timer2 second-init MODE=0080 savedDIntr=0 retired=10 next=0043FE88
+PASS Timer2 second-init MODE=0180 savedDIntr=0 retired=10 next=0043FE88
+PASS Timer2 second-init MODE=0080 savedDIntr=1 retired=6 next=00440728
+PASS Timer2 second-init MODE=0000 savedDIntr=0 retired=29 next=0044074C
+PASS Timer2 second-init MODE=0003 savedDIntr=0 retired=29 next=0044074C
+PASS original second Timer2 MODE LW, both status branches, nested original SetT2_MODE COP0/ERET, faults, step parity
+
+CLANG optimized original event initialization tests
+PASS original event init global=00000000 next=00435AE4 retired=20
+PASS original event init global=FFFFFFFF next=00435AE4 retired=20
+PASS original event init global=00000001 next=0043FE90 retired=18
+PASS original event initialization and 0x40 syscall boundary; single-step parity, opcode and memory-fault recovery
+
+CLANG ASAN/UBSAN both suites
+PASS original second Timer2 MODE LW, both status branches, nested original SetT2_MODE COP0/ERET, faults, step parity
+PASS original event initialization and 0x40 syscall boundary; single-step parity, opcode and memory-fault recovery
+
+PRIOR REGRESSION TESTS
+PASS original EnableIntc wrapper, atomic guest SD/LD, opcode guard, syscall 0x14 compatibility dispatch, failure/branch paths
+PASS EE alias bus KSEG0/KSEG1, uncached mirrors, optional BIOS and scratchpad, atomic faults
+PASS EE T3 COUNT/MODE/COMP, divisor timing, flags W1C, unmapped MMIO, atomic unsupported clocks and KSEG aliases
+
+Windows x64 COFF: setup, finish, event source built with clang-cl /W4 /WX.
+Integrated ELF run: NOT run, retail original executable absent.

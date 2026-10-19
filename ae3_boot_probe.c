@@ -20,6 +20,8 @@
 #include "ae3_boot_intc_critical.h"
 #include "ae3_boot_timer2_setup.h"
 #include "ae3_boot_timer2_recheck.h"
+#include "ae3_boot_timer2_finish.h"
+#include "ae3_boot_event_create.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -394,8 +396,46 @@ int main(int argc,char**argv) {
                                          fprintf(stderr,"Next original initializer failed to reach second Timer2 MODE read\n");
                                          free(elf);free(ram);return 52;
                                      }
-                                     printf("EXPERIMENTAL: parent original JAL 0043FE80 -> 004406F0, original CP0-disabled path reached real Timer2 MODE LW at %08X; retired=%llu. Guest MMIO read pending.\n",
+                                     printf("EXPERIMENTAL: parent JAL 0043FE80 -> 004406F0 reached real Timer2 MODE LW at %08X; retired=%llu.\n",
                                         recheck.cpu.pc,(unsigned long long)recheck.cpu.retired);
+                                     AE3_BootTimer2Finish finish;
+                                     if(ae3_boot_timer2_finish_enter(&finish,&recheck)!=AE3_T2F_YIELDED||
+                                        ae3_boot_timer2_finish_slice(&finish,&bus,100)!=AE3_T2F_RETURNED||
+                                        finish.cpu.pc!=AE3_T2_FINISH_PARENT_NEXT||
+                                        finish.cpu.retired!=recheck.cpu.retired+10u||
+                                        !(finish.observed_mode&0x80u)){
+                                         fprintf(stderr,"Original Timer2 second MODE read/return failed\n");
+                                         free(elf);free(ram);return 53;
+                                     }
+                                     printf("EXPERIMENTAL: original second Timer2 MODE LW=%04X took already-enabled branch, returned to next main initializer JAL %08X; retired=%llu.\n",
+                                        (unsigned)finish.observed_mode,finish.cpu.pc,
+                                        (unsigned long long)finish.cpu.retired);
+                                     AE3_BootEventInit event_init;
+                                     AE3_EventInitResult event_status;
+                                     if(ae3_boot_event_enter(&event_init,&finish)!=AE3_EVT_YIELDED){
+                                         fprintf(stderr,"Original next system-initializer entry rejected\n");
+                                         free(elf);free(ram);return 54;
+                                     }
+                                     event_status=ae3_boot_event_slice(&event_init,&bus,100);
+                                     if(event_status==AE3_EVT_SYSCALL_PENDING){
+                                         if(event_init.cpu.pc!=AE3_EVENT_GUEST_SYSCALL||
+                                            event_init.cpu.gpr[3][0]!=0x40u){
+                                             fprintf(stderr,"Guest event syscalls not decoded\n");
+                                             free(elf);free(ram);return 55;
+                                         }
+                                         printf("EXPERIMENTAL: original event initializer loaded 006A1788=%08X; reached syscall 0x40 at %08X, argument guest=%08X, retired=%llu. Kernel syscall NOT answered.\n",
+                                            event_init.observed_global,event_init.cpu.pc,
+                                            (unsigned)event_init.cpu.gpr[4][0],
+                                            (unsigned long long)event_init.cpu.retired);
+                                     }else if(event_status==AE3_EVT_RETURNED){
+                                         printf("EXPERIMENTAL: existing event state %08X took original skip branch, returned to %08X, retired=%llu.\n",
+                                            event_init.observed_global,event_init.cpu.pc,
+                                            (unsigned long long)event_init.cpu.retired);
+                                     }else{
+                                         fprintf(stderr,"Original next event initializer unsupported at %08X (result %d)\n",
+                                            event_init.cpu.pc,(int)event_status);
+                                         free(elf);free(ram);return 56;
+                                     }
                                   }
 
 
