@@ -1,12 +1,12 @@
 {
   "project": "Getchu-3-PC",
   "date": "2026-10-19",
-  "status": "native EE boot diagnostic; 143 guest constructors pending; NOT playable",
-  "verified_boot_pc": "0x00428AE8 (before first retail constructor callback)",
-  "test_mode_retired_guest_instructions": 329149,
+  "status": "first retail constructor executed; next 142 still pending; NOT playable",
+  "verified_boot_pc": "0x00428AE8 (before second retail constructor callback)",
+  "test_mode_retired_guest_instructions": 329376,
   "kernel": "experimental compatibility mode; Sony BIOS not emulated",
   "new_modules": [
-    "ae3_boot_static_dispatch"
+    "ae3_boot_first_constructor"
   ],
   "windows_objects_compiled": 2,
   "retail_elf_sha256_expected": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
@@ -14,8 +14,8 @@
   "windows_objects_compiled_this_checkpoint": 1,
   "integrated_retail_ELF_execution_verified_this_checkpoint": false,
   "standalone_guest_fixture_passed": true,
-  "next_work": "execute original first constructor 0x0041A390 -> 0x0041A088, then remaining 142 callbacks with authentic side effects",
-  "retail_opcode_words_verified": 504,
+  "next_work": "execute second real constructor 0x00417C58 -> 0x00417B50; then remaining 141 callbacks",
+  "retail_opcode_words_verified": 712,
   "current_thread_id_fixture": 255,
   "current_thread_initial_priority_fixture": 64,
   "explicit_osd_word_fixture": "0x00004019",
@@ -41,5 +41,11 @@
   "static_init_constructor_count_from_later_game_memory": 143,
   "static_init_constructor_table": "0x0062E89C down to sentinel at 0x0062E660",
   "empty_table_fixture_guest_instructions": 64,
-  "static_init_real_callbacks_executed": 0
+  "static_init_real_callbacks_executed": 1,
+  "note_test_retired": "synthetic cumulative seed 329097, static-dispatch fixture reaches 329151, first cold constructor adds 225; NOT genuine BIOS continuity",
+  "first_ctor_cold_guest_instructions": 225,
+  "first_ctor_warm_guest_instructions": 164,
+  "first_ctor_reference_counter_stores": 12,
+  "first_ctor_cold_stub_calls": 12,
+  "first_ctor_second_callback_target": "0x00417C58"
 }

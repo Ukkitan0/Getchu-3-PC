@@ -1,3 +1,16 @@
+## 2026-10-19: first original static constructor executed (NOT PLAYABLE)
+
+Executed real `0x00428AE8` JALR into `0x0041A390`, tail jump to `0x0041A088`,
+and the original twelve `LD/DADDIU/SD` reference counter updates. Cold
+zero-count fixture: **225** original guest instructions and 12 actual helper
+stub returns; prior-initialized counts: **164** instructions and no helper
+calls, but still 12 incrementing guest stores. The dispatcher reaches the
+**second original callback `0x00417C58`** pending at `0x00428AE8`.
+**712/712** pinned retail instruction rows match the memory reference;
+GCC, Clang sanitizers, Windows x64 object and linked boot diagnostic pass.
+The original ELF end-to-end boot, BIOS and playable Windows port remain
+unfinished. See `CHECKPOINT_FIRST_CONSTRUCTOR.md`.
+
 ## Current checkpoint: static C++ constructor table (2026-10-19)
 The retail `0x00628210` entry now executes through the first constructor dispatcher,
 stopping before first callback `0x0041A390`. 143 saved-reference callback entries were recovered;

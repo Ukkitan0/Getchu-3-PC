@@ -1,0 +1,18 @@
+Date: 2026-10-19
+Project: Getchu-3-PC
+Evidence: locally reproduced in experimental guest-code fixtures. NOT playable.
+
+GCC -std=c11 -O2 -Wall -Wextra -Werror: PASS
+PASS first guest constructor cold: 225 retired MIPS; 12 reference-counter stores and 12 genuine stub calls; next PC 00428AE8
+PASS first guest constructor already initialized: 164 retired MIPS; 12 reference-counter stores and 0 genuine stub calls; next PC 00428AE8
+PASS first guest constructor cold with sentinel in next slot: 225 retired MIPS; next PC 00428AFC
+PASS original first constructor through JALR, tail call, twelve counts, helper stub and dispatcher loop
+
+Clang -O1 -fsanitize=address,undefined: PASS (same three cases)
+clang-cl /std:c11 /W4 /WX /O2 Windows x64 COFF object: PASS
+Integrated Linux diagnostic GCC -O2 -Wall -Wextra -Werror (45 C files): COMPILE/LINK PASS
+Prior targeted static dispatch / TLB / post-TLB / main resume regressions: PASS
+Opcode fixture check vs user-provided EE RAM: PASS 712/712 rows
+
+NOT run: complete original retail ELF boot chain, true Sony BIOS state,
+Windows diagnostic execution, graphics/IOP/gameplay.

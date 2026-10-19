@@ -32,6 +32,7 @@
 #include "ae3_boot_post_tlb.h"
 #include "ae3_boot_main_resume.h"
 #include "ae3_boot_static_dispatch.h"
+#include "ae3_boot_first_constructor.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -691,6 +692,27 @@ int main(int argc,char**argv) {
                                                                   (unsigned long long)(statics.cpu.retired-main_resume.cpu.retired),
                                                                   ctors.count,statics.guest_ctor_word,statics.cpu.pc,
                                                                   (unsigned long long)statics.cpu.retired);
+                                                               if(ctors.count>=2u&&ctors.entries[0]==AE3_FIRST_CTOR_PC){
+                                                                  AE3_BootFirstConstructor first;
+                                                                  if(ae3_boot_first_ctor_enter(&first,&statics)!=AE3_FCTOR_YIELDED){
+                                                                     fprintf(stderr,"First constructor entry rejected at %08X\n",statics.cpu.pc);
+                                                                     free(elf);free(ram);return 82;
+                                                                  }
+                                                                  AE3_FirstCtorResult fr=ae3_boot_first_ctor_slice(&first,&bus,1500);
+                                                                  if(fr!=AE3_FCTOR_SECOND_PENDING ||
+                                                                     first.next_constructor!=ctors.entries[1]){
+                                                                     fprintf(stderr,"First constructor halted at %08X result=%d next=%08X; no guessed constructor return\n",
+                                                                        first.cpu.pc,(int)fr,first.next_constructor);
+                                                                     free(elf);free(ram);return 83;
+                                                                  }
+                                                                  printf("EXPERIMENTAL genuine first constructor 0041A390 -> 0041A088: "
+                                                                     "%llu additional original guest instructions; %u original reference-counter stores, "
+                                                                     "%u executions of the original return stub 004173B0; "
+                                                                     "next constructor pending at %08X -> %08X; total retired=%llu.\n",
+                                                                     (unsigned long long)(first.cpu.retired-statics.cpu.retired),
+                                                                     first.reference_count_stores,first.stub_calls,first.cpu.pc,
+                                                                     first.next_constructor,(unsigned long long)first.cpu.retired);
+                                                               }
                                                             }else if(static_state==AE3_STATIC_NEXT_CALL){
                                                                printf("EXPERIMENTAL retail initializer empty constructor table: %llu more guest instructions, next call %08X -> %08X. This is a state-dependent path, NOT asserted as game boot.\n",
                                                                   (unsigned long long)(statics.cpu.retired-main_resume.cpu.retired),
