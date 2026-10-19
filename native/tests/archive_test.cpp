@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -87,6 +88,20 @@ int main(){
         ae3::Archive mounted(isopath);
         verify(mounted);
         assert(mounted.sourceKind()=="ISO9660 direct archive mounting");
+        const fs::path exported=base/"independent_Saru3_DATA.BIN";
+        mounted.extractDataBin(exported);
+        {
+            std::ifstream stream(exported,std::ios::binary);
+            const auto copied=std::vector<std::uint8_t>(
+                std::istreambuf_iterator<char>(stream),std::istreambuf_iterator<char>());
+            assert(copied==source);
+        }
+        bool protectedFromOverwrite=false;
+        try { mounted.extractDataBin(exported); }
+        catch(const std::runtime_error&) { protectedFromOverwrite=true; }
+        assert(protectedFromOverwrite);
+        ae3::Archive roundtrip(exported);
+        verify(roundtrip);
 
         auto unsafe=source;unsafe[44]='.';unsafe[45]='.';
         save(base/"invalid.bin",unsafe);reject(base/"invalid.bin");
