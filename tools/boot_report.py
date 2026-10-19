@@ -36,7 +36,7 @@ def analyze(workspace: Path) -> dict:
         rounds = []
     if isinstance(rounds, dict):
         rounds = [rounds]
-    if not isinstance(rounds, list):
+    if not isinstance(rounds, list) or any(not isinstance(item, dict) for item in rounds):
         raise ValueError("Malformed exploration summary JSON")
     counts = Counter()
     examples: dict[str, list[str]] = {}
@@ -57,10 +57,23 @@ def analyze(workspace: Path) -> dict:
     prep_file = workspace / "owned_disc" / "disc_prepare.json"
     prep = json.loads(prep_file.read_text(encoding="utf-8")) if prep_file.is_file() else {}
     shots_dir = workspace / "shots"
+    # If current-run round directories are recorded, only inspect those;
+    # preserving old visual evidence must never inflate this attempt's stats.
+    shot_roots = []
+    for recorded in rounds:
+        raw_path = recorded.get("shot_dir")
+        if not isinstance(raw_path, str) or not raw_path:
+            continue
+        folder = Path(raw_path).resolve()
+        if folder.is_relative_to(shots_dir.resolve()) and folder not in shot_roots:
+            shot_roots.append(folder)
+    if not shot_roots:
+        shot_roots = [shots_dir]
     supported = {".ppm", ".png", ".bmp", ".jpg", ".jpeg"}
-    shots = [p for p in shots_dir.rglob("*") if p.is_file() and p.suffix.lower() in supported] \
-        if shots_dir.exists() else []
-    visual = inspect_frames(shots_dir)
+    shots = [p for folder in shot_roots if folder.exists()
+             for p in folder.rglob("*")
+             if p.is_file() and p.suffix.lower() in supported]
+    visual = inspect_frames(shot_roots)
     vu = [p for p in (workspace / "vu1").glob("*.bin") if p.is_file()]         if (workspace / "vu1").exists() else []
     overlays_dir = prep.get("overlays_dir")
     modules_dir = prep.get("modules_dir")
