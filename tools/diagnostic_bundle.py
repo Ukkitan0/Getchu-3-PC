@@ -36,7 +36,7 @@ def safe_value(value):
         return {key: safe_value(item) for key, item in value.items()
                 if key not in ("disc", "executable", "trace", "stderr",
                                "stdout", "log_dir", "modules_dir",
-                               "overlays_dir", "elf")}
+                               "overlays_dir", "shot_dir", "elf")}
     if isinstance(value, list):
         return [safe_value(item) for item in value[:2000]]
     if isinstance(value, str):
