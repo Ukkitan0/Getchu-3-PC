@@ -38,6 +38,27 @@ int main(void) {
     assert(memcmp(ram_a,ram_b,sizeof(ram_a))==0);
     assert(f.retired>0);
     assert(ae3_resume_count()==count);
+    /* Real retail JAL wrapper calls a recovered leaf, including delay slots. */
+    assert(ae3_native_caller_count() > 0);
+    for(size_t i=0;i<ae3_native_caller_count();i++) {
+        uint32_t pc=ae3_native_caller_address(i);
+        assert(pc);
+        for(size_t j=i+1;j<ae3_native_caller_count();j++)
+            assert(pc!=ae3_native_caller_address(j));
+    }
+    assert(ae3_native_caller_address(ae3_native_caller_count())==0);
+    static uint8_t caller_ram[8*1024*1024]={0};
+    AE3_ScalarContext caller={0};
+    caller.ram=caller_ram;caller.ram_size=sizeof(caller_ram);
+    caller.gpr[29]=0xD000;caller.gpr[2]=0x2000;caller.gpr[31]=0x12345678;
+    AE3_CallFrame cf;
+    ae3_native_caller_init(&cf,UINT32_C(0x00112CC4));
+    int rc=AE3_RESUME_YIELDED;
+    for(unsigned i=0;i<512 && rc==AE3_RESUME_YIELDED;i++)
+        rc=ae3_run_native_caller_slice(&caller,&cf,1);
+    assert(rc==AE3_RESUME_DONE);
+    assert(cf.done && cf.retired>0);
+    assert(caller.gpr[31]==UINT32_C(0x12345678));
     printf("PASS: %zu native candidate routines dispatched; resumable and legacy entry agree\n", count);
     return 0;
 }
