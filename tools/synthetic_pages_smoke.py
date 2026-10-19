@@ -12,8 +12,8 @@ import struct
 
 ENTRY = 0x00100100
 CALLBACK_BASE = 0x00104000
-CALLBACK_STRIDE = 0x100
-POINTER_TABLE = 0x00110000
+CALLBACK_STRIDE = 0x300
+POINTER_TABLE = 0x00120000
 COUNT = 143
 TARGET = 0x00012000
 SCRATCH_BASE = 0x00013000
@@ -23,7 +23,7 @@ FILE_OFFSET = 0x100
 # lw t9 from table, stop on null; each JALR returns and advances to next.
 # The branch delay slot advances s2 even for the terminal null pointer.
 MAIN = (
-    0x3C120011,  # lui s2,0x0011: pointer table high half
+    0x3C120012,  # lui s2,0x0012: pointer table high half
     0x36520000,  # ori s2,s2,0
     0x00008821,  # addu s1,zero,zero
     0x8E590000,  # loop: lw t9,0(s2)
