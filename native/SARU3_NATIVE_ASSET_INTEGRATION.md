@@ -44,6 +44,40 @@ py -3 native\tools\prepare_owned_assets.py --game "D:\OwnedAE3.iso" --out "C:\AE
 
 **No Saru installation is required to launch `Getchu3Native.exe`.** Saru is used only to generate game-development assets locally; Java, unluac and Saru are not linked into the native game runtime.
 
+## Optional direct I3D-to-GLB conversion (MIT ae3-sdk)
+
+Saru extracts I3D models but does not itself convert those meshes and
+animations into PC geometry. We also verified the independent
+[pxdl/ae3-sdk](https://github.com/pxdl/ae3-sdk) **MIT-licensed** `ae3 gltf`
+converter. Its documented original-game coverage is 154/154 I3D_BIN models
+with native glTF meshes, skeletons, skin weights and materials. Keep
+this converter offline, outside the Windows EXE; the resulting GLB files
+are regular portable 3D assets for a PC renderer.
+
+Install ae3-sdk's Python tools in your development environment using its
+[tools README](https://github.com/pxdl/ae3-sdk/blob/main/tools/README.md),
+then request glTF export while running the one-click prep launcher:
+
+```powershell
+.\native\tools\PREPARE_NATIVE_ASSETS_WINDOWS.ps1 -Game "D:\OwnedAE3.iso" -Saru "C:\Tools\Saru3VfiTool.exe" -Out "C:\AE3_PRIVATE_ASSETS" -Gltf -Ae3Cli ae3
+```
+
+Or reuse an already extracted Saru asset folder:
+
+```powershell
+py -3 native\tools\convert_models_to_glb.py --extracted "C:\AE3_PRIVATE_ASSETS\extracted" --out "C:\AE3_PRIVATE_ASSETS\glb" --ae3 ae3
+```
+
+The converter checks the actual I3D_BIN file signature to avoid passing
+collision I3D_I3C or animation I3D_I3M files to the mesh converter. It
+preserves relative folder structure, refuses to overwrite GLBs, emits
+a conversion manifest and counts conversion failures rather than
+pretending unsupported formats were exported. Conversion may still have
+texture mapping/animation-pairing limitations; those need owner-local
+visual validation. **The current Getchu3Native.exe cannot yet import
+GLBs or render actual retail 3D levels**; this is the asset pipeline
+feeding that next engine milestone.
+
 ## Verified changes
 
 - `Archive::extractDataBin` streams original `DATA.BIN` bytes out of an ISO without loading the entire disc. Overwrite is refused.
