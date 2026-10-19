@@ -40,7 +40,7 @@ class PersistentGuestEntries(unittest.TestCase):
         self.assertEqual(report["preserved_discovered_entries"], 2)
         self.assertEqual(report["preserved_module_entries"], 1)
         self.assertEqual(file.read_text().splitlines(),
-                         ["00100100", "00100104", "00100108", "00110000_AB12CD34:0"])
+                         ["00100100", "00100104", "00100108", "00110000_AB12CD34:00000000"])
 
     def test_reseed_upgrade_monotonic_and_stable_mtime(self):
         _, file = self.emit()
