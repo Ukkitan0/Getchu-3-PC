@@ -8,7 +8,7 @@ param(
     [Parameter(Mandatory=$true)][string]$RuntimeBuild,
     [string]$Workspace = '',
     [string]$VcpkgToolchain = '',
-    [ValidateSet('calls', 'constructors')][string]$FixtureMode = 'calls',
+    [ValidateSet('calls', 'constructors', 'pages')][string]$FixtureMode = 'calls',
     [ValidateRange(5,180)][int]$TimeoutSeconds = 30
 )
 $ErrorActionPreference = 'Stop'
@@ -28,7 +28,11 @@ function InvokeChecked([string]$Command, [string[]]$Arguments) {
     }
 }
 # Both fixtures contain only original game-free test opcodes.
-if ($FixtureMode -eq 'constructors') {
+if ($FixtureMode -eq 'pages') {
+    $Generator = Join-Path $PSScriptRoot 'synthetic_pages_smoke.py'
+    $ExpectedRam = '0000008f' # 143 guest RAM round trips spread over three memory pages
+    $ExpectedSeeds = 143
+} elseif ($FixtureMode -eq 'constructors') {
     $Generator = Join-Path $PSScriptRoot 'synthetic_ctors_smoke.py'
     $ExpectedRam = '0000008f' # 143 different indirect callbacks
     $ExpectedSeeds = 143
