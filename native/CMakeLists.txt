@@ -34,7 +34,7 @@ target_include_directories(Getchu3Lua50 PUBLIC "${lua50_SOURCE_DIR}/include")
 target_include_directories(Getchu3Lua50 PRIVATE "${lua50_SOURCE_DIR}/src")
 set_target_properties(Getchu3Lua50 PROPERTIES C_STANDARD 90 C_STANDARD_REQUIRED ON)
 
-add_library(Getchu3Assets STATIC src/archive.cpp src/tim2.cpp src/stage_scripts.cpp src/player_state.cpp src/lua_stage.cpp)
+add_library(Getchu3Assets STATIC src/archive.cpp src/tim2.cpp src/stage_scripts.cpp src/player_state.cpp src/lua_stage.cpp src/controller_timeline.cpp)
 target_include_directories(Getchu3Assets PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(Getchu3Assets PUBLIC Getchu3Lua50)
 if(MSVC)
@@ -82,3 +82,7 @@ add_test(NAME NativeLua50StageRunnerDemo
 set_tests_properties(NativeLua50StageRunnerDemo PROPERTIES
   PASS_REGULAR_EXPRESSION "Native entities declared: 4")
 
+
+add_executable(Getchu3ControllerTimelineTests tests/controller_timeline_test.cpp)
+target_link_libraries(Getchu3ControllerTimelineTests PRIVATE Getchu3Assets)
+add_test(NAME NativeLua50TimedControllerActions COMMAND Getchu3ControllerTimelineTests)
