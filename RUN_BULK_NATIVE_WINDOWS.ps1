@@ -38,7 +38,9 @@ foreach ($Name in @('git', 'cmake', 'py')) {
         Fail "Missing $Name. Install Git, CMake, Python 3 and Visual Studio 2022 with ClangCL."
     }
 }
-if (-not $Elf) {
+# Explicit -Disc is authoritative. Do not silently substitute an ELF left
+# over from an older AE3 recompilation project: it may be a different revision.
+if (-not $Elf -and -not $Disc) {
     $Places = @('C:\ApeEscape3_OneClick\game\original\SCUS_975.01',
                 'C:\AE3Recompile2\WebRecompNative\upstream\games\ae3\disc\SCUS_975.01')
     $Elf = $Places | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
