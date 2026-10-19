@@ -55,3 +55,11 @@ Sources in the GitHub repository are the canonical work. Old recompilation snaps
 - Fixed JALR invalid-target atomicity: rejected dynamic calls no longer modify the saved target or return address before reporting a fault.
 - Test: 268 original-word vs native-C differential trials / 2,194 slices, and forced both paths of a real retail BEQ plus JALR wrapper. Native Linux dispatcher integration passed; Windows `clang-cl` compiled updated x64 COFF stack object.
 - **Unchanged blocker:** no bootable playable game, no EE/IOP/GS/VU runtime, not all original code converted. The executable-derived C is private to the game owner's workspace, not committed to this public repository.
+
+## Backward-branch callers with inter-function calls (2026-10-18)
+
+- `loop_stack.py` adds **42** candidate routines / **1,091** new instruction sites containing at least one backward branch and JAL/JALR. Total stack-callable candidates: **176**. Total known candidate entries including scalar/CFG/loop leaves: **1,646**; represented instruction count is approximately **12,853** under the earlier checkpoint counting convention (not guaranteed full game code).
+- `test_backward_structure.py` verifies all recovered branch targets and excludes delay slots/overlapping bodies; `test_backward_call_paths.py` verifies retail function `0x00105AC4` with 0, 1 and 3 real JAL loop iterations against independently decoded MIPS words.
+- `test_stack.py 2`: 352 trials across 176 candidates, 6,484 compared slices. The previous scalar, control-flow, loop, resumable, call and dispatcher tests remain in the build suite.
+- New Windows x64 COFF stack object compiled with `clang-cl` (no warnings after same-register BEQ/BNE folding).
+- **No playable Windows executable.** The full game still requires large-scale MIPS translation and substantial EE/IOP/GS/VU and media runtime engineering.
