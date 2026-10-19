@@ -469,7 +469,9 @@ void openRecoveredStage(){
         gNativeStage=std::move(stage);
         gArchive.reset();
         gRenderer.clearTexture();
-        gRenderer.clearScene();
+        // Keep an already loaded original-model GLB visible when setting
+        // up Lua stage entities: world art and Lua scripts share one window.
+        // Entity-to-model placement and behavior still need reconstruction.
         SendMessageW(gList,LB_RESETCONTENT,0,0);
         for(const auto& ent:gNativeWorld->entities()){
             std::wstring line=wide(ent.entityClass)+L": "+wide(ent.name);
