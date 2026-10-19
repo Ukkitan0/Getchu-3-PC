@@ -1,5 +1,15 @@
-# Getchu-3-PC — Thread priority / OSD checkpoint
+# Getchu-3-PC — OSD original return checkpoint
 
-October 19, 2026. **Not playable.** Experimental original guest execution now reaches `GetOsdConfigParam` (`0x4B`) at `0x00435B94` via `GetThreadId` (`0x2F`), `ChangeThreadPriority` (`0x29`), and the parent initializer. **323,510** counted original instructions across composed experimental tests; **253** opcode rows match the post-boot savestate.
+October 19, 2026. Experimental native C EE compatibility runtime, **NOT PLAYABLE**.
 
-The running boot-thread ID of **255** is an explicit compatibility test fixture, not a recovered Sony BIOS ID. Source is portable C; Windows outputs are x64 COFF objects rather than a playable EXE. The game's ELF/ISO/BIOS, save-state EE RAM, and assets are excluded. For tests and limitations see `CHECKPOINT_THREAD_PRIORITY_OSD.md`.
+The original retail instructions now execute through `GetOsdConfigParam`
+(0x4B), `SetOsdConfigParam` (0x4A), second getter, original configuration
+restoration, and parent return at `0x0043FE98`. **44** further original MIPS
+instructions; **323,554** on the composed test path. **290** pinned game
+opcodes verified against the owner's post-boot memory snapshot.
+
+The OS configuration is supplied explicitly (`--test-osd-roundtrip=XXXXXXXX`)
+and is not claimed as Sony BIOS-observed. Linux optimized and sanitizer tests,
+Windows object compilation and source-only full diagnostic linking pass.
+The retail ELF, ISO, BIOS, save-state RAM, assets, and gameplay are excluded.
+See `CHECKPOINT_OSD_ROUNDTRIP.md` for exact tests and limitations.

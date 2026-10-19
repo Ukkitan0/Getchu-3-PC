@@ -26,6 +26,7 @@
 #include "ae3_boot_thread_next.h"
 #include "ae3_boot_thread_priority.h"
 #include "ae3_boot_osd_entry.h"
+#include "ae3_boot_osd_roundtrip.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -40,11 +41,24 @@ static uint8_t *read_file(const char *path,size_t *n) {
 }
 int main(int argc,char**argv) {
  int model_mode=argc>=3 && strcmp(argv[2],"--test-ee-boot-model")==0;
+ /* Optional 8-hex-digit TEST-only OSD setting. Never infer it from BIOS. */
+ int osd_requested=0;uint32_t osd_fixture=0;
+ if(argc==6 && strncmp(argv[5],"--test-osd-roundtrip=",21)==0){
+    const char *hex=argv[5]+21;char *end=NULL;
+    if(strlen(hex)==8 && strspn(hex,"0123456789abcdefABCDEF")==8){
+       unsigned long supplied=strtoul(hex,&end,16);
+       if(end && !*end && supplied<=UINT32_MAX){
+          osd_fixture=(uint32_t)supplied;osd_requested=1;
+       }
+    }
+ }
+ int extended_mode=argc==6 &&
+     (!strcmp(argv[5],"--test-timer2-mode")||osd_requested);
  if(argc<2||argc>6||(argc>=3&&strcmp(argv[2],"--test-kernel-fixture")&&!model_mode)||
     (argc>=4&&strcmp(argv[3],"--test-sema-hle"))||
     (argc>=5&&strcmp(argv[4],"--test-ee-alias"))||
-    (argc==6&&strcmp(argv[5],"--test-post-find")&&strcmp(argv[5],"--test-next-mmio")&&strcmp(argv[5],"--test-timer3")&&strcmp(argv[5],"--test-timer3-enabled")&&strcmp(argv[5],"--test-timer3-copy")&&(strcmp(argv[5],"--test-timer3-copy-alloc")&&strcmp(argv[5],"--test-timer2-mode")))) {
-  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture|--test-ee-boot-model [--test-sema-hle [--test-ee-alias [--test-post-find|--test-next-mmio|--test-timer3|--test-timer3-enabled|--test-timer3-copy|--test-timer3-copy-alloc|--test-timer2-mode]]]\n",argv[0]);return 2;
+    (argc==6&&strcmp(argv[5],"--test-post-find")&&strcmp(argv[5],"--test-next-mmio")&&strcmp(argv[5],"--test-timer3")&&strcmp(argv[5],"--test-timer3-enabled")&&strcmp(argv[5],"--test-timer3-copy")&&(strcmp(argv[5],"--test-timer3-copy-alloc")&&!extended_mode))) {
+  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture|--test-ee-boot-model [--test-sema-hle [--test-ee-alias [--test-post-find|--test-next-mmio|--test-timer3|--test-timer3-enabled|--test-timer3-copy|--test-timer3-copy-alloc|--test-timer2-mode|--test-osd-roundtrip=XXXXXXXX]]]\n",argv[0]);return 2;
  }
  size_t bytes=0;uint8_t *elf=read_file(argv[1],&bytes);
  if(!elf){fprintf(stderr,"Cannot read game executable\n");return 2;}
@@ -127,7 +141,7 @@ int main(int argc,char**argv) {
              printf("TEST ONLY: running original 0x83 MIPS handler with KSEG0 aliased to current EE RAM.\n");
              printf("  BIOS/kernel was not initialized: no authentic startup kernel bytes are claimed.\n");
              AE3_EEMemoryBus bus;ae3_ee_bus_init(&bus,ram,RAM_SIZE);
-             if(argc==6&&(!strcmp(argv[5],"--test-next-mmio")||!strcmp(argv[5],"--test-timer3")||!strcmp(argv[5],"--test-timer3-enabled")||!strcmp(argv[5],"--test-timer3-copy")||!(strcmp(argv[5],"--test-timer3-copy-alloc")&&strcmp(argv[5],"--test-timer2-mode")))) {
+             if(argc==6&&(!strcmp(argv[5],"--test-next-mmio")||!strcmp(argv[5],"--test-timer3")||!strcmp(argv[5],"--test-timer3-enabled")||!strcmp(argv[5],"--test-timer3-copy")||!(strcmp(argv[5],"--test-timer3-copy-alloc")&&!extended_mode))) {
                 /* Explicitly artificial values, with the exact offset
                    relationship required by the retail reconciliation code. */
                 if(ae3_ee_bus_write32(&bus,UINT32_C(0x80000300),AE3_FIND_ENTRY)!=AE3_EE_BUS_OK||
@@ -177,7 +191,7 @@ int main(int argc,char**argv) {
                     printf("Kernel data absent: stopped before third syscall, no synthetic address inserted.\n");
                 }else if(stage==AE3_POST_NEXT_INIT) {
                     printf("Original reconciliation reached next real init JAL at %08X.\n",post.cpu.pc);
-                    if(!strcmp(argv[5],"--test-next-mmio")||!strcmp(argv[5],"--test-timer3")||!strcmp(argv[5],"--test-timer3-enabled")||!strcmp(argv[5],"--test-timer3-copy")||!(strcmp(argv[5],"--test-timer3-copy-alloc")&&strcmp(argv[5],"--test-timer2-mode"))) {
+                    if(!strcmp(argv[5],"--test-next-mmio")||!strcmp(argv[5],"--test-timer3")||!strcmp(argv[5],"--test-timer3-enabled")||!strcmp(argv[5],"--test-timer3-copy")||!(strcmp(argv[5],"--test-timer3-copy-alloc")&&!extended_mode)) {
                         AE3_BootNextInit next;
                         if(ae3_boot_next_init_enter(&next,&post)!=AE3_NEXT_YIELDED ||
                            ae3_boot_next_init_slice(&next,&bus,40)!=AE3_NEXT_MMIO_PENDING){
@@ -211,7 +225,7 @@ int main(int argc,char**argv) {
                             printf("EXPERIMENTAL EE Timer3 model: MODE=%08X, original guest result %s, PC=%08X, retired=%llu\n",
                                timer.mode,result==AE3_TIMER_BOOT_RETURNED?"returned to first-init caller":"next SetSyscall JAL pending",
                                resume.cpu.pc,(unsigned long long)resume.cpu.retired);
-                            if(!strcmp(argv[5],"--test-timer3-copy")||!(strcmp(argv[5],"--test-timer3-copy-alloc")&&strcmp(argv[5],"--test-timer2-mode"))){
+                            if(!strcmp(argv[5],"--test-timer3-copy")||!(strcmp(argv[5],"--test-timer3-copy-alloc")&&!extended_mode)){
                                AE3_Timer3Syscalls t3sys;
                                if(result!=AE3_TIMER_BOOT_NEXT_CALL||
                                   ae3_timer3_syscalls_enter(&t3sys,&resume)!=AE3_TS_YIELDED){
@@ -274,7 +288,7 @@ int main(int argc,char**argv) {
                                printf("EXPERIMENTAL: original 40-byte Copy -> 00082000, two FlushCache requests, six original guest 0x5B lookups and seven SetSyscall registrations. Returned to %08X (retired %llu).\n",
                                      later.cpu.pc,(unsigned long long)later.cpu.retired);
                                printf("FlushCache behavior is recorded in compatibility mode, NOT authentic PS2 cache coherency.\n");
-                               if(!(strcmp(argv[5],"--test-timer3-copy-alloc")&&strcmp(argv[5],"--test-timer2-mode"))){
+                               if(!(strcmp(argv[5],"--test-timer3-copy-alloc")&&!extended_mode)){
                                   AE3_BootAllocInit alloc;
                                   if(ae3_boot_alloc_enter(&alloc,&later)!=AE3_ALLOC_YIELDED){
                                      fprintf(stderr,"Original 0x4404B0 allocator entry rejected\n");
@@ -344,7 +358,7 @@ int main(int argc,char**argv) {
                                   printf("EXPERIMENTAL explicit COP0 Status=0: original EE guest wrote handler ID to 006A2E28; stopped BEFORE real Timer2 MODE read at PC %08X, MMIO %08X. Retired=%llu.\n",
                                      intc_critical.cpu.pc,AE3_T2_MODE_REGISTER,
                                      (unsigned long long)intc_critical.cpu.retired);
-                                  if(!strcmp(argv[5],"--test-timer2-mode")){
+                                  if(extended_mode){
                                      /* Diagnostic fixture ONLY: reset-mode Timer 2 is
                                         explicitly supplied, not inferred from BIOS. */
                                      AE3_EETimer2 timer2;
@@ -505,6 +519,41 @@ int main(int argc,char**argv) {
                                                      printf("EXPERIMENTAL explicit main-thread test fixture ID=255 (NOT Sony BIOS): original GetThreadId(0x2F), ChangeThreadPriority(0x29, priority=1), and parent OSD prologue reached real GetOsdConfigParam(0x4B) syscall %08X. Retired=%llu. No OSD response fabricated.\n",
                                                          osd_boot.cpu.pc,
                                                          (unsigned long long)osd_boot.cpu.retired);
+                                                     if(osd_requested){
+                                                         AE3_EEOsdConfig osd_compat;
+                                                         AE3_BootOsdRoundtrip osd_roundtrip;
+                                                         ae3_ee_osd_reset(&osd_compat);
+                                                         if(ae3_ee_osd_bind(&osd_compat,osd_fixture)!=0 ||
+                                                            ae3_boot_osd_roundtrip_enter(&osd_roundtrip,&osd_boot)!=AE3_OSDR_GET_PENDING){
+                                                            fprintf(stderr,"Explicit OSD test fixture failed to initialize\n");
+                                                            free(elf);free(ram);return 65;
+                                                         }
+                                                         AE3_OsdRoundtripResult osd_result=AE3_OSDR_YIELDED;
+                                                         for(unsigned osd_step=0;osd_step<16;osd_step++){
+                                                            osd_result=ae3_boot_osd_roundtrip_slice(&osd_roundtrip,&bus,256);
+                                                            if(osd_result==AE3_OSDR_PARENT_RETURNED)break;
+                                                            if(osd_result==AE3_OSDR_GET_PENDING){
+                                                               osd_result=ae3_boot_osd_roundtrip_get(&osd_roundtrip,&bus,&osd_compat);
+                                                            }else if(osd_result==AE3_OSDR_SET_PENDING){
+                                                               osd_result=ae3_boot_osd_roundtrip_set(&osd_roundtrip,&bus,&osd_compat);
+                                                            }
+                                                            if(osd_result!=AE3_OSDR_YIELDED){
+                                                               fprintf(stderr,"OSD round-trip failed at guest PC %08X status %d\n",
+                                                                  osd_roundtrip.cpu.pc,(int)osd_result);
+                                                               free(elf);free(ram);return 66;
+                                                            }
+                                                         }
+                                                         if(osd_result!=AE3_OSDR_PARENT_RETURNED ||
+                                                            osd_roundtrip.read_count!=2 || osd_roundtrip.write_count!=2 ||
+                                                            osd_compat.packed!=osd_fixture ||
+                                                            osd_roundtrip.cpu.pc!=AE3_OSD_PARENT_RETURN){
+                                                            fprintf(stderr,"OSD read/modify/restore invariants failed\n");
+                                                            free(elf);free(ram);return 67;
+                                                         }
+                                                         printf("EXPERIMENTAL supplied OSD ConfigParam=%08X: the original game issued 2 getters and 2 setters, restored the original value, returned to main initializer at %08X; retired=%llu. NOT BIOS-observed.\n",
+                                                            osd_fixture,osd_roundtrip.cpu.pc,
+                                                            (unsigned long long)osd_roundtrip.cpu.retired);
+                                                     }
                                                  }else if(next_result==AE3_TNEXT_CRITICAL_PENDING){
                                                      printf("Original CP0 bit0=1 path reaches unimplemented critical-section callee at %08X, no synthetic BIOS response.\n",
                                                          next_thread.cpu.pc);

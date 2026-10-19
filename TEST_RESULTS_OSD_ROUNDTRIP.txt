@@ -1,0 +1,13 @@
+PASS OSD round-trip: original Get/Set twice, temporary 00002019, restored 00004019, return 0043FE98; 44 guest instructions
+PASS: bounded retail OSD getter/setter round-trip and atomic kernel state
+PASS OSD round-trip: original Get/Set twice, temporary 00002019, restored 00004019, return 0043FE98; 44 guest instructions
+PASS: bounded retail OSD getter/setter round-trip and atomic kernel state
+retail_enable_intc_words.tsv: 63 pinned guest instructions checked
+retail_event_init_words.tsv: 50 pinned guest instructions checked
+retail_osd_entry_words.tsv: 15 pinned guest instructions checked
+retail_osd_roundtrip_words.tsv: 37 pinned guest instructions checked
+retail_thread_continue_words.tsv: 26 pinned guest instructions checked
+retail_thread_next_words.tsv: 24 pinned guest instructions checked
+retail_thread_priority_words.tsv: 17 pinned guest instructions checked
+retail_timer2_finish_words.tsv: 58 pinned guest instructions checked
+PASS: 290 pinned MIPS instruction bytes match the user-supplied EE snapshot

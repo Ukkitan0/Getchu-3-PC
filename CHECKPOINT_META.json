@@ -2,21 +2,26 @@
   "project": "Getchu-3-PC",
   "date": "2026-10-19",
   "status": "native EE boot diagnostic, not playable",
-  "verified_boot_pc": "0x00435B94 (pending GetOsdConfigParam 0x4B under explicit compatibility thread fixture)",
-  "test_mode_retired_guest_instructions": 323510,
+  "verified_boot_pc": "0x0043FE98 (after full Get/Set OSD round-trip, test-only configuration)",
+  "test_mode_retired_guest_instructions": 323554,
   "kernel": "experimental compatibility mode; Sony BIOS not emulated",
   "new_modules": [
-    "ae3_boot_thread_priority",
-    "ae3_boot_osd_entry"
+    "ae3_boot_osd_roundtrip"
   ],
-  "windows_objects_compiled": 3,
+  "windows_objects_compiled": 1,
   "retail_elf_sha256_expected": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
   "original_game_data_included": false,
-  "windows_objects_compiled_this_checkpoint": 3,
+  "windows_objects_compiled_this_checkpoint": 1,
   "integrated_retail_ELF_execution_verified_this_checkpoint": false,
   "standalone_guest_fixture_passed": true,
-  "next_work": "model 0x4B GetOsdConfigParam explicitly; continue original OSD guest code; investigate alternate COP0 Status bit0 path at 0x00436C48",
-  "retail_opcode_words_verified": 253,
+  "next_work": "enter retail next initializer JAL at 0x0043FE98 -> 0x0043F470; kernel/IOP/GS remain unimplemented",
+  "retail_opcode_words_verified": 290,
   "current_thread_id_fixture": 255,
-  "current_thread_initial_priority_fixture": 64
+  "current_thread_initial_priority_fixture": 64,
+  "explicit_osd_word_fixture": "0x00004019",
+  "osd_services_modeled": [
+    "0x4A SetOsdConfigParam",
+    "0x4B GetOsdConfigParam"
+  ],
+  "previous_checkpoint_commit": "ff08343c13272ddf899d6d018c143d4276be3569"
 }

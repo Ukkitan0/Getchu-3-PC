@@ -1,3 +1,16 @@
+## Current checkpoint — OSD Get/Set original game return
+
+The original game now executes 44 additional retail MIPS instructions beyond
+`GetOsdConfigParam` at `0x00435B94`: two getters and two setters, testing and
+then restoring an explicitly provided OSD configuration. The original guest
+returns to the next parent JAL at **`0x0043FE98`**. **323,554** original
+instructions accounted for across composed experimental segments; **290/290**
+original words independently match the user-provided PCSX2 savestate. GCC,
+Clang ASan+UBSan and Windows x64 COFF object compilation pass. The complete
+retail-ELF boot diagnostic was not executed here. **NOT PLAYABLE.**
+
+See [CHECKPOINT_OSD_ROUNDTRIP.md](CHECKPOINT_OSD_ROUNDTRIP.md).
+
 ## Latest checkpoint — GetThreadId, ChangeThreadPriority and OSD service boundary
 
 - Executes 17 more real original MIPS instructions across `GetThreadId` (`0x2F`), `ChangeThreadPriority` (`0x29`, test priority 1), and original return to `0x0043FE90`.
