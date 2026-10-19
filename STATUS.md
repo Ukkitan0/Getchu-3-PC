@@ -38,3 +38,12 @@ Sources in the GitHub repository are the canonical work. Old recompilation snaps
 - Differential tests: 90 caller trials, 1,167 compared slices, 81 completed, 6 memory faults, 3 bounded still-running, plus an explicit caller memory-fault/retry check. These are behavioral comparisons against an independent original-word MIPS interpreter, not evidence of runtime playability.
 - Common native dispatcher integration passed; native Windows x64 COFF call objects compile.
 - **Not playable.** Only restricted scalar callers and previously recovered leaves; complex PS2 execution and rendering remain unimplemented.
+
+## Stack execution and indirect call checkpoint (2026-10-18)
+
+- Native `stack_lift.py` adds **1 nested JAL caller** and **31 dynamic JALR caller candidates** beyond the previous 30 direct callers.
+- **1,532 distinct candidate entrypoints**, with 390 newly represented instruction sites (previous 9,940 + 390 = 10,330).
+- 8-deep bounded native C stack with resumable frames, MIPS delay slots, and strict whitelist for dynamic indirect targets.
+- `test_stack.py 3`: 1,656 execution slice comparisons passed across 186 original-code caller trials; real virtual call and unknown-target rejection tests passed.
+- New stacked dispatcher and original legacy dispatcher integration passed; new Windows x64 COFF objects compiled with clang-cl.
+- **Not playable.** The game runtime, GPU and many guest instructions remain unimplemented.
