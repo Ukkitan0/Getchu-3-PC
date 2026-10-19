@@ -1,3 +1,20 @@
+# October 19 — original allocator through AddIntcHandler kernel boundary
+
+- Real 0x0043FE78 -> 0x004404B0 guest call now executes in the native
+  compatibility runtime; the original BSS sentinel is -1.
+- 8-KiB zero fill is **semantically translated** from the retail optimized
+  MMI memset call, not its individual MMI instructions.
+- Original MIPS loops write 128 descending pointers and initialize a
+  64-node free list at 0x00770E80. Both memory structures are checked
+  against independent expected memory images.
+- A further original JAL reaches syscall 0x10 `AddIntcHandler` at
+  0x004357D4 (interrupt 11, handler 0x00440A50, next 0).
+- Explicit test-mode chain retires 323244 original guest instructions;
+  translated MMI helper internals are excluded from the count.
+- Native sanitizer tests, Windows x64 COFF compilation and preceding
+  registered-handler regressions pass. No authenticated BIOS syscall result,
+  no complete GS/VU, IOP, or playable Windows binary yet.
+
 # October 19 — original game-installed GetEntryAddress loop completed
 
 - Native retail-code path continues from 0x00440398 through original second
