@@ -1,3 +1,13 @@
+## Kernel/heap service boundary and first initialization call (2026-10-18)
+
+- Added `ae3_boot_kernel_bridge.[ch]`: captures true SetupThread 0x3C and SetupHeap 0x3D registers, enforces externally supplied verified kernel response, validates checked service state, and executes subsequent original retail userland instructions. Test-only stack fixture is NEVER equivalent to real BIOS behavior.
+- Added `ae3_boot_init_prefix.[ch]`: executes original `JAL` into 0x0043FE58, its delay slot, `addiu sp,-16` and `sd ra,0(sp)`, stopping at nested `JAL 0x0043FC08`.
+- Added a boot probe CLI; default mode stops without faking BIOS results. The regression fixture retires 315,909 total real guest instructions before its first nested call, but no graphical gameplay boots.
+- Both new test programs passed clang AddressSanitizer/UndefinedBehaviorSanitizer and Windows x64 COFF builds of the two new modules passed.
+- Read CHECKPOINT_KERNEL_BRIDGE.md for exact inputs, verified scope and real kernel/graphics blockers.
+
+---
+
 ## Expanded startup and whole-ELF instruction inventory — 2026-10-18
 
 - **Still not playable, still not completely decompiled.** This checkpoint is the canonical development state.
