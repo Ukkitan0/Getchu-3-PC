@@ -34,8 +34,19 @@ target_include_directories(Getchu3Lua50 PUBLIC "${lua50_SOURCE_DIR}/include")
 target_include_directories(Getchu3Lua50 PRIVATE "${lua50_SOURCE_DIR}/src")
 set_target_properties(Getchu3Lua50 PROPERTIES C_STANDARD 90 C_STANDARD_REQUIRED ON)
 
-add_library(Getchu3Assets STATIC src/archive.cpp src/tim2.cpp src/stage_scripts.cpp src/player_state.cpp src/lua_stage.cpp src/controller_timeline.cpp)
+# cgltf is a MIT single-file glTF parser, pinned to an immutable upstream
+# commit. It parses host-native asset data, never console GPU commands.
+FetchContent_Declare(GetchuCgltf
+  URL "https://codeload.github.com/jkuhlmann/cgltf/tar.gz/85cd62382dfea638278962690cf515023f33ed00"
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+)
+FetchContent_GetProperties(GetchuCgltf)
+if(NOT getchucgltf_POPULATED)
+  FetchContent_Populate(GetchuCgltf)
+endif()
+add_library(Getchu3Assets STATIC src/archive.cpp src/tim2.cpp src/stage_scripts.cpp src/player_state.cpp src/lua_stage.cpp src/controller_timeline.cpp src/gltf_scene.cpp)
 target_include_directories(Getchu3Assets PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_include_directories(Getchu3Assets PRIVATE "${getchucgltf_SOURCE_DIR}")
 target_link_libraries(Getchu3Assets PUBLIC Getchu3Lua50)
 if(MSVC)
     target_compile_options(Getchu3Assets PRIVATE /W4 /permissive-)
@@ -86,3 +97,7 @@ set_tests_properties(NativeLua50StageRunnerDemo PROPERTIES
 add_executable(Getchu3ControllerTimelineTests tests/controller_timeline_test.cpp)
 target_link_libraries(Getchu3ControllerTimelineTests PRIVATE Getchu3Assets)
 add_test(NAME NativeLua50TimedControllerActions COMMAND Getchu3ControllerTimelineTests)
+
+add_executable(Getchu3GltfSceneTests tests/gltf_scene_test.cpp)
+target_link_libraries(Getchu3GltfSceneTests PRIVATE Getchu3Assets)
+add_test(NAME NativeGlbSceneMeshNodesAndBoundingBox COMMAND Getchu3GltfSceneTests)
