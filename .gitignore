@@ -36,3 +36,10 @@ ae3_stack_leaves.h
 # Guest integration test binaries and their Windows objects
 ae3_guest_execution_test
 ae3_elf_image_test
+
+# Word-by-word retail binary inventory and reconstructed game machine code
+analysis/
+ee_text_word_inventory.tsv.gz
+vu_microcode_packet_inventory.tsv.gz
+direct_jal_targets.tsv
+*_test
