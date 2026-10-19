@@ -36,9 +36,11 @@ Neither fixture contains an original Ape Escape 3 executable or proves gameplay.
 
 The independent Python control-flow oracle was executed successfully in a
 GitHub Windows CI run; its initial seven-region coverage assertion had an
-outdated hardcoded callback stride and was corrected. A **successful full native
-Windows AOT-pages CI run is required** before claiming the new fixture is
-runtime-verified. Refer to the latest GitHub Actions results.
+outdated hardcoded callback stride and was corrected. **The expanded native
+Windows pipeline has now passed end-to-end** in GitHub Actions run
+[39318625918](https://github.com/Ukkitan0/Getchu-3-PC/actions/runs/39318625918).
+The same run passed Win32 WebGPU compilation/linking. This proves execution of
+original *synthetic* R5900 test code, not the retail game.
 
 ## Improvements for actual owner-local game attempts
 
@@ -46,6 +48,8 @@ runtime-verified. Refer to the latest GitHub Actions results.
   `VCPKG_INSTALLATION_ROOT` or bootstraps a private vcpkg clone when neither
   is configured. It runs `vcpkg install sdl2:x64-windows` before native
   configuration, eliminating silent SDL2 dependency omissions.
+- Missing ISO input now fails at preflight when native execution/exploration
+  is requested, before lengthy compiler work.
 - When the SDL2 shared DLL is installed in vcpkg, it is copied next to
   `ps2run.exe`, even if vcpkg app-local dependency copying is disabled.
 - Existing SHA-256 retail-ELF validation, anchored Win32 overlay, private
