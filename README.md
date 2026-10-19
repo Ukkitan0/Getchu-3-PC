@@ -1,3 +1,32 @@
+## October 19, 2026 — Fix for `SeedMode 8` in Windows one-click launcher
+
+The original `TEST_APE_ESCAPE_3_WINDOWS.ps1` built a positional string
+array resembling `-ExploreRounds 8` and splatted that array to another
+PowerShell script. PowerShell interpreted `8` as the earlier positional
+`SeedMode` parameter, which accepts only `constructors`, `common`,
+or `all`.
+
+The corrected launcher uses **named hashtable splatting** and passes
+`ExploreRounds`, `ExploreFrames`, `Disc`, and `Run` as typed
+parameters. A Windows CI regression executes the real launcher against a
+game-free fake build script whose complete parameter list matches the
+native pipeline; it checks `ExploreRounds 8`, `12`, `0`, and
+software-renderer mode. That targeted test passed.
+
+The build also treats a selected ISO as authoritative, rather than
+silently picking up a leftover `SCUS_975.01` from an older unrelated
+recompilation folder.
+
+To update existing local folders without deleting any private code or
+game files, replace these two files from `main`:
+`TEST_APE_ESCAPE_3_WINDOWS.ps1` and
+`RUN_BULK_NATIVE_WINDOWS.ps1`.
+
+A metadata-only log collector is available as
+`COLLECT_AE3_DIAGNOSTICS.bat` when `tools/diagnostic_bundle.py` exists.
+It packages redacted build errors but not commercial ISO/ELF, guest RAM,
+captured frames, or generated game code.
+
 # Getchu-3-PC — Ape Escape 3 native Windows recompilation
 
 **Current status (2026-10-19): native toolchain and game-free AOT execution verified; retail game is NOT yet playable.**
