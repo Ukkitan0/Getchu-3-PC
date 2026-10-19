@@ -170,6 +170,51 @@ def check_elf(path: Path):
     return got
 
 
+
+def ensure_private_inventory(elf: Path, out: Path) -> tuple[Path, Path]:
+    """Reconstruct once per verified retail ELF; never trust mismatched tables.
+
+    Repeated native builds must not regenerate and reparse 1.35 million guest
+    instruction words when the exact original ELF and private outputs are
+    unchanged. A damaged or stale private table is regenerated automatically.
+    """
+    private = out / 'derived_from_owned_elf'
+    inventory = private / 'ee_text_word_inventory.tsv.gz'
+    targets = private / 'direct_jal_targets.tsv'
+    manifest = private / '.inventory-cache.json'
+    elf_hash = sha256(elf)
+    if manifest.is_file() and inventory.is_file() and targets.is_file():
+        try:
+            record = json.loads(manifest.read_text(encoding='utf-8'))
+            if (record.get('format') == 'ae3-private-inventory-cache/v1'
+                    and record.get('elf_sha256') == elf_hash
+                    and record.get('inventory_sha256') == sha256(inventory)
+                    and record.get('targets_sha256') == sha256(targets)):
+                print('Reusing SHA-verified private retail ELF opcode inventory', flush=True)
+                return inventory, targets
+        except (OSError, UnicodeError, ValueError):
+            pass
+    print('Deriving original EE opcode inventory and direct calls from verified ELF',
+          flush=True)
+    result = derive(elf, private)
+    inventory, targets = Path(result['inventory']), Path(result['direct_targets'])
+    cache = {'format': 'ae3-private-inventory-cache/v1',
+             'elf_sha256': elf_hash,
+             'inventory_sha256': sha256(inventory),
+             'targets_sha256': sha256(targets)}
+    with tempfile.NamedTemporaryFile('w', dir=private, prefix='.inventory-',
+                                     suffix='.json', encoding='utf-8',
+                                     delete=False) as fp:
+        json.dump(cache, fp, indent=2)
+        fp.write('\\n')
+        temporary = Path(fp.name)
+    try:
+        temporary.replace(manifest)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return inventory, targets
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--out', type=Path, default=ROOT / 'fastlane/generated', help='Private generated entry files')
@@ -196,10 +241,7 @@ def main(argv=None):
     if not inv.is_file() or not targets.is_file():
         if not args.elf:
             raise FileNotFoundError('Retail instruction inventory is not in the public repository. Supply --elf with your own original SCUS_975.01; private tables will be reconstructed automatically.')
-        private = args.out / 'derived_from_owned_elf'
-        print('Generating missing private EE opcode inventory and call-target table from SHA-verified retail ELF',flush=True)
-        result = derive(args.elf, private)
-        inv, targets = Path(result['inventory']), Path(result['direct_targets'])
+        inv, targets = ensure_private_inventory(args.elf, args.out)
     records, groups = load_inventory(inv)
     calls = load_calls(targets, records)
     ctors = load_constructors(CONSTRUCTORS, records)
