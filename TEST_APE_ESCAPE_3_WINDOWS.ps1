@@ -56,10 +56,12 @@ if ($RunOnly) {
     } catch {
         # Keep the actual build error. A small, redacted metadata-only ZIP
         # can be shared for diagnosis without uploading ISO, guest RAM, or C++.
+        $Collector = Join-Path $Project 'tools\diagnostic_bundle.py'
         if ((Test-Path -LiteralPath $Workspace -PathType Container) -and
+            (Test-Path -LiteralPath $Collector -PathType Leaf) -and
             (Get-Command 'py' -ErrorAction SilentlyContinue)) {
             try {
-                & py -3 (Join-Path $Project 'tools\diagnostic_bundle.py') --workspace $Workspace
+                & py -3 $Collector --workspace $Workspace
                 Write-Host "Safe diagnostic bundle: $(Join-Path $Workspace 'AE3_NATIVE_DIAGNOSTICS.zip')"
             } catch {
                 Write-Warning "Could not package diagnostic logs: $_"
