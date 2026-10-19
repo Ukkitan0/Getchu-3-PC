@@ -16,6 +16,7 @@ $ErrorActionPreference = 'Stop'
 $Project = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ExpectedHash = '5A8A73CF741B2E923F652F9BDF35D1798471FF31FB960B63ED010A78D1AC2D63'
 $PinnedUpstream = '6526f4803d98e10de50bea3af104a4d26e9df033'
+$PinnedVcpkg = '664933b8d385dfc01f4e0cdff4c7c74e71f6a740' # Oct 18 2026
 if (-not $Workspace) { $Workspace = Join-Path $Project 'fastlane\private' }
 New-Item -ItemType Directory -Path $Workspace -Force | Out-Null
 $Log = Join-Path $Workspace 'build.log'
@@ -78,7 +79,8 @@ if (-not (Test-Path -LiteralPath $Toolchain)) {
         Fail "Incomplete vcpkg workspace at $VcpkgRoot; repair/remove that directory to retry bootstrap"
     }
     Write-Host 'Bootstrapping a private vcpkg installation for required SDL2...'
-    RunProcess 'git' @('clone','--depth','1','https://github.com/microsoft/vcpkg.git',$VcpkgRoot)
+    RunProcess 'git' @('clone','--filter=blob:none','https://github.com/microsoft/vcpkg.git',$VcpkgRoot)
+    RunProcess 'git' @('-C',$VcpkgRoot,'checkout','--detach',$PinnedVcpkg)
 }
 if (-not (Test-Path -LiteralPath $VcpkgExe)) {
     $Bootstrap = Join-Path $VcpkgRoot 'bootstrap-vcpkg.bat'
