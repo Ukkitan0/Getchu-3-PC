@@ -1,0 +1,19 @@
+Getchu-3-PC 2026-10-19 original EE Timer 3 + syscall 0x5A checkpoint
+
+C compiler: clang -std=c11 -O1 -g -Wall -Wextra -Werror
+            -fsanitize=address,undefined -fno-omit-frame-pointer
+Original retail ELF: SCUS_975.01 (NTSC-U), locally supplied, not packaged
+
+PASS test_ee_timer3: MODE/COUNT/COMP; dividers; W1C; unsupported clocks; KSEG RAM aliases
+PASS test_boot_timer3_resume: retail original MIPS branch both ways; exact call and return boundaries; single-step parity and atomic MMIO fault
+PASS test_guest_kernel_copy: retail original syscall 0x5A copy 1,856 bytes KSEG0 into physical RAM; fault/retry and single-step parity
+PASS test_boot_timer3_syscalls: real Timer 3 mode-zero branch -> guest SetSyscall 0x74 wrapper -> native compatibility registry -> original 0x5A wrapper -> guest kernel-copy handler -> caller 0x440398
+
+Windows: clang-cl /std:c11 /W4 /WX /O2 /c compiled four new .obj into x86-64 COFF. This is NOT a Windows runtime execution test.
+Default boot probe remains at SetupThread 315,897 original guest instructions.
+--test-next-mmio retains old Timer 3 boundary stopping behavior.
+--test-timer3 reports 317,750 retired guest instructions, next JAL at 0x440378.
+--test-timer3-enabled reports return at 0x43FE78 (test-only CMPE=1).
+--test-timer3-copy reports 321,484 retired guest instructions; 1,856 bytes match original source; returns to 0x440398.
+
+All beyond SetupThread is explicitly opt-in and still needs authentic BIOS behavior. Full generated-C regression suite was not rerun in this turn.
