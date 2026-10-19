@@ -1,3 +1,14 @@
+## Expanded startup and whole-ELF instruction inventory — 2026-10-18
+
+- **Still not playable, still not completely decompiled.** This checkpoint is the canonical development state.
+- Original retail boot prefix + first real JAL callee + caller setup now retire **315,897 actual guest instructions**, ending BEFORE syscall `SetupThread` 0x3C at PC `0x001002FC`.
+- Actual first callee fills **393,216 bytes** of upper normal EE RAM with 24,576 aligned 128-bit stores, and returns to its original caller. Actual per-byte state, branch delay slots, and fault-retry state verified, including ASan/UBSan and two Windows x64 COFF compile checks.
+- `full_elf_inventory.py` indexes every word in the 5,407,320-byte retail `.text` section (**1,351,830** 32-bit words) and all **3,200** 64-bit VU packets in `.vutext`. This is not equivalent to validated function recovery.
+- Next hard boot dependency: faithful EE `SetupThread`/`SetupHeap` kernel behavior; arbitrary fake stack pointers or host emulated menus will not count.
+- Full details: [CHECKPOINT_BOOT_EXPANDED.md](CHECKPOINT_BOOT_EXPANDED.md).
+
+---
+
 # Native recovery checkpoint — 2026-10-18
 
 **Not playable.** Verified retail NTSC-U `SCUS_975.01` SHA-256: `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`.
@@ -79,3 +90,10 @@ Sources in the GitHub repository are the canonical work. Old recompilation snaps
 - Retail entry `0x00100134` begins with 29 `PADDUW` clears of 128-bit GPRs (r1–r25, r28–r31), followed by 4 primary/secondary HI/LO clears, a taken link branch, then 32 `MTC1` FPR resets.
 - `audit_boot_entry.py` validates each original 32-bit instruction word and refuses a mismatch. The first unmodeled FPU accumulator instruction is at `0x0010023C`; the source audit **does not run those 66+ instructions**.
 - This confirms why 64-bit-only translated leaves cannot faithfully boot the EE: real 128-bit GPR and COP1 state are needed.
+
+## Original retail startup executed to first JAL (2026-10-18)
+
+- Added native-C `ae3_boot_prefix.c/.h` and `test_boot_prefix.c`. Runs original mapped executable instructions from `0x00100134` to the first call site `0x001002C4`.
+- Verified **143,836 guest instructions** and **17,969 128-bit stores**, clearing 287,504 bytes while preserving adjacent sentinels and FPR/GPR/HI/LO state semantics. Arbitrary execution slicing and a fault-then-retry produce the same final state and entire 32 MB guest RAM as one execution.
+- Linux C11 `-Werror`, Clang AddressSanitizer and UndefinedBehaviorSanitizer tests passed. Native x64 COFF generated with `clang-cl /W4 /WX`.
+- The first JAL targets `0x001036D8`, which touches PS2 device MMIO and uses further 128-bit operations; **not supported**, so this is **not a game boot**. Missing native PS2 runtime remains the fundamental blocker to a playable Windows build.
