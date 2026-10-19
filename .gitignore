@@ -32,3 +32,7 @@ __pycache__/
 build/
 ae3_stack_leaves.c
 ae3_stack_leaves.h
+
+# Guest integration test binaries and their Windows objects
+ae3_guest_execution_test
+ae3_elf_image_test
