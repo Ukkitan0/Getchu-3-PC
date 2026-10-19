@@ -23,8 +23,9 @@ jobs:
       - name: Offline Python regression suite
         shell: pwsh
         run: |
-          py -3 -m unittest discover -s tools -p 'test_windows_fastlane.py' -v
-          py -3 -m unittest discover -s tools -p 'test_bulk_recompile.py' -v
+          python -m unittest discover -s tools -p 'test_windows_fastlane.py' -v
+          # Full-game bulk tests consume the owner's recovered opcode inventory,
+          # intentionally absent from the public GitHub source checkout.
       - name: Fetch exact known upstream revision
         shell: pwsh
         run: |
