@@ -258,5 +258,26 @@ class LauncherContract(unittest.TestCase):
         self.assertNotIn('wsl.exe', ps1.lower())
 
 
+
+class NativeLauncherDependencies(unittest.TestCase):
+    """Prevent Windows game-build regressions not covered by the CI stub."""
+    def test_private_vcpkg_bootstrap_and_sdl2_dependency(self):
+        launch = (Path(__file__).resolve().parent.parent /
+                  'RUN_BULK_NATIVE_WINDOWS.ps1').read_text(encoding='utf-8')
+        for text in ('$env:VCPKG_INSTALLATION_ROOT', '$env:VCPKG_ROOT',
+                     'vcpkg.exe', 'bootstrap-vcpkg.bat', '$PinnedVcpkg',
+                     "'sdl2:x64-windows'", '-DCMAKE_TOOLCHAIN_FILE='):
+            self.assertIn(text, launch)
+        self.assertIn('installed\\x64-windows\\bin\\SDL2.dll', launch)
+        self.assertIn('Copy-Item -LiteralPath $SDL2Dll', launch)
+
+    def test_game_build_is_private_and_source_only_ci_isolated(self):
+        root = Path(__file__).resolve().parent.parent
+        ignore = (root / '.gitignore').read_text(encoding='utf-8')
+        launcher = (root / 'RUN_BULK_NATIVE_WINDOWS.ps1').read_text(encoding='utf-8')
+        self.assertIn('/fastlane/private/', ignore)
+        self.assertIn("ExpectedHash", launcher)
+        self.assertIn('-DPS2_GENERATED=', launcher)
+
 if __name__=='__main__':
     unittest.main(verbosity=2)
