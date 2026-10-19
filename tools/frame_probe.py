@@ -71,11 +71,14 @@ def inspect_ppm(path: Path) -> dict:
     }
 
 
-def inspect_frames(folder: Path, *, max_frames: int = 12) -> dict:
-    if not folder.exists():
-        return {"ppm_frame_files": 0, "examined": [], "bad_frames": 0,
-                "has_nonblack_visual_evidence": False}
-    candidates = sorted(folder.glob("frame_*.ppm"))
+def inspect_frames(folder: Path | list[Path], *, max_frames: int = 12) -> dict:
+    # Source output can be one shots directory or an exact set of current
+    # exploration-round directories. Never mix earlier runs into a new report.
+    folders = [folder] if isinstance(folder, Path) else list(folder)
+    candidates = sorted({
+        p for directory in folders if directory.exists()
+        for p in directory.rglob("frame_*.ppm") if p.is_file()
+    })
     selected = candidates[-max_frames:] if max_frames > 0 else []
     examined = []
     bad = 0
