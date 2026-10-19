@@ -169,7 +169,10 @@ $BulkArgs = @('-3',(Join-Path $Project 'tools\bulk_recompile.py'),'--elf',$Elf,
               '--eerecomp',$Compiler,'--cpp-out',$Generated) + $ModuleArgs + $OverlayArgs
 RunProcess 'py' $BulkArgs
 $EntryList = Join-Path $Entries 'entries.txt'
-$TranslateArgs = @($Elf,'--entries',$EntryList) + $ModuleArgs + $OverlayArgs + @('--out',$Generated)
+# All discovered guest code images and entrypoints are hashed. Re-running this
+# script reuses already validated native C++ units until any input changes.
+$TranslateArgs = @('--compiler',$Compiler,'--elf',$Elf,
+                   '--entries',$EntryList,'--out',$Generated) + $ModuleArgs + $OverlayArgs
 $AnalysisInventory = Join-Path $Project 'analysis\full_elf\ee_text_word_inventory.tsv.gz'
 if (-not (Test-Path -LiteralPath $AnalysisInventory)) {
     # A fresh public checkout contains NO copyrighted retail-code inventory.
@@ -271,7 +274,7 @@ if ($ExploreRounds -gt 0) {
             $RoundResults | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $Workspace 'explore_summary.json') -Encoding UTF8
             "round $($Round): $($Summary.new_entries) entries, $Captured new overlays, exit $ExploreExit" | Tee-Object -FilePath $Log -Append
             if (-not $Summary.changed -and $Captured -eq 0) { break }
-            RunProcess $Compiler $TranslateArgs
+            RunProcess 'py' (@('-3',(Join-Path $Project 'tools\aot_cache.py')) + $TranslateArgs)
             BuildRunner
         }
         if (@(Get-ChildItem -LiteralPath $VuPrograms -Filter '*.bin' -File).Count -gt 0) {
