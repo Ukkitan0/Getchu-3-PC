@@ -46,5 +46,11 @@ clang-cl /nologo /std:c11 /O2 /c ae3_guest_execution.c /Fobuild\ae3_guest_execut
 if errorlevel 1 exit /b 1
 clang-cl /nologo /std:c11 /O2 /c ae3_elf_image.c /Fobuild\ae3_elf_image.obj
 if errorlevel 1 exit /b 1
+clang-cl /nologo /std:c11 /W4 /WX /O2 /c ae3_boot_prefix.c /Fobuild\ae3_boot_prefix.obj
+if errorlevel 1 exit /b 1
+clang-cl /nologo /std:c11 /W4 /WX /O2 /c ae3_boot_memory_fill.c /Fobuild\ae3_boot_memory_fill.obj
+if errorlevel 1 exit /b 1
+clang-cl /nologo /std:c11 /W4 /WX /O2 /c ae3_boot_thread_setup.c /Fobuild\ae3_boot_thread_setup.obj
+if errorlevel 1 exit /b 1
 echo [AE3] Compiled x64 object files (NOT a playable executable).
 exit /b 0
