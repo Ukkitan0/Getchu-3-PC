@@ -170,5 +170,58 @@ class NativeTranslationCache(unittest.TestCase):
         self.assertFalse((self.out / ".ae3-aot-cache.json").exists())
 
 
+class PrivateInventoryReuse(unittest.TestCase):
+    def test_first_derive_then_hash_verified_reuse(self):
+        import synthetic_aot_smoke as fixture
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            elf = root / 'fixture.elf'
+            elf.write_bytes(fixture.build_bytes())
+            output = root / 'entries'
+            original = bulk.derive
+            with patch.object(bulk, 'derive', wraps=original) as derive:
+                inv, targets = bulk.ensure_private_inventory(elf, output)
+                self.assertEqual(derive.call_count, 1)
+                stamp = output / 'derived_from_owned_elf/.inventory-cache.json'
+                self.assertEqual(json.loads(stamp.read_text())['elf_sha256'],
+                                 bulk.sha256(elf))
+                inv2, targets2 = bulk.ensure_private_inventory(elf, output)
+                self.assertEqual(derive.call_count, 1)
+                self.assertEqual((inv, targets), (inv2, targets2))
+
+    def test_damaged_inventory_is_rebuilt_not_trusted(self):
+        import synthetic_aot_smoke as fixture
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            elf = root / 'fixture.elf'
+            elf.write_bytes(fixture.build_bytes())
+            output = root / 'entries'
+            inv, targets = bulk.ensure_private_inventory(elf, output)
+            before = inv.read_bytes()
+            inv.write_bytes(b'invalid gzip')
+            bulk.ensure_private_inventory(elf, output)
+            self.assertEqual(inv.read_bytes(), before)
+            targets.write_text('corrupted')
+            bulk.ensure_private_inventory(elf, output)
+            self.assertNotEqual(targets.read_text(), 'corrupted')
+
+    def test_modified_guest_elf_invalidates_cached_inventory(self):
+        import synthetic_aot_smoke as fixture
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            elf = root / 'fixture.elf'
+            elf.write_bytes(fixture.build_bytes())
+            output = root / 'entries'
+            original = bulk.derive
+            with patch.object(bulk, 'derive', wraps=original) as derive:
+                bulk.ensure_private_inventory(elf, output)
+                self.assertEqual(derive.call_count, 1)
+                data = bytearray(elf.read_bytes())
+                data[fixture.TEXT_OFFSET] ^= 0x04
+                elf.write_bytes(data)
+                bulk.ensure_private_inventory(elf, output)
+                self.assertEqual(derive.call_count, 2)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
