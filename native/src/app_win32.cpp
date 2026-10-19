@@ -307,7 +307,7 @@ void openRecoveredStage(){
         info<<L"Executed original-style Lua 5.0 script on native CPU: "
             <<gNativeWorld->entities().size()<<L" entities, "
             <<gNativeWorld->parameters().size()<<L" Lua params, "
-            <<gControllerTimelines.size()<<L" running native controller timelines. ";
+            <<gControllerTimelines.size()<<L" running native controller timelines. "
             <<L"ENGINE DESCRIPTORS ONLY: gameplay, collision and real level rendering still incomplete.";
         status(info.str());
     }catch(const std::exception& e){
