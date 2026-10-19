@@ -1,125 +1,63 @@
-# Getchu-3-PC — Ape Escape 3 native decompilation
+# Getchu-3-PC — Ape Escape 3 native Windows decompilation
 
-**Canonical project:** original-ELF-first translation of *Ape Escape 3* (PS2, NTSC-U, `SCUS_975.01`) into tested native C, followed by Windows game/runtime work. Previous experimental recompilation trees are **reference only**.
+The **canonical decompilation/source-recovery project** for the PS2 NTSC-U *Ape Escape 3* (`SCUS_975.01`). Our goal is a complete **native Windows port**, not an emulator frontend or mockup. Historic recompilation builds are reference material only.
 
-**Current status: native source-recovery tools, NOT a playable Windows game.** The project does not yet boot, render a world, play audio, or run game logic from its own Windows executable.
+> **October 18, 2026 checkpoint:** The source translators compile tested native C for a **restricted subset** of the original MIPS R5900 executable. **This is not a playable Windows game**, and this repository does not contain the original game, assets, or fully bootable runtime.
 
-## Translation milestones (October 18, 2026)
+## Measured source recovery
 
-| Translator | Candidate routines | Unique original instruction locations | Verified test executions |
-| --- | ---: | ---: | ---: |
-| `bulk_lift.py` straight-line scalar leaves | 1,163 | 4,067 | 9,304 |
-| `cfg_lift.py` forward control flow | 168 | 1,998 | 1,680 |
-| `loop_lift.py` backward branches, bounded loops | 139 | 2,162 | 1,112 in baseline; 3,336 in extended tests |
-| `call_lift.py` direct-JAL callers (new) | 30 | 550 | 1,167 execution-slice checks |
-| **Total distinct recovered candidate entries** | **1,500** | **9,940 including JR/return words** | Different test-unit conventions; see below |
+| Layer | Distinct candidate entries | Notes |
+|---|---:|---|
+| Scalar/forward/loop leaf translators | 1,470 | 1,163 straight-line + 168 forward-CFG + 139 bounded loops |
+| Direct-JAL callers | 30 | Call a supported leaf |
+| Nested-JAL callers | 1 | Stack depth >1 exercised |
+| Whitelisted dynamic-JALR callers | 31 | Unknown targets explicitly rejected |
+| **Forward branch and call wrappers** | **72** | New in this checkpoint: forward BEQ/BNE/BLEZ/BGTZ/REGIMM or J with JAL/JALR |
+| **Total distinct entrypoints** | **1,604** | Candidate entries are not guaranteed full function boundaries |
 
-These are **candidate routines**, not guaranteed original function boundaries or whole-game coverage. The MIPS-word reference interpreter tests can catch implementation mistakes but do not replace real PS2 execution validation. The translator models *only low 64 bits* of EE general-purpose registers and a restricted scalar instruction subset. Every unsupported instruction causes rejection, not silent skipping.
+The scalar resumption generator maps 9,390 original instruction locations (including return instructions). Prior to this checkpoint, call-capable wrappers represented 940 additional locations; the new branch/call pass represents another 1,432. Thus current translated **site total is 11,762** for these separately enumerated layers. Do **not** interpret it as 11,762 proven reachable or semantically identified instructions; aggregate reports use different instruction counting conventions.
 
-## From your own retail game
+### Key implementations
 
-The repository deliberately excludes the ISO, ELF, extracted game assets, and generated source derived from copyrighted game bytes. Supply your own retail `SCUS_975.01` with SHA-256:
+- `bulk_lift.py`, `cfg_lift.py`, `loop_lift.py`: conservative low-64-bit scalar MIPS R5900 leaf candidates.
+- `resume_lift.py`: resumable guest-PC, branch and delay-slot execution.
+- `call_lift.py`, `stack_lift.py`, `extend_stack.py`: direct JAL, nested calls, dynamically checked JALR, and **forward control-flow callers**.
+- `test_*`: independent reference execution of the original retail MIPS instruction words, comparing GPRs, byte-exact RAM, instruction counts, PC, pending slot state, and errors.
+- `ae3_native_dispatch.c/h`: common entrypoints for the above restricted routines; not a PS2 hardware runtime.
+
+## Run the code from your own copy
+
+Use your own unmodified USA executable, SHA-256:
 
 `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`
 
-Use Python 3.10+ and a C11 toolchain. Set `AE3_ELF` to your copy of `SCUS_975.01` or place that file in the repository root.
+It can be passed using the `AE3_ELF` environment variable or kept locally as `SCUS_975.01`. **Do not commit or redistribute the retail game or generated game-code C.**
 
-On Linux:
+Linux (Python 3.10+, C compiler):
 
 ```bash
 AE3_ELF=/path/to/SCUS_975.01 bash BUILD_AND_TEST_LINUX.sh
 ```
 
-This generates local C source from the ELF, builds five native-C shared test libraries and a unified dispatcher test, and runs five MIPS-word comparison suites. *These generated C files are intentionally git-ignored.*
+Windows (Python 3 and clang-cl / Visual Studio C++ tools):
 
-On Windows, install Python 3 and LLVM/Visual Studio C++ Clang tools and run `BUILD_WINDOWS_OBJECTS.bat`. This builds six **Windows x64 object files**, not an executable game.
-
-## Execution status
-
-The loop translator supports short backward conditional branches and direct jumps, with correct MIPS delay-slot ordering and an instruction budget of 4,096. Return code `-3` explicitly means **execution budget exhausted**; the routine has not finished and the modified register/memory state is incomplete. It is not safe to treat `-3` as success or resume without tracking the guest program counter and state.
-
-## Not implemented
-
-64-bit high-half EE GPR lanes, 128-bit MMI, COP1/VU, indirect control flow, general inter-function calls, nested callers, indirect-return shapes, system services, IOP boot, GS/VIF/GIF, audio, disc streaming, controller input, and save-card behavior. A real PC port requires integration and tests for all of these, as well as auditing candidate function boundaries.
-
-The **next milestone** is nested, indirect and computed call/return control flow, then the substantially larger R5900/VU/GS/IOP runtime work. No placeholder or emulator wrapper is represented here as a native port.
-
-## Incremental native scheduler (2026-10-18)
-
-The canonical source generator `resume_lift.py` produces `ae3_resumable_leaves.c/h`
-from the verified USA retail ELF. It exposes **1,470 candidate scalar routines**
-(1,163 straight-line, 168 forward-control-flow, 139 bounded loops) through a
-PC-resumable instruction-slice interface. Program counter, pending delay-slot
-branch/return decisions, and retired instruction count are persistent in
-`AE3_ResumeFrame`. The public native dispatcher exposes:
-
-```c
-AE3_ResumeFrame frame;
-ae3_native_frame_init(&frame, entry_pc);
-int result = ae3_run_native_slice(&context, &frame, budget);
-/* AE3_RESUME_YIELDED (1) => call again with same frame and guest context.
-   AE3_RESUME_DONE (0) => routine returned.
-   AE3_RESUME_MEMORY_FAULT (-1) => memory mapping needed, retry same PC.
-   AE3_RESUME_UNKNOWN (-2) => unsupported entry.
-   AE3_RESUME_INVALID (-4) => invalid or inconsistent frame. */
+```bat
+set AE3_ELF=C:\ApeEscape3\SCUS_975.01
+BUILD_WINDOWS_OBJECTS.bat
 ```
 
-Run `AE3_ELF=/path/to/SCUS_975.01 bash BUILD_AND_TEST_LINUX.sh` to regenerate
-translated code, build the shared libraries, run all differential suites, and
-run the C dispatcher integration test. On Windows, run `BUILD_WINDOWS_OBJECTS.bat`
-with VS/Clang and Python available; this compiles six native COFF objects.
-No Windows game EXE or full PS2 runtime exists yet.
+The Windows script builds `.obj` files for further integration; **it does not make a playable EXE**.
 
-The `ae3_resumable_leaves.c/h` files are **derived from the copyrighted game
-executable**, generated locally, and excluded from this public repository.
+## Verified October 18 test milestone
 
-*Known limitations:* R5900 EE high 64-bit GPR lanes, MMI, COP1/COP2, VU,
-indirect calls and returns, external IOP/BIOS/SIF devices, sound, GS/GIF/VIF,
-level assets and a complete playable runtime remain unimplemented. Candidate
-instruction addresses can still be data rather than verified code boundaries.
+- `test_stack.py 2`: **268** original-MIPS vs native-C trials, **2,194** compared execution slices across **134** caller candidates.
+- `test_branch_call_paths.py`: forced the taken and not-taken branches of retail code at `0x003817D0`, including the indirect callee `0x003B3CE0` on the latter path. Both completed and matched the oracle (registers, memory, state).
+- Rejected/unsupported `JALR` targets no longer partially mutate the saved target state before returning a fault. Added an explicit regression assertion.
+- Linux native dispatcher integration passed and `clang-cl` successfully compiled the updated stack module to a Windows x64 COFF object.
+- Earlier scalar/CFG/loop/resume/direct-JAL suites passed individually; full end-to-end script rebuilding every output did not complete within this environment's command limit.
 
-## Direct native-C inter-function execution (2026-10-18)
+See [CHECKPOINT_BRANCH_CALLS.md](CHECKPOINT_BRANCH_CALLS.md) and [STATUS.md](STATUS.md) for limitations.
 
-`call_lift.py` scans the original retail ELF for **strictly bounded, straight-line
-caller routines** that contain real MIPS `JAL` instructions targeting one of the
-1,470 existing resumable candidates. It currently accepts **30 additional
-candidate callers, 35 direct call edges and 550 original instruction sites**;
-all caller sites are disjoint from the previously recovered 9,390 leaf sites.
-The combined entry count is therefore **1,500 candidate routines** and 9,940
-represented instruction sites (including original `JR ra` instructions).
+## Remaining work
 
-The generated `ae3_call_leaves.c/.h` retains the calling function's guest PC,
-call-target, `JAL` delay slot, and child resume frame across instruction budgets.
-The common dispatcher exposes `ae3_native_caller_init()` and
-`ae3_run_native_caller_slice()` alongside the existing leaf interfaces.
-Return address `$ra` is updated when `JAL` executes, before its delay slot.
-A callee returning somewhere other than the expected continuation is rejected,
-not misrepresented as a completed call. Memory faults preserve the state for
-retry after a mapping is supplied.
-
-Independent original-MIPS differential tests passed **1,167 call execution
-slices** across 90 trials, with 81 completions, six memory faults, and three
-bounded still-running executions. A further caller fault/retry test passed.
-The Linux dispatcher integration and Windows x64 COFF builds passed.
-
-**Remaining limitations:** callers may only make direct calls into previously
-translated scalar leaves; nested caller-to-caller calls, computed `JALR`/`JR`
-targets, ordinary conditional branches inside callers, high R5900 lanes,
-VU/MMI/COP, PS2 system devices, and a playable Windows runtime are not
-implemented by this milestone.
-
-## Stack dispatch and virtual JALR checkpoint (2026-10-18)
-
-The native-C pipeline now includes `stack_lift.py` and `test_stack.py`.
-The recovered 62 caller candidates include one real nested JAL chain and 31
-virtual-dispatch/JALR wrappers. `ae3_native_stack_init` and
-`ae3_run_native_stack_slice` provide a bounded stack-based instruction-slice
-API, with strict rejection of indirect targets not yet recovered.
-
-To build the generated objects, use `BUILD_WINDOWS_OBJECTS.bat` on Windows.
-For Linux differential tests, run `BUILD_AND_TEST_LINUX.sh` with `AE3_ELF`
-pointing to your **own** retail executable. Generated game-specific C and
-objects are not checked into GitHub. Details: [CHECKPOINT_STACK.md](CHECKPOINT_STACK.md).
-
-**Not playable.** Translating 1,532 candidate entrypoints is not a complete
-reverse engineering or a Windows port of the game.
+The executable still requires broad function coverage, verified 128-bit GPR/MMI/COP1/VU support, EE/IOP scheduling and services, VIF/GIF/GS rendering, disc/asset handling, audio, controllers, save logic, and a real Windows game boot/integration test. Only supported scalar candidates can run today, and indirect calls must resolve to known entries. Nothing in this repository claims completed gameplay or graphics.
