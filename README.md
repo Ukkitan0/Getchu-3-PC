@@ -8,6 +8,25 @@ input, sound and saves. Older recompilation efforts are reference material only.
 This public repository contains recovery tools, original implementations,
 and tests, **not** the copyrighted ISO, ELF, BIOS, ROM or game assets.
 
+## Current native checkpoint — allocator and AddIntcHandler boundary
+
+- Executed the retail initializer at `0x004404B0`, including the genuine
+  loop building **128 descending stack-area links**, and nested routine
+  `0x00441780` initializing a **64-entry** free list.
+- The preceding 8-KiB optimized EE MMI `memset` at `0x0042B320` is converted
+  to a **native C semantic operation for the exact verified call**, not
+  instruction-level MMI emulation. Source tests check every output byte.
+- Reached `AddIntcHandler` (EE syscall `0x10`) at `0x004357D4` with interrupt
+  cause **11** and handler **`0x00440A50`**, without manufacturing any BIOS reply.
+- Explicit compatibility-mode diagnostic reaches **323,244 retired original
+  guest instructions**, excluding the internally unexecuted MMI memset words.
+- Clang AddressSanitizer/UndefinedBehaviorSanitizer and original ELF
+  single-step/batched regression tests pass. Windows x64 COFF compiled;
+  **no playable Windows executable exists**.
+- Default authentic startup remains blocked at Sony BIOS `SetupThread`.
+
+See [CHECKPOINT_ALLOC_INTC.md](CHECKPOINT_ALLOC_INTC.md).
+
 ## Latest native boot checkpoint — full copied GetEntryAddress syscall loop
 
 - The original executable now runs from the preceding game-installed kernel
