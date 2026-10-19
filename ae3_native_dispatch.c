@@ -27,3 +27,13 @@ int ae3_run_native_slice(AE3_ScalarContext *ctx, AE3_ResumeFrame *frame,
                         uint32_t instruction_budget) {
     return ae3_run_resume_slice(ctx, frame, instruction_budget);
 }
+
+void ae3_native_caller_init(AE3_CallFrame *frame,uint32_t entry) {
+    ae3_call_init(frame,entry);
+}
+int ae3_run_native_caller_slice(AE3_ScalarContext *ctx,AE3_CallFrame *frame,
+                                uint32_t instruction_budget) {
+    return ae3_run_call_slice(ctx,frame,instruction_budget);
+}
+size_t ae3_native_caller_count(void) {return ae3_call_count();}
+uint32_t ae3_native_caller_address(size_t index) {return ae3_call_address(index);}
