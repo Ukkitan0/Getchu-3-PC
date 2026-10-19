@@ -67,6 +67,7 @@ int main(){
     fs::path base=fs::temp_directory_path() / "getchu3_native_iso_vfi_test";
     fs::create_directories(base);
     try{
+        { // All archive input streams must close before deleting fixture files on Win32.
         auto source=vfi();
         fs::path file=base/"DATA.BIN";
         save(file,source);
@@ -93,6 +94,7 @@ int main(){
         save(base/"outofbounds.bin",oob);reject(base/"outofbounds.bin");
         auto badMagic=source;badMagic[0]='X';
         save(base/"not-vfi.bin",badMagic);reject(base/"not-vfi.bin");
+        }
         fs::remove_all(base);
         std::cout<<"NATIVE_WINDOWS_ISO_VFI_TEST_PASSED"
                  <<" host_file_io=1 real_vfi_parser=1 no_ee_iop_gs=1\n";
