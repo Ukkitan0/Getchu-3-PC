@@ -50,6 +50,15 @@ int main(int argc,char**argv){assert(argc==2);size_t n;
  assert(ae3_boot_init_slice(&retry,ram,0x43fe58,10)==AE3_INIT_MEMORY_FAULT);
  assert(!memcmp(&retry,&prior,sizeof retry));
  assert(ae3_boot_init_slice(&retry,ram,RAM_BYTES,2)==AE3_INIT_SUBCALL);
+ /* Fault exactly on original SD $ra,0($sp), not just at instruction fetch. */
+ AE3_BootInitPrefix store_fault;
+ assert(ae3_boot_init_enter(&store_fault,&k)==AE3_INIT_YIELDED);
+ assert(ae3_boot_init_slice(&store_fault,ram,RAM_BYTES,3)==AE3_INIT_YIELDED);
+ assert(store_fault.cpu.pc==0x0043fe5c);
+ prior=store_fault;
+ assert(ae3_boot_init_slice(&store_fault,ram,0x01ffffe0,1)==AE3_INIT_MEMORY_FAULT);
+ assert(!memcmp(&prior,&store_fault,sizeof prior));
+ assert(ae3_boot_init_slice(&store_fault,ram,RAM_BYTES,1)==AE3_INIT_SUBCALL);
  printf("PASS original first initialization JAL into 0x0043FE58, stack save and next call at 0x0043FE60 (test-only kernel response)\n");
  free(elf);free(ram);return 0;
 }
