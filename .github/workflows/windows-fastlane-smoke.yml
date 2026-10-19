@@ -66,6 +66,24 @@ jobs:
           $usage = "$env:RUNNER_TEMP\usage.txt"
           $proc = Start-Process -FilePath $runner -PassThru -Wait -NoNewWindow -RedirectStandardError $usage
           if ($proc.ExitCode -ne 2) { throw "Unexpected no-argument runner exit code $($proc.ExitCode)" }
+      - name: Compile Win32 WebGPU renderer against verified official wgpu-native
+        shell: pwsh
+        run: |
+          $asset = 'https://github.com/gfx-rs/wgpu-native/releases/download/v29.0.1.1/wgpu-windows-x86_64-msvc-release.zip'
+          $expected = '7E67D7445C42AEB85E30F88930FD8D7D83EE769E3390AEB1ADA75EBF3CF78132'
+          $zip = "$env:RUNNER_TEMP\wgpu.zip"
+          $wgpu = "$env:RUNNER_TEMP\wgpu-native"
+          Invoke-WebRequest -Uri $asset -OutFile $zip
+          $actual = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
+          if ($actual -ne $expected) { throw "wgpu-native archive SHA mismatch $actual" }
+          Expand-Archive -LiteralPath $zip -DestinationPath $wgpu -Force
+          if (-not (Test-Path "$wgpu\lib\wgpu_native.lib")) { throw 'wgpu native import/static lib missing' }
+          $toolchain = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
+          cmake -S "$env:RUNNER_TEMP\upstream" -B "$env:RUNNER_TEMP\gpu-build" -G 'Visual Studio 17 2022' -A x64 -T ClangCL '-DPS2_GENERATED=${{ github.workspace }}/fastlane/ci_stub' '-DAE3_REQUIRE_SDL2=ON' "-DPS2_WGPU_DIR=$wgpu" "-DCMAKE_TOOLCHAIN_FILE=$toolchain"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          cmake --build "$env:RUNNER_TEMP\gpu-build" --config Release --target ps2run --parallel
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          if (-not (Test-Path "$env:RUNNER_TEMP\gpu-build\Release\ps2run.exe")) { throw 'Native GPU-linked runner missing' }
       - name: Upload portable-runtime diagnostic artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -75,4 +93,5 @@ jobs:
             ${{ runner.temp }}/windows_port_report.json
             ${{ runner.temp }}/usage.txt
             ${{ runner.temp }}/runtime-build/CMakeFiles/CMakeConfigureLog.yaml
+            ${{ runner.temp }}/gpu-build/CMakeFiles/CMakeConfigureLog.yaml
           if-no-files-found: ignore
