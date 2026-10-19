@@ -35,6 +35,10 @@ public:
     const std::vector<VfiEntry>& entries() const { return entries_; }
     const std::string& sourceKind() const { return kind_; }
     std::vector<std::uint8_t> read(const VfiEntry& entry);
+    // Stream the owner's original DATA.BIN out of an ISO for an independent
+    // offline asset converter. Never invokes any console execution runtime.
+    // Refuses to overwrite files, including the source input.
+    void extractDataBin(const std::filesystem::path& destination);
     std::optional<std::size_t> find(const std::string& relativePath) const;
     const std::filesystem::path& source() const { return source_; }
 private:
