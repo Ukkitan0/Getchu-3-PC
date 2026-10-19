@@ -1,13 +1,18 @@
 #include "ae3/archive.hpp"
-#include <cassert>
+#include <cstdlib>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 namespace fs=std::filesystem;
 namespace {
+void verify_check(bool value,const char* expression){
+    if(!value)throw std::runtime_error(std::string("native assertion failed: ")+expression);
+}
+#define assert(expr) verify_check(bool(expr), #expr)
 void w16(std::vector<std::uint8_t>& b,std::size_t at,std::uint16_t v){
     b.at(at)=std::uint8_t(v);b.at(at+1)=std::uint8_t(v>>8);
 }
