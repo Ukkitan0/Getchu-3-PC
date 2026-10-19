@@ -23,6 +23,8 @@ public:
     // Trig_wait becomes ready only when the native world explicitly signals.
     bool signal(const std::string& name,bool active=true);
     bool isWaitingForTrigger() const noexcept {return !trigger_.empty();}
+    const std::string& waitingTriggerName() const noexcept {return trigger_;}
+    bool expectedTriggerActive() const noexcept {return triggerActive_;}
     bool finished() const noexcept {return finished_;}
     double elapsed() const noexcept {return elapsed_;}
 private:
