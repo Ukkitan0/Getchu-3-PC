@@ -8,6 +8,11 @@ void ae3_ee_bus_init(AE3_EEMemoryBus *b, uint8_t *ram, size_t n) {
     }
 }
 
+void ae3_ee_bus_attach_mmio(AE3_EEMemoryBus *b,
+    AE3_EEMmioRead32 rd,AE3_EEMmioWrite32 wr,void *context){
+    if(b){b->mmio_read32=rd;b->mmio_write32=wr;b->mmio_context=context;}
+}
+
 static int valid_span(uint32_t a, size_t n, uint32_t base, size_t max) {
     if(a<base) return 0;
     uint64_t off=(uint64_t)a-(uint64_t)base;
@@ -80,6 +85,8 @@ AE3_EEBusStatus ae3_ee_bus_read32(const AE3_EEMemoryBus *b,
     uint32_t addr, uint32_t *out) {
     if(!out)return AE3_EE_BUS_BAD_ARGUMENT;
     if(addr&3)return AE3_EE_BUS_MISALIGNED;
+    if(b && b->mmio_read32 && (addr&UINT32_C(0xf0000000))==UINT32_C(0x10000000))
+        return b->mmio_read32(b->mmio_context,addr,out);
     uint8_t raw[4];AE3_EEBusStatus st=ae3_ee_bus_read(b,addr,raw,4);
     if(st==AE3_EE_BUS_OK)*out=(uint32_t)raw[0]|((uint32_t)raw[1]<<8)|
         ((uint32_t)raw[2]<<16)|((uint32_t)raw[3]<<24);
@@ -88,6 +95,8 @@ AE3_EEBusStatus ae3_ee_bus_read32(const AE3_EEMemoryBus *b,
 AE3_EEBusStatus ae3_ee_bus_write32(AE3_EEMemoryBus *b,
     uint32_t addr, uint32_t value) {
     if(addr&3)return AE3_EE_BUS_MISALIGNED;
+    if(b && b->mmio_write32 && (addr&UINT32_C(0xf0000000))==UINT32_C(0x10000000))
+        return b->mmio_write32(b->mmio_context,addr,value);
     uint8_t raw[4]={(uint8_t)value,(uint8_t)(value>>8),
                     (uint8_t)(value>>16),(uint8_t)(value>>24)};
     return ae3_ee_bus_write(b,addr,raw,4);
