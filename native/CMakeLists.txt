@@ -131,3 +131,7 @@ target_link_libraries(Getchu3I3cProbe PRIVATE Getchu3Assets)
 add_executable(Getchu3I3cTests tests/i3c_collision_test.cpp)
 target_link_libraries(Getchu3I3cTests PRIVATE Getchu3Assets)
 add_test(NAME NativeRealI3cGeometryWalkingAndBVH COMMAND Getchu3I3cTests)
+
+add_executable(Getchu3WallMotionTests tests/wall_collision_test.cpp)
+target_link_libraries(Getchu3WallMotionTests PRIVATE Getchu3Assets)
+add_test(NAME NativeI3cWallSlidingAndSpawn COMMAND Getchu3WallMotionTests)
