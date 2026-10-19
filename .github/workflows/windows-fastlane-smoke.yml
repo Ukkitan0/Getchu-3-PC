@@ -25,6 +25,7 @@ on:
       - 'tools/test_synthetic_aot*.py'
       - 'RUN_BULK_NATIVE_WINDOWS.ps1'
       - 'TEST_APE_ESCAPE_3_WINDOWS.ps1'
+      - 'tools/test_launcher_argument_binding.ps1'
       - 'TEST_APE_ESCAPE_3_WINDOWS.bat'
       - 'tools/test_synthetic_aot_contract.py'
       - 'fastlane/ci_stub/**'
@@ -54,6 +55,11 @@ jobs:
           }
           # Full-game bulk tests consume the owner's recovered opcode inventory,
           # intentionally absent from the public GitHub source checkout.
+      - name: Verify one-click launcher binds ExploreRounds and SeedMode correctly
+        shell: pwsh
+        run: |
+          & "tools/test_launcher_argument_binding.ps1"
+          if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Fetch exact known upstream revision
         shell: pwsh
         run: |
