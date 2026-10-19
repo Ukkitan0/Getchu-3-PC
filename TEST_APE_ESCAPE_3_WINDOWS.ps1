@@ -40,8 +40,16 @@ if ($RunOnly) {
     & $Runner $Prep.executable '--disc' $Disc '--window' '--memcard' $Card '--trace-syscalls'
     if ($LASTEXITCODE -ne 0) { throw "Native test exited with code $LASTEXITCODE" }
 } else {
-    $Args = @('-Disc',$Disc,'-ExploreRounds',$ExploreRounds,'-ExploreFrames',1800,'-Run')
-    if ($SoftwareRenderer) { $Args += '-SoftwareRenderer' }
-    & (Join-Path $Project 'RUN_BULK_NATIVE_WINDOWS.ps1') @Args
+    # PowerShell array splatting does not bind strings such as '-ExploreRounds'
+    # as named parameters. Use hashtable splatting so 8 never gets bound to the
+    # positional SeedMode parameter in RUN_BULK_NATIVE_WINDOWS.ps1.
+    $BuildParameters = @{
+        Disc = $Disc
+        ExploreRounds = [int]$ExploreRounds
+        ExploreFrames = 1800
+        Run = $true
+    }
+    if ($SoftwareRenderer) { $BuildParameters['SoftwareRenderer'] = $true }
+    & (Join-Path $Project 'RUN_BULK_NATIVE_WINDOWS.ps1') @BuildParameters
     if (-not $?) { throw 'Native build or test failed; inspect fastlane/private/build.log.' }
 }
