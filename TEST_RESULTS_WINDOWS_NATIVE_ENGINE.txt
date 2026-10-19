@@ -9,3 +9,12 @@ OFFLINE VERIFIED RESULTS — no Sony retail ELF used in these tests:
 - First real Windows CI smoke reached Python tests: 14 portable fixture tests passed; 8 private-inventory tests failed solely because those game-derived files were intentionally not committed. CI workflow changed to run standalone game-free tests.
 
 OUTSTANDING: CI native C++ toolchain build, original retail executable full translation, native Windows game boot, WebGPU renderer success and actual gameplay all NOT VERIFIED.
+
+GITHUB WINDOWS CI COMPILATION EVIDENCE
+- Commit b98c874: ClangCL real upstream eerecomp.exe and vurecomp.exe built successfully.
+- ClangCL ps2runtime.lib and game-free stub ps2game.lib linked successfully.
+- Source-only native ps2run.exe built; SDL2.dll copied to output.
+- CI marked failure because deliberate no-argument usage exit status was
+  treated as PowerShell native-command failure, not because compilation failed.
+- Corrected Start-Process exit check committed; no success claim yet.
+- Official Win32 GPU-mode compiler job added with SHA-256 verified wgpu-native.

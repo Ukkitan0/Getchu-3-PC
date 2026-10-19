@@ -91,3 +91,15 @@ Run the GitHub Windows build smoke. Resolve its concrete compile/link errors in
 shared upstream runtime files, then run the private full-game AOT loop with the user's
 own retail ELF/ISO. Only after a compiled native game reaches main menu and renders
 real game geometry can a playable prototype be evaluated.
+
+## Additional real Windows compilation evidence
+
+The GitHub Actions run for commit `b98c874` successfully built the exact
+upstream `eerecomp.exe`, `vurecomp.exe`, `ps2runtime.lib`, `ps2game.lib`, and
+`ps2run.exe` under ClangCL with SDL2. CI was marked failure because the test
+step launched the game-free stub runner with no arguments and treated its
+intentional usage exit as an error. The process exit check was changed to
+`Start-Process -PassThru -Wait` to examine the status without PowerShell's
+native-command trap. A GPU compilation job was also added; it downloads the
+SHA-256 verified Windows x64 wgpu-native v29.0.1.1 release. These new jobs
+are not claimed successful until actual CI results say so.

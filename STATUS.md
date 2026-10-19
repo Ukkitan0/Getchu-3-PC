@@ -1,3 +1,14 @@
+## Windows toolchain smoke now compiled a native runner (game-free stub)
+
+GitHub CI at commit `b98c874` compiled the upstream real EE and VU compilers,
+then built and linked native ClangCL/SDL2 `ps2runtime.lib`, `ps2game.lib` and
+`ps2run.exe` on Windows Server 2022. That CI run returned failure from its
+no-argument usage-exit check **after** the executable was built. This is not a
+retail Ape Escape 3 execution. The runner only links empty registration stubs.
+The usage-exit check was corrected, and a second CI compilation targeting the
+verified official Win32 wgpu-native GPU path was added. Neither corrected
+workflow's final result has been confirmed as passing.
+
 ## 2026-10-19: rebuild private opcode inventory from owned ELF (CI/public-repo fix)
 
 A fresh public checkout omits retail code bytes by design. The native bulk

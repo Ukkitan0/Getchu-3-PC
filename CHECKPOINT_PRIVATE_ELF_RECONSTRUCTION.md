@@ -49,3 +49,10 @@ ELF; equivalence of recovered 12,228 original direct-JAL target records.
 **Unverified:** Windows native compiler, WebGPU window creation, actual
 recompilation from owner ELF on Windows, runtime with ISO, original main menu,
 3D gameplay and controls. None of this is a playable build.
+
+## Real Windows source-only build achievement
+
+A source-only GitHub Actions job compiled the x64 ClangCL native EE/VU
+recompilers and linked a software-GS ps2run.exe using empty hooks. This is a
+Windows native-runtime compilation milestone, not original-game execution.
+The corrected CI workflow will also attempt to compile the Windows WebGPU path.

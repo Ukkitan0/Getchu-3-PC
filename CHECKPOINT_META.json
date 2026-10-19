@@ -79,5 +79,13 @@
   ],
   "private_inventory_derived_from_elf_supported": true,
   "retail_direct_jal_targets_reconstructed_and_matched": 12228,
-  "latest_ci_note": "First CI run failed on missing archived game-derived inventory; CI smoke updated to avoid private-only original data."
+  "latest_ci_note": "First CI run failed on missing archived game-derived inventory; CI smoke updated to avoid private-only original data.",
+  "windows_source_only_recompiler_ci_build_passed": true,
+  "windows_source_only_ps2run_ci_link_passed": true,
+  "windows_source_only_ci_runner_contains_game_code": false,
+  "windows_gpu_renderer_ci_build_passed": null,
+  "windows_ci_complete_success": false,
+  "retail_elf_native_gameplay_verified": false,
+  "last_verified_source_only_ci_sha": "b98c874599f114bfa672140d4a0b4853616cdfd0",
+  "new_gpu_ci_workflow_sha": "b3201b527d4713be9012f8d4a012d00b52d3dadb"
 }

@@ -81,3 +81,7 @@ and `direct_jal_targets.tsv` automatically from the SHA-256-verified US retail
 ELF supplied through `-Elf`. The derived instruction bytes are saved **only**
 inside the private build workspace, never committed. No manual copy from the
 old checkpoint ZIP is required. See `CHECKPOINT_PRIVATE_ELF_RECONSTRUCTION.md`.
+
+The Windows smoke workflow already linked a source-only `ps2run.exe` with
+ClangCL/SDL2 on GitHub Actions. This executable does not include Ape Escape 3.
+The workflow now also tries the verified WGPU-native Windows GPU library.
