@@ -175,3 +175,10 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_ee_memory_bus.c \
   ae3_boot_alloc_init.c test_boot_alloc_init.c -o build/test_boot_alloc_init
 ./build/test_boot_alloc_init "$AE3_ELF"
 ./build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model --test-sema-hle --test-ee-alias --test-timer3-copy-alloc
+
+# Model EE AddIntcHandler (0x10) with real retail JR/branch-likely execution;
+# explicit COP0 Status=0 test reaches the next INTC_STAT MMIO boundary.
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_ee_memory_bus.c \
+  ae3_boot_alloc_init.c ae3_ee_intc_kernel.c ae3_boot_post_intc.c \
+  ae3_boot_intc_critical.c test_boot_post_intc.c -o build/test_boot_post_intc
+./build/test_boot_post_intc "$AE3_ELF"
