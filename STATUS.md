@@ -1,3 +1,13 @@
+## October 19 — EnableIntc + next Timer 2 MODE read checkpoint
+
+The experimental original-code chain has moved from guest `0x004405C8` to
+`0x00440710` (the latter remains pending before its Timer 2 MODE read), through
+an explicit compatibility-model syscall 0x14 interrupt enable for cause 11.
+The 323,393 instruction count is obtained by summing verified earlier
+checkpoint counts with new fixture-tested paths, **not** by a newly run full
+retail ELF trace. Refer to `CHECKPOINT_ENABLE_INTC.md` for precise tests,
+limitations and original addresses. Not playable.
+
 # October 19 — Timer 2 registers configured by original retail MIPS
 
 - After the real AddIntcHandler wrapper, the game now executes 74 further

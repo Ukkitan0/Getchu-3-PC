@@ -31,8 +31,35 @@ int ae3_ee_intc_remove(AE3_EEIntcKernel *k,uint32_t cause,uint32_t id){
     if(!k||cause>=AE3_INTC_CAUSES||!id)return -1;
     for(unsigned i=0;i<AE3_INTC_CAPACITY;i++){
         if(k->handler[i].present&&k->handler[i].cause==cause&&k->handler[i].id==id){
-            k->handler[i].present=0;k->generation++;return 0;
+            k->handler[i].present=0;k->generation++;
+            int still_registered=0;
+            for(unsigned j=0;j<AE3_INTC_CAPACITY;j++){
+                if(k->handler[j].present&&k->handler[j].cause==cause){
+                    still_registered=1;break;
+                }
+            }
+            if(!still_registered)k->enabled_mask&=~(UINT32_C(1)<<cause);
+            return 0;
         }
     }
     return -1;
+}
+
+int32_t ae3_ee_intc_enable(AE3_EEIntcKernel *k,uint32_t cause){
+    if(!k||cause>=AE3_INTC_CAUSES)return -1;
+    int registered=0;
+    for(unsigned i=0;i<AE3_INTC_CAPACITY;i++){
+        if(k->handler[i].present && k->handler[i].cause==cause){registered=1;break;}
+    }
+    if(!registered)return -1;
+    const uint32_t bit=UINT32_C(1)<<cause;
+    if(!(k->enabled_mask&bit)){
+        k->enabled_mask|=bit;
+        k->generation++;
+    }
+    return 0; /* explicit compatibility policy, NOT verified Sony BIOS */
+}
+int ae3_ee_intc_is_enabled(const AE3_EEIntcKernel *k,uint32_t cause){
+    if(!k||cause>=AE3_INTC_CAUSES)return 0;
+    return (k->enabled_mask&(UINT32_C(1)<<cause))!=0;
 }

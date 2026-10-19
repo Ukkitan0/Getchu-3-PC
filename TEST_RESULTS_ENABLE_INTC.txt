@@ -1,0 +1,6 @@
+PASS: original next init JAL + DIntr/CP0 bypass reached Timer2 MODE LW
+PASS guest EnableIntc: cause=11 present=1 prior-int=0 next=0043FE80 guest-retired=37
+PASS: original next init JAL + DIntr/CP0 bypass reached Timer2 MODE LW
+PASS guest EnableIntc: cause=11 present=0 prior-int=0 next=0043FE80 guest-retired=37
+PASS guest EnableIntc: cause=11 present=1 prior-int=1 next=004405D8 guest-retired=29
+PASS original EnableIntc wrapper, atomic guest SD/LD, opcode guard, syscall 0x14 compatibility dispatch, failure/branch paths

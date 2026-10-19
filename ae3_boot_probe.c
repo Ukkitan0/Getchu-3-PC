@@ -19,6 +19,7 @@
 #include "ae3_boot_post_intc.h"
 #include "ae3_boot_intc_critical.h"
 #include "ae3_boot_timer2_setup.h"
+#include "ae3_boot_timer2_recheck.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -364,8 +365,37 @@ int main(int argc,char**argv) {
                                          fprintf(stderr,"Original Timer2 hardware setup/ERET sequence mismatch\n");
                                          free(elf);free(ram);return 49;
                                      }
-                                     printf("EXPERIMENTAL: original guest SetT2_COUNT/COMP/MODE wrappers executed through COP0/ERET, committed 3 Timer2 MMIO writes, reached EnableIntc JAL at %08X; retired=%llu. Guest EnableIntc remains a kernel boundary.\n",
+                                     printf("EXPERIMENTAL: original Timer2 COUNT/COMP/MODE wrappers completed, EnableIntc JAL at %08X; retired=%llu.\n",
                                         t2_setup.cpu.pc,(unsigned long long)t2_setup.cpu.retired);
+                                     AE3_BootEnableIntc enable_stage;
+                                     if(ae3_boot_enable_intc_enter(&enable_stage,&t2_setup)!=AE3_EINTC_YIELDED||
+                                        ae3_boot_enable_intc_slice(&enable_stage,&bus,100)!=AE3_EINTC_SYSCALL_PENDING||
+                                        enable_stage.cpu.pc!=AE3_ENABLE_INTC_SYSCALL||
+                                        enable_stage.cpu.gpr[3][0]!=0x14u||
+                                        enable_stage.cpu.gpr[4][0]!=11u){
+                                         fprintf(stderr,"Original EnableIntc wrapper failed before syscall 0x14\n");
+                                         free(elf);free(ram);return 50;
+                                     }
+                                     if(ae3_boot_enable_intc_service(&enable_stage,&bus,&intc_kernel)!=AE3_EINTC_YIELDED||
+                                        enable_stage.last_return!=0||
+                                        !ae3_ee_intc_is_enabled(&intc_kernel,11)||
+                                        ae3_boot_enable_intc_slice(&enable_stage,&bus,100)!=AE3_EINTC_PARENT_RETURNED||
+                                        enable_stage.cpu.pc!=AE3_ENABLE_INTC_PARENT_RETURN){
+                                         fprintf(stderr,"Experimental EnableIntc kernel service or retail stack return failed\n");
+                                         free(elf);free(ram);return 51;
+                                     }
+                                     printf("EXPERIMENTAL: syscall 0x14 cause 11 enabled in compatibility registry; game epilogue returned to %08X, retired=%llu. No Sony BIOS INTC_MASK modeled.\n",
+                                        enable_stage.cpu.pc,(unsigned long long)enable_stage.cpu.retired);
+                                     AE3_BootTimer2Recheck recheck;
+                                     if(ae3_boot_timer2_recheck_enter(&recheck,&enable_stage)!=AE3_T2RC_YIELDED||
+                                        ae3_boot_timer2_recheck_slice(&recheck,&bus,100)!=AE3_T2RC_MMIO_PENDING||
+                                        recheck.cpu.pc!=AE3_T2_RECHECK_MMIO_LW||
+                                        (uint32_t)recheck.cpu.gpr[2][0]!=AE3_T2_MODE){
+                                         fprintf(stderr,"Next original initializer failed to reach second Timer2 MODE read\n");
+                                         free(elf);free(ram);return 52;
+                                     }
+                                     printf("EXPERIMENTAL: parent original JAL 0043FE80 -> 004406F0, original CP0-disabled path reached real Timer2 MODE LW at %08X; retired=%llu. Guest MMIO read pending.\n",
+                                        recheck.cpu.pc,(unsigned long long)recheck.cpu.retired);
                                   }
 
 

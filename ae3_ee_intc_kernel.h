@@ -13,6 +13,7 @@ typedef struct AE3_EEIntcHandler {
 typedef struct AE3_EEIntcKernel {
     AE3_EEIntcHandler handler[AE3_INTC_CAPACITY];
     uint32_t next_id, generation;
+    uint32_t enabled_mask; /* compatibility-kernel per-cause enable bits */
 } AE3_EEIntcKernel;
 void ae3_ee_intc_init(AE3_EEIntcKernel *k);
 /* Returns a positive handler ID, or -1 without mutating anything. The guest
@@ -21,5 +22,11 @@ void ae3_ee_intc_init(AE3_EEIntcKernel *k);
 int32_t ae3_ee_intc_add(AE3_EEIntcKernel *k,const AE3_EEMemoryBus *bus,
     uint32_t cause,uint32_t guest_handler,uint32_t next);
 int ae3_ee_intc_remove(AE3_EEIntcKernel *k,uint32_t cause,uint32_t id);
+/* Experimental implementation of EE _EnableIntc syscall 0x14.
+ * Requires a previously registered handler for the requested cause; returns
+ * 0 when enabled, -1 otherwise. This policy is NOT a verified BIOS result.
+ * Does not synthesize INTC_MASK MMIO hardware state or dispatch interrupts. */
+int32_t ae3_ee_intc_enable(AE3_EEIntcKernel *kernel,uint32_t cause);
+int ae3_ee_intc_is_enabled(const AE3_EEIntcKernel *kernel,uint32_t cause);
 int ae3_ee_intc_lookup(const AE3_EEIntcKernel *k,uint32_t id,AE3_EEIntcHandler *out);
 #endif

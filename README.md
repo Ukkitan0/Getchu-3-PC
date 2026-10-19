@@ -8,6 +8,21 @@ input, sound and saves. Older recompilation efforts are reference material only.
 This public repository contains recovery tools, original implementations,
 and tests, **not** the copyrighted ISO, ELF, BIOS, ROM or game assets.
 
+## Latest checkpoint — real EnableIntc wrapper and next initializer
+
+- The original guest program now executes its `EnableIntc` JAL at
+  `0x004405C8`, reaches retail syscall 0x14 for cause 11 (Timer 2), passes
+  through an **experimental** registered-interrupt compatibility service,
+  and returns through the original guest frame to `0x0043FE80`.
+- The following original JAL enters `0x004406F0` and stops before the next
+  Timer 2 MODE hardware read at `0x00440710`. The opt-in chain is **323,393**
+  counted retail instructions, 55 beyond the prior checkpoint.
+- Standalone pinned-original-opcode regressions and Windows x64 object builds
+  passed. The full-ELF integrated run requires the user's own original ELF,
+  absent here; **this is not an operational native game or true BIOS model**.
+
+See [CHECKPOINT_ENABLE_INTC.md](CHECKPOINT_ENABLE_INTC.md).
+
 ## Current checkpoint — retail Timer 2 MODE through real COP0/ERET writes
 
 - The opt-in boot runner has advanced from the guest `LW` at `0x00440590`

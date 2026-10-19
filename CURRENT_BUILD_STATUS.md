@@ -1,3 +1,22 @@
+# October 19 — original guest EnableIntc and next Timer 2 MODE read
+
+- The authentic JAL at `0x004405C8` now calls the original `0x00436628`
+  wrapper, enters the real syscall stub at `0x00435824` (`0x14`, cause 11),
+  and executes the guest stack-restoration path to `0x0043FE80`.
+- A stateful experimental INTC registry enables only registered causes;
+  success and failure are documented compatibility choices, not Sony BIOS
+  evidence. The saved-interrupt alternate branch is explicitly bounded.
+- Real next JAL `0x0043FE80` enters `0x004406F0`, traverses original DIntr/COP0
+  no-EIE path, and stops **before** real Timer 2 MODE `LW` at `0x00440710`.
+- 323,393 original guest instructions are accounted for in the opt-in chain,
+  55 newer than prior. Standalone fixture tests, Clang sanitizers, and Windows
+  x64 object builds passed. Full ELF boot integration has **not** been run in
+  this environment for lack of the retail game executable.
+- Still NOT PLAYABLE: no authenticated Sony BIOS services, real interrupt
+  delivery or INTC_MASK, GS/VU, IOP or gameplay.
+
+See CHECKPOINT_ENABLE_INTC.md.
+
 # October 19 — EE Timer 2 native register writes and original COP0/ERET guest execution
 
 - Verified retail instruction path runs from 0x00440590 through all original
