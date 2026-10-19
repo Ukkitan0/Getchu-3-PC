@@ -1,16 +1,23 @@
-# Getchu-3-PC — native original post-TLB startup checkpoint
+# Checkpoint — native retail static constructor dispatcher
 
-October 19, 2026. Experimental native EE translation, **NOT PLAYABLE**.
+This is a native C **boot diagnostic, NOT a playable game**.
 
-The original guest caller at `0x0043FEA0` clears two globals and jumps
-into the retail unaligned `memset` at `0x0042B320`. All 512 original `SB`
-operations execute (3,609 MIPS instructions). The unique retail startup
-call at `0x0010031C` identifies the expected guest return PC `0x00100324`.
-Only with that saved RA does a second interpreter execute the guest JR,
-FlushCache request and following main branch, reaching the next JALR
-`0x0010033C -> 0x00628210` (+12 MIPS instructions).
+Latest experimental execution: `0x0010033C` JALR to retail initializer
+`0x00628210`, two original nested calls, then constructor dispatcher at
+`0x00428AB8`. The first real constructor call awaits execution at
+`0x00428AE8 -> 0x0041A390`. The owner-provided *later-game* RAM snapshot
+contains **143 distinct constructor pointers** terminating at `0x0062E660`.
+The runtime never substitutes or automatically skips their effects.
 
-Composed experimental guest count: **329,097**. **436 opcode rows** match
-the owner-provided EE memory snapshot. Standalone optimized/sanitizer and
-Windows object tests passed. No genuine BIOS startup, complete retail ELF
-verification, IOP/GS/audio, or playable build. See CHECKPOINT_POST_TLB_MEMSET.md.
+See `CHECKPOINT_STATIC_CONSTRUCTORS.md`, `TEST_RESULTS_STATIC_CONSTRUCTORS.txt`,
+`retail_constructor_addresses.tsv`, and `verify_constructor_snapshot.py`.
+
+Run standalone tests (requires C compiler, not game files):
+
+```sh
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c ae3_boot_static_dispatch.c test_boot_static_dispatch.c -o build/test_boot_static_dispatch
+./build/test_boot_static_dispatch
+```
+
+For original-ELF boot diagnostic, supply your own unmodified
+`SCUS_975.01`. Authentic BIOS/IOP/rendering/input/audio/gameplay remain missing.

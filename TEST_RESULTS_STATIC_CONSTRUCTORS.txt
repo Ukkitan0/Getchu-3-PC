@@ -1,0 +1,16 @@
+Checkpoint: 2026-10-19, original static constructor dispatcher (experimental)
+GCC -std=c11 -O2 -Wall -Wextra -Werror: PASS
+Clang -fsanitize=address,undefined: PASS
+clang-cl /W4 /WX /O2 Windows x64 object: PASS
+Standalone original guest fixture:
+PASS retail static initializer: 64 guest instructions, next JAL 00100354 to 00428B80 (EXPLICIT EMPTY TABLE ONLY)
+PASS original guest constructor callback pending at 00428AE8, pointer 0041A390 (NOT invoked) (52 guest instructions)
+PASS recovered constructor table: 143 retail callbacks, correct terminal sentinel, atomic scan
+PASS bounded original JALR/static startup; no implicit callback or BIOS state
+Snapshot audit:
+PASS: 143 distinct mapped constructor entry points, first=0041A390, last=0010526C
+PASS: 0xFFFFFFFF table terminator at 0062E660
+PASS: 504 pinned MIPS instruction bytes match owner-supplied later-game EE snapshot
+Integrated native C diagnostic: 44 modules compile/link PASS; complete retail ELF boot NOT TESTED
+Earlier TLB, memset, OSD, thread regressions: PASS
+Known limit: first constructor JALR not executed. Native Windows game NOT playable.

@@ -31,6 +31,7 @@
 #include "ae3_boot_tlb_finalize.h"
 #include "ae3_boot_post_tlb.h"
 #include "ae3_boot_main_resume.h"
+#include "ae3_boot_static_dispatch.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -671,6 +672,33 @@ int main(int argc,char**argv) {
                                                                "stopped BEFORE JALR %08X -> %08X. Total=%llu.\n",
                                                                AE3_MAIN_CALLER_PC,main_resume.cpu.pc,AE3_MAIN_DYNAMIC_TARGET,
                                                                (unsigned long long)main_resume.cpu.retired);
+                                                            AE3_BootStaticDispatch statics;
+                                                            if(ae3_boot_static_enter(&statics,&main_resume)!=AE3_STATIC_YIELDED){
+                                                               fprintf(stderr,"Original JALR/static initializer entry rejected\n");
+                                                               free(elf);free(ram);return 80;
+                                                            }
+                                                            AE3_StaticInitResult static_state=ae3_boot_static_slice(&statics,&bus,256);
+                                                            if(static_state==AE3_STATIC_CONSTRUCTOR_PENDING){
+                                                               AE3_BootConstructorList ctors={0};
+                                                               AE3_StaticInitResult scan=ae3_boot_static_scan_constructors(&ctors,&bus);
+                                                               if(scan!=AE3_STATIC_YIELDED){
+                                                                  fprintf(stderr,"Original constructor table read failed (%d) at guest PC %08X\n",
+                                                                     (int)scan,statics.cpu.pc);
+                                                                  free(elf);free(ram);return 81;
+                                                               }
+                                                               printf("EXPERIMENTAL retail JALR %08X -> %08X; original registration wrapper and constructor dispatcher executed %llu guest instructions. Original constructor table has %u callbacks, first=%08X; stopped BEFORE first JALR callback at %08X. Total=%llu.\n",
+                                                                  AE3_STATIC_INIT_ENTRY,AE3_MAIN_DYNAMIC_TARGET,
+                                                                  (unsigned long long)(statics.cpu.retired-main_resume.cpu.retired),
+                                                                  ctors.count,statics.guest_ctor_word,statics.cpu.pc,
+                                                                  (unsigned long long)statics.cpu.retired);
+                                                            }else if(static_state==AE3_STATIC_NEXT_CALL){
+                                                               printf("EXPERIMENTAL retail initializer empty constructor table: %llu more guest instructions, next call %08X -> %08X. This is a state-dependent path, NOT asserted as game boot.\n",
+                                                                  (unsigned long long)(statics.cpu.retired-main_resume.cpu.retired),
+                                                                  statics.cpu.pc,AE3_STATIC_NEXT_CALLEE);
+                                                            }else{
+                                                               printf("Static initialization stopped at original guest PC %08X (result=%d); no callback/BIOS value invented.\n",
+                                                                  statics.cpu.pc,(int)static_state);
+                                                            }
                                                          }else{
                                                             printf("Guest return address %08X differs from only identified "
                                                                "retail call site %08X; stopped BEFORE JR $ra without inventing "

@@ -1,22 +1,21 @@
 {
   "project": "Getchu-3-PC",
   "date": "2026-10-19",
-  "status": "native EE boot diagnostic, not playable",
-  "verified_boot_pc": "0x0010033C (before dynamic JALR to 0x00628210, conditional on original guest RA)",
-  "test_mode_retired_guest_instructions": 329097,
+  "status": "native EE boot diagnostic; 143 guest constructors pending; NOT playable",
+  "verified_boot_pc": "0x00428AE8 (before first retail constructor callback)",
+  "test_mode_retired_guest_instructions": 329149,
   "kernel": "experimental compatibility mode; Sony BIOS not emulated",
   "new_modules": [
-    "ae3_boot_post_tlb",
-    "ae3_boot_main_resume"
+    "ae3_boot_static_dispatch"
   ],
   "windows_objects_compiled": 2,
   "retail_elf_sha256_expected": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
   "original_game_data_included": false,
-  "windows_objects_compiled_this_checkpoint": 2,
+  "windows_objects_compiled_this_checkpoint": 1,
   "integrated_retail_ELF_execution_verified_this_checkpoint": false,
   "standalone_guest_fixture_passed": true,
-  "next_work": "retail JALR 0x0010033C to recovered initializer 0x00628210 (execute original EE guest code without guessing BIOS/IOP state)",
-  "retail_opcode_words_verified": 436,
+  "next_work": "execute original first constructor 0x0041A390 -> 0x0041A088, then remaining 142 callbacks with authentic side effects",
+  "retail_opcode_words_verified": 504,
   "current_thread_id_fixture": 255,
   "current_thread_initial_priority_fixture": 64,
   "explicit_osd_word_fixture": "0x00004019",
@@ -24,7 +23,7 @@
     "0x4A SetOsdConfigParam",
     "0x4B GetOsdConfigParam"
   ],
-  "previous_checkpoint_commit": "41de1180fde40820c97b3c64b1fb4b116013f7ad",
+  "previous_checkpoint_commit": "af5c3156406185fe336da2df77c2cc4c8ea56835",
   "tlb_copy_original_stores": 204,
   "tlb_bytes_copied": 816,
   "tlb_getentry_calls": 6,
@@ -35,5 +34,12 @@
   "post_tlb_guest_instructions": 3609,
   "main_resume_guest_instructions": 12,
   "main_resume_original_return_ra": "0x00100324 (only static retail JAL reference to 0x0043FE58)",
-  "main_resume_dynamic_call_target": "0x00628210"
+  "main_resume_dynamic_call_target": "0x00628210",
+  "static_init_retired_new_original_guest_instructions": 52,
+  "static_init_first_callback_guest_pc": "0x00428AE8",
+  "static_init_first_callback_target": "0x0041A390",
+  "static_init_constructor_count_from_later_game_memory": 143,
+  "static_init_constructor_table": "0x0062E89C down to sentinel at 0x0062E660",
+  "empty_table_fixture_guest_instructions": 64,
+  "static_init_real_callbacks_executed": 0
 }

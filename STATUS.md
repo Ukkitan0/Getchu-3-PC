@@ -1,3 +1,11 @@
+## Current checkpoint: static C++ constructor table (2026-10-19)
+The retail `0x00628210` entry now executes through the first constructor dispatcher,
+stopping before first callback `0x0041A390`. 143 saved-reference callback entries were recovered;
+52 additional guest instructions execute on the reference-table branch, 64 on an explicit empty fixture.
+504 opcode-table rows match the owner-provided later-game EE snapshot.
+**No full retail-ELF boot, authentic Sony BIOS state, or playable Windows game.**
+See `CHECKPOINT_STATIC_CONSTRUCTORS.md`.
+
 ## 2026-10-19: original post-TLB caller and 512 guest byte stores (NOT PLAYABLE)
 
 The native experimental CPU executes the retail `0x0043FEA0` saved-RA load,

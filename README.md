@@ -1,3 +1,18 @@
+## 2026-10-19: original static-constructor dispatcher reached (NOT PLAYABLE)
+
+Original `0x0010033C` now enters `0x00628210`, executes the two retail JAL
+calls and reaches the original C++ constructor dispatcher at `0x00428AB8`.
+The recovered later-state constructor table has **143** distinct code-entry
+addresses ending at `0x0062E660` with the `0xFFFFFFFF` sentinel. The first
+real callback is `0x0041A390`, pending at the `0x00428AE8` JALR after
+**52** new guest instructions (composed experimental total **329,149**).
+An explicitly empty-table fixture instead follows the authentic conditional
+return and reaches the next call at `0x00100354` after **64** instructions.
+The callbacks themselves are **not yet executed**. 504 exact-pinned opcode
+rows match the owner's RAM reference. New Windows x64 object, sanitizer,
+and regression checks pass; the full retail ELF is still not booted natively.
+See `CHECKPOINT_STATIC_CONSTRUCTORS.md`.
+
 ## 2026-10-19: original post-TLB caller and 512 guest byte stores (NOT PLAYABLE)
 
 The native experimental CPU executes the retail `0x0043FEA0` saved-RA load,
