@@ -12,3 +12,21 @@
 **Priority engineering obstacles:** validate true code/function boundaries, handle loops with resumable PCs, indirect calls and returns, high EE register lanes/MMI/COP1/VU, IOP/BIOS services, VIF/GIF/GS graphics, disc resources, audio and game runtime integration.
 
 Sources in the GitHub repository are the canonical work. Old recompilation snapshots are references only.
+
+## Resumable native execution checkpoint
+
+- New source generator: `resume_lift.py`. Generates native C capable of
+  executing 1,470 candidate routines in arbitrary-sized instruction slices,
+  including branch and return delay-slot suspension.
+- Includes 9,390 represented instruction addresses (the earlier per-subset
+  total was 8,227, excluding return instructions in straight-line candidates;
+  these are different counting conventions, not newly decompiled 1,163 words).
+- Verified by `test_resume.py`: 14,286 native-C vs independent original-MIPS
+  **slice snapshots** across random input registers/memory; 2,622 checkpoints
+  in a pending branch/return delay-slot state. Existing independent tests
+  (9,304 scalar + 1,680 forward + 1,112 loop) also passed.
+- Memory mapping faults leave PC unchanged and can be retried after repair.
+- Linux native dispatcher integration test passes and Windows x64 COFF object
+  for `ae3_resumable_leaves.c` compiled using `clang-cl`.
+- This is not evidence of a bootable game. The runtime, BIOS/IOP, GPU and
+  gameplay are not connected.
