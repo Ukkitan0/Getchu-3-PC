@@ -92,6 +92,7 @@ double process_cpu_seconds() {
 
 double resident_mb() {
     PROCESS_MEMORY_COUNTERS pmc{};
+    pmc.cb = sizeof(pmc);
     if (!GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) return 0.0;
     return static_cast<double>(pmc.WorkingSetSize) / (1024.0 * 1024.0);
 }
