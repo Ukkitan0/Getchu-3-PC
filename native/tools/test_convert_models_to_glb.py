@@ -78,6 +78,13 @@ class ConvertModels(unittest.TestCase):
         with self.assertRaises(FileNotFoundError):
             export_models(self.extracted,self.output,str(self.base/"nonexistent.exe"))
 
+    def test_named_original_i3m_animation_request_uses_ae3_sdk_gates(self):
+        report=export_models(self.extracted,self.output,str(self.tool),
+                             animations=True,runner=self.fake_run)
+        self.assertTrue(report["requested_original_i3m_animation_pairing"])
+        self.assertTrue(all(command[-1]=="--anims" for command in self.calls))
+        self.assertEqual(len(self.calls),2)
+
     def test_too_many_models_refused(self):
         with self.assertRaisesRegex(ValueError,"many"):
             export_models(self.extracted,self.output,str(self.tool),
