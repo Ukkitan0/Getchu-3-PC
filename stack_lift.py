@@ -13,6 +13,7 @@ import bulk_lift as b
 import call_lift as existing
 import resume_lift as resume
 import extend_stack as extension
+import loop_stack as looping
 
 ROOT=Path(__file__).resolve().parent
 MAX_WORDS=72
@@ -97,6 +98,13 @@ def collect():
             code.append((pc,w,'scalar',stmt));pc+=4
     flow, flow_rejected=extension.collect(b.starts,occupied,set(callers)|leaf_entries)
     callers.update(flow)
+    occupied.update(p for code in flow.values() for p,_,_,_ in code)
+    loops,loop_rejected=looping.collect(b.starts,occupied,set(callers)|leaf_entries)
+    callers.update(loops)
+    flow.update(loops)  # Preserve existing public collect() API for test clients.
+    flow_rejected['backward_callers']=len(loops)
+    flow_rejected['backward_rejections']=loop_rejected
+    flow_rejected['backward_addresses']=[f'{entry:08X}' for entry in loops]
     return dict(sorted(callers.items())),nested,indirect,leaf_entries,flow,flow_rejected
 
 HEADER=f'''#ifndef AE3_STACK_LEAVES_H
@@ -158,6 +166,11 @@ def generate():
                             f'    a->pc=UINT32_C(0x{pc+4:08X});'])
             elif kind=='branch':
                 condition,target=arg
+                # BEQ/BNE of the same register are unconditional. Avoid a
+                # compiler tautology warning without altering MIPS semantics.
+                rs=(w>>21)&31;rt=(w>>16)&31;op=w>>26
+                if rs==rt and op in (4,5):
+                    condition='1' if op==4 else '0'
                 src.extend([f'    a->target=({condition}) ? UINT32_C(0x{target:08X}) : UINT32_C(0x{pc+8:08X});',
                             '    a->pending=3;',
                             f'    a->pc=UINT32_C(0x{pc+4:08X});'])
@@ -226,14 +239,16 @@ def generate():
     (ROOT/'ae3_stack_leaves.c').write_text('\n'.join(src)+'\n')
     report={
         'retail_sha256':b.EXPECTED,'existing_callers':len(callers)-len(nested)-len(indirect)-len(flow),
-        'new_nested_callers':len(nested),'new_jalr_callers':len(indirect),'new_branch_callers':len(flow),
+        'new_nested_callers':len(nested),'new_jalr_callers':len(indirect),'new_branch_callers':len(flow)-flow_rejected['backward_callers'],
+        'new_backward_branch_callers':flow_rejected['backward_callers'],
+        'new_backward_branch_addresses':flow_rejected['backward_addresses'],
         'jalr_addresses':[f'{a:08X}' for a in indirect],'callers_total':len(callers),
         'new_nested_addresses':[f'{a:08X}' for a in nested],
         'new_branch_addresses':[f'{a:08X}' for a in flow],
         'branch_caller_rejections':flow_rejected,
         'nested_direct_edges':sum(k=='call' and v in set(callers) for code in nested.values() for _,_,k,v in code),
         'stack_bound':MAX_DEPTH,'instructions_new':sum(len(code) for code in nested.values())+sum(len(code) for code in indirect.values())+sum(len(code) for code in flow.values()),
-        'scope':'Bounded scalar callers with forward CFG branches. JALR supported with strict runtime whitelist of recovered call/leaf targets. Not full R5900 runtime.'
+        'scope':'Bounded scalar callers with forward and backward CFG branches. JALR targets validated against recovered entrypoints; not a full R5900 runtime.'
     }
     (ROOT/'stack_lift_report.json').write_text(json.dumps(report,indent=2)+'\n')
     return report
