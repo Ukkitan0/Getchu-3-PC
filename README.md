@@ -1,3 +1,38 @@
+# Getchu 3 PC — TRUE NATIVE WINDOWS PORT (CURRENT)
+
+**Active architecture:** Windows C++20 + Direct3D 11, native host file I/O,
+native TIM2 texture decoding, original-game VFI asset loading, native Lua 5.0
+stage discovery, and reconstructed player state. **No PS2 CPU, IOP, GS,
+DMA, console hardware emulation or PS2-web-recomp executable in the active
+build.** Do not use the old experimental PS2 hybrid pipeline.
+
+**CURRENT LIMITATION:** This is a functional *native engine/asset workbench*,
+NOT a playable Ape Escape 3 build. The original game menu, world rendering,
+player movement, gameplay entities and complete stage Lua bindings are not
+implemented. Source-only Windows CI cannot verify actual retail gameplay.
+
+**Build:** Run [BUILD_NATIVE_WINDOWS.bat](BUILD_NATIVE_WINDOWS.bat) on a Windows
+PC with Visual Studio 2022 C++/CMake. The legacy
+[TEST_APE_ESCAPE_3_WINDOWS.bat](TEST_APE_ESCAPE_3_WINDOWS.bat) routes to that
+same native-only build. It produces Getchu3Native.exe, Getchu3AssetProbe.exe,
+and Getchu3StageProbe.exe inside native/build/Release. The UI shows a
+development debug grid and previews supported original assets, not a game level.
+
+**Major new game-specific discovery:** Original Ape Escape 3 stage logic is
+stored in Lua 5.0 area.luc files. Research from the
+[2021 AE3 reverse engineering article](https://www.cnblogs.com/algonote/p/15678057.html)
+has been integrated as an original-game Lua stage scanner, local-only
+recovery helper, and a native C++ player-save/HP layout.
+See [native/RESEARCH_AE3_LUA50_NATIVE_PORT.md](native/RESEARCH_AE3_LUA50_NATIVE_PORT.md).
+
+The [native Windows CI workflow](https://github.com/Ukkitan0/Getchu-3-PC/actions/workflows/native-windows.yml)
+builds all host-only executables and tests native ISO/VFI, TIM2, Lua stage
+recognition, and player-state behavior using non-commercial fixture data.
+
+---
+
+## Retired historical recompilation notes below — NOT the active port
+
 ## October 19, 2026 — native game AOT source integrity and visual-frame evidence
 
 Native Windows source-to-C++ cache now SHA-verifies every generated translation
