@@ -1,0 +1,74 @@
+name: Windows native runtime smoke (no game data)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/windows-fastlane-smoke.yml'
+      - 'tools/windows_upstream_patch.py'
+      - 'tools/native_explore.py'
+      - 'tools/test_windows_fastlane.py'
+      - 'RUN_BULK_NATIVE_WINDOWS.ps1'
+      - 'fastlane/ci_stub/**'
+
+jobs:
+  windows-native:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Offline Python regression suite
+        shell: pwsh
+        run: |
+          py -3 -m unittest discover -s tools -p 'test_windows_fastlane.py' -v
+          py -3 -m unittest discover -s tools -p 'test_bulk_recompile.py' -v
+      - name: Fetch exact known upstream revision
+        shell: pwsh
+        run: |
+          git clone --filter=blob:none https://github.com/snuri00/ps2-web-recomp.git "$env:RUNNER_TEMP\upstream"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          git -C "$env:RUNNER_TEMP\upstream" checkout --detach 6526f4803d98e10de50bea3af104a4d26e9df033
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Apply tested Win32 portability overlay
+        shell: pwsh
+        run: |
+          py -3 tools/windows_upstream_patch.py --upstream "$env:RUNNER_TEMP\upstream" --report "$env:RUNNER_TEMP\windows_port_report.json"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Install SDL2 for the Windows native runner
+        shell: pwsh
+        run: |
+          if (-not $env:VCPKG_INSTALLATION_ROOT) { throw 'Runner vcpkg unavailable' }
+          & "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install sdl2:x64-windows
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Build native EE compiler + VU compiler (ClangCL)
+        shell: pwsh
+        run: |
+          cmake -S "$env:RUNNER_TEMP\upstream" -B "$env:RUNNER_TEMP\tools-build" -G 'Visual Studio 17 2022' -A x64 -T ClangCL
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          cmake --build "$env:RUNNER_TEMP\tools-build" --config Release --target eerecomp vurecomp --parallel
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Link source-only ps2run.exe against native runtime
+        shell: pwsh
+        run: |
+          $toolchain = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
+          cmake -S "$env:RUNNER_TEMP\upstream" -B "$env:RUNNER_TEMP\runtime-build" -G 'Visual Studio 17 2022' -A x64 -T ClangCL '-DPS2_GENERATED=${{ github.workspace }}/fastlane/ci_stub' '-DAE3_REQUIRE_SDL2=ON' "-DCMAKE_TOOLCHAIN_FILE=$toolchain"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          cmake --build "$env:RUNNER_TEMP\runtime-build" --config Release --target ps2run --parallel
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $runner = "$env:RUNNER_TEMP\runtime-build\Release\ps2run.exe"
+          if (-not (Test-Path -LiteralPath $runner)) { throw 'Runtime executable absent' }
+          & $runner 2>&1 | Out-File "$env:RUNNER_TEMP\usage.txt"
+          if ($LASTEXITCODE -ne 2) { throw "Unexpected no-argument runner exit code $LASTEXITCODE" }
+      - name: Upload portable-runtime diagnostic artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-windows-portability-smoke
+          path: |
+            ${{ runner.temp }}/windows_port_report.json
+            ${{ runner.temp }}/usage.txt
+            ${{ runner.temp }}/runtime-build/CMakeFiles/CMakeConfigureLog.yaml
+          if-no-files-found: ignore

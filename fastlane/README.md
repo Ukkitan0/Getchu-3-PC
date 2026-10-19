@@ -59,3 +59,17 @@ is entered. Generating thousands of entry units alone does not meet them.
 To broaden optional entry seeds on Windows use `-SeedMode common` or
 `-SeedMode all`. This can force data to be treated as code; it is not the
 default. First measure the constructor-only recompilation before increasing.
+
+## Native Win32 portability and exploratory rebuild loop
+
+After this checkpoint, the launcher applies the anchor-verified Win32 compatibility
+overlay and downloads official SHA-256-checked wgpu-native Windows x64 libraries
+when needed (unless `-SoftwareRenderer` is set). Visual Studio **ClangCL** and
+SDL2 are required for an interactive native Windows executable. See
+`../CHECKPOINT_WINDOWS_NATIVE_ENGINE.md` for build prerequisites and commands.
+
+The optional `-ExploreRounds 8 -ExploreFrames 1800` repeatedly invokes the actual
+guest runner, collects missing indirect code entry addresses, validates against
+the original instruction inventory and rebuilds translated C++ in batches. This
+is experimental source plumbing until the original ELF+ISO Windows execution succeeds.
+A no-game-data GitHub Actions Windows smoke workflow tests compilation separately.

@@ -1,7 +1,7 @@
 {
   "project": "Getchu-3-PC",
   "date": "2026-10-19",
-  "status": "full-game bulk recompilation path implemented and tested at entry generation level; no native game built",
+  "status": "Windows runtime overlay and iterative AOT/VU recompiler integrated, offline tested; NOT playable",
   "verified_boot_pc": "0x0041F118 (before second constructor nested math JAL)",
   "test_mode_retired_guest_instructions": 329473,
   "kernel": "experimental compatibility mode; Sony BIOS not emulated",
@@ -16,7 +16,7 @@
   "windows_objects_compiled_this_checkpoint": 2,
   "integrated_retail_ELF_execution_verified_this_checkpoint": false,
   "standalone_guest_fixture_passed": true,
-  "next_work": "translate user-owned game ELF into full native C++ and fix Windows runtime build; validate actual rendered title/gameplay",
+  "next_work": "Run Windows smoke test, fix actual compiler failures, recompile owned ELF and validate native title/menu",
   "retail_opcode_words_verified": 877,
   "current_thread_id_fixture": 255,
   "current_thread_initial_priority_fixture": 64,
@@ -63,5 +63,18 @@
   "bulk_aggressive_seed_count": 12373,
   "bulk_python_test_count": 8,
   "bulk_upstream_revision": "6526f4803d98e10de50bea3af104a4d26e9df033",
-  "bulk_native_windows_build_verified": false
+  "bulk_native_windows_build_verified": false,
+  "current_checkpoint": "Win32 GPU/SDL2/ClangCL compatibility and automatic indirect-call rediscovery",
+  "offline_python_tests_passed": 22,
+  "win32_port_transformations": 11,
+  "native_windows_full_build_verified": false,
+  "windows_github_actions_smoke_completed": false,
+  "wgpu_native_version": "v29.0.1.1",
+  "wgpu_native_sha256": "7e67d7445c42aeb85e30f88930fd8d7d83ee769e3390aeb1ada75ebf3cf78132",
+  "new_modules_latest": [
+    "tools/windows_upstream_patch.py",
+    "tools/native_explore.py",
+    "tools/test_windows_fastlane.py",
+    ".github/workflows/windows-fastlane-smoke.yml"
+  ]
 }

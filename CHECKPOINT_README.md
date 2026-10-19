@@ -1,3 +1,12 @@
+## 2026-10-19: native Windows runtime overlay + iterative AOT exploration (SOURCE ONLY, NOT PLAYABLE)
+
+Reused MIT upstream `snuri00/ps2-web-recomp` at pinned `6526f48`, adding Win32 SDL2
+HWND + WebGPU surface plumbing, MSVC GPU library linking, Win32 metrics, pin-verified
+Windows wgpu-native v29.0.1.1 setup, mandatory window-enabled SDL2 build, ClangCL
+toolchain, and bounded code-miss / VU1 exploration loops. Added an isolated CI smoke
+workflow and 22 green Linux-side Python tests. **Windows runtime compilation and game
+execution remain unverified.** See `CHECKPOINT_WINDOWS_NATIVE_ENGINE.md`.
+
 # Getchu-3-PC — bulk native recompilation checkpoint
 
 Date: October 19, 2026. This is source and Windows build orchestration,
