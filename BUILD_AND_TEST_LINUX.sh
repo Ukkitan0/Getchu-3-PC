@@ -69,14 +69,14 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_boot_semaphore_init.c \
 cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
   ae3_boot_memory_fill.c ae3_boot_thread_setup.c ae3_boot_kernel_bridge.c \
   ae3_boot_init_prefix.c ae3_boot_semaphore_init.c ae3_ee_sema_kernel.c \
-  ae3_ee_syscall_kernel.c ae3_boot_hook_init.c test_boot_hook_init.c -o build/test_boot_hook_init
+  ae3_ee_syscall_kernel.c ae3_ee_memory_bus.c ae3_boot_hook_init.c test_boot_hook_init.c -o build/test_boot_hook_init
 ./build/test_boot_hook_init "$AE3_ELF"
 # Boot probe builds only once, after all guest syscall / memory bus modules.
 
 # Guest SetSyscall 0x74 table, authentic handler instructions, explicit KSEG0
 # memory mapping, and two actual FindAddress wrapper invocations.
 cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_syscall_kernel.c \
-  test_ee_syscall_kernel.c -o build/test_ee_syscall_kernel
+  ae3_ee_memory_bus.c test_ee_syscall_kernel.c -o build/test_ee_syscall_kernel
 ./build/test_ee_syscall_kernel
 cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
   ae3_boot_memory_fill.c ae3_boot_thread_setup.c ae3_boot_kernel_bridge.c \
@@ -123,13 +123,29 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c \
   ae3_ee_memory_bus.c ae3_guest_kernel_copy.c test_guest_kernel_copy.c \
   -o build/test_guest_kernel_copy
 ./build/test_guest_kernel_copy "$AE3_ELF"
+# Copied original EE kernel GetEntryAddress, then full native post-patch
+# guest routine: second 40-byte Copy, two FlushCache requests, six genuine
+# GetEntryAddress calls and seven SetSyscall guest registrations.
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c \
+  ae3_ee_memory_bus.c ae3_guest_get_entry.c test_guest_get_entry.c \
+  -o build/test_guest_get_entry
+./build/test_guest_get_entry "$AE3_ELF"
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c \
+  ae3_ee_memory_bus.c ae3_ee_timer3.c ae3_ee_syscall_kernel.c \
+  ae3_boot_next_init.c ae3_boot_timer3_resume.c ae3_guest_kernel_copy.c \
+  ae3_boot_timer3_syscalls.c ae3_guest_get_entry.c ae3_boot_post_patch.c \
+  ae3_boot_post_find.c ae3_guest_find_address.c test_boot_post_patch.c \
+  -o build/test_boot_post_patch
+./build/test_boot_post_patch "$AE3_ELF"
+
 cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
   ae3_boot_memory_fill.c ae3_boot_thread_setup.c ae3_boot_kernel_bridge.c \
   ae3_boot_init_prefix.c ae3_boot_semaphore_init.c ae3_ee_sema_kernel.c \
   ae3_ee_syscall_kernel.c ae3_boot_hook_init.c ae3_ee_memory_bus.c \
   ae3_guest_find_address.c ae3_boot_post_find.c ae3_boot_next_init.c \
   ae3_ee_timer3.c ae3_boot_timer3_resume.c ae3_guest_kernel_copy.c ae3_boot_timer3_syscalls.c \
-  ae3_ee_boot_services.c ae3_boot_probe.c -o build/ae3_boot_probe
+  ae3_ee_boot_services.c ae3_guest_get_entry.c ae3_boot_post_patch.c \
+  ae3_boot_probe.c -o build/ae3_boot_probe
 ./build/ae3_boot_probe "$AE3_ELF"
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture --test-sema-hle
