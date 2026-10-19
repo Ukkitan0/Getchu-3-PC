@@ -27,7 +27,7 @@ class NonlocalAotFixture(unittest.TestCase):
         addresses = fixture.callback_addresses()
         self.assertEqual(len(addresses), 143)
         self.assertEqual(len(set(a // 0x4000 for a in addresses)), 7)
-        self.assertEqual(addresses[-1], fixture.CALLBACK_BASE + 142*0x100)
+        self.assertEqual(addresses[-1], fixture.CALLBACK_BASE + (fixture.COUNT-1)*fixture.CALLBACK_STRIDE)
         self.assertGreater(fixture.POINTER_TABLE, addresses[-1]+32)
         with tempfile.TemporaryDirectory() as temp:
             output = Path(temp)/'entries.txt'
