@@ -1,0 +1,23 @@
+Getchu-3-PC original retail allocator + INTC boundary checkpoint
+Date: 2026-10-19
+ELF SHA256: 5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63
+
+PASS: clang -std=c11 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined
+  ae3_boot_alloc_init.c ae3_ee_memory_bus.c ae3_elf_image.c test_boot_alloc_init.c
+PASS: original signed sentinel initializes native-translated 8192-byte zero area
+PASS: original MIPS loop writes 128 descending 64-byte spaced links
+PASS: original nested 0x441780 builds 64-entry 16-byte spaced free list
+PASS: independent constructed byte pattern and guest memory link assertions
+PASS: zero-sentinel alternate branch returns 0x80008001
+PASS: one-instruction vs batched CPU and full 32-MiB RAM parity
+PASS: atomic stack-store fault and full-span translated memset fault recovery
+PASS: invalid syscall instruction leaves CPU unmodified; retest with original word
+PASS: guest JAL/delay/ADDIU reaches 0x4357D4 (AddIntcHandler 0x10)
+PASS: clang-cl /W4 /WX /O2 compilation to Windows x86-64 COFF object
+PASS: existing test_boot_post_patch, test_guest_get_entry, test_ee_syscall_kernel
+PASS: boot diagnostic continues through experiment to 0x4357D4, 323244 guest instructions
+PASS: original default no-fixture diagnostic still pauses at authentic SetupThread
+
+NOT TESTED: genuine BIOS AddIntcHandler interrupt behavior, native Windows executable,
+rendering, IOP or game startup beyond syscall boundary.
+Full from-scratch generated-translation suite NOT re-run in this checkpoint.
