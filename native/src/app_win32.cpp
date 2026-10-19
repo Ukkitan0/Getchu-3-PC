@@ -3,10 +3,12 @@
 #include "ae3/lua_stage.hpp"
 #include "ae3/controller_timeline.hpp"
 #include "ae3/gltf_scene.hpp"
+#include "ae3/level_scene.hpp"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
 #include <commdlg.h>
+#include <shlobj.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <wincodec.h>
@@ -31,7 +33,7 @@ using namespace DirectX;
 namespace fs = std::filesystem;
 
 namespace {
-constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104, kSignalTrigger=105, kOpenGlb=106;
+constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104, kSignalTrigger=105, kOpenGlb=106, kOpenLevel=107;
 HWND gMain=nullptr,gList=nullptr,gView=nullptr,gInfo=nullptr;
 std::unique_ptr<ae3::Archive> gArchive;
 std::unique_ptr<ae3::NativeStageWorld> gNativeWorld;
@@ -436,6 +438,48 @@ void openNativeGlb(){
     dialog.lpstrTitle=L"Open native GLB exported from original AE3 I3D model";
     if(GetOpenFileNameW(&dialog))loadNativeGlb(fs::path(name));
 }
+void loadNativeLevel(const fs::path& folder) {
+    try {
+        // The owner may supply the matching original placeholder.plc in
+        // the level export folder. If none is available, clearly report
+        // unpositioned models rather than pretending an authentic world.
+        fs::path plc=folder/"placeholder.plc";
+        if(!fs::is_regular_file(plc))plc.clear();
+        const auto level=ae3::loadNativeLevelFolder(folder,plc);
+        if(!gRenderer.displayScene(level.scene))
+            throw std::runtime_error("Direct3D11 native level vertex upload failed");
+        const auto& box=level.scene.bounds;
+        gX=box.center[0];
+        gHeight=box.center[1]+box.radius*.2f;
+        gZ=box.center[2]-std::max(2.f,box.radius*2.5f);
+        gYaw=0;
+        std::wstringstream info;
+        info<<L"Native AE3 level asset scene: "
+            <<level.glbSourceFiles<<L" original GLBs, "
+            <<level.placedInstances<<L" instances, "
+            <<level.scene.triangles.size()/3<<L" world triangles, "
+            <<level.unplaced<<L" skipped unplaced objects. "
+            <<(plc.empty()?L"NO PLC PROVIDED: original world placement UNVERIFIED. ":
+                            L"Original simple PLC placement active. ")
+            <<L"Walkable collision/player gameplay NOT YET IMPLEMENTED.";
+        status(info.str());
+        gRenderer.render();
+    }catch(const std::exception& e){
+        status(L"Native original-level geometry load failed: "+wide(e.what()));
+    }
+}
+void openNativeLevel(){
+    BROWSEINFOW dlg{};
+    dlg.hwndOwner=gMain;
+    dlg.lpszTitle=L"Choose PRIVATE exported GLB folder for native AE3 level scene";
+    dlg.ulFlags=BIF_RETURNONLYFSDIRS|BIF_NEWDIALOGSTYLE;
+    PIDLIST_ABSOLUTE chosen=SHBrowseForFolderW(&dlg);
+    if(!chosen)return;
+    wchar_t folder[MAX_PATH]={};
+    const BOOL ok=SHGetPathFromIDListW(chosen,folder);
+    CoTaskMemFree(chosen);
+    if(ok)loadNativeLevel(fs::path(folder));
+}
 void openRecoveredStage(){
     wchar_t path[32768]={};
     OPENFILENAMEW dialog{};
@@ -555,6 +599,8 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
             700,8,155,32,wnd,reinterpret_cast<HMENU>(INT_PTR(kSignalTrigger)),inst,nullptr);
         CreateWindowW(L"BUTTON",L"Open native 3D model (GLB)",WS_CHILD|WS_VISIBLE,
             866,8,240,32,wnd,reinterpret_cast<HMENU>(INT_PTR(kOpenGlb)),inst,nullptr);
+        CreateWindowW(L"BUTTON",L"Open GLB level folder",WS_CHILD|WS_VISIBLE,
+            1117,8,170,32,wnd,reinterpret_cast<HMENU>(INT_PTR(kOpenLevel)),inst,nullptr);
         gList=CreateWindowExW(WS_EX_CLIENTEDGE,L"LISTBOX",nullptr,
             WS_CHILD|WS_VISIBLE|WS_VSCROLL|LBS_NOTIFY|LBS_NOINTEGRALHEIGHT,
             0,0,1,1,wnd,reinterpret_cast<HMENU>(INT_PTR(kList)),inst,nullptr);
@@ -573,6 +619,7 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         if(LOWORD(w)==kLuaStage && HIWORD(w)==BN_CLICKED)openRecoveredStage();
         if(LOWORD(w)==kSignalTrigger && HIWORD(w)==BN_CLICKED)signalFirstNativeTrigger();
         if(LOWORD(w)==kOpenGlb && HIWORD(w)==BN_CLICKED)openNativeGlb();
+        if(LOWORD(w)==kOpenLevel && HIWORD(w)==BN_CLICKED)openNativeLevel();
         if(LOWORD(w)==kList && HIWORD(w)==LBN_SELCHANGE && gArchive){
             auto idx=SendMessageW(gList,LB_GETCURSEL,0,0);
             if(idx!=LB_ERR && static_cast<std::size_t>(idx)<gArchive->entries().size()){
@@ -679,7 +726,8 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR command,int show){
         std::wstring extension=file.extension().wstring();
         std::transform(extension.begin(),extension.end(),extension.begin(),
                        [](wchar_t c){return wchar_t(std::towlower(c));});
-        if(extension==L".glb")loadNativeGlb(file);
+        if(fs::is_directory(file))loadNativeLevel(file);
+        else if(extension==L".glb")loadNativeGlb(file);
         else loadArchive(file);
     }
     MSG message{};
