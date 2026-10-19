@@ -1,0 +1,23 @@
+Getchu-3-PC — 2026-10-19 verified focused regression results
+Original retail ELF SHA-256: 5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63
+
+PASS test_boot_post_find — original 0x43FDC4 equal/mismatch branch, original nested
+     FindAddress syscall return, delay slots, backward loop and memory faults.
+PASS test_boot_next_init — original 0x43FE70 JAL into 0x440338, nine instructions,
+     accurate saved return address and stack frame, MMIO read at 0x10001810
+     suspended without guessing a hardware value; one-step/batched parity.
+PASS both new tests under Clang AddressSanitizer + UndefinedBehaviorSanitizer.
+PASS previous FindAddress KSEG alias comparison against later PCSX2 EE RAM snapshot
+     (0x80014F0C for 0x0043FCC0; no match for 0x0043FC88).
+PASS previous syscall table/handler/boot hook regression.
+PASS default AE3BootProbe stops at authentic SetupThread.
+PASS opt-in test-only model with no kernel data requests third FindAddress
+     at PC 0x43FD04 from 0x00000004 (1,626,737 retired instructions).
+PASS opt-in synthetic matching kernel words reaches real Timer 3 MODE
+     LW boundary: PC 0x440354, address 0x10001810, 317,741 retired instructions.
+PASS LLVM Clang cross-compiled Windows x64 COFF objects for both new modules.
+
+LIMITS: Game itself is NOT fully decompiled. SetupThread behavior and BIOS
+kernel memory are not authenticated. The synthetic matching search words are
+NOT a real Sony BIOS; the Timer3 register is NOT implemented. No original
+Windows executable was linked, launched, or tested. No playable build exists.
