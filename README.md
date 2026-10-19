@@ -1,3 +1,30 @@
+## Native textured original-model rendering — October 19, 2026
+
+**New milestone:** the active Getchu3Native.exe now includes a native glTF 2.0
+model importer and a Direct3D11 mesh renderer, which displays original-game
+I3D_BIN models *after* offline conversion with MIT ae3-sdk. Real static 3D
+triangles, node transforms, depth, primitive material batches, UV coordinates,
+and owner-local PNG/JPEG textures are processed without simulated PS2 graphics
+hardware. The camera can be moved with WASD, Q/E, arrows and Shift, and GLB
+models may be opened by file picker or direct command-line filename.
+Native Lua 5.0 stage scripts can remain loaded beside an imported model.
+
+The native Windows CI now generates a completely **game-free textured GLB
+arena sample** in native/build/native_arena_test.glb, checks its 2 source
+nodes / 4 triangles / 1 native PNG reference using Getchu3GlbSceneProbe.exe,
+and uploads both the native test viewer and this fixture. The same CI executes
+8/8 native CTest cases. See
+[native/NATIVE_I3D_VIEWER.md](native/NATIVE_I3D_VIEWER.md) for the owner-local
+pipeline, sample invocation, and limitations.
+
+**Not yet playable:** imported GLBs show their static rest poses, not
+skeletal animation. Original level world composition, I3C collision,
+player movement, monkey AI, gadget interactions, and full Lua entity
+lifecycle are not implemented. There has not been a real retail model
+visual test in this environment.
+
+---
+
 ## October 19, 2026 — REAL native Lua 5.0 gameplay scripting subsystem
 
 **Original-style AE3 stage Lua source now ACTUALLY RUNS inside the Windows
