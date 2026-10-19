@@ -81,12 +81,21 @@ AE3_EEBusStatus ae3_ee_bus_write(AE3_EEMemoryBus *b,
     if(st==AE3_EE_BUS_OK)memcpy((uint8_t*)dst,src,len);
     return st;
 }
+/* KSEG1 MMIO is the same physical register bank as its 0x10000000 alias.
+   Only 32-bit MMIO accesses with an explicitly attached device are
+   translated. Other addresses remain rejected by the ordinary bus. */
+static uint32_t mmio_physical(uint32_t addr){
+    if(addr>=UINT32_C(0xb0000000) && addr<UINT32_C(0xb2000000))
+        return addr-UINT32_C(0xa0000000);
+    return addr;
+}
 AE3_EEBusStatus ae3_ee_bus_read32(const AE3_EEMemoryBus *b,
     uint32_t addr, uint32_t *out) {
     if(!out)return AE3_EE_BUS_BAD_ARGUMENT;
     if(addr&3)return AE3_EE_BUS_MISALIGNED;
-    if(b && b->mmio_read32 && (addr&UINT32_C(0xf0000000))==UINT32_C(0x10000000))
-        return b->mmio_read32(b->mmio_context,addr,out);
+    uint32_t physical=mmio_physical(addr);
+    if(b && b->mmio_read32 && (physical&UINT32_C(0xf0000000))==UINT32_C(0x10000000))
+        return b->mmio_read32(b->mmio_context,physical,out);
     uint8_t raw[4];AE3_EEBusStatus st=ae3_ee_bus_read(b,addr,raw,4);
     if(st==AE3_EE_BUS_OK)*out=(uint32_t)raw[0]|((uint32_t)raw[1]<<8)|
         ((uint32_t)raw[2]<<16)|((uint32_t)raw[3]<<24);
@@ -95,8 +104,9 @@ AE3_EEBusStatus ae3_ee_bus_read32(const AE3_EEMemoryBus *b,
 AE3_EEBusStatus ae3_ee_bus_write32(AE3_EEMemoryBus *b,
     uint32_t addr, uint32_t value) {
     if(addr&3)return AE3_EE_BUS_MISALIGNED;
-    if(b && b->mmio_write32 && (addr&UINT32_C(0xf0000000))==UINT32_C(0x10000000))
-        return b->mmio_write32(b->mmio_context,addr,value);
+    uint32_t physical=mmio_physical(addr);
+    if(b && b->mmio_write32 && (physical&UINT32_C(0xf0000000))==UINT32_C(0x10000000))
+        return b->mmio_write32(b->mmio_context,physical,value);
     uint8_t raw[4]={(uint8_t)value,(uint8_t)(value>>8),
                     (uint8_t)(value>>16),(uint8_t)(value>>24)};
     return ae3_ee_bus_write(b,addr,raw,4);
