@@ -163,6 +163,40 @@ Archive::Archive(const std::filesystem::path& ownedGameData):
         entries_.push_back({normalized(name),file.off,file.size});
     }
 }
+void Archive::extractDataBin(const std::filesystem::path& destination) {
+    namespace fs = std::filesystem;
+    if(destination.empty())throw std::runtime_error("empty DATA.BIN output path");
+    std::error_code error;
+    if(fs::exists(destination,error)) {
+        throw std::runtime_error("DATA.BIN destination exists: refusing overwrite");
+    }
+    if(error)throw std::runtime_error("cannot validate DATA.BIN destination");
+    if(!destination.parent_path().empty())
+        fs::create_directories(destination.parent_path());
+    std::ofstream out(destination,std::ios::binary|std::ios::trunc);
+    if(!out)throw std::runtime_error("cannot create DATA.BIN output");
+    try {
+        constexpr std::size_t blockSize=2*1024*1024;
+        std::uint64_t done=0;
+        while(done<data_.size){
+            const std::size_t chunk=static_cast<std::size_t>(
+                std::min<std::uint64_t>(data_.size-done,blockSize));
+            auto bytes=input_.read(data_.offset+done,chunk);
+            out.write(reinterpret_cast<const char*>(bytes.data()),
+                      static_cast<std::streamsize>(bytes.size()));
+            if(!out)throw std::runtime_error("failed while writing original DATA.BIN");
+            done+=chunk;
+        }
+        out.flush();
+        if(!out)throw std::runtime_error("failed to flush original DATA.BIN");
+        out.close();
+    }catch(...){
+        out.close();
+        fs::remove(destination,error);
+        throw;
+    }
+}
+
 std::vector<std::uint8_t> Archive::read(const VfiEntry& item) {
     if(item.size > 128*1024*1024)throw std::runtime_error("asset exceeds per-read budget");
     if(!bounded(item.offset,item.size,data_.size))throw std::runtime_error("asset outside DATA.BIN");
