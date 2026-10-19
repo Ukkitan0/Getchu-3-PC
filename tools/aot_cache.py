@@ -19,7 +19,7 @@ import subprocess
 import sys
 import tempfile
 
-CACHE_VERSION = 1
+CACHE_VERSION = 2
 
 
 def hash_file(path: Path) -> str:
@@ -60,6 +60,35 @@ def fingerprint(compiler: Path, elf: Path, entries: Path,
     return digest.hexdigest()
 
 
+def output_manifest(out: Path) -> dict[str, str]:
+    """Digest the generated source files that CMake actually compiles.
+
+    This also records filenames, so swapping or replacing a translation unit
+    while leaving the same number of *.cpp files cannot produce a false hit.
+    The pinned upstream requires units.hpp and table.cpp for registration.
+    """
+    header = out / "units.hpp"
+    table = out / "table.cpp"
+    if not header.is_file() or not table.is_file():
+        return {}
+    inputs = sorted(out.glob("*.cpp"), key=lambda p: p.name)
+    if not inputs:
+        return {}
+    return {path.name: hash_file(path) for path in [header, *inputs]}
+
+
+def manifest_matches(out: Path, record: dict) -> bool:
+    expected = record.get("outputs")
+    if not isinstance(expected, dict) or not expected:
+        return False
+    # Do not trust a manifest with fabricated count or non-digest fields.
+    if (record.get("units") != sum(name.endswith(".cpp") for name in expected)
+            or not all(isinstance(name, str) and isinstance(digest, str)
+                       and len(digest) == 64 for name, digest in expected.items())):
+        return False
+    return output_manifest(out) == expected
+
+
 def compile_cached(compiler: Path, elf: Path, entries: Path, out: Path,
                    modules: Path | None = None, overlays: Path | None = None,
                    *, force=False) -> dict:
@@ -72,13 +101,13 @@ def compile_cached(compiler: Path, elf: Path, entries: Path, out: Path,
             previous = json.loads(marker.read_text(encoding="utf-8"))
         except (ValueError, UnicodeError):
             previous = None
-    cpp_units = sorted(out.glob("*.cpp"))
-    if (not force and previous and previous.get("fingerprint") == fingerprint_hex
-            and cpp_units and previous.get("units") == len(cpp_units)):
+    if (not force and previous and previous.get("version") == CACHE_VERSION
+            and previous.get("fingerprint") == fingerprint_hex
+            and manifest_matches(out, previous)):
         return {
             "mode": "reused",
             "fingerprint": fingerprint_hex,
-            "units": len(cpp_units),
+            "units": previous["units"],
             "gameplay_verified": False,
         }
     command = [str(compiler.resolve()), str(elf.resolve()),
@@ -89,20 +118,21 @@ def compile_cached(compiler: Path, elf: Path, entries: Path, out: Path,
         command += ["--overlays", str(overlays.resolve())]
     command += ["--out", str(out.resolve())]
     subprocess.run(command, check=True)
-    cpp_units = sorted(out.glob("*.cpp"))
-    if not cpp_units:
-        raise ValueError("eerecomp succeeded but generated no C++ translation units")
+    outputs = output_manifest(out)
+    if not outputs:
+        raise ValueError("eerecomp succeeded but generated no complete C++ output (table.cpp and units.hpp required)")
+    count = sum(name.endswith(".cpp") for name in outputs)
     report = {
         "mode": "translated",
         "fingerprint": fingerprint_hex,
-        "units": len(cpp_units),
+        "units": count,
         "gameplay_verified": False,
     }
     # Save the state only AFTER compiler success and generated C++ validation.
     with tempfile.NamedTemporaryFile("w", dir=out, prefix=".aot-", suffix=".json",
                                      encoding="utf-8", delete=False) as stream:
         json.dump({"version": CACHE_VERSION, "fingerprint": fingerprint_hex,
-                   "units": len(cpp_units)}, stream, indent=2)
+                   "units": count, "outputs": outputs}, stream, indent=2)
         stream.write("\n")
         temp = Path(stream.name)
     try:
