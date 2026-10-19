@@ -15,7 +15,7 @@ if not exist build mkdir build
 clang-cl /nologo /std:c11 /W4 /WX /O2 /Fe:build\AE3BootProbe.exe ^
   ae3_elf_image.c ae3_boot_prefix.c ae3_boot_memory_fill.c ^
   ae3_boot_thread_setup.c ae3_boot_kernel_bridge.c ae3_boot_init_prefix.c ^
-  ae3_boot_semaphore_init.c ae3_ee_sema_kernel.c ae3_boot_hook_init.c ^
+  ae3_boot_semaphore_init.c ae3_ee_sema_kernel.c ae3_ee_syscall_kernel.c ae3_boot_hook_init.c ^
   ae3_boot_probe.c
 if errorlevel 1 exit /b 3
 echo [AE3] Built a boot diagnostic ONLY, not a playable game.
