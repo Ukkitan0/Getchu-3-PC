@@ -8,9 +8,11 @@ param(
     [switch]$Reuse,
     [switch]$KeepTim2,
     [switch]$Gltf,
+    [switch]$Animate,
     [string]$Ae3Cli = 'ae3'
 )
 $ErrorActionPreference = 'Stop'
+if ($Animate) { $Gltf = $true }
 $Project = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $Native = Join-Path $Project 'native'
 $Private = Join-Path $Native 'private'
@@ -73,7 +75,9 @@ if ($LASTEXITCODE -ne 0) {
 if ($Gltf) {
     $Converter = Join-Path $Native 'tools\convert_models_to_glb.py'
     $GlbDir = Join-Path $Out 'glb'
-    & py -3 $Converter --extracted $ExtractedRoot --out $GlbDir --ae3 $Ae3Cli
+    $modelArgs = @('-3', $Converter, '--extracted', $ExtractedRoot, '--out', $GlbDir, '--ae3', $Ae3Cli)
+    if ($Animate) { $modelArgs += '--animations' }
+    & py @modelArgs
     if ($LASTEXITCODE -ne 0) {
         throw 'Optional MIT ae3-sdk I3D-to-GLB model conversion failed.'
     }
