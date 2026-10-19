@@ -10,7 +10,7 @@ namespace fs = std::filesystem;
 int main(int argc,char** argv) {
     if(argc < 2) {
         std::cerr << "Usage: Getchu3AssetProbe DATA.BIN|ApeEscape3.iso [--list] "
-                     "[--extract asset/path output/file]\n";
+                     "[--extract asset/path output/file] [--copy-databin output/DATA.BIN]\n";
         return 2;
     }
     try {
@@ -27,6 +27,11 @@ int main(int argc,char** argv) {
                  <<"Original assets: "<<entries.size()<<"\n"
                  <<"Indexed bytes: "<<total<<"\n"
                  <<"File categories:\n";
+        if(argc>3 && std::string(argv[2])=="--copy-databin"){
+            archive.extractDataBin(fs::u8path(argv[3]));
+            std::cout<<"Original DATA.BIN extracted to local owner path.\n";
+            return 0;
+        }
         for(auto const& [extension,count]:types)
             std::cout<<"  "<<extension<<": "<<count<<"\n";
         if(argc>2 && std::string(argv[2])=="--list"){
