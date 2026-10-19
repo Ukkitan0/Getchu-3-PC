@@ -43,7 +43,7 @@ def parse_boot2(system_cnf: bytes) -> str:
     match = BOOT2.search(text)
     if not match:
         raise ValueError("ISO SYSTEM.CNF has no BOOT2=cdrom0: executable")
-    path = match.group(1).strip().replace("\\", "/").split(";", 1)[0].strip()
+    path = re.sub(r"/+", "/", match.group(1).strip().replace("\\", "/")).split(";", 1)[0].strip()
     parsed = PurePosixPath(path)
     if (not path or path.startswith("/") or any(
             part in ("..", ".", "") for part in path.split("/"))
