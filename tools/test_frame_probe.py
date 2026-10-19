@@ -64,6 +64,39 @@ class NativePpmImageEvidence(unittest.TestCase):
             self.assertEqual(result["bad_frames"], 1)
             self.assertEqual(len(result["examined"]), 1)
 
+    def test_current_session_excludes_earlier_rendered_frames(self):
+        import json
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            stale = root / "shots/session-old/round_01"
+            current = root / "shots/session-current/round_01"
+            write_ppm(stale / "frame_00300.ppm", 2, 1,
+                      b"\xff\xff\xff\xff\x00\x00")
+            write_ppm(current / "frame_00300.ppm", 2, 1,
+                      b"\x00\x00\x00\x00\x00\x00")
+            (root / "explore_summary.json").write_text(json.dumps([
+                {"round": 1, "new_code_entries": 0, "new_code_images": 0,
+                 "shot_dir": str(current)}
+            ]))
+            found = boot_report.analyze(root)
+            self.assertEqual(found["rendered_frame_files"], 1)
+            self.assertEqual(found["rendered_ppm_frame_files"], 1)
+            self.assertFalse(found["frame_visual_evidence"]["has_nonblack_visual_evidence"])
+            self.assertEqual(frame_probe.inspect_frames(root / "shots")["ppm_frame_files"], 2)
+
+    def test_rejects_out_of_workspace_capture_directory(self):
+        import json
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            outside = root / "other"
+            write_ppm(outside / "frame_00300.ppm", 1, 1, b"\xff\xff\xff")
+            (root / "explore_summary.json").write_text(json.dumps([
+                {"round": 1, "shot_dir": str(outside), "new_code_entries": 0,
+                 "new_code_images": 0}
+            ]))
+            report = boot_report.analyze(root)
+            self.assertEqual(report["rendered_ppm_frame_files"], 0)
+
     def test_no_images_and_unsupported_file_types(self):
         with tempfile.TemporaryDirectory() as tmp:
             shots = Path(tmp)
