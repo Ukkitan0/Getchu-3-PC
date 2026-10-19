@@ -1,3 +1,39 @@
+## October 19, 2026 — User-provided exporter format integration and native walking test
+
+The uploaded **Exporter.zip** supplied reverse-engineering research for
+original Ape Escape 3 PCK archives, simple placeholder.plc level
+placement, I3D geometry and named I3D_I3M rotation tracks. That research
+has now been integrated into **host-native C++** rather than a console
+recompiler/emulator.
+
+New native tools:
+Getchu3PckProbe.exe, Getchu3LevelSceneProbe.exe, Getchu3I3mProbe.exe.
+The Direct3D11 viewer now loads many original GLB models, applies
+simple original PLC world positions, and offers an **experimental F5
+walk/jump mode** on the imported mesh triangles. WASD moves, Space
+jumps, Shift sprints and left/right arrows turn. This is a new native
+PC movement/collision prototype, **not yet the original Ape Escape 3
+player controller or collision implementation**.
+
+Source-only Windows CI now passes **12 native regression cases**, including
+PCK member and name parsing, original PLC record offsets, I3M quaternion
+keyframe interpolation, host-native walk/jump and landing, Lua 5.0
+gameplay-script execution, and GLB scene/texture loading.
+
+The owner-provided sample background PCK was privately inspected:
+73 archive entries; 25 I3D models, of which 23 nonempty models contained
+18,818 total triangles; 27 original TIM2 textures; and five original
+I3M clips with 144 quaternion rotation keys. Private converted models
+were not added to the public repository. Original visual fidelity,
+object placement, bone mapping, authentic world collision and gameplay
+are **not verified or finished**.
+
+See [native/ORIGINAL_ASSET_LEVEL_PROGRESS.md](native/ORIGINAL_ASSET_LEVEL_PROGRESS.md).
+No PS2 EE, IOP, GS, DMA, CPU or GPU hardware emulation exists in the
+active native C++ application or build.
+
+---
+
 ## Native textured original-model rendering — October 19, 2026
 
 **New milestone:** the active Getchu3Native.exe now includes a native glTF 2.0
