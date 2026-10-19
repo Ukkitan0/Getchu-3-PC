@@ -14,6 +14,8 @@ py -3 cfg_lift.py
 if errorlevel 1 exit /b 1
 py -3 loop_lift.py
 if errorlevel 1 exit /b 1
+py -3 resume_lift.py
+if errorlevel 1 exit /b 1
 where clang-cl >nul 2>&1
 if errorlevel 1 (
  echo clang-cl not found. Install LLVM or Visual Studio C++ Clang tools.
@@ -25,6 +27,8 @@ if errorlevel 1 exit /b 1
 clang-cl /nologo /std:c11 /O2 /c ae3_control_leaves.c /Fobuild\ae3_control_leaves.obj
 if errorlevel 1 exit /b 1
 clang-cl /nologo /std:c11 /O2 /c ae3_loop_leaves.c /Fobuild\ae3_loop_leaves.obj
+if errorlevel 1 exit /b 1
+clang-cl /nologo /std:c11 /O2 /c ae3_resumable_leaves.c /Fobuild\ae3_resumable_leaves.obj
 if errorlevel 1 exit /b 1
 clang-cl /nologo /std:c11 /O2 /c ae3_native_dispatch.c /Fobuild\ae3_native_dispatch.obj
 if errorlevel 1 exit /b 1
