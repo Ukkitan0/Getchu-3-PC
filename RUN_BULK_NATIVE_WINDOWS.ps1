@@ -42,14 +42,20 @@ if (-not $Elf) {
                 'C:\AE3Recompile2\WebRecompNative\upstream\games\ae3\disc\SCUS_975.01')
     $Elf = $Places | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 }
-if (-not $Elf -or -not (Test-Path -LiteralPath $Elf -PathType Leaf)) {
-    Fail 'Retail US SCUS_975.01 ELF not found: supply -Elf "C:\path\SCUS_975.01".'
+# A single owned ISO is enough: the pinned upstream disc reader will locate
+# and extract its SYSTEM.CNF BOOT2 executable without a pre-existing ELF.
+# Validate paths before provisioning any dependencies.
+if ($Elf -and -not (Test-Path -LiteralPath $Elf -PathType Leaf)) {
+    Fail "Executable not found: $Elf"
 }
-$Elf = (Resolve-Path -LiteralPath $Elf).Path
-$ActualHash = (Get-FileHash -LiteralPath $Elf -Algorithm SHA256).Hash
-if ($ActualHash -ne $ExpectedHash) { Fail "Wrong executable: $ActualHash, expected $ExpectedHash" }
-# A requested game run or code/VU exploration requires an ISO. Check *before*
-# downloading toolchains or spending hours translating the game executable.
+if ($Elf) {
+    $Elf = (Resolve-Path -LiteralPath $Elf).Path
+    $ActualHash = (Get-FileHash -LiteralPath $Elf -Algorithm SHA256).Hash
+    if ($ActualHash -ne $ExpectedHash) { Fail "Wrong executable: $ActualHash, expected $ExpectedHash" }
+}
+if (-not $Elf -and -not $Disc) {
+    Fail 'Provide -Disc "C:\path\Ape Escape 3.iso" or -Elf "C:\path\SCUS_975.01".'
+}
 if ($Run -or $ExploreRounds -gt 0) {
     if (-not $Disc -or -not (Test-Path -LiteralPath $Disc -PathType Leaf)) {
         Fail 'Native execution/exploration requires -Disc with a valid locally owned ISO.'
@@ -69,6 +75,28 @@ if (-not (Test-Path -LiteralPath (Join-Path $Upstream '.git'))) {
         Fail "Upstream is $Installed, expected pinned $PinnedUpstream. Choose a fresh Workspace or explicitly -ReuseUpstream."
     }
 }
+# Extract the exact BOOT2 ELF and optional game modules only inside the
+# gitignored private workspace; never assume a manually supplied ELF is from
+# the same disc as the --disc argument.
+$ModuleArgs = @()
+$OverlayArgs = @()
+$PrivateDisc = Join-Path $Workspace 'owned_disc'
+$DiscInfo = $null
+if ($Disc) {
+    $PrepArgs = @('-3',(Join-Path $Project 'tools\prepare_disc.py'),
+                  '--disc',$Disc,'--upstream',$Upstream,
+                  '--out',$PrivateDisc,'--expected-sha',$ExpectedHash)
+    if ($Elf) { $PrepArgs += @('--elf',$Elf) }
+    RunProcess 'py' $PrepArgs
+    $DiscInfo = Get-Content -LiteralPath (Join-Path $PrivateDisc 'disc_prepare.json') -Raw | ConvertFrom-Json
+    $Elf = $DiscInfo.executable
+    if ($DiscInfo.modules_dir) { $ModuleArgs = @('--modules', $DiscInfo.modules_dir) }
+    if ($DiscInfo.overlays_dir) { $OverlayArgs = @('--overlays', $DiscInfo.overlays_dir) }
+}
+if (-not $Elf) { Fail 'No validated boot executable was selected' }
+$Elf = (Resolve-Path -LiteralPath $Elf).Path
+$ActualHash = (Get-FileHash -LiteralPath $Elf -Algorithm SHA256).Hash
+if ($ActualHash -ne $ExpectedHash) { Fail "Wrong original retail boot ELF: $ActualHash" }
 # The overlay is idempotent and anchored to reviewed upstream exact source.
 $Report = Join-Path $Workspace 'windows_port_report.json'
 RunProcess 'py' @('-3',(Join-Path $Project 'tools\windows_upstream_patch.py'),'--upstream',$Upstream,'--report',$Report)
@@ -133,8 +161,12 @@ $VuCompiler = Join-Path $ToolBuild 'Release\vurecomp.exe'
 foreach($App in @($Compiler,$VuCompiler)) { if (-not (Test-Path -LiteralPath $App)) { Fail "Missing built upstream executable: $App" } }
 $Entries = Join-Path $Workspace 'entries'
 $Generated = Join-Path $Workspace 'generated\ae3'
-RunProcess 'py' @('-3',(Join-Path $Project 'tools\bulk_recompile.py'),'--elf',$Elf,'--out',$Entries,'--seed-mode',$SeedMode,'--eerecomp',$Compiler,'--cpp-out',$Generated)
+$BulkArgs = @('-3',(Join-Path $Project 'tools\bulk_recompile.py'),'--elf',$Elf,
+              '--out',$Entries,'--seed-mode',$SeedMode,
+              '--eerecomp',$Compiler,'--cpp-out',$Generated) + $ModuleArgs + $OverlayArgs
+RunProcess 'py' $BulkArgs
 $EntryList = Join-Path $Entries 'entries.txt'
+$TranslateArgs = @($Elf,'--entries',$EntryList) + $ModuleArgs + $OverlayArgs + @('--out',$Generated)
 $AnalysisInventory = Join-Path $Project 'analysis\full_elf\ee_text_word_inventory.tsv.gz'
 if (-not (Test-Path -LiteralPath $AnalysisInventory)) {
     # A fresh public checkout contains NO copyrighted retail-code inventory.
