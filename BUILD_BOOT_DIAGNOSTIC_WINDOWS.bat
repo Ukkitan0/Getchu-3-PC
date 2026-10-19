@@ -16,10 +16,12 @@ clang-cl /nologo /std:c11 /W4 /WX /O2 /Fe:build\AE3BootProbe.exe ^
   ae3_elf_image.c ae3_boot_prefix.c ae3_boot_memory_fill.c ^
   ae3_boot_thread_setup.c ae3_boot_kernel_bridge.c ae3_boot_init_prefix.c ^
   ae3_boot_semaphore_init.c ae3_ee_sema_kernel.c ae3_ee_syscall_kernel.c ae3_boot_hook_init.c ^
-  ae3_ee_memory_bus.c ae3_guest_find_address.c ae3_boot_probe.c
+  ae3_ee_memory_bus.c ae3_guest_find_address.c ae3_ee_boot_services.c ae3_boot_probe.c
 if errorlevel 1 exit /b 3
 echo [AE3] Built a boot diagnostic ONLY, not a playable game.
-if "%AE3_BOOT_TEST_ALIAS%"=="1" (
+if "%AE3_BOOT_MODEL%"=="1" (
+  "%~dp0build\AE3BootProbe.exe" "%AE3_ELF%" --test-ee-boot-model --test-sema-hle --test-ee-alias
+) else if "%AE3_BOOT_TEST_ALIAS%"=="1" (
   "%~dp0build\AE3BootProbe.exe" "%AE3_ELF%" --test-kernel-fixture --test-sema-hle --test-ee-alias
 ) else if "%AE3_BOOT_TEST_HLE%"=="1" (
   "%~dp0build\AE3BootProbe.exe" "%AE3_ELF%" --test-kernel-fixture --test-sema-hle
