@@ -43,3 +43,5 @@ ee_text_word_inventory.tsv.gz
 vu_microcode_packet_inventory.tsv.gz
 direct_jal_targets.tsv
 *_test
+# Local PS2 AOT workspace: may contain owner-derived translated game code and assets
+/fastlane/private/
