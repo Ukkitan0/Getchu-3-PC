@@ -149,7 +149,8 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
   ae3_boot_intc_critical.c ae3_ee_timer2.c ae3_boot_timer2_continue.c \
   ae3_boot_timer2_setup.c ae3_boot_enable_intc.c ae3_boot_timer2_recheck.c \
   ae3_boot_timer2_finish.c ae3_boot_event_create.c ae3_ee_thread_kernel.c ae3_boot_thread_continue.c ae3_boot_thread_next.c \
-  ae3_boot_thread_priority.c ae3_boot_osd_entry.c ae3_boot_osd_roundtrip.c ae3_boot_probe.c -o build/ae3_boot_probe
+  ae3_boot_thread_priority.c ae3_boot_osd_entry.c ae3_boot_osd_roundtrip.c \
+  ae3_boot_tlb_patch.c ae3_boot_tlb_finalize.c ae3_boot_probe.c -o build/ae3_boot_probe
 ./build/ae3_boot_probe "$AE3_ELF"
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture --test-sema-hle
@@ -236,3 +237,10 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c \
 cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c \
   ae3_boot_osd_roundtrip.c test_boot_osd_roundtrip.c -o build/test_boot_osd_roundtrip
 ./build/test_boot_osd_roundtrip
+
+# Original InitTLBFunctions prefix: 204 retail MIPS Copy stores, 3 SetSyscall,
+# two recorded FlushCache calls; ends before copied GetEntryAddress(0x5B).
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c \
+  ae3_ee_syscall_kernel.c ae3_boot_tlb_patch.c ae3_boot_tlb_finalize.c test_boot_tlb_patch.c \
+  -o build/test_boot_tlb_patch
+./build/test_boot_tlb_patch

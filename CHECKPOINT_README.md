@@ -1,15 +1,17 @@
-# Getchu-3-PC — OSD original return checkpoint
+# Getchu-3-PC — TLB syscall initialization checkpoint
 
-October 19, 2026. Experimental native C EE compatibility runtime, **NOT PLAYABLE**.
+October 19, 2026. Experimental native C guest runtime, **NOT PLAYABLE**.
 
-The original retail instructions now execute through `GetOsdConfigParam`
-(0x4B), `SetOsdConfigParam` (0x4A), second getter, original configuration
-restoration, and parent return at `0x0043FE98`. **44** further original MIPS
-instructions; **323,554** on the composed test path. **290** pinned game
-opcodes verified against the owner's post-boot memory snapshot.
+Original MIPS InitTLBFunctions completed to `0x0043FEA0` after **1,922**
+additional instructions, including a 204-store retail guest Copy, two original
+FlushCache requests (compatibility-only recording), eight SetSyscall operations
+and six actual copied GetEntryAddress guest MIPS table searches.
 
-The OS configuration is supplied explicitly (`--test-osd-roundtrip=XXXXXXXX`)
-and is not claimed as Sony BIOS-observed. Linux optimized and sanitizer tests,
-Windows object compilation and source-only full diagnostic linking pass.
-The retail ELF, ISO, BIOS, save-state RAM, assets, and gameplay are excluded.
-See `CHECKPOINT_OSD_ROUNDTRIP.md` for exact tests and limitations.
+Composed test count: **325,476**. **391** pinned retail opcode rows match the
+owner's independent post-boot PS2 EE RAM reference. Clang sanitizer and GCC
+focused tests passed; two Windows x64 objects compiled, and the integrated
+Linux diagnostic links, but was not run with the original retail ELF.
+
+No game assets, original ELF, ISO, BIOS or savestate RAM are included. No
+actual Sony BIOS scheduler/IOP/GS or gameplay has been implemented. See
+`CHECKPOINT_TLB_FULL.md` for reproducible tests and limitations.

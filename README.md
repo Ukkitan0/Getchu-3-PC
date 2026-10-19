@@ -1,3 +1,14 @@
+## 2026-10-19: retail InitTLBFunctions guest execution completed (NOT PLAYABLE)
+
+Original `0x0043FE98 -> 0x0043F470` executes through the genuine retail
+816-byte MIPS Copy to `0x80075000`, two FlushCache requests, eight syscall
+registrations, six copied GetEntryAddress searches and return to `0x0043FEA0`.
+**1,922** further original guest instructions in experimental test mode,
+**325,476** cumulative; **391** opcode rows verified against saved EE RAM.
+Compiled and sanitizer-tested on Linux; two Windows x64 objects built; a
+retail-ELF integrated run and actual BIOS/IOP/GS/gameplay remain unavailable.
+See `CHECKPOINT_TLB_FULL.md` for exact evidence and test commands.
+
 # Getchu-3-PC — Ape Escape 3 native Windows decompilation
 
 **Active, canonical decompilation project. Experimental. NOT PLAYABLE.**

@@ -1,0 +1,21 @@
+Getchu-3-PC — InitTLBFunctions source checkpoint 2026-10-19
+
+$ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c ae3_ee_syscall_kernel.c ae3_boot_tlb_patch.c ae3_boot_tlb_finalize.c test_boot_tlb_patch.c -o build/test_boot_tlb_patch && ./build/test_boot_tlb_patch
+PASS retail TLB function installer: 1695 real guest instructions, 204 original Copy SW, 3 SetSyscall, 2 FlushCache, GetEntryAddress pending 0043F454
+PASS TLB GetEntry: 227 more original MIPS instructions, 6 searches, 5 SetSyscall, final guest returned at 0043FEA0
+PASS: instruction-verified TLB copy and registry update, no synthetic BIOS execution
+
+$ clang -std=c11 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Werror ae3_ee_memory_bus.c ae3_ee_syscall_kernel.c ae3_boot_tlb_patch.c ae3_boot_tlb_finalize.c test_boot_tlb_patch.c -o build/test_boot_tlb_patch_asan && ASAN_OPTIONS=detect_leaks=1 ./build/test_boot_tlb_patch_asan
+PASS: identical results, no sanitizer errors
+
+$ clang-cl /nologo /std:c11 /W4 /WX /O2 /c ae3_boot_tlb_patch.c /Fobuild/ae3_boot_tlb_patch.obj
+PASS x86-64 COFF object
+$ clang-cl /nologo /std:c11 /W4 /WX /O2 /c ae3_boot_tlb_finalize.c /Fobuild/ae3_boot_tlb_finalize.obj
+PASS x86-64 COFF object
+
+$ python verify_opcode_snapshot.py /mnt/data/work/eeMemory.bin
+PASS: 391 pinned MIPS instruction bytes match the user-supplied EE snapshot
+
+Integrated Linux boot diagnostic: all modules compile and link; retail ELF not present to execute full integration path.
+Earlier focused OSD, thread priority, CreateThread, and CreateSema tests passed.
+Not a playable game.

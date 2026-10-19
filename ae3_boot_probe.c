@@ -27,6 +27,8 @@
 #include "ae3_boot_thread_priority.h"
 #include "ae3_boot_osd_entry.h"
 #include "ae3_boot_osd_roundtrip.h"
+#include "ae3_boot_tlb_patch.h"
+#include "ae3_boot_tlb_finalize.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -553,6 +555,74 @@ int main(int argc,char**argv) {
                                                          printf("EXPERIMENTAL supplied OSD ConfigParam=%08X: the original game issued 2 getters and 2 setters, restored the original value, returned to main initializer at %08X; retired=%llu. NOT BIOS-observed.\n",
                                                             osd_fixture,osd_roundtrip.cpu.pc,
                                                             (unsigned long long)osd_roundtrip.cpu.retired);
+                                                         /* Continue the next retail initializer, following
+                                                          * original 0x5A word-by-word Copy and syscall setup.
+                                                          * This remains explicit experimental test mode. */
+                                                         AE3_BootTlbPatch tlb;
+                                                         if(ae3_boot_tlb_enter(&tlb,&osd_roundtrip)!=AE3_TLB_YIELDED){
+                                                            fprintf(stderr,"TLB syscall-install original caller rejected\n");
+                                                            free(elf);free(ram);return 68;
+                                                         }
+                                                         AE3_TlbResult tr=AE3_TLB_YIELDED;
+                                                         for(unsigned step=0;step<32;step++){
+                                                            tr=ae3_boot_tlb_slice(&tlb,&bus,4096);
+                                                            if(tr==AE3_TLB_GET_ENTRY_PENDING)break;
+                                                            if(tr!=AE3_TLB_SET_PENDING && tr!=AE3_TLB_COPY_PENDING &&
+                                                               tr!=AE3_TLB_FLUSH_PENDING){
+                                                               fprintf(stderr,"Retail TLB kernel patch stopped at %08X result %d\n",
+                                                                  tlb.cpu.pc,(int)tr);
+                                                               free(elf);free(ram);return 69;
+                                                            }
+                                                            if(ae3_boot_tlb_service(&tlb,&bus,&syscall_kernel)!=AE3_TLB_YIELDED){
+                                                               fprintf(stderr,"Retail TLB syscall compatibility service rejected at %08X\n",
+                                                                  tlb.cpu.pc);
+                                                               free(elf);free(ram);return 70;
+                                                            }
+                                                         }
+                                                         uint32_t tlb_getentry=0;
+                                                         if(tr!=AE3_TLB_GET_ENTRY_PENDING||tlb.copy_words!=204||
+                                                            tlb.registrations!=3||tlb.flushes!=2||
+                                                            ae3_ee_syscall_lookup(&syscall_kernel,0x5b,&tlb_getentry)!=0||
+                                                            tlb_getentry!=AE3_TLB_COPY_DST){
+                                                            fprintf(stderr,"Original TLB kernel patch invariants failed\n");
+                                                            free(elf);free(ram);return 71;
+                                                         }
+                                                         printf("EXPERIMENTAL original TLB Copy retired %llu more guest instructions, copied 816 bytes using 204 original SW instructions into 80075000, requested 2 FlushCache operations and registered 3 syscall handlers. Stopped at first GetEntryAddress(0x5B) %08X. NOT a full BIOS.\n",
+                                                            (unsigned long long)(tlb.cpu.retired-osd_roundtrip.cpu.retired),
+                                                            tlb.cpu.pc);
+                                                         AE3_BootTlbFinalize tlb_final;
+                                                         if(ae3_boot_tlb_finish_enter(&tlb_final,&tlb)!=AE3_TLBF_GET_ENTRY){
+                                                            fprintf(stderr,"Guest TLB GetEntryAddress continuation entry rejected\n");
+                                                            free(elf);free(ram);return 72;
+                                                         }
+                                                         AE3_TlbFinishResult fr=AE3_TLBF_YIELDED;
+                                                         for(unsigned i=0;i<40;i++){
+                                                            fr=ae3_boot_tlb_finish_slice(&tlb_final,&bus,4096);
+                                                            if(fr==AE3_TLBF_RETURNED)break;
+                                                            if(fr!=AE3_TLBF_GET_ENTRY&&fr!=AE3_TLBF_SET_SYSCALL){
+                                                               fprintf(stderr,"Guest TLB copied GetEntry MIPS rejected at %08X status %d\n",
+                                                                  tlb_final.cpu.pc,(int)fr);
+                                                               free(elf);free(ram);return 73;
+                                                            }
+                                                            if(ae3_boot_tlb_finish_service(&tlb_final,&bus,&syscall_kernel)!=AE3_TLBF_YIELDED){
+                                                               fprintf(stderr,"Guest TLB syscall registration/search fault at %08X\n",
+                                                                  tlb_final.cpu.pc);
+                                                               free(elf);free(ram);return 74;
+                                                            }
+                                                         }
+                                                         uint32_t final_tlb_entry=0;
+                                                         if(fr!=AE3_TLBF_RETURNED||tlb_final.entries!=6||
+                                                            tlb_final.sets!=5||tlb_final.cpu.pc!=AE3_TLB_FINAL_RETURN||
+                                                            ae3_ee_bus_read32(&bus,0x006a1bb8u,&final_tlb_entry)!=AE3_EE_BUS_OK||
+                                                            final_tlb_entry==0){
+                                                            fprintf(stderr,"Guest TLB full original initializer invariants failed\n");
+                                                            free(elf);free(ram);return 75;
+                                                         }
+                                                         printf("EXPERIMENTAL: six copied GetEntryAddress guest MIPS scans, five more SetSyscall registrations, and original TLB initializer return to %08X; wrote guest 006A1BB8=%08X. Total retired=%llu. No BIOS or IOP initialized.\n",
+                                                            tlb_final.cpu.pc,final_tlb_entry,
+                                                            (unsigned long long)tlb_final.cpu.retired);
+
+
                                                      }
                                                  }else if(next_result==AE3_TNEXT_CRITICAL_PENDING){
                                                      printf("Original CP0 bit0=1 path reaches unimplemented critical-section callee at %08X, no synthetic BIOS response.\n",

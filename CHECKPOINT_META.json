@@ -2,20 +2,21 @@
   "project": "Getchu-3-PC",
   "date": "2026-10-19",
   "status": "native EE boot diagnostic, not playable",
-  "verified_boot_pc": "0x0043FE98 (after full Get/Set OSD round-trip, test-only configuration)",
-  "test_mode_retired_guest_instructions": 323554,
+  "verified_boot_pc": "0x0043FEA0 (original TLB initializer fully returned; explicit compatibility state)",
+  "test_mode_retired_guest_instructions": 325476,
   "kernel": "experimental compatibility mode; Sony BIOS not emulated",
   "new_modules": [
-    "ae3_boot_osd_roundtrip"
+    "ae3_boot_tlb_patch",
+    "ae3_boot_tlb_finalize"
   ],
-  "windows_objects_compiled": 1,
+  "windows_objects_compiled": 2,
   "retail_elf_sha256_expected": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
   "original_game_data_included": false,
-  "windows_objects_compiled_this_checkpoint": 1,
+  "windows_objects_compiled_this_checkpoint": 2,
   "integrated_retail_ELF_execution_verified_this_checkpoint": false,
   "standalone_guest_fixture_passed": true,
-  "next_work": "enter retail next initializer JAL at 0x0043FE98 -> 0x0043F470; kernel/IOP/GS remain unimplemented",
-  "retail_opcode_words_verified": 290,
+  "next_work": "execute original caller epilogue at 0x0043FEA0 and jump to 0x00441B70; expand actual kernel/IOP/GS interfaces",
+  "retail_opcode_words_verified": 391,
   "current_thread_id_fixture": 255,
   "current_thread_initial_priority_fixture": 64,
   "explicit_osd_word_fixture": "0x00004019",
@@ -23,5 +24,10 @@
     "0x4A SetOsdConfigParam",
     "0x4B GetOsdConfigParam"
   ],
-  "previous_checkpoint_commit": "ff08343c13272ddf899d6d018c143d4276be3569"
+  "previous_checkpoint_commit": "f0e2b3f716295b43d652fbaedd39a37598962299",
+  "tlb_copy_original_stores": 204,
+  "tlb_bytes_copied": 816,
+  "tlb_getentry_calls": 6,
+  "tlb_syscall_registrations": 8,
+  "tlb_flush_requests": 2
 }
