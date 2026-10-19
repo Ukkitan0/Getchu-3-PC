@@ -30,3 +30,11 @@ Sources in the GitHub repository are the canonical work. Old recompilation snaps
   for `ae3_resumable_leaves.c` compiled using `clang-cl`.
 - This is not evidence of a bootable game. The runtime, BIOS/IOP, GPU and
   gameplay are not connected.
+
+## Direct-call native C checkpoint (2026-10-18)
+
+- 30 additional non-overlapping, straight-line caller candidates (550 instruction sites), targeting 35 known direct JAL edges. Total distinct candidate entries 1,500; total represented original instruction sites 9,940.
+- Recovered caller machine instructions update `$ra` before executing the actual JAL delay slot; leaf execution runs in a resumable child frame and returns to the caller continuation.
+- Differential tests: 90 caller trials, 1,167 compared slices, 81 completed, 6 memory faults, 3 bounded still-running, plus an explicit caller memory-fault/retry check. These are behavioral comparisons against an independent original-word MIPS interpreter, not evidence of runtime playability.
+- Common native dispatcher integration passed; native Windows x64 COFF call objects compile.
+- **Not playable.** Only restricted scalar callers and previously recovered leaves; complex PS2 execution and rendering remain unimplemented.
