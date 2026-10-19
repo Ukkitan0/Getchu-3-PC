@@ -16,6 +16,8 @@ ae3_resumable_leaves.c
 ae3_resumable_leaves.h
 ae3_loop_leaves.c
 ae3_loop_leaves.h
+ae3_call_leaves.c
+ae3_call_leaves.h
 libae3_*.*
 *_report.json
 call_graph.json
