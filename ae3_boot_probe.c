@@ -8,6 +8,7 @@
 #include "ae3_ee_syscall_kernel.h"
 #include "ae3_guest_find_address.h"
 #include "ae3_ee_memory_bus.h"
+#include "ae3_ee_boot_services.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,10 +22,11 @@ static uint8_t *read_file(const char *path,size_t *n) {
  fclose(f);*n=(size_t)size;return p;
 }
 int main(int argc,char**argv) {
- if(argc<2||argc>5||(argc>=3&&strcmp(argv[2],"--test-kernel-fixture"))||
+ int model_mode=argc>=3 && strcmp(argv[2],"--test-ee-boot-model")==0;
+ if(argc<2||argc>5||(argc>=3&&strcmp(argv[2],"--test-kernel-fixture")&&!model_mode)||
     (argc>=4&&strcmp(argv[3],"--test-sema-hle"))||
     (argc==5&&strcmp(argv[4],"--test-ee-alias"))) {
-  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture [--test-sema-hle [--test-ee-alias]]]\n",argv[0]);return 2;
+  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture|--test-ee-boot-model [--test-sema-hle [--test-ee-alias]]]\n",argv[0]);return 2;
  }
  size_t bytes=0;uint8_t *elf=read_file(argv[1],&bytes);
  if(!elf){fprintf(stderr,"Cannot read game executable\n");return 2;}
@@ -44,11 +46,27 @@ int main(int argc,char**argv) {
  printf("Kernel service pending: SetupThread ($v1=%02X) at %08X\n",k.request.number,k.request.pc);
  printf("  gp=%08X stack=%08X stack_size=%08X args=%08X root=%08X\n",k.request.arguments[0],k.request.arguments[1],k.request.arguments[2],k.request.arguments[3],k.request.arguments[4]);
  if(argc==2){printf("Stopped correctly: no verified BIOS response supplied (not playable).\n");free(elf);free(ram);return 0;}
- printf("TEST MODE: synthetic 0x01FFFFF0 kernel stack return -- NOT the verified BIOS value.\n");
- if(ae3_boot_kernel_return_thread(&k,0x01fffff0)!=AE3_KBOOT_YIELDED ||
-    ae3_boot_kernel_slice(&k,ram,RAM_SIZE,20)!=AE3_KBOOT_SETUP_HEAP){fprintf(stderr,"Fixture SetupThread follow-up failed\n");free(elf);free(ram);return 8;}
+ AE3_EEMemoryBus bootbus;ae3_ee_bus_init(&bootbus,ram,RAM_SIZE);
+ AE3_EEBootServices bootmodel;ae3_ee_boot_services_init(&bootmodel,16);
+ if(model_mode) {
+    printf("EXPERIMENTAL startup kernel compatibility policy: reserve 16 bytes below guest stack top; NOT Sony BIOS execution.\n");
+    if(ae3_ee_boot_services_dispatch(&bootmodel,&k,&bootbus)!=AE3_BS_APPLIED){
+        fprintf(stderr,"Compatibility SetupThread rejected guest arguments\n");free(elf);free(ram);return 8;
+    }
+    printf("Guest stack derived from real syscall arguments: %08X + %08X - %08X = %08X\n",
+        bootmodel.stack_base,bootmodel.stack_size,bootmodel.reserved_top_bytes,bootmodel.stack_pointer);
+ } else {
+    printf("TEST MODE: synthetic 0x01FFFFF0 kernel stack return -- NOT the verified BIOS value.\n");
+    if(ae3_boot_kernel_return_thread(&k,0x01fffff0)!=AE3_KBOOT_YIELDED){
+        fprintf(stderr,"Fixture SetupThread failed\n");free(elf);free(ram);return 8;
+    }
+ }
+ if(ae3_boot_kernel_slice(&k,ram,RAM_SIZE,20)!=AE3_KBOOT_SETUP_HEAP){fprintf(stderr,"Fixture SetupThread follow-up failed\n");free(elf);free(ram);return 8;}
  printf("Kernel service pending: SetupHeap at %08X start=%08X size=%08X\n",k.request.pc,k.request.arguments[0],k.request.arguments[1]);
- if(ae3_boot_kernel_ack_heap(&k)!=AE3_KBOOT_YIELDED||ae3_boot_kernel_slice(&k,ram,RAM_SIZE,20)!=AE3_KBOOT_NEXT_CALL){fprintf(stderr,"Fixture SetupHeap follow-up failed\n");free(elf);free(ram);return 9;}
+ if((model_mode ? (ae3_ee_boot_services_dispatch(&bootmodel,&k,&bootbus)==AE3_BS_APPLIED) :
+      (ae3_boot_kernel_ack_heap(&k)==AE3_KBOOT_YIELDED))==0 ||
+    ae3_boot_kernel_slice(&k,ram,RAM_SIZE,20)!=AE3_KBOOT_NEXT_CALL){fprintf(stderr,"Fixture SetupHeap follow-up failed\n");free(elf);free(ram);return 9;}
+ if(model_mode) printf("EXPERIMENTAL kernel heap recorded: %08X+%08X (not an authentic BIOS side effect).\n",bootmodel.heap_base,bootmodel.heap_size);
  AE3_BootInitPrefix init;
  if(ae3_boot_init_enter(&init,&k)!=AE3_INIT_YIELDED||ae3_boot_init_slice(&init,ram,RAM_SIZE,10)!=AE3_INIT_SUBCALL){fprintf(stderr,"First init prologue failed\n");free(elf);free(ram);return 10;}
  printf("Original guest first initialization entered at %08X and next real nested call at %08X -> %08X\n",AE3_KERNEL_NEXT_CALL_TARGET,init.cpu.pc,AE3_INIT_FIRST_SUBCALL_TARGET);
@@ -134,7 +152,7 @@ int main(int argc,char**argv) {
        }
     }
     if(!routed || hook.registered!=2){free(elf);free(ram);return 19;}
-    printf("Retired original EE instruction count: %llu (initial stack remains test-only).\n",(unsigned long long)hook.cpu.retired);
+    printf("Retired original EE instruction count: %llu (startup kernel is compatibility/test-only).\n",(unsigned long long)hook.cpu.retired);
  }
  printf("No GS rendering, BIOS emulation, IOP or gameplay. This is a boot diagnostic only.\n");
  free(elf);free(ram);return 0;
