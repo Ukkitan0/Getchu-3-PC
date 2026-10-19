@@ -101,3 +101,6 @@ add_test(NAME NativeLua50TimedControllerActions COMMAND Getchu3ControllerTimelin
 add_executable(Getchu3GltfSceneTests tests/gltf_scene_test.cpp)
 target_link_libraries(Getchu3GltfSceneTests PRIVATE Getchu3Assets)
 add_test(NAME NativeGlbSceneMeshNodesAndBoundingBox COMMAND Getchu3GltfSceneTests)
+
+add_executable(Getchu3GlbSceneProbe src/glb_scene_probe.cpp)
+target_link_libraries(Getchu3GlbSceneProbe PRIVATE Getchu3Assets)
