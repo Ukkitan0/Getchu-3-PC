@@ -19,3 +19,11 @@ uint32_t ae3_native_leaf_address(size_t index) {
     if (index < n0+n1) return ae3_control_leaf_address(index-n0);
     return ae3_loop_leaf_address(index-n0-n1);
 }
+
+void ae3_native_frame_init(AE3_ResumeFrame *frame, uint32_t entry) {
+    ae3_resume_init(frame, entry);
+}
+int ae3_run_native_slice(AE3_ScalarContext *ctx, AE3_ResumeFrame *frame,
+                        uint32_t instruction_budget) {
+    return ae3_run_resume_slice(ctx, frame, instruction_budget);
+}
