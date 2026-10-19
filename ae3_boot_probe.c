@@ -22,6 +22,8 @@
 #include "ae3_boot_timer2_recheck.h"
 #include "ae3_boot_timer2_finish.h"
 #include "ae3_boot_event_create.h"
+#include "ae3_boot_thread_continue.h"
+#include "ae3_boot_thread_next.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -444,6 +446,61 @@ int main(int argc,char**argv) {
                                              (unsigned long long)event_init.cpu.retired,
                                              event_status==AE3_EVT_THREAD_SYSCALL_PENDING?
                                                 "next CreateThread 0x20 syscall is pending":"semaphore failure returned to initializer");
+                                         if(event_status==AE3_EVT_THREAD_SYSCALL_PENDING){
+                                             AE3_EEThreadKernel thread_kernel;
+                                             AE3_BootThreadContinue thread_boot;
+                                             AE3_EEThread record;
+                                             ae3_ee_thread_kernel_init(&thread_kernel);
+                                             if(ae3_boot_thread_continue_enter(&thread_boot,&event_init)!=AE3_THR_CREATE_PENDING ||
+                                                ae3_boot_thread_create(&thread_boot,&bus,&thread_kernel)!=AE3_THR_YIELDED){
+                                                 fprintf(stderr,"Original CreateThread descriptor/syscall was rejected\n");
+                                                 free(elf);free(ram);return 59;
+                                             }
+                                             AE3_ThreadBootResult thread_result=
+                                                 ae3_boot_thread_continue_slice(&thread_boot,&bus,100);
+                                             if(thread_result==AE3_THR_DELETE_PENDING){
+                                                 if(ae3_boot_thread_delete_sema(&thread_boot,&bus,&semakernel)!=AE3_THR_YIELDED ||
+                                                    ae3_boot_thread_continue_slice(&thread_boot,&bus,100)!=AE3_THR_RETURNED){
+                                                     fprintf(stderr,"Original CreateThread failure cleanup did not return\n");
+                                                     free(elf);free(ram);return 60;
+                                                 }
+                                                 printf("EXPERIMENTAL CreateThread rejected; original DeleteSema and epilogue reached %08X.\n",
+                                                     thread_boot.cpu.pc);
+                                             }else if(thread_result==AE3_THR_NEXT_CALL &&
+                                                thread_boot.thread_id>0 &&
+                                                ae3_ee_thread_kernel_lookup(&thread_kernel,
+                                                   (uint32_t)thread_boot.thread_id,&record)==0 &&
+                                                record.fields[1]==0x004367e0u &&
+                                                record.fields[2]==0x00779790u){
+                                                 printf("EXPERIMENTAL CreateThread ID=%d (DORMANT): original post-syscall JR/BGEZ/store reaches next initializer %08X; retired=%llu. Scheduler not implemented.\n",
+                                                     thread_boot.thread_id,thread_boot.cpu.pc,
+                                                     (unsigned long long)thread_boot.cpu.retired);
+                                                 AE3_BootThreadNext next_thread;
+                                                 if(ae3_boot_thread_next_enter(&next_thread,
+                                                      &thread_boot,finish.cop0_status)!=AE3_TNEXT_YIELDED){
+                                                     fprintf(stderr,"Original next thread callee COP0 state unsupported\n");
+                                                     free(elf);free(ram);return 62;
+                                                 }
+                                                 AE3_ThreadNextResult next_result=
+                                                     ae3_boot_thread_next_slice(&next_thread,&bus,100);
+                                                 if(next_result==AE3_TNEXT_GETID_PENDING){
+                                                     printf("EXPERIMENTAL original 0x436C20 COP0 branch returned to the caller; now at GetThreadId syscall 0x2F (%08X), retired=%llu.\n",
+                                                         next_thread.cpu.pc,
+                                                         (unsigned long long)next_thread.cpu.retired);
+                                                 }else if(next_result==AE3_TNEXT_CRITICAL_PENDING){
+                                                     printf("Original CP0 bit0=1 path reaches unimplemented critical-section callee at %08X, no synthetic BIOS response.\n",
+                                                         next_thread.cpu.pc);
+                                                 }else{
+                                                     fprintf(stderr,"Original next thread callee halted at %08X (result=%d)\n",
+                                                         next_thread.cpu.pc,(int)next_result);
+                                                     free(elf);free(ram);return 63;
+                                                 }
+                                             }else{
+                                                 fprintf(stderr,"Original thread return path rejected at %08X (result=%d)\n",
+                                                     thread_boot.cpu.pc,(int)thread_result);
+                                                 free(elf);free(ram);return 61;
+                                             }
+                                         }
                                      }else if(event_status==AE3_EVT_RETURNED){
                                          printf("EXPERIMENTAL: existing event state %08X took original skip branch, returned to %08X, retired=%llu.\n",
                                             event_init.observed_global,event_init.cpu.pc,

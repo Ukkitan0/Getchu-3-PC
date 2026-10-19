@@ -1,3 +1,16 @@
+# CURRENT: Original CreateThread and GetThreadId (October 19, 2026)
+
+Experimental native translation now accounts for **323,479** original guest
+instructions with explicit compatible COP0/kernel state, not genuine BIOS boot.
+Success through the real CreateThread 0x20 guest return reaches the next nested
+retail COP0 inquiry and GetThreadId 0x2F at 0x004359D4. Failure executes the
+actual DeleteSema 0x41 cleanup. 221 pinned instruction words match the
+user-provided post-boot EE RAM reference, and Windows COFF/GCC/Clang
+sanitizer regressions pass. Gameplay, GS/VU/IOP, Sony BIOS, scheduling,
+and playable Windows build remain unimplemented.
+
+See CHECKPOINT_THREAD_GETID.md.
+
 ## October 19 — corrected CreateSema and CreateThread boundary (latest)
 
 Recovered the 32-MiB EE RAM from the previously provided user savestate, and

@@ -8,6 +8,24 @@ input, sound and saves. Older recompilation efforts are reference material only.
 This public repository contains recovery tools, original implementations,
 and tests, **not** the copyrighted ISO, ELF, BIOS, ROM or game assets.
 
+## Latest checkpoint — native CreateThread return and next GetThreadId
+
+- Experimental `CreateThread` (`0x20`) registry captures the original
+  9-word EE thread descriptor from game RAM, assigns a dormant object ID,
+  and executes the original MIPS return/branch/delay slot to `0x00436C20`.
+  Allocation failure uses the retail `DeleteSema` (`0x41`) cleanup path.
+- The next guest callee executes the authentic nested COP0 Status test in
+  `0x004365B0`. Explicit test Status=0 reaches the original `GetThreadId`
+  (`0x2F`) syscall at **`0x004359D4`**, after 35 further guest instructions
+  across the two continuations. The alternate status route halts safely.
+- **323,479** guest instructions are accounted for across composed experimental
+  paths. **221 original instruction words** verify against the user-supplied
+  post-boot RAM snapshot. GCC, Clang ASan/UBSan, Windows x64 COFF object
+  compilation, and previous targeted tests pass. Original ELF end-to-end
+  execution is unavailable in this session; **no playable Windows game**.
+
+See [CHECKPOINT_THREAD_GETID.md](CHECKPOINT_THREAD_GETID.md).
+
 ## Latest checkpoint — corrected CreateSema and original CreateThread boundary
 
 - Recovered missing retail MIPS instruction bytes from the user's PCSX2 EE

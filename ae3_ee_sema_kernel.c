@@ -28,6 +28,11 @@ int ae3_ee_sema_kernel_signal(AE3_EESemaKernel *kernel,int32_t id){
  if(!s||s->count>=s->max_count)return -1;
  s->count++;return 0;
 }
+int ae3_ee_sema_kernel_delete(AE3_EESemaKernel *kernel,int32_t id){
+ AE3_EEKernelSemaphore *s=entry(kernel,id);
+ if(!s)return -1;
+ *s=(AE3_EEKernelSemaphore){0};return 0;
+}
 int ae3_ee_sema_kernel_poll(AE3_EESemaKernel *kernel,int32_t id){
  AE3_EEKernelSemaphore *s=entry(kernel,id);
  if(!s||!s->count)return -1;

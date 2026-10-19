@@ -1,4 +1,18 @@
-# October 19 — CreateSema original return / CreateThread next boundary (newest)
+# October 19 — CreateThread guest return through nested COP0 and GetThreadId (newest)
+
+The original 0x20 CreateThread service now creates only a dormant *compatibility*
+thread record; its actual guest JR/BGEZ, thread ID store, critical-section
+callee, and failure-path DeleteSema (0x41) have been recovered and regression
+verified. Explicit COP0 Status=0 runs the original 0x00436C20 nested
+0x004365B0 CP0 query and reaches the next guest `GetThreadId` (0x2F) syscall
+at **0x004359D4**, while Status bit0 set stops on the unsupported alternate
+path. **323,479** counted original MIPS instructions across composed test
+segments, +35 since previous checkpoint. Clang sanitizer/GCC/Windows x64
+objects passed. 221 pinned opcode words match the recovered EE savestate.
+Original ELF full boot not run; this is NOT PLAYABLE.
+See CHECKPOINT_THREAD_GETID.md.
+
+# October 19 — CreateSema original return / CreateThread next boundary (previous)
 
 The original syscall at `0x00435AE4` is **CreateSema (0x40)**, not
 CreateEventFlag (0x50). A user-supplied PCSX2 post-boot snapshot confirmed

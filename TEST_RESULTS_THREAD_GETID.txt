@@ -1,0 +1,26 @@
+Checkpoint: October 19, 2026
+Status: Experimental native EE boot; NOT playable
+
+Optimized GCC (-std=c11 -O2 -Wall -Wextra -Werror): PASS
+PASS next original 0x436C20 and COP0 query: 23 instructions to GetThreadId syscall 0x2F at 004359D4
+PASS CreateThread(0x20) id=1 original code reaches 00436C20: 12 instructions after syscall boundary
+PASS CreateThread failure -> original DeleteSema(0x41) cleanup -> return 0043FE90
+PASS opcode mutation and guest-store fault leave CreateThread continuation recoverable
+PASS invalid thread descriptor gives negative CreateThread without registry mutation
+PASS original guest CreateThread return / cleanup + single-step parity and faults
+
+Clang ASan+UBSan: PASS, same results
+Prior tests: test_ee_sema_kernel PASS; test_boot_event_create PASS; test_boot_timer2_finish PASS
+Windows COFF: clang-cl /W4 /WX: 3 C modules PASS (native executable not run on Windows)
+Full Linux boot diagnostic: linked with 36 C source modules PASS (not executed with retail ELF)
+
+Retail opcode verification against post-boot EE savestate:
+retail_enable_intc_words.tsv: 63 words
+retail_event_init_words.tsv: 50 words
+retail_thread_continue_words.tsv: 26 words
+retail_thread_next_words.tsv: 24 words
+retail_timer2_finish_words.tsv: 58 words
+TOTAL 221/221 match, no opcode mismatches
+
+New default fixture guest instruction total: 323,479 (composed experimental paths)
+Authentic BIOS/ELF full boot: NOT TESTED

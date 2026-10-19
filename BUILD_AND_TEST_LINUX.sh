@@ -148,7 +148,7 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
   ae3_boot_alloc_init.c ae3_ee_intc_kernel.c ae3_boot_post_intc.c \
   ae3_boot_intc_critical.c ae3_ee_timer2.c ae3_boot_timer2_continue.c \
   ae3_boot_timer2_setup.c ae3_boot_enable_intc.c ae3_boot_timer2_recheck.c \
-  ae3_boot_timer2_finish.c ae3_boot_event_create.c ae3_boot_probe.c -o build/ae3_boot_probe
+  ae3_boot_timer2_finish.c ae3_boot_event_create.c ae3_ee_thread_kernel.c ae3_boot_thread_continue.c ae3_boot_thread_next.c ae3_boot_probe.c -o build/ae3_boot_probe
 ./build/ae3_boot_probe "$AE3_ELF"
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture --test-sema-hle
@@ -214,3 +214,11 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c \
   ae3_boot_event_create.c ae3_ee_sema_kernel.c ae3_boot_semaphore_init.c \
   test_boot_event_create.c -o build/test_boot_event_create
 ./build/test_boot_event_create
+
+# Original CreateThread descriptor, compatibility dormant-thread registry,
+# guest JR/BGEZ return, failure-path DeleteSema, next native call boundary.
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c \
+  ae3_boot_event_create.c ae3_ee_sema_kernel.c ae3_boot_semaphore_init.c \
+  ae3_ee_thread_kernel.c ae3_boot_thread_continue.c ae3_boot_thread_next.c \
+  test_boot_thread_continue.c -o build/test_boot_thread_continue
+./build/test_boot_thread_continue

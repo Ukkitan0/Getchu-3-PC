@@ -20,6 +20,7 @@ int32_t ae3_ee_sema_kernel_create(AE3_EESemaKernel *kernel,
                                    const AE3_GuestSemaRequest *request);
 /* Return zero on success or -1 on unavailable/invalid resource. */
 int ae3_ee_sema_kernel_signal(AE3_EESemaKernel *kernel, int32_t id);
+int ae3_ee_sema_kernel_delete(AE3_EESemaKernel *kernel,int32_t id);
 int ae3_ee_sema_kernel_poll(AE3_EESemaKernel *kernel, int32_t id);
 int ae3_ee_sema_kernel_get(const AE3_EESemaKernel *kernel, int32_t id,
                            uint32_t *count, uint32_t *maximum);
