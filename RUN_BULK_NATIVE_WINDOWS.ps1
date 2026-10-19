@@ -60,12 +60,33 @@ if (-not (Test-Path -LiteralPath (Join-Path $Upstream '.git'))) {
 # The overlay is idempotent and anchored to reviewed upstream exact source.
 $Report = Join-Path $Workspace 'windows_port_report.json'
 RunProcess 'py' @('-3',(Join-Path $Project 'tools\windows_upstream_patch.py'),'--upstream',$Upstream,'--report',$Report)
-if (-not $VcpkgRoot) { $VcpkgRoot = $env:VCPKG_ROOT }
-$Toolchain = ''
-if ($VcpkgRoot) {
-    $Candidate = Join-Path $VcpkgRoot 'scripts\buildsystems\vcpkg.cmake'
-    if (Test-Path -LiteralPath $Candidate) { $Toolchain = $Candidate }
+# Local one-click builds must install the *same* SDL2 dependency as CI.
+# Do not silently run a headless CMake configuration when vcpkg is missing.
+if (-not $VcpkgRoot) {
+    if ($env:VCPKG_ROOT) { $VcpkgRoot = $env:VCPKG_ROOT }
+    elseif ($env:VCPKG_INSTALLATION_ROOT) { $VcpkgRoot = $env:VCPKG_INSTALLATION_ROOT }
+    else { $VcpkgRoot = Join-Path $Workspace 'vcpkg' }
 }
+$VcpkgExe = Join-Path $VcpkgRoot 'vcpkg.exe'
+$Toolchain = Join-Path $VcpkgRoot 'scripts\buildsystems\vcpkg.cmake'
+if (-not (Test-Path -LiteralPath $Toolchain)) {
+    $LocalBootstrap = Join-Path $Workspace 'vcpkg'
+    if ($VcpkgRoot -ne $LocalBootstrap) {
+        Fail "Invalid vcpkg root $VcpkgRoot; supply -VcpkgRoot with scripts\\buildsystems\\vcpkg.cmake"
+    }
+    if (Test-Path -LiteralPath $VcpkgRoot) {
+        Fail "Incomplete vcpkg workspace at $VcpkgRoot; repair/remove that directory to retry bootstrap"
+    }
+    Write-Host 'Bootstrapping a private vcpkg installation for required SDL2...'
+    RunProcess 'git' @('clone','--depth','1','https://github.com/microsoft/vcpkg.git',$VcpkgRoot)
+}
+if (-not (Test-Path -LiteralPath $VcpkgExe)) {
+    $Bootstrap = Join-Path $VcpkgRoot 'bootstrap-vcpkg.bat'
+    if (-not (Test-Path -LiteralPath $Bootstrap)) { Fail "Missing vcpkg bootstrap script: $Bootstrap" }
+    RunProcess $Bootstrap @('-disableMetrics')
+}
+if (-not (Test-Path -LiteralPath $Toolchain)) { Fail "Missing vcpkg CMake toolchain: $Toolchain" }
+RunProcess $VcpkgExe @('install','sdl2:x64-windows')
 $WgpuArgs = @()
 if (-not $WgpuDir) { $WgpuDir = Join-Path $Upstream 'third_party\wgpu-native' }
 $WgpuLib = Join-Path $WgpuDir 'lib\wgpu_native.lib'
