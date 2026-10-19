@@ -1,3 +1,25 @@
+# October 19 — original game-installed GetEntryAddress loop completed
+
+- Native retail-code path continues from 0x00440398 through original second
+  40-byte Copy, both FlushCache syscall wrappers, and six calls to the MIPS
+  handler copied into KSEG0 RAM at 0x80076000.
+- The six guest handler addresses are recovered by real instruction execution
+  from a table at 0x80076710, not hand-selected test responses.
+- Seven syscall registrations now include 0x5B, 0xFC, 0xFE, 0xFD, 0xFF,
+  0x12C and 0x08. Registry capacity expanded from 256 to 512 and KSEG0
+  handler validation corrected to consult the EE memory bus.
+- Executes original branch-likely loop and returns from the initializer to
+  0x0043FE78 after 321,851 retired guest instructions in **test mode**.
+- Two new original-executable regression programs pass Clang ASan/UBSan and
+  instruction-by-instruction versus batched tests. Windows x64 core objects
+  build with warnings treated as errors. Full from-scratch legacy generation
+  was not rerun as part of this focused checkpoint.
+- Default runtime still stops at authentic SetupThread (315,897 guest
+  instructions); no faithful Sony BIOS, IOP services, VU/GS renderer,
+  gameplay, or playable Windows game executable exists.
+
+Details: CHECKPOINT_GET_ENTRY_LOOP.md.
+
 # October 19 — original EE Timer 3 and game-installed kernel-patch checkpoint
 
 - Game's Timer3 mode register at `0x10001810` now reads from an optional
