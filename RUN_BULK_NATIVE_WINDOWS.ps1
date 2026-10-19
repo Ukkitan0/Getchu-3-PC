@@ -147,6 +147,8 @@ if (-not $SoftwareRenderer -and -not (Test-Path -LiteralPath $WgpuLib)) {
 }
 if ($SoftwareRenderer) {
     Write-Host 'Explicit software GS renderer mode selected.'
+    # Override CMake's cached WGPU path, even after an earlier GPU build.
+    $WgpuArgs = @("-DPS2_WGPU_DIR=$(Join-Path $Workspace 'disabled-wgpu')")
 } else {
     if (-not (Test-Path -LiteralPath $WgpuLib)) { Fail "wgpu-native library missing after verified setup: $WgpuLib" }
     if (-not (Test-Path -LiteralPath (Join-Path $WgpuDir 'include\webgpu\webgpu.h'))) { Fail 'wgpu-native release missing webgpu.h' }
