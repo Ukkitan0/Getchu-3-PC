@@ -1,0 +1,22 @@
+Getchu-3-PC — Retail EE Timer 2 boot checkpoint (2026-10-19)
+Retail executable SHA-256: 5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63
+
+PASS: original Timer2 MODE=0: native KSEG1 MMIO, three guest SetT2_* stores,
+      66 guest wrapper instructions, next EnableIntc 0x004405C8.
+PASS: original Timer2 MODE=0x80: MODE only, 22 wrapper instructions.
+PASS: original Timer2 MODE=0x03: COUNT/COMP/MODE, 66 wrapper instructions.
+PASS: retail branch-delay and original opcode validation, single-step vs
+      batched guest registers, original memory, CP0, Timer 2 device state.
+PASS: injected MMIO read fault and MMIO write fault retry without mutation.
+PASS: unsupported video/gated clock rejected atomically.
+PASS: physical 0x10001000 and KSEG1 0xB0001000 register aliases.
+PASS: prior EE alias-bus, Timer 3 and AddIntcHandler tests.
+PASS: GCC ASan/UBSan focused Timer2, Clang ASan/UBSan focused Timer2.
+PASS: three new Windows x64 COFF modules with clang-cl /W4 /WX.
+PASS: integrated ELF boot diagnostic in explicit compatibility mode stops
+      at 0x004405C8 with 323338 guest instructions retired.
+PASS: default diagnostic still stops at the real SetupThread boundary.
+
+LIMITATIONS: No real Sony BIOS/kernel boot, arbitrary COP0 exception path,
+video-derived timer clock, IOP, GS/VU or game executable. Windows diagnostic
+binary was not run on a native Windows machine.
