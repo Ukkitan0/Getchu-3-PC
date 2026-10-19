@@ -60,7 +60,7 @@ int main(void) {
     assert(cf.done && cf.retired>0);
     assert(caller.gpr[31]==UINT32_C(0x12345678));
     /* New stack executor includes legacy callers and newly recovered JALR. */
-    assert(ae3_native_stack_count()==62);
+    assert(ae3_native_stack_count()==134);
     for(size_t i=0;i<ae3_native_stack_count();++i){
         assert(ae3_native_stack_address(i));
         for(size_t j=i+1;j<ae3_native_stack_count();j++)
