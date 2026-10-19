@@ -18,6 +18,7 @@
 #include "ae3_boot_alloc_init.h"
 #include "ae3_boot_post_intc.h"
 #include "ae3_boot_intc_critical.h"
+#include "ae3_boot_timer2_setup.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,8 +36,8 @@ int main(int argc,char**argv) {
  if(argc<2||argc>6||(argc>=3&&strcmp(argv[2],"--test-kernel-fixture")&&!model_mode)||
     (argc>=4&&strcmp(argv[3],"--test-sema-hle"))||
     (argc>=5&&strcmp(argv[4],"--test-ee-alias"))||
-    (argc==6&&strcmp(argv[5],"--test-post-find")&&strcmp(argv[5],"--test-next-mmio")&&strcmp(argv[5],"--test-timer3")&&strcmp(argv[5],"--test-timer3-enabled")&&strcmp(argv[5],"--test-timer3-copy")&&strcmp(argv[5],"--test-timer3-copy-alloc"))) {
-  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture|--test-ee-boot-model [--test-sema-hle [--test-ee-alias [--test-post-find|--test-next-mmio|--test-timer3|--test-timer3-enabled|--test-timer3-copy|--test-timer3-copy-alloc]]]\n",argv[0]);return 2;
+    (argc==6&&strcmp(argv[5],"--test-post-find")&&strcmp(argv[5],"--test-next-mmio")&&strcmp(argv[5],"--test-timer3")&&strcmp(argv[5],"--test-timer3-enabled")&&strcmp(argv[5],"--test-timer3-copy")&&(strcmp(argv[5],"--test-timer3-copy-alloc")&&strcmp(argv[5],"--test-timer2-mode")))) {
+  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture|--test-ee-boot-model [--test-sema-hle [--test-ee-alias [--test-post-find|--test-next-mmio|--test-timer3|--test-timer3-enabled|--test-timer3-copy|--test-timer3-copy-alloc|--test-timer2-mode]]]\n",argv[0]);return 2;
  }
  size_t bytes=0;uint8_t *elf=read_file(argv[1],&bytes);
  if(!elf){fprintf(stderr,"Cannot read game executable\n");return 2;}
@@ -119,7 +120,7 @@ int main(int argc,char**argv) {
              printf("TEST ONLY: running original 0x83 MIPS handler with KSEG0 aliased to current EE RAM.\n");
              printf("  BIOS/kernel was not initialized: no authentic startup kernel bytes are claimed.\n");
              AE3_EEMemoryBus bus;ae3_ee_bus_init(&bus,ram,RAM_SIZE);
-             if(argc==6&&(!strcmp(argv[5],"--test-next-mmio")||!strcmp(argv[5],"--test-timer3")||!strcmp(argv[5],"--test-timer3-enabled")||!strcmp(argv[5],"--test-timer3-copy")||!strcmp(argv[5],"--test-timer3-copy-alloc"))) {
+             if(argc==6&&(!strcmp(argv[5],"--test-next-mmio")||!strcmp(argv[5],"--test-timer3")||!strcmp(argv[5],"--test-timer3-enabled")||!strcmp(argv[5],"--test-timer3-copy")||!(strcmp(argv[5],"--test-timer3-copy-alloc")&&strcmp(argv[5],"--test-timer2-mode")))) {
                 /* Explicitly artificial values, with the exact offset
                    relationship required by the retail reconciliation code. */
                 if(ae3_ee_bus_write32(&bus,UINT32_C(0x80000300),AE3_FIND_ENTRY)!=AE3_EE_BUS_OK||
@@ -169,7 +170,7 @@ int main(int argc,char**argv) {
                     printf("Kernel data absent: stopped before third syscall, no synthetic address inserted.\n");
                 }else if(stage==AE3_POST_NEXT_INIT) {
                     printf("Original reconciliation reached next real init JAL at %08X.\n",post.cpu.pc);
-                    if(!strcmp(argv[5],"--test-next-mmio")||!strcmp(argv[5],"--test-timer3")||!strcmp(argv[5],"--test-timer3-enabled")||!strcmp(argv[5],"--test-timer3-copy")||!strcmp(argv[5],"--test-timer3-copy-alloc")) {
+                    if(!strcmp(argv[5],"--test-next-mmio")||!strcmp(argv[5],"--test-timer3")||!strcmp(argv[5],"--test-timer3-enabled")||!strcmp(argv[5],"--test-timer3-copy")||!(strcmp(argv[5],"--test-timer3-copy-alloc")&&strcmp(argv[5],"--test-timer2-mode"))) {
                         AE3_BootNextInit next;
                         if(ae3_boot_next_init_enter(&next,&post)!=AE3_NEXT_YIELDED ||
                            ae3_boot_next_init_slice(&next,&bus,40)!=AE3_NEXT_MMIO_PENDING){
@@ -203,7 +204,7 @@ int main(int argc,char**argv) {
                             printf("EXPERIMENTAL EE Timer3 model: MODE=%08X, original guest result %s, PC=%08X, retired=%llu\n",
                                timer.mode,result==AE3_TIMER_BOOT_RETURNED?"returned to first-init caller":"next SetSyscall JAL pending",
                                resume.cpu.pc,(unsigned long long)resume.cpu.retired);
-                            if(!strcmp(argv[5],"--test-timer3-copy")||!strcmp(argv[5],"--test-timer3-copy-alloc")){
+                            if(!strcmp(argv[5],"--test-timer3-copy")||!(strcmp(argv[5],"--test-timer3-copy-alloc")&&strcmp(argv[5],"--test-timer2-mode"))){
                                AE3_Timer3Syscalls t3sys;
                                if(result!=AE3_TIMER_BOOT_NEXT_CALL||
                                   ae3_timer3_syscalls_enter(&t3sys,&resume)!=AE3_TS_YIELDED){
@@ -266,7 +267,7 @@ int main(int argc,char**argv) {
                                printf("EXPERIMENTAL: original 40-byte Copy -> 00082000, two FlushCache requests, six original guest 0x5B lookups and seven SetSyscall registrations. Returned to %08X (retired %llu).\n",
                                      later.cpu.pc,(unsigned long long)later.cpu.retired);
                                printf("FlushCache behavior is recorded in compatibility mode, NOT authentic PS2 cache coherency.\n");
-                               if(!strcmp(argv[5],"--test-timer3-copy-alloc")){
+                               if(!(strcmp(argv[5],"--test-timer3-copy-alloc")&&strcmp(argv[5],"--test-timer2-mode"))){
                                   AE3_BootAllocInit alloc;
                                   if(ae3_boot_alloc_enter(&alloc,&later)!=AE3_ALLOC_YIELDED){
                                      fprintf(stderr,"Original 0x4404B0 allocator entry rejected\n");
@@ -336,6 +337,37 @@ int main(int argc,char**argv) {
                                   printf("EXPERIMENTAL explicit COP0 Status=0: original EE guest wrote handler ID to 006A2E28; stopped BEFORE real Timer2 MODE read at PC %08X, MMIO %08X. Retired=%llu.\n",
                                      intc_critical.cpu.pc,AE3_T2_MODE_REGISTER,
                                      (unsigned long long)intc_critical.cpu.retired);
+                                  if(!strcmp(argv[5],"--test-timer2-mode")){
+                                     /* Diagnostic fixture ONLY: reset-mode Timer 2 is
+                                        explicitly supplied, not inferred from BIOS. */
+                                     AE3_EETimer2 timer2;
+                                     ae3_ee_timer2_reset(&timer2);
+                                     ae3_ee_bus_attach_mmio(&bus,ae3_ee_timer2_read,
+                                         ae3_ee_timer2_write,&timer2);
+                                     AE3_BootTimer2Continue t2;
+                                     if(ae3_boot_timer2_enter(&t2,&intc_critical)!=AE3_BT2_YIELDED||
+                                        ae3_boot_timer2_slice(&t2,&bus,32)!=AE3_BT2_TIMER_SETUP_CALL||
+                                        t2.cpu.pc!=AE3_T2_GUEST_COUNT_SETUP||
+                                        t2.cpu.retired!=intc_critical.cpu.retired+8){
+                                        fprintf(stderr,"Original Timer 2 MODE boot continuation mismatch\n");
+                                        free(elf);free(ram);return 48;
+                                     }
+                                     printf("EXPERIMENTAL supplied Timer2 MODE=0000: original guest LW/branch-delay path reached first SetT2_COUNT JAL %08X; retired=%llu.\n",
+                                        t2.cpu.pc,(unsigned long long)t2.cpu.retired);
+                                     AE3_BootTimer2Setup t2_setup;
+                                     if(ae3_boot_timer2_setup_enter(&t2_setup,&t2)!=AE3_BT2S_YIELDED||
+                                        ae3_boot_timer2_setup_slice(&t2_setup,&bus,512)!=AE3_BT2S_ENABLE_INTC_PENDING||
+                                        t2_setup.io_stores!=3||
+                                        t2_setup.cpu.pc!=AE3_T2_GUEST_NEXT_ENABLE_INTC||
+                                        timer2.count!=0||timer2.compare!=0xffff||
+                                        !(timer2.mode&0x80u)||t2_setup.cop0_status!=0){
+                                         fprintf(stderr,"Original Timer2 hardware setup/ERET sequence mismatch\n");
+                                         free(elf);free(ram);return 49;
+                                     }
+                                     printf("EXPERIMENTAL: original guest SetT2_COUNT/COMP/MODE wrappers executed through COP0/ERET, committed 3 Timer2 MMIO writes, reached EnableIntc JAL at %08X; retired=%llu. Guest EnableIntc remains a kernel boundary.\n",
+                                        t2_setup.cpu.pc,(unsigned long long)t2_setup.cpu.retired);
+                                  }
+
 
                                }
                             }
