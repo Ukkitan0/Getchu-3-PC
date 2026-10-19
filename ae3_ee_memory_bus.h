@@ -19,7 +19,15 @@ typedef enum AE3_EEBusStatus {
     AE3_EE_BUS_BAD_ARGUMENT=-4
 } AE3_EEBusStatus;
 
+/* An optional, explicit hardware decoder. With no decoder attached, MMIO
+ * remains unmapped, preserving the conservative original boot diagnostic. */
+typedef AE3_EEBusStatus (*AE3_EEMmioRead32)(void *,uint32_t,uint32_t *);
+typedef AE3_EEBusStatus (*AE3_EEMmioWrite32)(void *,uint32_t,uint32_t);
+
 typedef struct AE3_EEMemoryBus {
+    AE3_EEMmioRead32 mmio_read32;
+    AE3_EEMmioWrite32 mmio_write32;
+    void *mmio_context;
     uint8_t *ram;
     size_t ram_size;
     const uint8_t *rom; /* Optional, never generated/faked by this module */
@@ -28,6 +36,8 @@ typedef struct AE3_EEMemoryBus {
     size_t scratch_size;
 } AE3_EEMemoryBus;
 
+void ae3_ee_bus_attach_mmio(AE3_EEMemoryBus *bus,
+    AE3_EEMmioRead32 read32,AE3_EEMmioWrite32 write32,void *context);
 void ae3_ee_bus_init(AE3_EEMemoryBus *bus, uint8_t *ram, size_t ram_size);
 AE3_EEBusStatus ae3_ee_bus_read32(const AE3_EEMemoryBus *bus,
                                   uint32_t address, uint32_t *out);
