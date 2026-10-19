@@ -26,6 +26,14 @@ class AotContract(unittest.TestCase):
                        '$ExpectedRam'):
             self.assertIn(needle, source)
 
+    def test_nonlocal_page_fixture_is_wired_to_native_runner(self):
+        source = (ROOT/'run_synthetic_aot_windows.ps1').read_text()
+        pipeline = (ROOT.parent/'.github/workflows/windows-fastlane-smoke.yml').read_text()
+        for needle in ("'pages'", 'synthetic_pages_smoke.py', 'ExpectedSeeds = 143'):
+            self.assertIn(needle,source)
+        self.assertIn('-FixtureMode pages',pipeline)
+        self.assertIn('ae3-aot-pages/aot-smoke-result.json',pipeline)
+
     def test_failure_and_timeout_handling(self):
         source = (ROOT/'run_synthetic_aot_windows.ps1').read_text()
         for required in ('Stop-Process', 'WaitForExit', 'finally',
