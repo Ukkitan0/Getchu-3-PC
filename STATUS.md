@@ -47,3 +47,11 @@ Sources in the GitHub repository are the canonical work. Old recompilation snaps
 - `test_stack.py 3`: 1,656 execution slice comparisons passed across 186 original-code caller trials; real virtual call and unknown-target rejection tests passed.
 - New stacked dispatcher and original legacy dispatcher integration passed; new Windows x64 COFF objects compiled with clang-cl.
 - **Not playable.** The game runtime, GPU and many guest instructions remain unimplemented.
+
+## Forward branch + native inter-function caller checkpoint (2026-10-18)
+
+- New `extend_stack.py` admits 72 bounded caller candidates containing BEQ/BNE/BLEZ/BGTZ/REGIMM forward transfers or direct J plus JAL/JALR. **1,604** distinct recovered candidate entrypoints total; **134** stack-callable candidates. An additional **1,432** original instruction locations were emitted for this pass.
+- Preserves branch decisions across instruction-slice yields using `pending=3`; memory fault in a delay slot leaves the saved PC unchanged for retry.
+- Fixed JALR invalid-target atomicity: rejected dynamic calls no longer modify the saved target or return address before reporting a fault.
+- Test: 268 original-word vs native-C differential trials / 2,194 slices, and forced both paths of a real retail BEQ plus JALR wrapper. Native Linux dispatcher integration passed; Windows `clang-cl` compiled updated x64 COFF stack object.
+- **Unchanged blocker:** no bootable playable game, no EE/IOP/GS/VU runtime, not all original code converted. The executable-derived C is private to the game owner's workspace, not committed to this public repository.
