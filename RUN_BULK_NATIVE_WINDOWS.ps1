@@ -267,7 +267,7 @@ if ($ExploreRounds -gt 0) {
                 stderr = $RoundErr; stdout = $RoundOut
             }
             $RoundResults | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $Workspace 'explore_summary.json') -Encoding UTF8
-            "round $Round: $($Summary.new_entries) entries, $Captured new overlays, exit $ExploreExit" | Tee-Object -FilePath $Log -Append
+            "round $($Round): $($Summary.new_entries) entries, $Captured new overlays, exit $ExploreExit" | Tee-Object -FilePath $Log -Append
             if (-not $Summary.changed -and $Captured -eq 0) { break }
             RunProcess $Compiler $TranslateArgs
             BuildRunner
