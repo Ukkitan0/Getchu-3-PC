@@ -51,7 +51,7 @@ static void complete(AE3_BootKernelBridge *s,uint8_t *ram,int sliced){
    assert(until(s,ram,AE3_KBOOT_NEXT_CALL,sliced)==1);
    assert(s->cpu.pc==0x0010031c && !s->cpu.in_delay_slot);
    assert(s->completed_thread && s->completed_heap && s->finished);
-   assert(s->cpu.retired==315897+8); /* 2 syscalls and 7 intervening guest instructions */
+   assert(s->cpu.retired==315897+8); /* 2 syscalls and 6 intervening guest instructions */
 }
 int main(int argc,char**argv){
    assert(argc==2);
