@@ -11,7 +11,8 @@
 | `bulk_lift.py` straight-line scalar leaves | 1,163 | 4,067 | 9,304 |
 | `cfg_lift.py` forward control flow | 168 | 1,998 | 1,680 |
 | `loop_lift.py` backward branches, bounded loops | 139 | 2,162 | 1,112 in baseline; 3,336 in extended tests |
-| **Unified native dispatcher** | **1,470** | **8,227** | Unique entry addresses checked |
+| `call_lift.py` direct-JAL callers (new) | 30 | 550 | 1,167 execution-slice checks |
+| **Total distinct recovered candidate entries** | **1,500** | **9,940 including JR/return words** | Different test-unit conventions; see below |
 
 These are **candidate routines**, not guaranteed original function boundaries or whole-game coverage. The MIPS-word reference interpreter tests can catch implementation mistakes but do not replace real PS2 execution validation. The translator models *only low 64 bits* of EE general-purpose registers and a restricted scalar instruction subset. Every unsupported instruction causes rejection, not silent skipping.
 
@@ -39,9 +40,9 @@ The loop translator supports short backward conditional branches and direct jump
 
 ## Not implemented
 
-64-bit high-half EE GPR lanes, 128-bit MMI, COP1/VU, indirect control flow, mid-function calls, multiple-return shapes, system services, IOP boot, GS/VIF/GIF, audio, disc streaming, controller input, and save-card behavior. A real PC port requires integration and tests for all of these, as well as auditing candidate function boundaries.
+64-bit high-half EE GPR lanes, 128-bit MMI, COP1/VU, indirect control flow, general inter-function calls, nested callers, indirect-return shapes, system services, IOP boot, GS/VIF/GIF, audio, disc streaming, controller input, and save-card behavior. A real PC port requires integration and tests for all of these, as well as auditing candidate function boundaries.
 
-The **next milestone** is an explicit resumable guest-context/PC model for loops and indirect dispatch, then integration of native GS/VU rendering and IOP services. No placeholder or emulator wrapper is represented here as a native port.
+The **next milestone** is nested, indirect and computed call/return control flow, then the substantially larger R5900/VU/GS/IOP runtime work. No placeholder or emulator wrapper is represented here as a native port.
 
 ## Incremental native scheduler (2026-10-18)
 
@@ -66,7 +67,7 @@ int result = ae3_run_native_slice(&context, &frame, budget);
 Run `AE3_ELF=/path/to/SCUS_975.01 bash BUILD_AND_TEST_LINUX.sh` to regenerate
 translated code, build the shared libraries, run all differential suites, and
 run the C dispatcher integration test. On Windows, run `BUILD_WINDOWS_OBJECTS.bat`
-with VS/Clang and Python available; this compiles five native COFF objects.
+with VS/Clang and Python available; this compiles six native COFF objects.
 No Windows game EXE or full PS2 runtime exists yet.
 
 The `ae3_resumable_leaves.c/h` files are **derived from the copyrighted game
