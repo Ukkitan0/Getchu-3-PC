@@ -1,3 +1,15 @@
+## October 19, 2026 — native game AOT source integrity and visual-frame evidence
+
+Native Windows source-to-C++ cache now SHA-verifies every generated translation
+unit and `units.hpp`; incomplete or altered generated code forces a rebuild.
+Upstream native frame captures are **P6 PPM**, so boot reports now count those
+files and sample color/brightness to distinguish all-black output from more
+visually varied frames. Separate `shots/session-.../round_XX` folders ensure
+old captures cannot be mistaken for newly rendered frames. Details:
+[CHECKPOINT_NATIVE_RENDER_EVIDENCE.md](CHECKPOINT_NATIVE_RENDER_EVIDENCE.md).
+CI smoke and source-only tests do not imply that the actual retail game boots
+or renders levels; a native playable Ape Escape 3 test remains unverified.
+
 ## October 19, 2026 — Fix for `SeedMode 8` in Windows one-click launcher
 
 The original `TEST_APE_ESCAPE_3_WINDOWS.ps1` built a positional string
