@@ -9,6 +9,8 @@
 #include "ae3_guest_find_address.h"
 #include "ae3_ee_memory_bus.h"
 #include "ae3_ee_boot_services.h"
+#include "ae3_boot_post_find.h"
+#include "ae3_boot_next_init.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,10 +25,11 @@ static uint8_t *read_file(const char *path,size_t *n) {
 }
 int main(int argc,char**argv) {
  int model_mode=argc>=3 && strcmp(argv[2],"--test-ee-boot-model")==0;
- if(argc<2||argc>5||(argc>=3&&strcmp(argv[2],"--test-kernel-fixture")&&!model_mode)||
+ if(argc<2||argc>6||(argc>=3&&strcmp(argv[2],"--test-kernel-fixture")&&!model_mode)||
     (argc>=4&&strcmp(argv[3],"--test-sema-hle"))||
-    (argc==5&&strcmp(argv[4],"--test-ee-alias"))) {
-  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture|--test-ee-boot-model [--test-sema-hle [--test-ee-alias]]]\n",argv[0]);return 2;
+    (argc>=5&&strcmp(argv[4],"--test-ee-alias"))||
+    (argc==6&&strcmp(argv[5],"--test-post-find")&&strcmp(argv[5],"--test-next-mmio"))) {
+  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture|--test-ee-boot-model [--test-sema-hle [--test-ee-alias [--test-post-find|--test-next-mmio]]]\n",argv[0]);return 2;
  }
  size_t bytes=0;uint8_t *elf=read_file(argv[1],&bytes);
  if(!elf){fprintf(stderr,"Cannot read game executable\n");return 2;}
@@ -105,10 +108,19 @@ int main(int argc,char**argv) {
           }
           printf("Original syscall %02X reached at %08X: registered guest handler %08X\n",
              hook.invoked_number,hook.cpu.pc,handler);
-          if(argc==5) {
+          if(argc>=5) {
              printf("TEST ONLY: running original 0x83 MIPS handler with KSEG0 aliased to current EE RAM.\n");
              printf("  BIOS/kernel was not initialized: no authentic startup kernel bytes are claimed.\n");
              AE3_EEMemoryBus bus;ae3_ee_bus_init(&bus,ram,RAM_SIZE);
+             if(argc==6&&!strcmp(argv[5],"--test-next-mmio")) {
+                /* Explicitly artificial values, with the exact offset
+                   relationship required by the retail reconciliation code. */
+                if(ae3_ee_bus_write32(&bus,UINT32_C(0x80000300),AE3_FIND_ENTRY)!=AE3_EE_BUS_OK||
+                   ae3_ee_bus_write32(&bus,UINT32_C(0x8000025C),UINT32_C(0x0043FC88))!=AE3_EE_BUS_OK){
+                  fprintf(stderr,"Could not stage test-only kernel lookup words\n");free(elf);free(ram);return 27;
+                }
+                printf("TEST FIXTURE: staged non-BIOS syscall lookup words at 80000300 and 8000025C.\n");
+             }
              for(unsigned which=0;which<2;which++){
                 AE3_GuestFindAddress find;
                 if(ae3_guest_find_begin(&find,&hook)!=AE3_FIND_YIELDED){
@@ -136,6 +148,37 @@ int main(int argc,char**argv) {
                 }
              }
              printf("Original code reached %08X after both guest handlers (still no BIOS/kernel services).\n",hook.cpu.pc);
+             if(argc==6) {
+                AE3_BootPostFind post;
+                if(ae3_boot_post_find_enter(&post,&hook)!=AE3_POST_YIELDED) {
+                    fprintf(stderr,"Cannot resume original post-FindAddress routine\n");
+                    free(elf);free(ram);return 25;
+                }
+                AE3_PostFindResult stage=ae3_boot_post_find_slice(&post,&bus,400);
+                if(stage==AE3_POST_FIND_REQUEST) {
+                    printf("Original reconciliation loop requests another FindAddress at %08X from %08X (retired %llu).\n",
+                       post.cpu.pc,(uint32_t)post.cpu.gpr[4][0],
+                       (unsigned long long)post.cpu.retired);
+                    printf("Kernel data absent: stopped before third syscall, no synthetic address inserted.\n");
+                }else if(stage==AE3_POST_NEXT_INIT) {
+                    printf("Original reconciliation reached next real init JAL at %08X.\n",post.cpu.pc);
+                    if(!strcmp(argv[5],"--test-next-mmio")) {
+                        AE3_BootNextInit next;
+                        if(ae3_boot_next_init_enter(&next,&post)!=AE3_NEXT_YIELDED ||
+                           ae3_boot_next_init_slice(&next,&bus,40)!=AE3_NEXT_MMIO_PENDING){
+                           fprintf(stderr,"Next original guest prologue did not reach MMIO boundary\n");
+                           free(elf);free(ram);return 28;
+                        }
+                        printf("Next retail callee entered at %08X; hardware read pending at %08X address %08X (retired %llu).\n",
+                          AE3_NEXT_INIT_CALLEE,next.cpu.pc,AE3_NEXT_INIT_MMIO_ADDRESS,
+                          (unsigned long long)next.cpu.retired);
+                        printf("No hardware register read was simulated. Not a playable game.\n");
+                    }
+                }else {
+                    fprintf(stderr,"Reconciliation stopped unexpectedly: result %d PC %08X\n",stage,post.cpu.pc);
+                    free(elf);free(ram);return 26;
+                }
+             }
              printf("  Runtime registers: s0=%016llX s1=%016llX s2=%016llX s3=%016llX s4=%016llX s5=%016llX s6=%016llX sp=%016llX\n",
                (unsigned long long)hook.cpu.gpr[16][0],(unsigned long long)hook.cpu.gpr[17][0],
                (unsigned long long)hook.cpu.gpr[18][0],(unsigned long long)hook.cpu.gpr[19][0],
