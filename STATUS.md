@@ -1,3 +1,14 @@
+# 2026-10-19 — INTC AddIntcHandler through actual Timer 2 MODE boundary
+
+- Original EE syscall `0x10` cause 11, handler `0x00440A50` is registered
+  through an explicit compatibility-kernel registry. BIOS handler ID is NOT
+  known or claimed to match Sony behavior.
+- Original wrapper, BGEZL success/error paths, handler-ID memory store,
+  COP0 Status=0 conditional critical helper and next Timer 2 MODE boundary
+  at physical `0x10001010` / PC `0x00440590` verified.
+- Full opt-in probe retires 323264 original EE instructions. Default boot
+  stops at authentic SetupThread after 315897. No playable Windows game.
+
 # 2026-10-18 EE memory-bus update
 
 - True EE virtual/physical RAM aliases and optional BIOS/scratchpad mappings implemented in `ae3_ee_memory_bus.[ch]`.
