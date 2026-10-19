@@ -30,3 +30,5 @@ entry_reachability.json
 *.exe
 __pycache__/
 build/
+ae3_stack_leaves.c
+ae3_stack_leaves.h
