@@ -24,6 +24,8 @@
 #include "ae3_boot_event_create.h"
 #include "ae3_boot_thread_continue.h"
 #include "ae3_boot_thread_next.h"
+#include "ae3_boot_thread_priority.h"
+#include "ae3_boot_osd_entry.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -484,9 +486,25 @@ int main(int argc,char**argv) {
                                                  AE3_ThreadNextResult next_result=
                                                      ae3_boot_thread_next_slice(&next_thread,&bus,100);
                                                  if(next_result==AE3_TNEXT_GETID_PENDING){
-                                                     printf("EXPERIMENTAL original 0x436C20 COP0 branch returned to the caller; now at GetThreadId syscall 0x2F (%08X), retired=%llu.\n",
-                                                         next_thread.cpu.pc,
-                                                         (unsigned long long)next_thread.cpu.retired);
+                                                     /* Test-only current-thread context: a main-thread
+                                                        identity has NOT been recovered from Sony BIOS.
+                                                        Reserve 255 away from dormant CreateThread IDs. */
+                                                     AE3_BootThreadPriority priority_boot;
+                                                     AE3_BootOsdEntry osd_boot;
+                                                     if(ae3_ee_thread_kernel_bind_current(&thread_kernel,255,64)!=0 ||
+                                                        ae3_boot_thread_priority_enter(&priority_boot,&next_thread)!=AE3_TPR_GETID_PENDING ||
+                                                        ae3_boot_thread_priority_getid(&priority_boot,&bus,&thread_kernel)!=AE3_TPR_YIELDED ||
+                                                        ae3_boot_thread_priority_slice(&priority_boot,&bus,40)!=AE3_TPR_PRIORITY_PENDING ||
+                                                        ae3_boot_thread_priority_change(&priority_boot,&bus,&thread_kernel)!=AE3_TPR_YIELDED ||
+                                                        ae3_boot_thread_priority_slice(&priority_boot,&bus,40)!=AE3_TPR_PARENT_RETURNED ||
+                                                        ae3_boot_osd_enter(&osd_boot,&priority_boot)!=AE3_OSD_YIELDED ||
+                                                        ae3_boot_osd_slice(&osd_boot,&bus,40)!=AE3_OSD_SYSCALL_PENDING){
+                                                         fprintf(stderr,"Experimental GetThreadId / priority / OSD guest continuation failed\n");
+                                                         free(elf);free(ram);return 64;
+                                                     }
+                                                     printf("EXPERIMENTAL explicit main-thread test fixture ID=255 (NOT Sony BIOS): original GetThreadId(0x2F), ChangeThreadPriority(0x29, priority=1), and parent OSD prologue reached real GetOsdConfigParam(0x4B) syscall %08X. Retired=%llu. No OSD response fabricated.\n",
+                                                         osd_boot.cpu.pc,
+                                                         (unsigned long long)osd_boot.cpu.retired);
                                                  }else if(next_result==AE3_TNEXT_CRITICAL_PENDING){
                                                      printf("Original CP0 bit0=1 path reaches unimplemented critical-section callee at %08X, no synthetic BIOS response.\n",
                                                          next_thread.cpu.pc);

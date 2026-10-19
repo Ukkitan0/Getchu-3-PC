@@ -1,3 +1,12 @@
+## Latest checkpoint — GetThreadId, ChangeThreadPriority and OSD service boundary
+
+- Executes 17 more real original MIPS instructions across `GetThreadId` (`0x2F`), `ChangeThreadPriority` (`0x29`, test priority 1), and original return to `0x0043FE90`.
+- Executes 14 more real original instructions into the next initializer and stops at genuine `GetOsdConfigParam` (`0x4B`) syscall at `0x00435B94` without manufacturing BIOS configuration.
+- Uses explicit **test-only main thread ID=255**, not a guessed Sony BIOS value, and a stateful native kernel priority record. 253/253 pinned retail opcode rows pass against the user's savestate reference.
+- **323,510** composed experimentally tested guest MIPS instructions; native C tests, Clang ASan+UBSan and Windows COFF objects pass. No complete retail-ELF boot test or playable port yet.
+
+See [CHECKPOINT_THREAD_PRIORITY_OSD.md](CHECKPOINT_THREAD_PRIORITY_OSD.md).
+
 # CURRENT: Original CreateThread and GetThreadId (October 19, 2026)
 
 Experimental native translation now accounts for **323,479** original guest

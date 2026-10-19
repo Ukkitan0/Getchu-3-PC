@@ -14,6 +14,8 @@ typedef struct AE3_EEThread {
 typedef struct AE3_EEThreadKernel {
  AE3_EEThread entries[AE3_EE_THREAD_CAPACITY];
  uint32_t generation;
+ uint32_t current_thread_id,current_priority;
+ uint8_t current_present;
 } AE3_EEThreadKernel;
 void ae3_ee_thread_kernel_init(AE3_EEThreadKernel *k);
 /* Read/check the entire guest descriptor and memory spans before allocating.
@@ -23,6 +25,14 @@ void ae3_ee_thread_kernel_init(AE3_EEThreadKernel *k);
 int32_t ae3_ee_thread_kernel_create(AE3_EEThreadKernel *k,
  const AE3_EEMemoryBus *bus,uint32_t descriptor,
  const uint32_t values[AE3_EE_THREAD_DESC_WORDS]);
+/* Explicit compatibility TEST main-thread binding; never seeded from BIOS. */
+int ae3_ee_thread_kernel_bind_current(AE3_EEThreadKernel *k,
+    uint32_t guest_id,uint32_t priority);
+/* Returns -1 when no running thread has been bound. */
+int32_t ae3_ee_thread_kernel_get_current(const AE3_EEThreadKernel *k);
+/* Returns 0 on success, -1 on invalid ID/priority, atomically. */
+int32_t ae3_ee_thread_kernel_change_current_priority(AE3_EEThreadKernel *k,
+    uint32_t id,uint32_t priority);
 int ae3_ee_thread_kernel_lookup(const AE3_EEThreadKernel *k,
  uint32_t id,AE3_EEThread *out);
 #endif

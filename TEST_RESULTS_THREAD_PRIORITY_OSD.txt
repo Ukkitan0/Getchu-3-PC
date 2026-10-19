@@ -1,0 +1,14 @@
+Getchu-3-PC 2026-10-19 — verified local tests
+
+PASS: GCC -O2 -Wall -Wextra -Werror test_boot_thread_priority
+PASS: Clang -O1 AddressSanitizer + UndefinedBehaviorSanitizer test_boot_thread_priority
+PASS: 17 original instructions GetThreadId 0x2F -> ChangeThreadPriority 0x29 -> 0x0043FE90
+PASS: 14 original instructions 0x0043FE90 -> original OSD syscall 0x4B at 0x00435B94
+PASS: parity one-step/batched CPU and mapped guest RAM states; opcode mutation; fault recovery
+PASS: explicit missing-current-thread rejection and invalid priority rejection
+PASS: clang-cl /W4 /WX Windows x64 COFF objects for 3 modified/new C modules
+PASS: integrated 38-module Linux boot probe LINK (not executed with retail ELF)
+PASS: previous test_boot_thread_continue optimized + Clang ASan/UBSan
+PASS: previous semaphore and EE guest memory bus regression tests
+PASS: 253/253 pinned MIPS opcode rows match owner-supplied post-boot 32-MiB EE RAM dump
+NOT VERIFIED: complete retail ELF boot test; genuine BIOS/thread state; OSD value; Windows EXE linking on Linux; playable Windows game

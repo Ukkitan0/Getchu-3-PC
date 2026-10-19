@@ -1,14 +1,5 @@
-# Getchu-3-PC — CreateThread / GetThreadId boundary checkpoint
+# Getchu-3-PC — Thread priority / OSD checkpoint
 
-October 19, 2026. **Not playable.** Experimental native EE boot translation
-now reaches the original `GetThreadId` (`0x2F`) syscall at `0x004359D4` via
-retail `CreateThread` (`0x20`), native dormant-thread registry, guest JR/BGEZ,
-and nested COP0 Status query. The failed CreateThread path executes original
-`DeleteSema` (`0x41`). 323,479 counted original instructions, combining
-verified experimental guest segments, not authentic continuous BIOS boot.
+October 19, 2026. **Not playable.** Experimental original guest execution now reaches `GetOsdConfigParam` (`0x4B`) at `0x00435B94` via `GetThreadId` (`0x2F`), `ChangeThreadPriority` (`0x29`), and the parent initializer. **323,510** counted original instructions across composed experimental tests; **253** opcode rows match the post-boot savestate.
 
-221 pinned MIPS words verify against the separate user's post-boot EE RAM
-reference; original game executable/ISO/BIOS/reference RAM excluded here.
-The only Windows outputs are x64 COFF module objects, not a working Windows
-game or tested Windows executable. See `CHECKPOINT_THREAD_GETID.md` and
-`TEST_RESULTS_THREAD_GETID.txt`.
+The running boot-thread ID of **255** is an explicit compatibility test fixture, not a recovered Sony BIOS ID. Source is portable C; Windows outputs are x64 COFF objects rather than a playable EXE. The game's ELF/ISO/BIOS, save-state EE RAM, and assets are excluded. For tests and limitations see `CHECKPOINT_THREAD_PRIORITY_OSD.md`.

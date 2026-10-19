@@ -2,13 +2,12 @@
   "project": "Getchu-3-PC",
   "date": "2026-10-19",
   "status": "native EE boot diagnostic, not playable",
-  "verified_boot_pc": "0x004359D4 (pending GetThreadId syscall 0x2F in explicit COP0 Status=0 fixture)",
-  "test_mode_retired_guest_instructions": 323479,
+  "verified_boot_pc": "0x00435B94 (pending GetOsdConfigParam 0x4B under explicit compatibility thread fixture)",
+  "test_mode_retired_guest_instructions": 323510,
   "kernel": "experimental compatibility mode; Sony BIOS not emulated",
   "new_modules": [
-    "ae3_ee_thread_kernel",
-    "ae3_boot_thread_continue",
-    "ae3_boot_thread_next"
+    "ae3_boot_thread_priority",
+    "ae3_boot_osd_entry"
   ],
   "windows_objects_compiled": 3,
   "retail_elf_sha256_expected": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
@@ -16,6 +15,8 @@
   "windows_objects_compiled_this_checkpoint": 3,
   "integrated_retail_ELF_execution_verified_this_checkpoint": false,
   "standalone_guest_fixture_passed": true,
-  "next_work": "implement experimental GetThreadId with principled current-thread state; investigate alternate CP0=1 path at 0x00436C48, advance 0x0043697C",
-  "retail_opcode_words_verified": 221
+  "next_work": "model 0x4B GetOsdConfigParam explicitly; continue original OSD guest code; investigate alternate COP0 Status bit0 path at 0x00436C48",
+  "retail_opcode_words_verified": 253,
+  "current_thread_id_fixture": 255,
+  "current_thread_initial_priority_fixture": 64
 }

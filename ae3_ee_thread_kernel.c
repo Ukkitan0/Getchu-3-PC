@@ -19,7 +19,8 @@ int32_t ae3_ee_thread_kernel_create(AE3_EEThreadKernel *k,
     !readable(bus,func,4)||!readable(bus,stack,size)||
     (gp && !readable(bus,gp,4)))return -1;
  for(unsigned i=0;i<AE3_EE_THREAD_CAPACITY;i++){
-  if(!k->entries[i].allocated){
+  if(!k->entries[i].allocated &&
+     (!k->current_present || k->current_thread_id!=i+1u)){
    AE3_EEThread record={0};
    record.guest_descriptor=descriptor;
    for(unsigned j=0;j<AE3_EE_THREAD_DESC_WORDS;j++)record.fields[j]=v[j];
@@ -34,4 +35,24 @@ int ae3_ee_thread_kernel_lookup(const AE3_EEThreadKernel *k,
  if(!k||!out||!id||id>AE3_EE_THREAD_CAPACITY||
     !k->entries[id-1u].allocated)return -1;
  *out=k->entries[id-1u];return 0;
+}
+
+int ae3_ee_thread_kernel_bind_current(AE3_EEThreadKernel *k,
+    uint32_t id,uint32_t priority){
+ if(!k||k->current_present||!id||id>AE3_EE_THREAD_CAPACITY||
+    priority>=128u||k->entries[id-1u].allocated)return -1;
+ k->current_thread_id=id;k->current_priority=priority;
+ k->current_present=1;k->generation++;
+ return 0;
+}
+int32_t ae3_ee_thread_kernel_get_current(const AE3_EEThreadKernel *k){
+ if(!k||!k->current_present)return -1;
+ return (int32_t)k->current_thread_id;
+}
+int32_t ae3_ee_thread_kernel_change_current_priority(AE3_EEThreadKernel *k,
+    uint32_t id,uint32_t priority){
+ if(!k||!k->current_present||priority>=128u||
+    (id!=k->current_thread_id && id!=0))return -1;
+ k->current_priority=priority;k->generation++;
+ return 0;
 }

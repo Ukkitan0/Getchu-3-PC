@@ -8,6 +8,15 @@ input, sound and saves. Older recompilation efforts are reference material only.
 This public repository contains recovery tools, original implementations,
 and tests, **not** the copyrighted ISO, ELF, BIOS, ROM or game assets.
 
+## Latest checkpoint — GetThreadId, ChangeThreadPriority and OSD service boundary
+
+- Executes 17 more real original MIPS instructions across `GetThreadId` (`0x2F`), `ChangeThreadPriority` (`0x29`, test priority 1), and original return to `0x0043FE90`.
+- Executes 14 more real original instructions into the next initializer and stops at genuine `GetOsdConfigParam` (`0x4B`) syscall at `0x00435B94` without manufacturing BIOS configuration.
+- Uses explicit **test-only main thread ID=255**, not a guessed Sony BIOS value, and a stateful native kernel priority record. 253/253 pinned retail opcode rows pass against the user's savestate reference.
+- **323,510** composed experimentally tested guest MIPS instructions; native C tests, Clang ASan+UBSan and Windows COFF objects pass. No complete retail-ELF boot test or playable port yet.
+
+See [CHECKPOINT_THREAD_PRIORITY_OSD.md](CHECKPOINT_THREAD_PRIORITY_OSD.md).
+
 ## Latest checkpoint — native CreateThread return and next GetThreadId
 
 - Experimental `CreateThread` (`0x20`) registry captures the original
