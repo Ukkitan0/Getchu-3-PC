@@ -1,3 +1,15 @@
+## 2026-10-19: whole-game batch recompilation lane (NO PLAYABLE BUILD CLAIM)
+
+New `RUN_BULK_NATIVE_WINDOWS.bat` and `tools/bulk_recompile.py` use the
+full 1,351,830-word retail EE inventory, recover 143 constructor callbacks
+and 12,228 raw direct-call target candidates, generate upstream-compatible
+entry lists and attempt native x64 whole-game C++ recompilation from your own
+verified US ELF. External MIT-licensed runtime from `snuri00/ps2-web-recomp`
+is pinned and downloaded when building; no older prototype replaces the
+canonical Getchu-3-PC source. Eight local tests pass; native Windows pipeline
+is **not** yet executed or verified. See `CHECKPOINT_BULK_RECOMP.md` and
+`fastlane/README.md`. Existing handcrafted boot diagnostic remains preserved.
+
 ## 2026-10-19: second static constructor numeric call reached (NOT PLAYABLE)
 
 The real second constructor `0x00417C58` tail-jumps to `0x00417B50`; its

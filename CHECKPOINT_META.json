@@ -1,13 +1,14 @@
 {
   "project": "Getchu-3-PC",
   "date": "2026-10-19",
-  "status": "second retail constructor entered; numerical helper reaches 0x0041F118; no playable game",
+  "status": "full-game bulk recompilation path implemented and tested at entry generation level; no native game built",
   "verified_boot_pc": "0x0041F118 (before second constructor nested math JAL)",
   "test_mode_retired_guest_instructions": 329473,
   "kernel": "experimental compatibility mode; Sony BIOS not emulated",
   "new_modules": [
-    "ae3_boot_second_constructor",
-    "ae3_boot_second_numeric"
+    "tools/bulk_recompile.py",
+    "RUN_BULK_NATIVE_WINDOWS.ps1",
+    "tools/test_bulk_recompile.py"
   ],
   "windows_objects_compiled": 2,
   "retail_elf_sha256_expected": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
@@ -15,7 +16,7 @@
   "windows_objects_compiled_this_checkpoint": 2,
   "integrated_retail_ELF_execution_verified_this_checkpoint": false,
   "standalone_guest_fixture_passed": true,
-  "next_work": "execute original numeric callee 0x00423E20, then finish second constructor before third 0x003A6CD0",
+  "next_work": "translate user-owned game ELF into full native C++ and fix Windows runtime build; validate actual rendered title/gameplay",
   "retail_opcode_words_verified": 877,
   "current_thread_id_fixture": 255,
   "current_thread_initial_priority_fixture": 64,
@@ -24,7 +25,7 @@
     "0x4A SetOsdConfigParam",
     "0x4B GetOsdConfigParam"
   ],
-  "previous_checkpoint_commit": "eac1fa72fcb86d09d61ba928f588f7347020a177",
+  "previous_checkpoint_commit": "569404ac96ef791fe41d6aad93320e1d9960b9d9",
   "tlb_copy_original_stores": 204,
   "tlb_bytes_copied": 816,
   "tlb_getentry_calls": 6,
@@ -54,5 +55,13 @@
   "second_numeric_guest_instructions": 46,
   "second_numeric_ieee754_bits": "0x4024000000000000",
   "second_numeric_next_original_jal": "0x0041F118 -> 0x00423E20",
-  "second_ctor_completed": false
+  "second_ctor_completed": false,
+  "bulk_inventory_words": 1351830,
+  "bulk_direct_jal_candidates": 12228,
+  "bulk_constructor_count": 143,
+  "bulk_safe_seed_count": 146,
+  "bulk_aggressive_seed_count": 12373,
+  "bulk_python_test_count": 8,
+  "bulk_upstream_revision": "6526f4803d98e10de50bea3af104a4d26e9df033",
+  "bulk_native_windows_build_verified": false
 }

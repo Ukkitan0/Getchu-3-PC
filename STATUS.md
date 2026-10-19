@@ -1,3 +1,13 @@
+## October 19 — bulk native recompilation branch (not yet playable)
+
+Added a tested original-EE full-inventory entry generator, 143 static
+constructor callback seeds, 12,228 direct-call candidates, eight regression
+tests and an isolated native Windows upstream-C++ translation/build script.
+Default upstream seed list is 146 safe anchors + constructor targets; C++
+translation with the user-owned ELF and actual native Windows build remain
+untested. No browser/WSL substitution. Source route documented in
+`CHECKPOINT_BULK_RECOMP.md` and `fastlane/README.md`.
+
 ## 2026-10-19: second static constructor numeric call reached (NOT PLAYABLE)
 
 The real second constructor `0x00417C58` tail-jumps to `0x00417B50`; its
