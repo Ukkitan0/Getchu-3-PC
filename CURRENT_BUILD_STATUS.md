@@ -1,3 +1,18 @@
+# October 19 — EE Timer 2 native register writes and original COP0/ERET guest execution
+
+- Verified retail instruction path runs from 0x00440590 through all original
+  SetT2_COUNT, SetT2_COMP, SetT2_MODE wrappers and their shared COP0 MFC0,
+  MTC0, SYNC, branch and ERET routine, reaching 0x004405C8.
+- Explicit MODE=0 scenario writes 0 / 0xFFFF / timer MODE to real native
+  mapped timer registers; 323,338 original instructions retired in total.
+- MODE bit 7 enabled takes shorter original branch, writing MODE only.
+- Both scenarios matched single-step and batched execution, including an
+  atomic injected MMIO write fault. Explicit KSEG1 0xB0001xxx alias works;
+  without attached hardware access remains unmapped.
+- New standalone Windows x64 COFF objects build with clang-cl; Linux GCC and
+  Clang sanitizer regressions pass. This remains an experimental EE boot
+  diagnostic, with no original BIOS, GS/VU/IOP or playable Windows executable.
+
 # October 19 — AddIntcHandler and Timer 2 MODE boundary
 
 - The actual guest `AddIntcHandler` syscall wrapper now returns through a
