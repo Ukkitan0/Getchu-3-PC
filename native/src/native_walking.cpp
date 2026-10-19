@@ -18,6 +18,22 @@ float signedAreaXZ(Vec a,Vec b,Vec c){
 // Cast a vertical ray onto every sufficiently walkable triangle; this is
 // host-native geometric collision, NOT a PS2 collision engine interpreter.
 // Accurate original I3C collision topology remains to be recovered.
+float squaredDistanceSegmentXZ(Vec point,Vec a,Vec b){
+    const float dx=b.x-a.x,dz=b.z-a.z;
+    const float length2=dx*dx+dz*dz;
+    const float t=length2>1e-9f?
+        std::clamp(((point.x-a.x)*dx+(point.z-a.z)*dz)/length2,0.f,1.f):0.f;
+    const float ex=point.x-(a.x+t*dx),ez=point.z-(a.z+t*dz);
+    return ex*ex+ez*ez;
+}
+bool insideProjectedTriangleXZ(Vec p,Vec a,Vec b,Vec c){
+    const float area=signedAreaXZ(a,b,c);
+    if(std::abs(area)<1e-7f)return false;
+    const float ab=signedAreaXZ(a,b,p)/area;
+    const float bc=signedAreaXZ(b,c,p)/area;
+    const float ca=signedAreaXZ(c,a,p)/area;
+    return ab>=-1e-5f && bc>=-1e-5f && ca>=-1e-5f;
+}
 std::optional<float> project(const SceneVertex& av,const SceneVertex& bv,
                               const SceneVertex& cv,float x,float z) {
     Vec a=at(av),b=at(bv),c=at(cv);
@@ -51,6 +67,53 @@ std::optional<float> NativeWalkingController::groundHeight(
     }
     return highest;
 }
+void NativeWalkingController::prepareWalls(const StaticScene& scene){
+    wallTriangles_.clear();
+    wallTriangles_.reserve(std::min<std::size_t>(scene.triangles.size()/3,100000));
+    for(std::size_t i=0;i+2<scene.triangles.size();i+=3){
+        const Vec a=at(scene.triangles[i]);
+        const Vec b=at(scene.triangles[i+1]);
+        const Vec c=at(scene.triangles[i+2]);
+        const auto n=cross(subtract(b,a),subtract(c,a));
+        const auto length=std::sqrt(n.x*n.x+n.y*n.y+n.z*n.z);
+        if(length>1e-6f && std::abs(n.y/length)<0.65f)
+            wallTriangles_.push_back(i);
+    }
+}
+bool NativeWalkingController::collidesWithWall(
+    const StaticScene& scene,float x,float z,float feet) const {
+    constexpr float radius=0.29f,height=1.55f;
+    const Vec p{x,feet,z};
+    for(const std::size_t i:wallTriangles_){
+        const auto a=at(scene.triangles[i]);
+        const auto b=at(scene.triangles[i+1]);
+        const auto c=at(scene.triangles[i+2]);
+        const float lowY=std::min({a.y,b.y,c.y});
+        const float highY=std::max({a.y,b.y,c.y});
+        if(lowY>feet+height || highY<feet+0.12f)continue;
+        const float minX=std::min({a.x,b.x,c.x}),maxX=std::max({a.x,b.x,c.x});
+        const float minZ=std::min({a.z,b.z,c.z}),maxZ=std::max({a.z,b.z,c.z});
+        if(x<minX-radius||x>maxX+radius||
+           z<minZ-radius||z>maxZ+radius)continue;
+        if(insideProjectedTriangleXZ(p,a,b,c))return true;
+        const float sq=std::min({squaredDistanceSegmentXZ(p,a,b),
+                                 squaredDistanceSegmentXZ(p,b,c),
+                                 squaredDistanceSegmentXZ(p,c,a)});
+        if(sq<radius*radius)return true;
+    }
+    return false;
+}
+bool NativeWalkingController::resetAt(
+    const StaticScene& scene,float x,float z,float maxHeight){
+    const auto floor=groundHeight(scene,x,z,maxHeight);
+    if(!floor)return false;
+    prepareWalls(scene);
+    player_={};
+    player_.x=x;player_.z=z;player_.y=*floor;
+    player_.grounded=true;
+    previousJump_=false;
+    return true;
+}
 bool NativeWalkingController::reset(const StaticScene& scene){
     if(scene.triangles.empty())return false;
     float widest=-1.f;
@@ -76,6 +139,7 @@ bool NativeWalkingController::reset(const StaticScene& scene){
     player_.y=*ground;
     player_.grounded=true;
     previousJump_=false;
+    prepareWalls(scene);
     return true;
 }
 void NativeWalkingController::tick(const StaticScene& scene,float dt,
@@ -101,11 +165,26 @@ void NativeWalkingController::tick(const StaticScene& scene,float dt,
     const float forwardZ=std::cos(input.facingRadians);
     const float dx=(localZ*forwardX+localX*forwardZ)*normalizer*speed*dt;
     const float dz=(localZ*forwardZ-localX*forwardX)*normalizer*speed*dt;
-    float nextX=player_.x+dx,nextZ=player_.z+dz;
+    // Fixed-length native capsule movement substeps avoid tunneling through
+    // original I3C walls even under low framerates. Sliding is per axis.
     constexpr float maxStep=0.5f;
-    const auto nextFloor=groundHeight(scene,nextX,nextZ,player_.y+maxStep);
-    if(player_.grounded && nextFloor && *nextFloor>player_.y+maxStep){
-        nextX=player_.x;nextZ=player_.z;
+    constexpr float maxSubstep=0.14f;
+    const int steps=std::clamp(int(std::ceil(std::hypot(dx,dz)/maxSubstep)),1,64);
+    const float mx=dx/float(steps),mz=dz/float(steps);
+    float nextX=player_.x,nextZ=player_.z;
+    for(int step=0;step<steps;++step){
+        float proposedX=nextX+mx,proposedZ=nextZ+mz;
+        if(collidesWithWall(scene,proposedX,proposedZ,player_.y)){
+            if(!collidesWithWall(scene,proposedX,nextZ,player_.y))
+                proposedZ=nextZ;
+            else if(!collidesWithWall(scene,nextX,proposedZ,player_.y))
+                proposedX=nextX;
+            else {proposedX=nextX;proposedZ=nextZ;}
+        }
+        const auto stepFloor=groundHeight(scene,proposedX,proposedZ,player_.y+maxStep);
+        if(player_.grounded && stepFloor && *stepFloor>player_.y+maxStep)
+            continue;
+        nextX=proposedX;nextZ=proposedZ;
     }
     player_.x=nextX;player_.z=nextZ;
     player_.verticalVelocity-=gravity*dt;
