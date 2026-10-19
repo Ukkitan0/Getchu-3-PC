@@ -128,6 +128,13 @@ def main(argv=None):
     print(f"rounds={len(report['rounds'])} frames={report['rendered_frame_files']} "
           f"VU1={report['vu_programs_recorded']} overlays={report['distinct_code_window_images']} "
           f"IOP-modules={report['disc_modules']}")
+    visual = report["frame_visual_evidence"]
+    print(f"actual-PPM-frames={visual['ppm_frame_files']} "
+          f"nonblack-image-evidence={visual['has_nonblack_visual_evidence']} "
+          f"invalid-PPM-files={visual['bad_frames']}")
+    for frame in visual["examined"][-3:]:
+        print(f"  {frame['file']}: {frame['width']}x{frame['height']} "
+              f"{frame['classification']}, {frame['sampled_unique_colors']} sampled colors")
     for name, count in report["signal_counts"].items():
         print(f"{name}: {count}")
     print("Next investigation:", report["prioritized_next_investigation"])
