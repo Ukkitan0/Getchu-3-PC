@@ -47,6 +47,7 @@ Windows outputs are object files to link into a later native game runtime, **not
 - `call_lift.py`, `stack_lift.py`, `extend_stack.py`, `loop_stack.py`: call/return, conditionals, backward edges and whitelisted indirect targets.
 - `ae3_native_dispatch.c/h`: legacy per-kind dispatch; `ae3_guest_execution.c/h`: unified host-facing dispatch with a single typed frame.
 - `ae3_elf_image.c/h`: checked, transactional ELF32 little-endian MIPS guest-memory mapping.
+- `audit_boot_entry.py`: verifies actual initial 29 MMI PADDUW zero clears, four HI/LO clears, and 32 COP1 register clears; does not simulate them.
 - `test_guest_execution.c`, `test_elf_image.c`: original-code integration tests; `test_*.py`: differential comparisons with independent MIPS decoding.
 
 The generated C, ELF/ISO, disassembly and game assets stay out of public Git history. See [STATUS.md](STATUS.md) and [CHECKPOINT_GUEST_RUNTIME.md](CHECKPOINT_GUEST_RUNTIME.md) for exact validation and blockers.
