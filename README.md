@@ -19,6 +19,12 @@ The guest execution adapter and ELF loader are written in portable C11 (`ae3_gue
 
 These 1,646 entries are conservative **candidate** functions, not verified complete-game coverage. We still lack EE full 128-bit/MMI/COP1/VU instructions, sufficient caller/function coverage, EE/IOP/BIOS services, PS2 graphics, audio and disc/game runtime integration.
 
+## Current retail init: EE semaphore and syscall hook boundary (2026-10-18)
+
+**New tested advancement:** a bounded native C interpreter now executes the original `0x0043FC08` initialization routine and both `CreateSema` (`0x40`) syscall wrappers, preserves delay slots and guest stack/register memory, and continues into the next initializer until the actual `SetSyscall` (`0x74`) boundary at `0x0043FE4C`. The guest registers contain a request to register handler `0x0043FCC0` for syscall `0x83`; the real kernel registration is not implemented.
+
+An **opt-in experimental semaphore compatibility kernel** supports 256 guest-visible objects with create, signal and poll behavior. Without a real kernel response, the native guest runner still yields at the original syscall boundary; the boot diagnostic uses clearly labelled synthetic setup and HLE responses only when explicitly requested. Source and tests: `ae3_boot_semaphore_init.[ch]`, `ae3_ee_sema_kernel.[ch]`, `ae3_boot_hook_init.[ch]`, and [CHECKPOINT_SEMA_HOOK.md](CHECKPOINT_SEMA_HOOK.md). The three new C modules compile to Windows x64 COFF objects. **No playable game executable yet.**
+
 ## Latest kernel-to-initialization checkpoint (2026-10-18)
 
 The boot code now has an **explicit kernel-service boundary interface** for the real `SetupThread` (`0x001002FC`) and `SetupHeap` (`0x00100318`) syscalls. With a **test-only** stack response, our native C executes the original follow-up opcodes, enters the first initialization function at `0x0043FE58`, saves the true return address on the guest stack, and stops at its first nested call to `0x0043FC08`. Original-instruction behavior and recoverable memory faults are tested; the actual EE kernel implementation has NOT yet been connected. See [CHECKPOINT_KERNEL_BRIDGE.md](CHECKPOINT_KERNEL_BRIDGE.md).
