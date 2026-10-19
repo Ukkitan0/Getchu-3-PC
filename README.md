@@ -8,22 +8,26 @@ input, sound and saves. Older recompilation efforts are reference material only.
 This public repository contains recovery tools, original implementations,
 and tests, **not** the copyrighted ISO, ELF, BIOS, ROM or game assets.
 
-## Latest native boot checkpoint — EE Timer 3 and kernel copy
+## Latest native boot checkpoint — full copied GetEntryAddress syscall loop
 
-- An optional EE Timer 3 MMIO device handles `0x10001810` and the game's
-  genuine mode-bit branch. Disabled CMPE leads to another SetSyscall call;
-  enabled CMPE returns to the original caller.
-- The original `SetSyscall` / guest syscall `0x5A` wrappers are followed
-  through a **test-only compatibility kernel**. The recovered original MIPS
-  handler copies the embedded **1,856-byte** game kernel payload from
-  `0x006A2678` to `0x80076000`, verified byte-for-byte in shared EE RAM.
-- The opt-in diagnostic reaches `0x00440398`, or 321,484 retired guest
-  instructions on that controlled path. **Without simulated kernel startup
-  services the real guest boot still stops at `SetupThread`.**
-- `BUILD_BOOT_DIAGNOSTIC_WINDOWS.bat` with `AE3_BOOT_TEST_TIMER3_COPY=1`
-  selects this experimental check. It is NOT a playable Windows port.
+- The original executable now runs from the preceding game-installed kernel
+  payload copy at `0x00440398` through the **full six-handler registration
+  loop**, returning from the genuine MIPS initializer at `0x0043FE78`.
+- The original second `Copy` call moves 40 bytes into `0x00082000`.
+  Two actual `FlushCache` requests with modes 0 and 2 are recorded by the
+  explicitly **experimental** kernel interface; separate PS2 caches are not
+  simulated.
+- The genuine MIPS `GetEntryAddress` handler is executed directly from the
+  copied `0x80076000` game code, using its original guest-memory table at
+  `0x80076710`. Six guest queries return addresses that register syscalls
+  `0xFC`, `0xFE`, `0xFD`, `0xFF`, `0x12C` and `0x08`.
+- The opt-in full boot diagnostic reaches `0x0043FE78` after **321,851 retired
+  guest instructions**, including the nested guest handler calls. The default
+  boot continues to stop at `SetupThread` without an authentic BIOS response.
+- Linux sanitizer and one-step/batched parity tests pass, and the new modules
+  compile as Windows x64 **objects**. **No playable Windows executable exists.**
 
-See [CHECKPOINT_TIMER3_KERNEL_PATCH.md](CHECKPOINT_TIMER3_KERNEL_PATCH.md).
+See [CHECKPOINT_GET_ENTRY_LOOP.md](CHECKPOINT_GET_ENTRY_LOOP.md).
 
 ## Verified checkpoint — 2026-10-19
 
@@ -66,13 +70,13 @@ By default the diagnostic stops at genuine `SetupThread` and does not invent
 BIOS state. For the expressly artificial extended trace:
 
 ```bat
-set AE3_BOOT_NEXT_MMIO=1
+set AE3_BOOT_TEST_TIMER3_COPY=1
 BUILD_BOOT_DIAGNOSTIC_WINDOWS.bat
 ```
 
 This optional mode uses a documented stack-top compatibility policy,
-experimental semaphores, and two **synthetic** words in kernel RAM. It stops
-at the original Timer 3 hardware read; it never launches gameplay.
+experimental semaphores, and two **synthetic** words in kernel RAM. It continues via the explicitly experimental Timer 3 model and guest kernel
+registration loop, returning to `0x0043FE78`; it never launches gameplay.
 
 ## Linux regression checks
 
@@ -117,6 +121,9 @@ build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model --test-sema-hle --test-ee-a
   and original MIPS address-search handler with experimental kernel support.
 - `ae3_boot_post_find.[ch]`: search reconciliation and repeated caller path.
 - `ae3_boot_next_init.[ch]`: original next callee through EE Timer 3 MODE read.
+- `ae3_boot_post_patch.[ch]`, `ae3_guest_get_entry.[ch]`: second kernel
+  Copy, two FlushCache requests, all six copied-code GetEntryAddress calls,
+  seven SetSyscall registrations, original branch-likely loop and return.
 - `ae3_boot_probe.c`: transparent boot diagnostic; default never invents
   the BIOS state.
 
