@@ -13,6 +13,14 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify offline owned-game Lua 5.0 decompilation helper (synthetic files)
+        shell: pwsh
+        run: |
+          python -m unittest discover -s native/tools -p 'test_recover_lua50.py' -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Configure native host-only engine
         shell: pwsh
         run: |
@@ -32,7 +40,7 @@ jobs:
         shell: pwsh
         run: |
           $p = "native/build/Release"
-          foreach ($name in @("Getchu3Native.exe", "Getchu3AssetProbe.exe")) {
+          foreach ($name in @("Getchu3Native.exe", "Getchu3AssetProbe.exe", "Getchu3StageProbe.exe")) {
             if (-not (Test-Path -LiteralPath "$p/$name")) { throw "Missing native EXE $name" }
           }
           # Search executable CMake statements, not comments documenting
@@ -50,4 +58,5 @@ jobs:
           path: |
             native/build/Release/Getchu3Native.exe
             native/build/Release/Getchu3AssetProbe.exe
+            native/build/Release/Getchu3StageProbe.exe
           if-no-files-found: error
