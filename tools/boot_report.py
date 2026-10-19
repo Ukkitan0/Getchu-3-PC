@@ -12,6 +12,8 @@ from pathlib import Path
 import re
 import sys
 
+from frame_probe import inspect_frames
+
 SIGNALS = (
     ("unhandled_ee_syscall", re.compile(r"\[sys\].*unhandled syscall", re.I)),
     ("missing_iop_import", re.compile(r"\[iop\].*missing .*#\d+", re.I)),
@@ -54,8 +56,11 @@ def analyze(workspace: Path) -> dict:
                         samples.append(line.strip()[:350])
     prep_file = workspace / "owned_disc" / "disc_prepare.json"
     prep = json.loads(prep_file.read_text(encoding="utf-8")) if prep_file.is_file() else {}
-    shots = [p for p in (workspace / "shots").rglob("*")
-             if p.is_file() and p.suffix.lower() in {".png", ".bmp", ".jpg", ".jpeg"}]         if (workspace / "shots").exists() else []
+    shots_dir = workspace / "shots"
+    supported = {".ppm", ".png", ".bmp", ".jpg", ".jpeg"}
+    shots = [p for p in shots_dir.rglob("*") if p.is_file() and p.suffix.lower() in supported] \
+        if shots_dir.exists() else []
+    visual = inspect_frames(shots_dir)
     vu = [p for p in (workspace / "vu1").glob("*.bin") if p.is_file()]         if (workspace / "vu1").exists() else []
     overlays_dir = prep.get("overlays_dir")
     modules_dir = prep.get("modules_dir")
@@ -87,6 +92,8 @@ def analyze(workspace: Path) -> dict:
         "last_guest_halt_reason": last_halt_reason,
         "reached_guest_frame_execution": any(n > 0 for n in observed_frames),
         "rendered_frame_files": len(shots),
+        "frame_visual_evidence": visual,
+        "rendered_ppm_frame_files": visual["ppm_frame_files"],
         "vu_programs_recorded": len(vu),
         "distinct_code_window_images": len(overlays),
         "disc_modules": len(modules),
