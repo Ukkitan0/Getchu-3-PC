@@ -1,3 +1,35 @@
+## New checkpoint: registered guest syscalls and FindAddress execution (2026-10-18)
+
+The experimental EE syscall table now processes the **two original** `SetSyscall`
+requests, registering `0x83 -> 0x0043FCC0` and `0x5A -> 0x0043FC88` from the actual
+retail ELF. The game then reaches the first `0x83` invocation at `0x0043FD04`.
+It is routed to its installed guest handler rather than returned with a fake value.
+
+`ae3_guest_find_address.c` executes the actual MIPS instructions of the
+`0x0043FCC0` FindAddress handler, including branch-likely annul rules, delay slots,
+register changes, and the user-supplied `KSEG0` kernel-memory mapping. The
+handler was exercised twice against a **synthetic test memory window** and matched
+between one-instruction and large-budget execution; it then reaches the next
+original branch at `0x0043FDC4` in fixture mode. Unmapped kernel pages produce
+retryable faults. This is not proof of an authentic BIOS execution.
+
+A separate test using the user's original post-boot PCSX2 save-state EE RAM
+recorded `FindAddress(0x0043FCC0) -> 0x80014F0C` (21,444 word reads) and
+`FindAddress(0x0043FC88) -> 0` (131,073 reads). **That memory was captured at the
+title screen, NOT at boot.** It is only diagnostic evidence of the guest handler.
+Save states, BIOS memory and game files are not committed or included in releases.
+
+Run `build/test_boot_syscall_registry SCUS_975.01` on Linux after compiling the
+C sources, or use `BUILD_AND_TEST_LINUX.sh`. To optionally inspect a user-owned
+PCSX2 snapshot, extract it with `python extract_pcsx2_ee_reference.py
+my_save.p2s analysis/pcsx2_title_ee_ram.bin` (requires zstd for ZIP method 93),
+then pass that extracted file as the test's second positional argument.
+The default `AE3BootProbe.exe` still stops at `SetupThread`; its explicit test
+mode routes the installed syscall but does not supply made-up BIOS memory.
+
+**Not playable:** genuine `SetupThread` and `SetupHeap`, preboot KSEG0/kernel
+memory, interrupts/IOP/SIF, GS/VU graphics, disc, sound and saves remain missing.
+
 # Getchu-3-PC — Ape Escape 3 native PC decompilation
 
 **Canonical source project.** Target: a native Windows port of the NTSC-U retail game (*Ape Escape 3*, `SCUS_975.01`). The old recompilation experiments are references only. **This source is not a playable Windows game.** No original game executable or assets are distributed in this repository.
