@@ -20,6 +20,8 @@ py -3 call_lift.py
 if errorlevel 1 exit /b 1
 py -3 stack_lift.py
 if errorlevel 1 exit /b 1
+py -3 audit_boot_entry.py
+if errorlevel 1 exit /b 1
 where clang-cl >nul 2>&1
 if errorlevel 1 (
  echo clang-cl not found. Install LLVM or Visual Studio C++ Clang tools.
