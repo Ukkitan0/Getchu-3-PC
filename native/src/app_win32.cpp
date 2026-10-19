@@ -1,5 +1,6 @@
 #include "ae3/archive.hpp"
 #include "ae3/tim2.hpp"
+#include "ae3/lua_stage.hpp"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -24,9 +25,11 @@ using namespace DirectX;
 namespace fs = std::filesystem;
 
 namespace {
-constexpr int kList=100, kOpen=101, kExport=102, kStatus=103;
+constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104;
 HWND gMain=nullptr,gList=nullptr,gView=nullptr,gInfo=nullptr;
 std::unique_ptr<ae3::Archive> gArchive;
+std::unique_ptr<ae3::NativeStageWorld> gNativeWorld;
+std::unique_ptr<ae3::LuaStage> gNativeStage;
 std::wstring gSource, gError, gProgress;
 float gYaw=.4f,gX=0,gZ=-5,gHeight=2.5f;
 bool gKeys[256]={};
@@ -254,6 +257,47 @@ void openFile(){
     dialog.lpstrTitle=L"Choose YOUR Ape Escape 3 USA ISO or extracted DATA.BIN";
     if(GetOpenFileNameW(&dialog))loadArchive(name);
 }
+void openRecoveredStage(){
+    wchar_t path[32768]={};
+    OPENFILENAMEW dialog{};
+    dialog.lStructSize=sizeof(dialog);
+    dialog.hwndOwner=gMain;dialog.lpstrFile=path;dialog.nMaxFile=32768;
+    dialog.lpstrFilter=L"Recovered Lua 5.0 source (*.lua)\0*.lua\0All files (*.*)\0*.*\0";
+    dialog.Flags=OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_EXPLORER;
+    dialog.lpstrTitle=L"Open recovered AE3 area.lua (original scripts remain Lua)";
+    if(!GetOpenFileNameW(&dialog))return;
+    try{
+        std::ifstream stream(fs::path(path),std::ios::binary);
+        if(!stream)throw std::runtime_error("cannot open recovered Lua source");
+        std::string source((std::istreambuf_iterator<char>(stream)),
+                            std::istreambuf_iterator<char>());
+        if(source.size()>16*1024*1024)
+            throw std::runtime_error("Lua source exceeds stage size budget");
+        auto world=std::make_unique<ae3::NativeStageWorld>();
+        auto stage=std::make_unique<ae3::LuaStage>(*world);
+        stage->executeSource(source,"area.lua");
+        stage->callSetupArea("spawn_default");
+        gNativeStage.reset();
+        gNativeWorld=std::move(world);
+        gNativeStage=std::move(stage);
+        gArchive.reset();
+        gRenderer.clearTexture();
+        SendMessageW(gList,LB_RESETCONTENT,0,0);
+        for(const auto& ent:gNativeWorld->entities()){
+            std::wstring line=wide(ent.entityClass)+L": "+wide(ent.name);
+            if(!ent.tagName.empty())line+=L" ["+wide(ent.tagName)+L"]";
+            SendMessageW(gList,LB_ADDSTRING,0,reinterpret_cast<LPARAM>(line.c_str()));
+        }
+        std::wstringstream info;
+        info<<L"Executed original-style Lua 5.0 script on native CPU: "
+            <<gNativeWorld->entities().size()<<L" entities, "
+            <<gNativeWorld->parameters().size()<<L" Lua params. "
+            <<L"ENGINE DESCRIPTORS ONLY: gameplay, collision and real level rendering still incomplete.";
+        status(info.str());
+    }catch(const std::exception& e){
+        status(L"Native Lua 5.0 stage failed: "+wide(e.what()));
+    }
+}
 void exportSelected(){
     if(!gArchive)return;
     auto index=SendMessageW(gList,LB_GETCURSEL,0,0);
@@ -302,6 +346,8 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
             10,8,224,32,wnd,reinterpret_cast<HMENU>(INT_PTR(kOpen)),inst,nullptr);
         CreateWindowW(L"BUTTON",L"Export selected original asset",WS_CHILD|WS_VISIBLE,
             245,8,210,32,wnd,reinterpret_cast<HMENU>(INT_PTR(kExport)),inst,nullptr);
+        CreateWindowW(L"BUTTON",L"Run original Lua 5.0 stage",WS_CHILD|WS_VISIBLE,
+            465,8,225,32,wnd,reinterpret_cast<HMENU>(INT_PTR(kLuaStage)),inst,nullptr);
         gList=CreateWindowExW(WS_EX_CLIENTEDGE,L"LISTBOX",nullptr,
             WS_CHILD|WS_VISIBLE|WS_VSCROLL|LBS_NOTIFY|LBS_NOINTEGRALHEIGHT,
             0,0,1,1,wnd,reinterpret_cast<HMENU>(INT_PTR(kList)),inst,nullptr);
@@ -317,6 +363,7 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
     case WM_COMMAND:
         if(LOWORD(w)==kOpen && HIWORD(w)==BN_CLICKED)openFile();
         if(LOWORD(w)==kExport && HIWORD(w)==BN_CLICKED)exportSelected();
+        if(LOWORD(w)==kLuaStage && HIWORD(w)==BN_CLICKED)openRecoveredStage();
         if(LOWORD(w)==kList && HIWORD(w)==LBN_SELCHANGE && gArchive){
             auto idx=SendMessageW(gList,LB_GETCURSEL,0,0);
             if(idx!=LB_ERR && static_cast<std::size_t>(idx)<gArchive->entries().size()){
