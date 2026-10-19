@@ -7,6 +7,7 @@ python3 bulk_lift.py
 python3 cfg_lift.py
 python3 loop_lift.py
 python3 resume_lift.py
+python3 call_lift.py
 cc -std=c11 -O1 -fPIC -shared ae3_scalar_leaves.c -o libae3_scalar.so
 cc -std=c11 -O1 -fPIC -shared ae3_control_leaves.c -o libae3_control.so
 cc -std=c11 -O1 -fPIC -shared ae3_loop_leaves.c -o libae3_loop.so
@@ -15,6 +16,8 @@ python3 test_cfg.py 10
 python3 test_loops.py 8
 cc -std=c11 -O1 -fPIC -shared ae3_resumable_leaves.c -o libae3_resumable.so
 python3 test_resume.py 2 96
-cc -std=c11 -O0 ae3_native_dispatch.c ae3_scalar_leaves.c ae3_control_leaves.c ae3_loop_leaves.c ae3_resumable_leaves.c test_dispatch.c -o ae3_dispatch_test
+cc -std=c11 -O1 -fPIC -shared ae3_call_leaves.c -L. -lae3_resumable -Wl,-rpath,'$ORIGIN' -o libae3_calls.so
+python3 test_calls.py 3
+cc -std=c11 -O0 ae3_native_dispatch.c ae3_scalar_leaves.c ae3_control_leaves.c ae3_loop_leaves.c ae3_resumable_leaves.c ae3_call_leaves.c test_dispatch.c -o ae3_dispatch_test
 ./ae3_dispatch_test
 echo 'All native C candidate translator tests passed (NOT a playable game).'
