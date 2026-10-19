@@ -23,3 +23,7 @@ Date: 2026-10-18. This checkpoint supersedes the earlier backward-call checkpoin
 ## Outstanding before a playable PC build
 
 True startup path at 0x00100134, wider code coverage, EE 128-bit/MMI/COP instructions, register/memory mapping, PS2 services, VU/GS rendering, audio/media, controller hooks, and complete Windows game integration. Source-only objects are not playable. The next engineering priority is mapping the boot entry's verified call tree and implementing the unsupported instruction and service boundaries without mock bootstrap code.
+
+## Retail boot-path decoding (non-executing audit)
+
+`audit_boot_entry.py` now validates 29 MMI `PADDUW` zero-reg writes, four primary/secondary HI/LO reset instructions, a `BGEZALL`, and 32 `MTC1` zero writes before the FPU accumulator instruction at `0x0010023C`. This is an instruction audit only; none of those first boot instructions has yet been executed by the low-64-bit native guest engine. Implement genuine 128-bit GPR, HI/LO and COP1 state before claiming startup execution. Opcode assignments cross-checked against PCSX2 R5900 opcode tables.
