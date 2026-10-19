@@ -150,7 +150,14 @@ def main(argv=None):
     p.add_argument('--elf', type=Path, help='Owner-supplied original SCUS_975.01 executable')
     p.add_argument('--eerecomp', type=Path, help='Built upstream eerecomp executable: invokes full translation')
     p.add_argument('--cpp-out', type=Path, help='Private destination for translated C++ code')
+    p.add_argument('--modules', type=Path, help='Private extracted SNR2 modules from owned ISO')
+    p.add_argument('--overlays', type=Path, help='Private captured executable code-window images')
     args = p.parse_args(argv)
+    if (args.modules or args.overlays) and not args.eerecomp:
+        p.error('--modules/--overlays require --eerecomp')
+    for directory in (args.modules, args.overlays):
+        if directory is not None and not directory.is_dir():
+            raise FileNotFoundError(f'Private recompiler input directory missing: {directory}')
     if args.eerecomp and (not args.elf or not args.cpp_out):
         p.error('--eerecomp requires both --elf and --cpp-out')
     if args.elf:
@@ -173,7 +180,12 @@ def main(argv=None):
             raise FileNotFoundError(f'Upstream recompiler not found: {args.eerecomp}')
         args.cpp_out.mkdir(parents=True, exist_ok=True)
         command = [str(args.eerecomp.resolve()), str(args.elf.resolve()),
-                   '--entries', str(entries.resolve()), '--out', str(args.cpp_out.resolve())]
+                   '--entries', str(entries.resolve())]
+        if args.modules:
+            command += ['--modules', str(args.modules.resolve())]
+        if args.overlays:
+            command += ['--overlays', str(args.overlays.resolve())]
+        command += ['--out', str(args.cpp_out.resolve())]
         print('Invoking upstream recompiler with original-game seed candidates', flush=True)
         subprocess.run(command, check=True)
     return 0
