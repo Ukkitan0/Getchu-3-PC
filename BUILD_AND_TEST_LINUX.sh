@@ -44,3 +44,18 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
   ae3_boot_memory_fill.c ae3_boot_thread_setup.c test_boot_thread_setup.c -o build/test_boot_thread_setup
 ./build/test_boot_thread_setup "$AE3_ELF"
 echo 'Native translation + real boot prefix, RAM stack-fill callee and syscall setup tests passed (NOT a playable game).' 
+
+# First PS2 BIOS services: trace-aware guest kernel boundary and real first init JAL.
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
+  ae3_boot_memory_fill.c ae3_boot_thread_setup.c ae3_boot_kernel_bridge.c \
+  test_boot_kernel_bridge.c -o build/test_boot_kernel_bridge
+./build/test_boot_kernel_bridge "$AE3_ELF"
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
+  ae3_boot_memory_fill.c ae3_boot_thread_setup.c ae3_boot_kernel_bridge.c \
+  ae3_boot_init_prefix.c test_boot_init_prefix.c -o build/test_boot_init_prefix
+./build/test_boot_init_prefix "$AE3_ELF"
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
+  ae3_boot_memory_fill.c ae3_boot_thread_setup.c ae3_boot_kernel_bridge.c \
+  ae3_boot_init_prefix.c ae3_boot_probe.c -o build/ae3_boot_probe
+./build/ae3_boot_probe "$AE3_ELF"
+./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture
