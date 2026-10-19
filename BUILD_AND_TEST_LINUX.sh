@@ -24,7 +24,12 @@ python3 test_stack.py 2
 python3 test_branch_call_paths.py
 python3 test_backward_structure.py
 python3 test_backward_call_paths.py
+# Runtime integration: original EE ELF mapping and one selected execution engine.
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c test_elf_image.c -o ae3_elf_image_test
+./ae3_elf_image_test "$AE3_ELF"
 # Link the verified shared objects instead of recompiling ~4 MB of generated C.
 cc -std=c11 -O0 ae3_native_dispatch.c test_dispatch.c -L. -lae3_scalar -lae3_control -lae3_loop -lae3_resumable -lae3_calls -lae3_stack -Wl,-rpath,'$ORIGIN' -o ae3_dispatch_test
 ./ae3_dispatch_test
+cc -std=c11 -O1 -Wall -Wextra -Werror ae3_native_dispatch.c ae3_guest_execution.c test_guest_execution.c -L. -lae3_scalar -lae3_control -lae3_loop -lae3_resumable -lae3_calls -lae3_stack -Wl,-rpath,'$ORIGIN' -o ae3_guest_execution_test
+./ae3_guest_execution_test
 echo 'All native C candidate translator tests passed (NOT a playable game).'
