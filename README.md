@@ -1,3 +1,21 @@
+## October 19, 2026 — Saru3VfiTool host-native asset preparation (NEW)
+
+The optional third-party [Saru3VfiTool](https://github.com/mthsk/Saru3VfiTool)
+extractor now has a **working standalone offline workflow** in this repo:
+double-click [PREPARE_NATIVE_ASSETS_WINDOWS.bat](PREPARE_NATIVE_ASSETS_WINDOWS.bat),
+choose your own Ape Escape 3 ISO or DATA.BIN, then choose a separately
+obtained Saru3VfiTool Windows executable/DLL. The native ISO9660 reader copies
+DATA.BIN byte-exact into a private workspace, Saru extracts recursive SZ/PCK
+containers, TIM2 textures and game parameter metadata, and the native stage
+scanner inventories recovered Lua files. Output stays under `native/private`
+and is excluded from Git. Overwrites are prohibited by default.
+See [native/SARU3_NATIVE_ASSET_INTEGRATION.md](native/SARU3_NATIVE_ASSET_INTEGRATION.md).
+
+**No PS2 CPU/GPU emulation has been reintroduced.** GPLv3 Saru3VfiTool is
+used as a separate optional developer utility, never bundled into or linked
+from the Getchu3Native.exe host game. The app is not yet playable: actual
+I3D level rendering and complete Lua/native gameplay systems remain open.
+
 # Getchu 3 PC — TRUE NATIVE WINDOWS PORT (CURRENT)
 
 **Active architecture:** Windows C++20 + Direct3D 11, native host file I/O,
