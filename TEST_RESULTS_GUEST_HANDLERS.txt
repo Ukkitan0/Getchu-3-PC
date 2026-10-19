@@ -1,0 +1,15 @@
+Checkpoint: 2026-10-18, Getchu-3-PC EE SetSyscall/FindAddress
+Retail US SCUS_975.01 SHA-256: 5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63
+
+Verified:
+- Original boot default reaches SetupThread at PC 0x001002FC, 315,897 retired instructions, no BIOS result fabricated.
+- Opt-in fixture reaches SetupThread/SetupHeap, two original CreateSema wrappers, then installs two SetSyscall handlers 0x83 -> 0x0043FCC0 and 0x5A -> 0x0043FC88.
+- Guest invokes registered syscall 0x83 at PC 0x0043FD04, 315,977 retired startup instructions.
+- Original handler at 0x0043FCC0 executes twice against EXPLICITLY SYNTHETIC KSEG0 bytes and reaches original 0x0043FDC4 next-branch boundary.
+- one-instruction and batched execution register/memory/PC/state comparisons pass, as do unmapped page retry and registry atomicity checks.
+- Test runtime compiled with GCC -O1 -fsanitize=address,undefined; no reported errors.
+- New native module compiled with clang-cl /W4 /WX as x64 COFF.
+- User-supplied PCSX2 post-boot EE memory reference (NOT actual boot state) searches: 0x0043FCC0 -> 0x80014F0C (21444 reads); 0x0043FC88 -> no match (131073 reads).
+- PCSX2 zstd save-state extractor reproduced 32 MiB source memory with identical SHA256 f4c72b95264d6e05b9dd98ee9b53822e2b0f580663d6eb1eb8d8cfac828b95b0.
+
+Limitations: No real SetupThread BIOS response; handler search must not use later title-state RAM as boot-time truth. Not a Windows game. Generated code covers only restricted EE instruction candidates. No rendering/audio/IOP services.
