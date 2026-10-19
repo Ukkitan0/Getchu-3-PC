@@ -59,7 +59,7 @@ target_link_libraries(Getchu3AssetProbe PRIVATE Getchu3Assets)
 if(WIN32)
     add_executable(Getchu3Native WIN32 src/app_win32.cpp)
     target_link_libraries(Getchu3Native PRIVATE Getchu3Assets d3d11 dxgi d3dcompiler
-                          user32 gdi32 comdlg32 windowscodecs ole32)
+                          user32 gdi32 comdlg32 shell32 windowscodecs ole32)
     target_compile_definitions(Getchu3Native PRIVATE UNICODE _UNICODE)
     if(MSVC)
         target_compile_options(Getchu3Native PRIVATE /W4 /permissive-)
