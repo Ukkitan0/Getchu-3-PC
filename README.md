@@ -1,32 +1,44 @@
 # Getchu-3-PC — Ape Escape 3 native decompilation
 
-Current direction: **reconstruct and verify the original Ape Escape 3 (NTSC-U, SCUS_975.01) MIPS R5900 code as native C**, then develop a native Windows runtime. This repository supersedes earlier PS2 recompilation experiments; they may be consulted as reference material, not treated as canonical code.
+**Canonical project:** original-ELF-first translation of *Ape Escape 3* (PS2, NTSC-U, `SCUS_975.01`) into tested native C, followed by Windows game/runtime work. Previous experimental recompilation trees are **reference only**.
 
-**Status (2026-10-18): research/source recovery, not playable.**
+**Current status: native source-recovery tools, NOT a playable Windows game.** The project does not yet boot, render a world, play audio, or run game logic from its own Windows executable.
 
-- Confirmed original executable SHA-256: `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`.
-- 1,163 conservative straight-line scalar candidate routines compiled to native C; 9,304 reference comparisons passed.
-- Another 168 bounded forward-branch/direct-jump candidate routines compiled; 1,680 reference comparisons passed.
-- The 1,331 candidate routines are *not* verified coverage of the game. Some may be data misidentified as code; 128-bit R5900 operations, loops, indirect dispatch, EE/IOP system services, VU1 and GS graphics are outstanding.
-- Native Windows COFF objects were cross-compiled; **no playable Windows executable is claimed**.
+## Translation milestones (October 18, 2026)
 
-## Building from your legally obtained game
+| Translator | Candidate routines | Unique original instruction locations | Verified test executions |
+| --- | ---: | ---: | ---: |
+| `bulk_lift.py` straight-line scalar leaves | 1,163 | 4,067 | 9,304 |
+| `cfg_lift.py` forward control flow | 168 | 1,998 | 1,680 |
+| `loop_lift.py` backward branches, bounded loops | 139 | 2,162 | 1,112 in baseline; 3,336 in extended tests |
+| **Unified native dispatcher** | **1,470** | **8,227** | Unique entry addresses checked |
 
-1. Obtain an unmodified NTSC-U `SCUS_975.01` from your own copy of Ape Escape 3. Do not upload it here or commit it.
-2. Use Python 3.10+ and a C11 compiler (Clang / MSVC with an appropriate toolchain).
-3. Set `AE3_ELF` to your local path to `SCUS_975.01`.
-4. Run `python bulk_lift.py`, then `python cfg_lift.py`. Each tool refuses executable versions other than the pinned SHA-256.
-5. For Linux verification: `cc -std=c11 -O1 -fPIC -shared ae3_scalar_leaves.c -o libae3_scalar.so`, `cc -std=c11 -O1 -fPIC -shared ae3_control_leaves.c -o libae3_control.so`, `python test_bulk.py 8`, and `python test_cfg.py 10`.
-6. The generated C is experimental translated code, not a standalone runnable game.
+These are **candidate routines**, not guaranteed original function boundaries or whole-game coverage. The MIPS-word reference interpreter tests can catch implementation mistakes but do not replace real PS2 execution validation. The translator models *only low 64 bits* of EE general-purpose registers and a restricted scalar instruction subset. Every unsupported instruction causes rejection, not silent skipping.
 
-## Repository policy
+## From your own retail game
 
-Only tooling, tests, source-recovery metadata, and our own runtime implementations belong in this public repository. Original game ISO/ELF, assets, state dumps, and generated machine-code-derived game C must **not** be committed. Generated code can be reproduced privately from a legal copy of the game.
+The repository deliberately excludes the ISO, ELF, extracted game assets, and generated source derived from copyrighted game bytes. Supply your own retail `SCUS_975.01` with SHA-256:
 
-## Engineering priorities
+`5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`
 
-1. Verify reachable function boundaries and strengthen reference testing, especially branch delay slots, loops, FP and MMI.
-2. Implement or integrate a native EE/IOP service layer and GPU/VU1/GS pipeline; preserve controller functionality.
-3. Produce a demonstrably playable Windows build with title, gameplay, full world geometry, audio and saves.
+Use Python 3.10+ and a C11 toolchain. Set `AE3_ELF` to your copy of `SCUS_975.01` or place that file in the repository root.
 
-Older host/recompilation trees are historical references only.
+On Linux:
+
+```bash
+AE3_ELF=/path/to/SCUS_975.01 bash BUILD_AND_TEST_LINUX.sh
+```
+
+This generates local C source from the ELF, builds three C shared test libraries and a unified dispatcher test, and runs three MIPS-word comparison suites. *These generated C files are intentionally git-ignored.*
+
+On Windows, install Python 3 and LLVM/Visual Studio C++ Clang tools and run `BUILD_WINDOWS_OBJECTS.bat`. This builds four **Windows x64 object files**, not an executable game.
+
+## Execution status
+
+The loop translator supports short backward conditional branches and direct jumps, with correct MIPS delay-slot ordering and an instruction budget of 4,096. Return code `-3` explicitly means **execution budget exhausted**; the routine has not finished and the modified register/memory state is incomplete. It is not safe to treat `-3` as success or resume without tracking the guest program counter and state.
+
+## Not implemented
+
+64-bit high-half EE GPR lanes, 128-bit MMI, COP1/VU, indirect control flow, mid-function calls, multiple-return shapes, system services, IOP boot, GS/VIF/GIF, audio, disc streaming, controller input, and save-card behavior. A real PC port requires integration and tests for all of these, as well as auditing candidate function boundaries.
+
+The **next milestone** is an explicit resumable guest-context/PC model for loops and indirect dispatch, then integration of native GS/VU rendering and IOP services. No placeholder or emulator wrapper is represented here as a native port.
