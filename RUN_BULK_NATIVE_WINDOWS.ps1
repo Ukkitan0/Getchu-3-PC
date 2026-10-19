@@ -139,6 +139,14 @@ function BuildRunner() {
 BuildRunner
 $Runner = Join-Path $NativeBuild 'Release\ps2run.exe'
 if (-not (Test-Path -LiteralPath $Runner)) { Fail "Missing native Windows executable: $Runner" }
+$RunnerDir = Split-Path -Parent $Runner
+# Avoid shipping a native game .exe that fails immediately from a missing
+# dynamically-linked SDL2.dll. vcpkg may already copy this via applocal, but
+# make the one-click output self-contained even when that integration is off.
+$SDL2Dll = Join-Path $VcpkgRoot 'installed\x64-windows\bin\SDL2.dll'
+if (Test-Path -LiteralPath $SDL2Dll) {
+    Copy-Item -LiteralPath $SDL2Dll -Destination $RunnerDir -Force
+}
 # Match a release providing an import library + DLL; static-lib builds have no DLL.
 if (-not $SoftwareRenderer) {
     $WgpuDll = Join-Path $WgpuDir 'lib\wgpu_native.dll'
