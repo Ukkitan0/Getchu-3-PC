@@ -1,3 +1,21 @@
+## 2026-10-19: original post-TLB caller and 512 guest byte stores (NOT PLAYABLE)
+
+The native experimental CPU executes the retail `0x0043FEA0` saved-RA load,
+`J 0x00441B70`, two guest global `SW` clears and tail-calls the original
+`0x0042B320` memset. For this call, `0x00771288` is misaligned to 16,
+so the real byte-store loop runs: **512 actual MIPS SB** and **3,609**
+new retired guest instructions. It stops before `JR $ra` at `0x0042B3D8`;
+no return address is assumed for the authentic Sony BIOS path.
+An independently verified **unique** retail call site at `0x0010031C`
+provides the expected return address `0x00100324`. The additional
+original `JR $ra`, FlushCache wrapper/compatibility request and main startup
+execute **12 more** instructions (only if actual saved RA matches) and stop
+before `JALR $s0` at `0x0010033C` targeting `0x00628210`. Cumulative
+experimental count **329,097**; **436 pinned opcode words** matched snapshot.
+Focused GCC/Clang sanitizer regression and Windows x64 COFF object compiled.
+No playable port, Sony BIOS/IOP/GS execution, or authentic full retail ELF run.
+See `CHECKPOINT_POST_TLB_MEMSET.md`.
+
 ## 2026-10-19: retail InitTLBFunctions guest execution completed (NOT PLAYABLE)
 
 Original `0x0043FE98 -> 0x0043F470` executes through the genuine retail

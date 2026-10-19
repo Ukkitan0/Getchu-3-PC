@@ -1,0 +1,24 @@
+2026-10-19 — Getchu-3-PC post-TLB retail MIPS checkpoint
+NOT PLAYABLE — experimental bounded native EE execution.
+
+Optimized GCC -O2 -Wall -Wextra -Werror:
+PASS: retail 512 SB byte loop and 2 global SW, 3609 guest instructions, return at 0042B3D8
+PASS original main return -> FlushCache -> JALR boundary: 12 more original guest instructions; target=00628210
+
+Clang -fsanitize=address,undefined -fno-omit-frame-pointer:
+PASS test_boot_post_tlb
+PASS test_boot_main_resume
+
+Windows cross compilation clang-cl /W4 /WX /O2:
+PASS build/win64/ae3_boot_post_tlb.obj (x86-64 COFF)
+PASS build/win64/ae3_boot_main_resume.obj (x86-64 COFF)
+
+Integrated Linux diagnostic: all 43 C modules compiled and linked.
+Focused prior TLB/OSD/thread/semaphore regressions: passed.
+Original 32-MiB user-provided post-boot EE savestate reference:
+PASS 436/436 pinned guest opcodes (including 45 new rows).
+
+The actual retail SCUS_975.01 executable was not available in this runtime.
+The integrated retail ELF boot was not executed. Return path from main
+only followed if original guest-loaded $ra matches unique retail call site.
+No actual Sony BIOS, PS2 scheduler, IOP/GS/VU or playable Windows game.

@@ -29,6 +29,8 @@
 #include "ae3_boot_osd_roundtrip.h"
 #include "ae3_boot_tlb_patch.h"
 #include "ae3_boot_tlb_finalize.h"
+#include "ae3_boot_post_tlb.h"
+#include "ae3_boot_main_resume.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -621,6 +623,62 @@ int main(int argc,char**argv) {
                                                          printf("EXPERIMENTAL: six copied GetEntryAddress guest MIPS scans, five more SetSyscall registrations, and original TLB initializer return to %08X; wrote guest 006A1BB8=%08X. Total retired=%llu. No BIOS or IOP initialized.\n",
                                                             tlb_final.cpu.pc,final_tlb_entry,
                                                             (unsigned long long)tlb_final.cpu.retired);
+                                                         /* Continue the ORIGINAL caller's LD/J and tail-call into
+                                                            its unaligned 512-byte retail MIPS memset byte loop. */
+                                                         AE3_BootPostTlb post_tlb;
+                                                         if(ae3_boot_post_tlb_enter(&post_tlb,&tlb_final)!=AE3_PTL_YIELDED ||
+                                                            ae3_boot_post_tlb_slice(&post_tlb,&bus,5000)!=AE3_PTL_RETURN_PENDING ||
+                                                            post_tlb.zero_stores!=512||post_tlb.global_stores!=2 ||
+                                                            post_tlb.cpu.pc!=AE3_POST_TLB_RETURN_PC){
+                                                            fprintf(stderr,"Original post-TLB caller/memset stopped at %08X: stores=%u globals=%u\n",
+                                                               post_tlb.cpu.pc,post_tlb.zero_stores,post_tlb.global_stores);
+                                                            free(elf);free(ram);return 76;
+                                                         }
+                                                         uint32_t zero_global_a=1,zero_global_b=1;
+                                                         if(ae3_ee_bus_read32(&bus,0x006a2e40u,&zero_global_a)!=AE3_EE_BUS_OK||
+                                                            ae3_ee_bus_read32(&bus,0x006a2e44u,&zero_global_b)!=AE3_EE_BUS_OK||
+                                                            zero_global_a||zero_global_b){
+                                                            fprintf(stderr,"Original post-TLB guest global writes mismatch\n");
+                                                            free(elf);free(ram);return 77;
+                                                         }
+                                                         for(unsigned byte=0;byte<AE3_POST_TLB_ZERO_BYTES;byte++){
+                                                            if(ram[AE3_POST_TLB_ZERO_START+byte]){
+                                                               fprintf(stderr,"Original post-TLB retail SB clear failed at +%u\n",byte);
+                                                               free(elf);free(ram);return 78;
+                                                            }
+                                                         }
+                                                         printf("EXPERIMENTAL retail caller 0043FEA0 -> 00441B70 -> memset 0042B320: "
+                                                            "512 genuine guest SB and two SW, retired %llu additional original instructions, "
+                                                            "stopped BEFORE JR $ra at %08X. Total=%llu.\n",
+                                                            (unsigned long long)(post_tlb.cpu.retired-tlb_final.cpu.retired),
+                                                            post_tlb.cpu.pc,(unsigned long long)post_tlb.cpu.retired);
+                                                         /* The retail instruction image has one JAL to the
+                                                            initializer, at 0x0010031C. Only proceed with the
+                                                            actual *loaded* guest RA if it matches that call. */
+                                                         if((uint32_t)post_tlb.cpu.gpr[31][0]==AE3_MAIN_CALLER_PC){
+                                                            AE3_BootMainResume main_resume;
+                                                            if(ae3_boot_main_resume_enter(&main_resume,&post_tlb)!=AE3_MAIN_YIELDED||
+                                                               ae3_boot_main_resume_slice(&main_resume,&bus,64)!=AE3_MAIN_FLUSH_PENDING||
+                                                               ae3_boot_main_resume_flush(&main_resume,&bus)!=AE3_MAIN_YIELDED||
+                                                               ae3_boot_main_resume_slice(&main_resume,&bus,64)!=AE3_MAIN_NEXT_CALL ||
+                                                               main_resume.cpu.pc!=AE3_MAIN_NEXT_JALR ||
+                                                               (uint32_t)main_resume.cpu.gpr[16][0]!=AE3_MAIN_DYNAMIC_TARGET){
+                                                               fprintf(stderr,"Original main startup FlushCache continuation rejected\n");
+                                                               free(elf);free(ram);return 79;
+                                                            }
+                                                            printf("EXPERIMENTAL returned to original main %08X, "
+                                                               "handled one guest FlushCache request (no cache model), "
+                                                               "stopped BEFORE JALR %08X -> %08X. Total=%llu.\n",
+                                                               AE3_MAIN_CALLER_PC,main_resume.cpu.pc,AE3_MAIN_DYNAMIC_TARGET,
+                                                               (unsigned long long)main_resume.cpu.retired);
+                                                         }else{
+                                                            printf("Guest return address %08X differs from only identified "
+                                                               "retail call site %08X; stopped BEFORE JR $ra without inventing "
+                                                               "a boot continuation.\n",
+                                                               (uint32_t)post_tlb.cpu.gpr[31][0],AE3_MAIN_CALLER_PC);
+                                                         }
+
+
 
 
                                                      }

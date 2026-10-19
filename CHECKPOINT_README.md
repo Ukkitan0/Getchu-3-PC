@@ -1,17 +1,16 @@
-# Getchu-3-PC — TLB syscall initialization checkpoint
+# Getchu-3-PC — native original post-TLB startup checkpoint
 
-October 19, 2026. Experimental native C guest runtime, **NOT PLAYABLE**.
+October 19, 2026. Experimental native EE translation, **NOT PLAYABLE**.
 
-Original MIPS InitTLBFunctions completed to `0x0043FEA0` after **1,922**
-additional instructions, including a 204-store retail guest Copy, two original
-FlushCache requests (compatibility-only recording), eight SetSyscall operations
-and six actual copied GetEntryAddress guest MIPS table searches.
+The original guest caller at `0x0043FEA0` clears two globals and jumps
+into the retail unaligned `memset` at `0x0042B320`. All 512 original `SB`
+operations execute (3,609 MIPS instructions). The unique retail startup
+call at `0x0010031C` identifies the expected guest return PC `0x00100324`.
+Only with that saved RA does a second interpreter execute the guest JR,
+FlushCache request and following main branch, reaching the next JALR
+`0x0010033C -> 0x00628210` (+12 MIPS instructions).
 
-Composed test count: **325,476**. **391** pinned retail opcode rows match the
-owner's independent post-boot PS2 EE RAM reference. Clang sanitizer and GCC
-focused tests passed; two Windows x64 objects compiled, and the integrated
-Linux diagnostic links, but was not run with the original retail ELF.
-
-No game assets, original ELF, ISO, BIOS or savestate RAM are included. No
-actual Sony BIOS scheduler/IOP/GS or gameplay has been implemented. See
-`CHECKPOINT_TLB_FULL.md` for reproducible tests and limitations.
+Composed experimental guest count: **329,097**. **436 opcode rows** match
+the owner-provided EE memory snapshot. Standalone optimized/sanitizer and
+Windows object tests passed. No genuine BIOS startup, complete retail ELF
+verification, IOP/GS/audio, or playable build. See CHECKPOINT_POST_TLB_MEMSET.md.
