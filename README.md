@@ -1,70 +1,52 @@
-# Getchu-3-PC — Ape Escape 3 native Windows decompilation
+# Getchu-3-PC — Ape Escape 3 native PC decompilation
 
-The **canonical decompilation/source-recovery project** for the PS2 NTSC-U *Ape Escape 3* (`SCUS_975.01`). Our goal is a complete **native Windows port**, not an emulator frontend or mockup. Historic recompilation builds are reference material only.
+**Canonical source project.** Target: a native Windows port of the NTSC-U retail game (*Ape Escape 3*, `SCUS_975.01`). The old recompilation experiments are references only. **This source is not a playable Windows game.** No original game executable or assets are distributed in this repository.
 
-> **October 18, 2026 checkpoint:** The source translators compile tested native C for a **restricted subset** of the original MIPS R5900 executable. **This is not a playable Windows game**, and this repository does not contain the original game, assets, or fully bootable runtime.
+## Latest verified checkpoint — October 18, 2026
 
-## Measured source recovery
-
-| Layer | Distinct candidate entries | Notes |
+| Layer | Recovered candidate entrypoints | Verified behavior |
 |---|---:|---|
-| Scalar/forward/loop leaf translators | 1,470 | 1,163 straight-line + 168 forward-CFG + 139 bounded loops |
-| Direct-JAL callers | 30 | Call a supported leaf |
-| Nested-JAL callers | 1 | Stack depth >1 exercised |
-| Whitelisted dynamic-JALR callers | 31 | Unknown targets explicitly rejected |
-| **Forward branch and call wrappers** | **72** | New in this checkpoint: forward BEQ/BNE/BLEZ/BGTZ/REGIMM or J with JAL/JALR |
-| **Total distinct entrypoints** | **1,604** | Candidate entries are not guaranteed full function boundaries |
+| Scalar/branch/loop leaves | 1,470 | Native C, instruction-sliced execution, original-MIPS comparisons |
+| Callers with direct/indirect calls and loops | 176 | Bounded nested JAL/JALR stack, delay slots, checked indirect targets |
+| **Unified guest execution interface** | **1,646** | Routes to appropriate executor; preserves PC, registers, RAM, and fault-retry state |
+| **EE ELF image loader** | 1 retail PT_LOAD segment | Maps executable byte-for-byte and clears BSS in 32 MB guest RAM |
 
-The scalar resumption generator maps 9,390 original instruction locations (including return instructions). Prior to this checkpoint, call-capable wrappers represented 940 additional locations; the new branch/call pass represents another 1,432. Thus current translated **site total is 11,762** for these separately enumerated layers. Do **not** interpret it as 11,762 proven reachable or semantically identified instructions; aggregate reports use different instruction counting conventions.
+The guest execution adapter and ELF loader are written in portable C11 (`ae3_guest_execution.c/.h`, `ae3_elf_image.c/.h`). They compile as Windows x64 COFF objects with `clang-cl`, without requiring copyrighted game code in the repository. The Linux integration tests passed using the verified retail executable. The original execution entry at `0x00100134` is **not yet translated**; the adapter explicitly rejects it rather than claiming the game booted.
 
-### Key implementations
+These 1,646 entries are conservative **candidate** functions, not verified complete-game coverage. We still lack EE full 128-bit/MMI/COP1/VU instructions, sufficient caller/function coverage, EE/IOP/BIOS services, PS2 graphics, audio and disc/game runtime integration.
 
-- `bulk_lift.py`, `cfg_lift.py`, `loop_lift.py`: conservative low-64-bit scalar MIPS R5900 leaf candidates.
-- `resume_lift.py`: resumable guest-PC, branch and delay-slot execution.
-- `call_lift.py`, `stack_lift.py`, `extend_stack.py`, `loop_stack.py`: direct JAL, nested calls, checked JALR and **forward/backward branch callers with calls**.
-- `test_*`: independent reference execution of the original retail MIPS instruction words, comparing GPRs, byte-exact RAM, instruction counts, PC, pending slot state, and errors.
-- `ae3_native_dispatch.c/h`: common entrypoints for the above restricted routines; not a PS2 hardware runtime.
+## Rebuild and verify
 
-## Run the code from your own copy
-
-Use your own unmodified USA executable, SHA-256:
+Use an unmodified `SCUS_975.01` from your own copy of the NTSC-U game. Required SHA-256:
 
 `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`
 
-It can be passed using the `AE3_ELF` environment variable or kept locally as `SCUS_975.01`. **Do not commit or redistribute the retail game or generated game-code C.**
+The Python generators enforce that SHA. Set the path before running them.
 
-Linux (Python 3.10+, C compiler):
+**Linux (Python 3.10+ and a C11 compiler)**
 
 ```bash
 AE3_ELF=/path/to/SCUS_975.01 bash BUILD_AND_TEST_LINUX.sh
 ```
 
-Windows (Python 3 and clang-cl / Visual Studio C++ tools):
+This generates private C from the user's own executable, compiles the recovered code, runs independent MIPS differential tests, maps the original ELF to EE guest RAM, then validates the common execution adapter. A full from-scratch rebuild can take several minutes.
+
+**Windows x64 (Python 3, LLVM `clang-cl` / MSVC C++ tools)**
 
 ```bat
 set AE3_ELF=C:\ApeEscape3\SCUS_975.01
 BUILD_WINDOWS_OBJECTS.bat
 ```
 
-The Windows script builds `.obj` files for further integration; **it does not make a playable EXE**.
+Windows outputs are object files to link into a later native game runtime, **not a runnable game executable**.
 
-## Verified October 18 test milestone
+## Architecture
 
-- `test_stack.py 2`: **268** original-MIPS vs native-C trials, **2,194** compared execution slices across **134** caller candidates.
-- `test_branch_call_paths.py`: forced the taken and not-taken branches of retail code at `0x003817D0`, including the indirect callee `0x003B3CE0` on the latter path. Both completed and matched the oracle (registers, memory, state).
-- Rejected/unsupported `JALR` targets no longer partially mutate the saved target state before returning a fault. Added an explicit regression assertion.
-- Linux native dispatcher integration passed and `clang-cl` successfully compiled the updated stack module to a Windows x64 COFF object.
-- Earlier scalar/CFG/loop/resume/direct-JAL suites passed individually; full end-to-end script rebuilding every output did not complete within this environment's command limit.
+- `bulk_lift.py`, `cfg_lift.py`, `loop_lift.py`: conservative leaf recovery; low 64-bit scalar instructions.
+- `resume_lift.py`: independent instruction slices with saved PC and MIPS delay state.
+- `call_lift.py`, `stack_lift.py`, `extend_stack.py`, `loop_stack.py`: call/return, conditionals, backward edges and whitelisted indirect targets.
+- `ae3_native_dispatch.c/h`: legacy per-kind dispatch; `ae3_guest_execution.c/h`: unified host-facing dispatch with a single typed frame.
+- `ae3_elf_image.c/h`: checked, transactional ELF32 little-endian MIPS guest-memory mapping.
+- `test_guest_execution.c`, `test_elf_image.c`: original-code integration tests; `test_*.py`: differential comparisons with independent MIPS decoding.
 
-See [CHECKPOINT_BRANCH_CALLS.md](CHECKPOINT_BRANCH_CALLS.md) and [STATUS.md](STATUS.md) for limitations.
-
-## Remaining work
-
-The executable still requires broad function coverage, verified 128-bit GPR/MMI/COP1/VU support, EE/IOP scheduling and services, VIF/GIF/GS rendering, disc/asset handling, audio, controllers, save logic, and a real Windows game boot/integration test. Only supported scalar candidates can run today, and indirect calls must resolve to known entries. Nothing in this repository claims completed gameplay or graphics.
-
-## Backward caller loops (October 18)
-
-- New scanner: `loop_stack.py` with strict body/branch-target and delay-slot checks.
-- **42 additional** loop-and-call candidate routines, bringing the accepted stack caller set to **176**, and total candidate addresses to **1,646**. These counts describe bounded subsets, not verified full-game coverage.
-- `test_backward_structure.py` checks the discovered CFG bodies. `test_backward_call_paths.py` checks the real 0x00105AC4 loop executing 0, 1 and 3 table reads via JAL 0x00105A28 and compares memory/register/PC states after every slice with an independent original-word interpreter.
-- Windows x64 stack COFF object compiled with clang-cl, no warnings. This remains a non-playable source-recovery checkpoint. See [CHECKPOINT_BACKWARD_CALLS.md](CHECKPOINT_BACKWARD_CALLS.md).
+The generated C, ELF/ISO, disassembly and game assets stay out of public Git history. See [STATUS.md](STATUS.md) and [CHECKPOINT_GUEST_RUNTIME.md](CHECKPOINT_GUEST_RUNTIME.md) for exact validation and blockers.
