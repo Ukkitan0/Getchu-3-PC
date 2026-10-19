@@ -46,7 +46,7 @@ int main(){
         check(!ae3::matchesPlacement("closet_door_fake","closet_door"),
               "incorrect object was placed");
         bool rejected=false;
-        try{ae3::parsePlacements({});}catch(const std::runtime_error&){rejected=true;}
+        try{ae3::parsePlacements(std::vector<std::uint8_t>{});}catch(const std::runtime_error&){rejected=true;}
         check(rejected,"malformed PLC accepted");
         std::cout<<"NATIVE_PLC_PLACEMENT_PASSED original_world_xyz=1 matching=1\n";
         return 0;
