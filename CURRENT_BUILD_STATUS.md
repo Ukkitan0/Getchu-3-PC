@@ -1,3 +1,17 @@
+# October 19 — original EE Timer 3 and game-installed kernel-patch checkpoint
+
+- Game's Timer3 mode register at `0x10001810` now reads from an optional
+  modeled MMIO device. The original MIPS branch at `0x44035C` works in
+  one-step and batched modes; both outcomes tested.
+- With **explicit experimental BIOS/kernel responses**, the genuine wrapper
+  at `0x4402D0` registers `0x4402F0` as syscall 0x5A; the genuine MIPS handler
+  copies all **1,856 bytes** of the game's built-in kernel payload to EE RAM
+  at KSEG0 `0x80076000`. It returns at `0x440398` after 321,484 original
+  guest instructions in the controlled end-to-end diagnostic.
+- Four focused sanitizer tests pass and four Windows x64 COFF objects build.
+  No actual Windows game launch, no GS rendering, and no faithful EE BIOS.
+- Real default boot still stops at `SetupThread` (315,897 retired).
+
 # October 19 — post-kernel lookup + Timer 3 boot checkpoint
 
 - **New original-code coverage:** executes guest reconciliation at `0x0043FDC4`,
