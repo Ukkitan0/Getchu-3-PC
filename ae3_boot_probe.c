@@ -3,6 +3,8 @@
  * validate guest userland instructions beyond SetupThread/SetupHeap. */
 #include "ae3_elf_image.h"
 #include "ae3_boot_init_prefix.h"
+#include "ae3_ee_sema_kernel.h"
+#include "ae3_boot_hook_init.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,8 +18,9 @@ static uint8_t *read_file(const char *path,size_t *n) {
  fclose(f);*n=(size_t)size;return p;
 }
 int main(int argc,char**argv) {
- if(argc<2||argc>3||(argc==3&&strcmp(argv[2],"--test-kernel-fixture"))) {
-  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture]\n",argv[0]);return 2;
+ if(argc<2||argc>4||(argc>=3&&strcmp(argv[2],"--test-kernel-fixture"))||
+    (argc==4&&strcmp(argv[3],"--test-sema-hle"))) {
+  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture [--test-sema-hle]]\n",argv[0]);return 2;
  }
  size_t bytes=0;uint8_t *elf=read_file(argv[1],&bytes);
  if(!elf){fprintf(stderr,"Cannot read game executable\n");return 2;}
@@ -45,6 +48,27 @@ int main(int argc,char**argv) {
  AE3_BootInitPrefix init;
  if(ae3_boot_init_enter(&init,&k)!=AE3_INIT_YIELDED||ae3_boot_init_slice(&init,ram,RAM_SIZE,10)!=AE3_INIT_SUBCALL){fprintf(stderr,"First init prologue failed\n");free(elf);free(ram);return 10;}
  printf("Original guest first initialization entered at %08X and next real nested call at %08X -> %08X\n",AE3_KERNEL_NEXT_CALL_TARGET,init.cpu.pc,AE3_INIT_FIRST_SUBCALL_TARGET);
+ if(argc==4) {
+    AE3_EESemaKernel semakernel;ae3_ee_sema_kernel_init(&semakernel);
+    AE3_BootSemaphoreInit sema;
+    if(ae3_boot_sema_enter(&sema,&init)!=AE3_SEMA_YIELDED){fprintf(stderr,"Semaphore entry failed\n");free(elf);free(ram);return 11;}
+    unsigned served=0;
+    for(unsigned i=0;i<10;i++) {
+      AE3_SemaBootResult sr=ae3_boot_sema_slice(&sema,ram,RAM_SIZE,100);
+      if(sr==AE3_SEMA_NEXT_CALL)break;
+      if(sr!=AE3_SEMA_CREATE_REQUEST||served>=2){fprintf(stderr,"Semaphore wrapper stopped: %d at %08X\n",(int)sr,sema.cpu.pc);free(elf);free(ram);return 12;}
+      printf("EE CreateSema request %u at %08X guest descriptor=%08X max=%u initial=%u\n",served+1,sema.request.pc,sema.request.guest_address,sema.request.values[1],sema.request.values[2]);
+      if(ae3_ee_sema_boot_dispatch(&semakernel,&sema)!=AE3_SEMA_YIELDED){fprintf(stderr,"Semaphore HLE failed\n");free(elf);free(ram);return 13;}
+      served++;
+    }
+    if(!sema.done||served!=2){fprintf(stderr,"Semaphore initialization incomplete\n");free(elf);free(ram);return 14;}
+    printf("EXPERIMENTAL HLE: two semaphore IDs stored at 0x006A1EA8/0x006A1EAC (not verified BIOS IDs)\n");
+    AE3_BootHookInit hook;
+    if(ae3_boot_hook_enter(&hook,&sema)!=AE3_HOOK_YIELDED ||
+      ae3_boot_hook_slice(&hook,ram,RAM_SIZE,100)!=AE3_HOOK_SET_SYSCALL){fprintf(stderr,"SetSyscall boundary was not reached\n");free(elf);free(ram);return 15;}
+    printf("Original SetSyscall 0x74 pending at %08X: syscall_no=%08X handler=%08X (no kernel hook applied)\n",hook.cpu.pc,hook.guest_handler_number,hook.guest_handler_address);
+    printf("Retired original EE instruction count: %llu (initial stack remains test-only).\n",(unsigned long long)hook.cpu.retired);
+ }
  printf("No GS rendering, BIOS emulation, IOP or gameplay. This is a boot diagnostic only.\n");
  free(elf);free(ram);return 0;
 }
