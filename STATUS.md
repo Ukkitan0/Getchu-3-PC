@@ -1,3 +1,13 @@
+## Native game ISO integration checkpoint (2026-10-19)
+
+The native game-build script accepts only an owned ISO (no manual ELF path
+required), extracts BOOT2 from SYSTEM.CNF, supports SNR2 modules and
+runtime-unpacked code overlays, emits per-round RAM/VU/frame evidence and a
+prioritized boot diagnostic report. `TEST_APE_ESCAPE_3_WINDOWS.bat` provides
+a Windows file-picker build-and-test entrypoint with persistent card saves.
+The source-only ISO tests pass on GitHub CI; original retail game runtime
+remains unverified. See `CHECKPOINT_NATIVE_DISC_BOOT.md`.
+
 ## October 19, 2026: verified seven-region native AOT + Windows GPU compilation (GAME-FREE)
 
 GitHub Actions [run 39318625918](https://github.com/Ukkitan0/Getchu-3-PC/actions/runs/39318625918) succeeded. The real upstream R5900 recompiler and native ClangCL Windows runtime executed 143 indirect synthetic callbacks across seven distinct 16 KiB code regions and guest RAM reads/writes across three memory pages. The workflow also passed Windows WebGPU runtime compilation/linking. The owner-local Windows game builder now bootstraps pinned vcpkg/SDL2 and copies SDL2.dll to the test executable. **No actual retail Ape Escape 3 executable or ISO was executed in CI; no playable Windows test build exists yet.** See `CHECKPOINT_AOT_MULTIREGION.md`.
