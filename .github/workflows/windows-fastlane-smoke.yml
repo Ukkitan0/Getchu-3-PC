@@ -6,6 +6,11 @@ on:
     paths:
       - '.github/workflows/windows-fastlane-smoke.yml'
       - 'tools/windows_upstream_patch.py'
+      - 'tools/prepare_disc.py'
+      - 'tools/test_prepare_disc.py'
+      - 'tools/boot_report.py'
+      - 'tools/test_boot_report.py'
+      - 'tools/bulk_recompile.py'
       - 'tools/native_explore.py'
       - 'tools/test_windows_fastlane.py'
       - 'tools/synthetic_aot_smoke.py'
@@ -32,6 +37,11 @@ jobs:
         run: |
           python -m unittest discover -s tools -p 'test_windows_fastlane.py' -v
           python -m unittest discover -s tools -p 'test_synthetic*.py' -v
+          python -m unittest discover -s tools -p 'test_prepare_disc.py' -v
+          python -m unittest discover -s tools -p 'test_boot_report.py' -v
+          $tokens = $null; $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile('${{ github.workspace }}/RUN_BULK_NATIVE_WINDOWS.ps1', [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count) { throw ('Invalid Windows launcher PowerShell syntax: ' + ($errors | Out-String)) }
           # Full-game bulk tests consume the owner's recovered opcode inventory,
           # intentionally absent from the public GitHub source checkout.
       - name: Fetch exact known upstream revision
@@ -40,6 +50,12 @@ jobs:
           git clone --filter=blob:none https://github.com/snuri00/ps2-web-recomp.git "$env:RUNNER_TEMP\upstream"
           if ($LASTEXITCODE -ne 0) { exit 1 }
           git -C "$env:RUNNER_TEMP\upstream" checkout --detach 6526f4803d98e10de50bea3af104a4d26e9df033
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      - name: Synthetic disc boot and executable code-window discovery on pinned upstream parser
+        shell: pwsh
+        run: |
+          $env:AE3_UPSTREAM_PATH = "$env:RUNNER_TEMP\upstream"
+          python -m unittest discover -s tools -p 'test_prepare_disc.py' -v
           if ($LASTEXITCODE -ne 0) { exit 1 }
       - name: Apply tested Win32 portability overlay
         shell: pwsh
