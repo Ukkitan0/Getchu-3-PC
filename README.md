@@ -11,6 +11,14 @@ scanner inventories recovered Lua files. Output stays under `native/private`
 and is excluded from Git. Overwrites are prohibited by default.
 See [native/SARU3_NATIVE_ASSET_INTEGRATION.md](native/SARU3_NATIVE_ASSET_INTEGRATION.md).
 
+Optional **MIT [ae3-sdk](https://github.com/pxdl/ae3-sdk)** I3D-to-GLB
+conversion is also integrated into the offline pipeline: after installing the
+separate `ae3` CLI, supply `-Gltf` to
+`native/tools/PREPARE_NATIVE_ASSETS_WINDOWS.ps1`. This is an independent
+build-time converter of original I3D model bytes into skinned/rigged GLB
+assets; the game executable never depends on it. See the Saru guide for
+the exact command and limitations.
+
 **No PS2 CPU/GPU emulation has been reintroduced.** GPLv3 Saru3VfiTool is
 used as a separate optional developer utility, never bundled into or linked
 from the Getchu3Native.exe host game. The app is not yet playable: actual
