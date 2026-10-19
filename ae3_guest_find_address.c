@@ -30,9 +30,21 @@ AE3_FindResult ae3_guest_find_begin(AE3_GuestFindAddress *out,
     out->return_pc=(uint32_t)reg(&hook->cpu,31);
     return AE3_FIND_YIELDED;
 }
-AE3_FindResult ae3_guest_find_slice(AE3_GuestFindAddress *s,
-    const uint8_t *ee,size_t ee_size,const uint8_t *kernel,
-    uint32_t base,size_t count,uint32_t budget) {
+typedef int (*AE3_ReadKernel32)(void*,uint32_t,uint32_t*);
+struct LinearKernel {const uint8_t *bytes;uint32_t base;size_t count;};
+static int linear_read(void *ctx,uint32_t addr,uint32_t *out){
+    const struct LinearKernel *w=(const struct LinearKernel*)ctx;
+    if((addr&3u)||!w->bytes||!mapped(addr,4,w->base,w->count))return 0;
+    *out=u32(w->bytes+(size_t)(addr-w->base));return 1;
+}
+static int bus_read(void *ctx,uint32_t addr,uint32_t *out){
+    const AE3_EEMemoryBus *b=(const AE3_EEMemoryBus*)ctx;
+    /* Real mapped addresses, including aliases, are resolved by the EE bus. */
+    return ae3_ee_bus_read32(b,addr,out)==AE3_EE_BUS_OK;
+}
+static AE3_FindResult run_slice(AE3_GuestFindAddress *s,
+    const uint8_t *ee,size_t ee_size,AE3_ReadKernel32 read_kernel,void *ctx,
+    uint32_t budget) {
     if(!s||!ee || s->cpu.in_delay_slot>1 || s->done>1 ||
        (s->return_pc&3)||
        (s->return_pc!=UINT32_C(0x0043FDA4) &&
@@ -61,9 +73,10 @@ AE3_FindResult ae3_guest_find_slice(AE3_GuestFindAddress *s,
         if(w==0){}
         else if(op==35){
             uint32_t addr=(uint32_t)reg(&s->cpu,rs)+(uint32_t)imm;
-            if((addr&3u)||!kernel||!mapped(addr,4,base,count))
+            uint32_t loaded;
+            if((addr&3u)||!read_kernel(ctx,addr,&loaded))
                 return AE3_FIND_KERNEL_UNMAPPED;
-            set(&next,rt,sext(u32(kernel+(size_t)(addr-base))));
+            set(&next,rt,sext(loaded));
             load_count=1;
         }
         else if(op==9){
@@ -107,6 +120,18 @@ AE3_FindResult ae3_guest_find_slice(AE3_GuestFindAddress *s,
         }
     }
     return AE3_FIND_YIELDED;
+}
+AE3_FindResult ae3_guest_find_slice(AE3_GuestFindAddress *s,
+    const uint8_t *ee,size_t ee_size,const uint8_t *kernel,
+    uint32_t base,size_t count,uint32_t budget) {
+    struct LinearKernel window={kernel,base,count};
+    return run_slice(s,ee,ee_size,linear_read,&window,budget);
+}
+AE3_FindResult ae3_guest_find_slice_bus(AE3_GuestFindAddress *s,
+    const AE3_EEMemoryBus *bus,uint32_t budget){
+    if(!bus || !bus->ram || bus->ram_size<AE3_EE_RAM_BYTES)
+        return AE3_FIND_INVALID;
+    return run_slice(s,bus->ram,bus->ram_size,bus_read,(void*)bus,budget);
 }
 AE3_FindResult ae3_guest_find_commit(AE3_BootHookInit *hook,
     const AE3_GuestFindAddress *find) {
