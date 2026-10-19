@@ -1,3 +1,20 @@
+# October 19 — post-kernel lookup + Timer 3 boot checkpoint
+
+- **New original-code coverage:** executes guest reconciliation at `0x0043FDC4`,
+  including bounded repeated syscall `0x83` and the original guest
+  `FindAddress` MIPS handler (return sites `0x0043FDE4` and `0x0043FE00`).
+- **Matching-address fixture only:** reaches original call at `0x0043FE70`,
+  runs original nested callee at `0x00440338` and stops before guest
+  `LW $v1,0($v0)` at `0x00440354`, which reads `0x10001810` (EE T3_MODE).
+- **Absent BIOS memory:** the original game requests a third `FindAddress`
+  at `0x0043FD04` (no guessed address or return).
+- `test_boot_post_find.c`, `test_boot_next_init.c` passed with Clang
+  AddressSanitizer and UndefinedBehaviorSanitizer; original ELF opcode and
+  one-step/batched parity validated. Two Windows x64 COFF objects compiled.
+- Default boot still stops at authentic `SetupThread`. Explicit test fixtures
+  and a policy-based kernel model are needed to reach the timer boundary;
+  this is NOT a native boot, graphics implementation or playable PC build.
+
 # 2026-10-18 EE memory-bus update
 
 - True EE virtual/physical RAM aliases and optional BIOS/scratchpad mappings implemented in `ae3_ee_memory_bus.[ch]`.
