@@ -63,3 +63,13 @@ Sources in the GitHub repository are the canonical work. Old recompilation snaps
 - `test_stack.py 2`: 352 trials across 176 candidates, 6,484 compared slices. The previous scalar, control-flow, loop, resumable, call and dispatcher tests remain in the build suite.
 - New Windows x64 COFF stack object compiled with `clang-cl` (no warnings after same-register BEQ/BNE folding).
 - **No playable Windows executable.** The full game still requires large-scale MIPS translation and substantial EE/IOP/GS/VU and media runtime engineering.
+
+## Unified guest execution and EE ELF image mapping (2026-10-18)
+
+- `ae3_guest_execution.c/.h` unifies 1,470 resumable leaf candidates and 176 call-stack candidates into one typed native-C execution API. It selects a recovered engine using an actual entry address; reports `UNKNOWN` for unsupported addresses (including genuine boot entry `0x00100134`).
+- It exposes deepest active guest PC, retired instruction count, completion status, and sliced execution. Its caller owns all state, registers and RAM. Reopened frames reset deterministically.
+- `test_guest_execution.c` passes: 1,646 entries enumerable, leaf/stack parity, retail `0x00105AC4` 0/3-iteration loop and `0x00105A28` callee, pending delay slots, and a fault in mapped memory followed by successful continuation.
+- `ae3_elf_image.c/.h` preflights the entire ELF before mutating guest RAM. Validated retail input: ELF32 little-endian, MIPS machine 8, one PT_LOAD at virtual/physical `0x00100000`, file offset `0x1000`, 0x62C5D0 copied bytes, memory size 0x672910, executable entry `0x00100134`.
+- `test_elf_image.c` passes byte-exact PT_LOAD mapping, BSS zeroes, sentinels outside load, and six malformed-file rejection cases that preserve RAM.
+- Both new modules cross-compiled as Windows x64 COFF objects with `clang-cl` (C11, warning-as-error). Prior stack/branch/loop tests also passed on this checkpoint; comprehensive from-scratch script exceeded the local command timeout after passing scalar/CFG/loop/resumable/direct-call stages; remaining component tests were run separately.
+- **Still not playable:** the true game startup entry remains outside the supported translation set. No IOP, BIOS, PS2 graphics/audio/disc or gameplay scheduler integration has been demonstrated.
