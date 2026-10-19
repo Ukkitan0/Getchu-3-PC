@@ -37,6 +37,11 @@ int main(){
         for(int i=0;i<18;++i)
             body.tick(level,.016f,{1,1,1.57079633f,false,false});
         check(body.state().z<-.3f,"native wall slide did not permit tangential motion");
+        if(body.state().x>beforeX+.05f)
+            std::cerr<<"WALL_SLIDE_DEBUG beforeX="<<beforeX
+                     <<" afterX="<<body.state().x
+                     <<" z="<<body.state().z
+                     <<" grounded="<<body.state().grounded<<"\n";
         check(body.state().x<=beforeX+.05f,"wall-slide motion tunneled into obstruction");
         check(body.resetAt(level,2,0),"native player cannot spawn opposite side");
         for(int i=0;i<120;++i)
