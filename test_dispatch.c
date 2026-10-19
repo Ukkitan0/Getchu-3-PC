@@ -59,6 +59,27 @@ int main(void) {
     assert(rc==AE3_RESUME_DONE);
     assert(cf.done && cf.retired>0);
     assert(caller.gpr[31]==UINT32_C(0x12345678));
+    /* New stack executor includes legacy callers and newly recovered JALR. */
+    assert(ae3_native_stack_count()==62);
+    for(size_t i=0;i<ae3_native_stack_count();++i){
+        assert(ae3_native_stack_address(i));
+        for(size_t j=i+1;j<ae3_native_stack_count();j++)
+            assert(ae3_native_stack_address(i)!=ae3_native_stack_address(j));
+    }
+    assert(ae3_native_stack_address(ae3_native_stack_count())==0);
+    AE3_StackFrame stacked;
+    ae3_native_stack_init(&stacked,UINT32_C(0x00112CC4));
+    static uint8_t stack_ram[8*1024*1024]={0};
+    AE3_ScalarContext newcaller={0};
+    newcaller.ram=stack_ram;newcaller.ram_size=sizeof(stack_ram);
+    newcaller.gpr[29]=0xD000;newcaller.gpr[2]=0x2000;
+    newcaller.gpr[31]=0x12345678;
+    rc=AE3_RESUME_YIELDED;
+    for(unsigned i=0;i<512&&rc==AE3_RESUME_YIELDED;i++)
+        rc=ae3_run_native_stack_slice(&newcaller,&stacked,1);
+    assert(rc==AE3_RESUME_DONE && stacked.done && stacked.retired>0);
+    assert(memcmp(newcaller.gpr,caller.gpr,sizeof(caller.gpr))==0);
+    assert(memcmp(stack_ram,caller_ram,sizeof(stack_ram))==0);
     printf("PASS: %zu native candidate routines dispatched; resumable and legacy entry agree\n", count);
     return 0;
 }
