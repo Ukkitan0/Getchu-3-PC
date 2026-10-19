@@ -1,0 +1,16 @@
+Getchu-3-PC — EE KSEG0/KSEG1 physical RAM mapping checkpoint
+
+Retail ELF: SCUS_975.01, SHA-256 5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63
+
+PASS C11 GCC and Clang with -Wall -Wextra -Werror.
+PASS AE3_EEMemoryBus alias mapping, boundary handling, ROM read-only and scratchpad tests, GCC/Clang ASan+UBSan.
+PASS Original MIPS FindAddress instruction runner against KSEG0 aliased RAM, one-step parity and retryable mapped failures, GCC/Clang ASan+UBSan.
+PASS Legacy original syscall registration/handler parity suite, linked with the new bus.
+PASS Later PCSX2 EE RAM reference parity: 0x0043FCC0 -> 0x80014F0C (21444 reads); 0x0043FC88 -> 0 (131073 reads).
+PASS Clean ELF-only physical RAM produces zero/no-match for both lookups, since kernel memory is not initialized. Not authentic BIOS behavior.
+PASS Boot default SetupThread boundary; opt-in test continuation reaches 0x0043FDC4 after 1626728 guest instructions and two physical-alias searches.
+PASS Windows x86-64 COFF objects for the two changed components (Clang with freestanding test headers). NOT a runnable Windows executable.
+PARTIAL Full BUILD_AND_TEST_LINUX.sh from scratch passed original scalar, CFG, loop, resumable, and direct-call comparisons, then reached a now-fixed stale probe link stage. Later boot/runtime stages were rerun separately and all passed. The entire script was not rerun to completion after the fix, so no full-suite-pass claim.
+
+No PS2 BIOS, native gameplay, video, audio or full original executable translation. This archive is source research, not a Windows game.
+PASS All standalone original EE startup, SetupThread boundary, semaphore, syscall routing, aliased FindAddress, and boot probe tests after consolidating the final probe link step.
