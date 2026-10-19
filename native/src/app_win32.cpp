@@ -9,6 +9,8 @@
 #include <commdlg.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
+#include <wincodec.h>
+#include <objbase.h>
 #include <DirectXMath.h>
 #include <wrl/client.h>
 #include <algorithm>
@@ -39,7 +41,7 @@ std::size_t gScriptEventCount=0;
 std::wstring gSource, gError, gProgress;
 float gYaw=.4f,gX=0,gZ=-5,gHeight=2.5f;
 bool gKeys[256]={};
-struct Vertex { float x,y,z; float r,g,b,a; };
+struct Vertex { float x,y,z; float r,g,b,a; float u=0,v=0; };
 static_assert(sizeof(Vertex)==sizeof(ae3::SceneVertex));
 class NativeRenderer {
 public:
@@ -64,10 +66,17 @@ public:
         if(FAILED(hr))return false;
         const char* hlsl=R"(
             cbuffer Scene:register(b0){row_major float4x4 mvp;};
-            struct Vin {float3 pos:POSITION; float4 color:COLOR;};
-            struct Vout {float4 pos:SV_POSITION; float4 color:COLOR;};
-            Vout VSMain(Vin i){Vout o;o.pos=mul(float4(i.pos,1),mvp);o.color=i.color;return o;}
-            float4 PSMain(Vout i):SV_TARGET{return i.color;}
+            Texture2D Diffuse:register(t0);
+            SamplerState LinearSampler:register(s0);
+            struct Vin {float3 pos:POSITION; float4 color:COLOR; float2 uv:TEXCOORD0;};
+            struct Vout {float4 pos:SV_POSITION; float4 color:COLOR; float2 uv:TEXCOORD0;};
+            Vout VSMain(Vin i){
+                Vout o;o.pos=mul(float4(i.pos,1),mvp);
+                o.color=i.color;o.uv=i.uv;return o;
+            }
+            float4 PSMain(Vout i):SV_TARGET{
+                return i.color*Diffuse.Sample(LinearSampler,i.uv);
+            }
         )";
         ComPtr<ID3DBlob> vs,ps,errors;
         if(FAILED(D3DCompile(hlsl,strlen(hlsl),nullptr,nullptr,nullptr,
@@ -109,11 +118,14 @@ public:
         sampler.AddressU=sampler.AddressV=sampler.AddressW=D3D11_TEXTURE_ADDRESS_CLAMP;
         sampler.MaxLOD=D3D11_FLOAT32_MAX;
         if(FAILED(device_->CreateSamplerState(&sampler,&sampler_)))return false;
+        const unsigned char opaqueWhite[4]={255,255,255,255};
+        if(!uploadRGBA(1,1,opaqueWhite,whiteTexture_))return false;
         const D3D11_INPUT_ELEMENT_DESC input[] = {
             {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D11_INPUT_PER_VERTEX_DATA,0},
-            {"COLOR",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,12,D3D11_INPUT_PER_VERTEX_DATA,0}
+            {"COLOR",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
+            {"TEXCOORD",0,DXGI_FORMAT_R32G32_FLOAT,0,28,D3D11_INPUT_PER_VERTEX_DATA,0}
         };
-        if(FAILED(device_->CreateInputLayout(input,2,vs->GetBufferPointer(),
+        if(FAILED(device_->CreateInputLayout(input,3,vs->GetBufferPointer(),
             vs->GetBufferSize(),&layout_)))return false;
         D3D11_BUFFER_DESC cb{};cb.ByteWidth=sizeof(XMFLOAT4X4);
         cb.Usage=D3D11_USAGE_DYNAMIC;cb.BindFlags=D3D11_BIND_CONSTANT_BUFFER;
@@ -162,7 +174,54 @@ public:
         if(FAILED(device_->CreateDepthStencilView(depthBuffer_.Get(),nullptr,&depthView_)))return false;
         width_=width;height_=height;return true;
     }
-    void clearScene(){sceneVertices_.Reset();sceneCount_=0;}
+    void clearScene(){
+        sceneVertices_.Reset();sceneCount_=0;
+        sceneBatches_.clear();sceneTextures_.clear();sceneTextureFailures_=0;
+    }
+    unsigned textureFailures() const noexcept{return sceneTextureFailures_;}
+    bool uploadRGBA(UINT width,UINT height,const unsigned char* pixels,
+                    ComPtr<ID3D11ShaderResourceView>& destination) {
+        if(!device_ || !width || !height || width>4096 || height>4096)return false;
+        D3D11_TEXTURE2D_DESC tex{};
+        tex.Width=width;tex.Height=height;tex.MipLevels=1;tex.ArraySize=1;
+        tex.Format=DXGI_FORMAT_R8G8B8A8_UNORM;tex.SampleDesc.Count=1;
+        tex.Usage=D3D11_USAGE_IMMUTABLE;tex.BindFlags=D3D11_BIND_SHADER_RESOURCE;
+        D3D11_SUBRESOURCE_DATA data{};
+        data.pSysMem=pixels;data.SysMemPitch=width*4;
+        ComPtr<ID3D11Texture2D> texture;
+        if(FAILED(device_->CreateTexture2D(&tex,&data,&texture)))return false;
+        return SUCCEEDED(device_->CreateShaderResourceView(
+            texture.Get(),nullptr,&destination));
+    }
+    bool loadImageWIC(const std::vector<std::uint8_t>& encoded,
+                      ComPtr<ID3D11ShaderResourceView>& destination) {
+        if(encoded.empty() || encoded.size()>32*1024*1024)return false;
+        ComPtr<IWICImagingFactory> factory;
+        if(FAILED(CoCreateInstance(CLSID_WICImagingFactory,nullptr,
+            CLSCTX_INPROC_SERVER,IID_PPV_ARGS(&factory))))return false;
+        ComPtr<IWICStream> stream;
+        if(FAILED(factory->CreateStream(&stream)))return false;
+        if(FAILED(stream->InitializeFromMemory(
+            const_cast<BYTE*>(encoded.data()),static_cast<DWORD>(encoded.size()))))
+            return false;
+        ComPtr<IWICBitmapDecoder> decoder;
+        if(FAILED(factory->CreateDecoderFromStream(
+            stream.Get(),nullptr,WICDecodeMetadataCacheOnLoad,&decoder)))return false;
+        ComPtr<IWICBitmapFrameDecode> frame;
+        if(FAILED(decoder->GetFrame(0,&frame)))return false;
+        UINT width=0,height=0;
+        if(FAILED(frame->GetSize(&width,&height))||!width||!height||
+           width>4096||height>4096||std::uint64_t(width)*height>16*1024*1024)
+            return false;
+        ComPtr<IWICFormatConverter> converter;
+        if(FAILED(factory->CreateFormatConverter(&converter)))return false;
+        if(FAILED(converter->Initialize(frame.Get(),GUID_WICPixelFormat32bppRGBA,
+            WICBitmapDitherTypeNone,nullptr,0,WICBitmapPaletteTypeCustom)))return false;
+        std::vector<std::uint8_t> pixels(std::size_t(width)*height*4);
+        if(FAILED(converter->CopyPixels(nullptr,width*4,
+            static_cast<UINT>(pixels.size()),pixels.data())))return false;
+        return uploadRGBA(width,height,pixels.data(),destination);
+    }
     bool displayScene(const ae3::StaticScene& scene){
         if(!device_ || scene.triangles.empty() ||
            scene.triangles.size()>3'000'000 ||
@@ -178,6 +237,12 @@ public:
         data.pSysMem=scene.triangles.data();
         if(FAILED(device_->CreateBuffer(&vb,&data,&sceneVertices_)))return false;
         sceneCount_=static_cast<UINT>(scene.triangles.size());
+        sceneBatches_=scene.batches;
+        sceneTextures_.resize(scene.textures.size());
+        for(std::size_t t=0;t<scene.textures.size();++t) {
+            if(!loadImageWIC(scene.textures[t].encoded,sceneTextures_[t]))
+                ++sceneTextureFailures_;
+        }
         return true;
     }
     void clearTexture(){previewSRV_.Reset();}
@@ -251,7 +316,23 @@ public:
             D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
         context_->VSSetShader(vs_.Get(),nullptr,0);
         context_->PSSetShader(ps_.Get(),nullptr,0);
-        context_->Draw(sceneCount_?sceneCount_:gridCount_,0);
+        ID3D11SamplerState* hostSampler=sampler_.Get();
+        context_->PSSetSamplers(0,1,&hostSampler);
+        if(sceneCount_){
+            for(const auto& batch:sceneBatches_){
+                ID3D11ShaderResourceView* texture=whiteTexture_.Get();
+                if(batch.textureIndex>=0 &&
+                    static_cast<std::size_t>(batch.textureIndex)<sceneTextures_.size() &&
+                    sceneTextures_[std::size_t(batch.textureIndex)])
+                    texture=sceneTextures_[std::size_t(batch.textureIndex)].Get();
+                context_->PSSetShaderResources(0,1,&texture);
+                context_->Draw(batch.vertexCount,batch.firstVertex);
+            }
+        }else{
+            ID3D11ShaderResourceView* texture=whiteTexture_.Get();
+            context_->PSSetShaderResources(0,1,&texture);
+            context_->Draw(gridCount_,0);
+        }
         swap_->Present(1,0);
     }
 private:
@@ -259,6 +340,10 @@ private:
     int width_=1,height_=1;
     UINT gridCount_=0,sceneCount_=0;
     ComPtr<ID3D11Buffer> sceneVertices_;
+    std::vector<ae3::SceneBatch> sceneBatches_;
+    std::vector<ComPtr<ID3D11ShaderResourceView>> sceneTextures_;
+    ComPtr<ID3D11ShaderResourceView> whiteTexture_;
+    unsigned sceneTextureFailures_=0;
     ComPtr<ID3D11Texture2D> depthBuffer_;
     ComPtr<ID3D11DepthStencilView> depthView_;
     ComPtr<ID3D11RasterizerState> bothSides_;
@@ -338,7 +423,10 @@ void openNativeGlb(){
            <<scene.triangles.size()/3<<L" triangles; "
            <<scene.skinnedPrimitives<<L" skinned rest-pose primitives. "
            <<L"WASD/QE + arrows to move debug camera. "
-           <<L"Textures/skeletal animation still TODO; not a playable level.";
+           <<L"Texture files loaded: "<<scene.textures.size()<<L", "
+           <<L"missing: "<<scene.missingTextures<<L", "
+           <<L"decode failures: "<<gRenderer.textureFailures()<<L". "
+           <<L"Skin animations still TODO; this is NOT playable gameplay.";
         status(msg.str());
         gRenderer.render();
     }catch(const std::exception& error){
@@ -564,11 +652,15 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR command,int show){
     WNDCLASSW win{};win.lpfnWndProc=wndProc;win.hInstance=inst;win.lpszClassName=L"AE3NativePort";
     win.hCursor=LoadCursorW(nullptr,IDC_ARROW);win.hbrBackground=reinterpret_cast<HBRUSH>(COLOR_WINDOW+1);
     if(!RegisterClassW(&win))return 1;
+    const HRESULT com=CoInitializeEx(nullptr,COINIT_APARTMENTTHREADED);
     HWND window=CreateWindowW(L"AE3NativePort",
         L"Getchu 3 — NATIVE PC PORT WORKBENCH (not yet playable)",
         WS_OVERLAPPEDWINDOW|WS_CLIPCHILDREN,CW_USEDEFAULT,CW_USEDEFAULT,1280,750,
         nullptr,nullptr,inst,nullptr);
-    if(!window)return 2;
+    if(!window){
+        if(SUCCEEDED(com))CoUninitialize();
+        return 2;
+    }
     ShowWindow(window,show);UpdateWindow(window);
     if(command && *command){
         std::wstring arg=command;
@@ -579,5 +671,6 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR command,int show){
     while(GetMessageW(&message,nullptr,0,0)>0){
         TranslateMessage(&message);DispatchMessageW(&message);
     }
+    if(SUCCEEDED(com))CoUninitialize();
     return int(message.wParam);
 }
