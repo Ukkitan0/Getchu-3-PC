@@ -6,7 +6,9 @@ param(
     [string]$Saru = '',
     [string]$Out = '',
     [switch]$Reuse,
-    [switch]$KeepTim2
+    [switch]$KeepTim2,
+    [switch]$Gltf,
+    [string]$Ae3Cli = 'ae3'
 )
 $ErrorActionPreference = 'Stop'
 $Project = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
@@ -67,6 +69,15 @@ $Inventory = Join-Path $Out 'native_stage_script_inventory.txt'
 & $StageProbe $ExtractedRoot > $Inventory
 if ($LASTEXITCODE -ne 0) {
     throw 'Native stage scan failed after extraction.'
+}
+if ($Gltf) {
+    $Converter = Join-Path $Native 'tools\convert_models_to_glb.py'
+    $GlbDir = Join-Path $Out 'glb'
+    & py -3 $Converter --extracted $ExtractedRoot --out $GlbDir --ae3 $Ae3Cli
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Optional MIT ae3-sdk I3D-to-GLB model conversion failed.'
+    }
+    Write-Host "Original I3D model GLBs: $GlbDir"
 }
 Write-Host ''
 Write-Host 'Getchu 3: NATIVE Windows asset preparation completed.'
