@@ -15,7 +15,7 @@ import sys
 MAX_FRAME_BYTES = 256 * 1024 * 1024
 MAX_DIMENSION = 8192
 MAX_SAMPLES = 4096
-HEADER = re.compile(rb"\AP6\s+([0-9]{1,5})\s+([0-9]{1,5})\s+255\s")
+HEADER = re.compile(rb"\AP6[ \t\r\n]+([0-9]{1,5})[ \t\r\n]+([0-9]{1,5})[ \t\r\n]+255\r?\n")
 
 
 def inspect_ppm(path: Path) -> dict:
