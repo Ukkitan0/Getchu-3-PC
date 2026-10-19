@@ -6,6 +6,8 @@
 #include "ae3_ee_sema_kernel.h"
 #include "ae3_boot_hook_init.h"
 #include "ae3_ee_syscall_kernel.h"
+#include "ae3_guest_find_address.h"
+#include "ae3_ee_memory_bus.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,9 +21,10 @@ static uint8_t *read_file(const char *path,size_t *n) {
  fclose(f);*n=(size_t)size;return p;
 }
 int main(int argc,char**argv) {
- if(argc<2||argc>4||(argc>=3&&strcmp(argv[2],"--test-kernel-fixture"))||
-    (argc==4&&strcmp(argv[3],"--test-sema-hle"))) {
-  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture [--test-sema-hle]]\n",argv[0]);return 2;
+ if(argc<2||argc>5||(argc>=3&&strcmp(argv[2],"--test-kernel-fixture"))||
+    (argc>=4&&strcmp(argv[3],"--test-sema-hle"))||
+    (argc==5&&strcmp(argv[4],"--test-ee-alias"))) {
+  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture [--test-sema-hle [--test-ee-alias]]]\n",argv[0]);return 2;
  }
  size_t bytes=0;uint8_t *elf=read_file(argv[1],&bytes);
  if(!elf){fprintf(stderr,"Cannot read game executable\n");return 2;}
@@ -49,7 +52,7 @@ int main(int argc,char**argv) {
  AE3_BootInitPrefix init;
  if(ae3_boot_init_enter(&init,&k)!=AE3_INIT_YIELDED||ae3_boot_init_slice(&init,ram,RAM_SIZE,10)!=AE3_INIT_SUBCALL){fprintf(stderr,"First init prologue failed\n");free(elf);free(ram);return 10;}
  printf("Original guest first initialization entered at %08X and next real nested call at %08X -> %08X\n",AE3_KERNEL_NEXT_CALL_TARGET,init.cpu.pc,AE3_INIT_FIRST_SUBCALL_TARGET);
- if(argc==4) {
+ if(argc>=4) {
     AE3_EESemaKernel semakernel;ae3_ee_sema_kernel_init(&semakernel);
     AE3_BootSemaphoreInit sema;
     if(ae3_boot_sema_enter(&sema,&init)!=AE3_SEMA_YIELDED){fprintf(stderr,"Semaphore entry failed\n");free(elf);free(ram);return 11;}
@@ -84,7 +87,45 @@ int main(int argc,char**argv) {
           }
           printf("Original syscall %02X reached at %08X: registered guest handler %08X\n",
              hook.invoked_number,hook.cpu.pc,handler);
-          printf("Guest handler cannot execute until EE kernel address space is mapped. No fabricated result.\n");
+          if(argc==5) {
+             printf("TEST ONLY: running original 0x83 MIPS handler with KSEG0 aliased to current EE RAM.\n");
+             printf("  BIOS/kernel was not initialized: no authentic startup kernel bytes are claimed.\n");
+             AE3_EEMemoryBus bus;ae3_ee_bus_init(&bus,ram,RAM_SIZE);
+             for(unsigned which=0;which<2;which++){
+                AE3_GuestFindAddress find;
+                if(ae3_guest_find_begin(&find,&hook)!=AE3_FIND_YIELDED){
+                  fprintf(stderr,"Guest handler setup failed\n");free(elf);free(ram);return 20;
+                }
+                AE3_FindResult fr=ae3_guest_find_slice_bus(&find,&bus,1000000);
+                if(fr!=AE3_FIND_RETURNED){
+                  fprintf(stderr,"Original guest handler failed: %d PC=%08X\n",fr,find.cpu.pc);
+                  free(elf);free(ram);return 21;
+                }
+                printf("  Guest FindAddress #%u returned %08X after %u physical RAM reads\n",
+                   which+1,find.matched_guest_address,find.loads);
+                if(ae3_guest_find_commit(&hook,&find)!=AE3_FIND_RETURNED){
+                  fprintf(stderr,"Handler return commit failed\n");free(elf);free(ram);return 22;
+                }
+                AE3_HookResult follow=ae3_boot_hook_slice(&hook,ram,RAM_SIZE,100);
+                if(which==0) {
+                  if(follow!=AE3_HOOK_GUEST_SYSCALL||
+                     ae3_boot_hook_route(&hook,&syscall_kernel,&handler)!=AE3_HOOK_GUEST_SYSCALL){
+                     fprintf(stderr,"Second original syscall not reached\n");free(elf);free(ram);return 23;
+                  }
+                }else if(follow!=AE3_HOOK_FIND_PAIR_COMPLETE){
+                  fprintf(stderr,"FindAddress pair did not complete: %d\n",follow);
+                  free(elf);free(ram);return 24;
+                }
+             }
+             printf("Original code reached %08X after both guest handlers (still no BIOS/kernel services).\n",hook.cpu.pc);
+             printf("  Runtime registers: s0=%016llX s1=%016llX s2=%016llX s3=%016llX s4=%016llX s5=%016llX s6=%016llX sp=%016llX\n",
+               (unsigned long long)hook.cpu.gpr[16][0],(unsigned long long)hook.cpu.gpr[17][0],
+               (unsigned long long)hook.cpu.gpr[18][0],(unsigned long long)hook.cpu.gpr[19][0],
+               (unsigned long long)hook.cpu.gpr[20][0],(unsigned long long)hook.cpu.gpr[21][0],
+               (unsigned long long)hook.cpu.gpr[22][0],(unsigned long long)hook.cpu.gpr[29][0]);
+          }else{
+             printf("Guest handler requires kernel memory mapping. Run --test-ee-alias after test flags to use the current EE RAM, without BIOS initialization.\n");
+          }
           routed=1;break;
        }
        if(state!=AE3_HOOK_SET_SYSCALL) {
