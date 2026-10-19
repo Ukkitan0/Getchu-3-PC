@@ -23,6 +23,19 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m unittest discover -s native/tools -p 'test_prepare_owned_assets.py' -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Validate native-only local asset-preparation PowerShell syntax
+        shell: pwsh
+        run: |
+          $script = "native/tools/PREPARE_NATIVE_ASSETS_WINDOWS.ps1"
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path $script).Path, [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -ne 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+          Write-Host 'Native owned-asset preparation launcher syntax: OK'
       - name: Configure native host-only engine
         shell: pwsh
         run: |
