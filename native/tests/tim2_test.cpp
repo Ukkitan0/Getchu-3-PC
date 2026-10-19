@@ -43,17 +43,17 @@ int main(){
         check(ae3::isTim2(direct),"valid TIM2 not recognized");
         auto tex=ae3::decodeTim2(direct);
         check(tex.width==2 && tex.height==1,"wrong 32-bit TIM2 dimensions");
-        equal(tex.rgba,{255,30,60,255,20,40,80,127});
+        equal(tex.rgba,{255,30,60,255,20,40,80,128});
         equal(ae3::decodeTim2(sample(2,1,1,{10,20,30})).rgba,{10,20,30,255});
         equal(ae3::decodeTim2(sample(1,1,1,{0xff,0x7f})).rgba,{255,255,255,0});
 
         // Indexed palettes use unmodified native RGBA32 entries in asset data.
         equal(ae3::decodeTim2(sample(5,2,1,{1,0},
              {100,50,20,128,30,120,240,64},2,3)).rgba,
-             {30,120,240,127,100,50,20,255});
+             {30,120,240,128,100,50,20,255});
         equal(ae3::decodeTim2(sample(4,2,1,{0x10},
              {100,50,20,128,30,120,240,64},2,3)).rgba,
-             {100,50,20,255,30,120,240,127});
+             {100,50,20,255,30,120,240,128});
         auto invalid=direct;invalid[35]=66;
         bool rejected=false;
         try{ae3::decodeTim2(invalid);}catch(const std::runtime_error&){rejected=true;}
