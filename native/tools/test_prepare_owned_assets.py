@@ -113,8 +113,10 @@ class SaruBridgeTests(unittest.TestCase):
         library = self.root / "Saru3VfiTool.dll"
         library.write_bytes(b"synthetic .NET assembly")
         self.assertEqual(saru_command(library), ["dotnet", str(library)])
+        badTool = self.root / "DATA.BIN"
+        badTool.write_bytes(b"synthetic, not an executable")
         with self.assertRaisesRegex(ValueError, "exe or .dll"):
-            saru_command(self.root / "DATA.BIN")
+            saru_command(badTool)
 
     def test_keeps_tex_options_explicit(self):
         def runner(command, **kwargs):
