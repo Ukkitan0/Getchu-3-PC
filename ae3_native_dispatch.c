@@ -37,3 +37,10 @@ int ae3_run_native_caller_slice(AE3_ScalarContext *ctx,AE3_CallFrame *frame,
 }
 size_t ae3_native_caller_count(void) {return ae3_call_count();}
 uint32_t ae3_native_caller_address(size_t index) {return ae3_call_address(index);}
+
+void ae3_native_stack_init(AE3_StackFrame *frame,uint32_t entry){ae3_stack_init(frame,entry);}
+int ae3_run_native_stack_slice(AE3_ScalarContext *ctx,AE3_StackFrame *frame,uint32_t budget){
+    return ae3_run_stack_slice(ctx,frame,budget);
+}
+size_t ae3_native_stack_count(void){return ae3_stack_count();}
+uint32_t ae3_native_stack_address(size_t index){return ae3_stack_address(index);}
