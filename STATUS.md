@@ -1,3 +1,14 @@
+## Retail semaphores and first syscall-hook registration — 2026-10-18
+
+- Verified 34 additional original guest instructions in `0x0043FC08` and its two `CreateSema` syscall wrappers; returned EE semaphore IDs are written by the original code to `0x006A1EA8`/`0x006A1EAC`.
+- Opt-in native EE semaphore model supports 256 IDs, create, poll and signal, but is NOT an accurate PS2 BIOS kernel implementation.
+- The next original initialization routine is executed through the first `SetSyscall` syscall `0x74` at PC `0x0043FE4C`, with handler `0x0043FCC0` and guest requested syscall `0x83`. No actual hook installation has occurred.
+- ASan/UBSan and compiler-warning-as-error checks pass for the three new test programs; all three new C modules compile to Windows x64 COFF objects.
+- Default authentic boot still stops at `SetupThread` and does NOT use the experimental kernel model without explicit flags. Not playable.
+- Details: [CHECKPOINT_SEMA_HOOK.md](CHECKPOINT_SEMA_HOOK.md).
+
+---
+
 ## Kernel/heap service boundary and first initialization call (2026-10-18)
 
 - Added `ae3_boot_kernel_bridge.[ch]`: captures true SetupThread 0x3C and SetupHeap 0x3D registers, enforces externally supplied verified kernel response, validates checked service state, and executes subsequent original retail userland instructions. Test-only stack fixture is NEVER equivalent to real BIOS behavior.
