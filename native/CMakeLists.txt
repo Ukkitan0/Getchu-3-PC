@@ -76,3 +76,9 @@ target_link_libraries(Getchu3LuaStageRunner PRIVATE Getchu3Assets)
 add_executable(Getchu3LuaRuntimeTests tests/lua_runtime_test.cpp)
 target_link_libraries(Getchu3LuaRuntimeTests PRIVATE Getchu3Assets)
 add_test(NAME NativeLua50RealStageExecution COMMAND Getchu3LuaRuntimeTests)
+add_test(NAME NativeLua50StageRunnerDemo
+  COMMAND Getchu3LuaStageRunner
+          "${CMAKE_CURRENT_SOURCE_DIR}/examples/native_binding_demo.lua" "entry")
+set_tests_properties(NativeLua50StageRunnerDemo PROPERTIES
+  PASS_REGULAR_EXPRESSION "Native entities declared: 4")
+
