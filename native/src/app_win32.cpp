@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <cwctype>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -400,17 +401,9 @@ void openFile(){
     dialog.lpstrTitle=L"Choose YOUR Ape Escape 3 USA ISO or extracted DATA.BIN";
     if(GetOpenFileNameW(&dialog))loadArchive(name);
 }
-void openNativeGlb(){
-    wchar_t name[32768]={};
-    OPENFILENAMEW dialog{};
-    dialog.lStructSize=sizeof(dialog);
-    dialog.hwndOwner=gMain;dialog.lpstrFile=name;dialog.nMaxFile=32768;
-    dialog.lpstrFilter=L"Native I3D/GLB models (*.glb)\0*.glb\0All files (*.*)\0*.*\0";
-    dialog.Flags=OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_EXPLORER;
-    dialog.lpstrTitle=L"Open native GLB exported from original AE3 I3D model";
-    if(!GetOpenFileNameW(&dialog))return;
+void loadNativeGlb(const fs::path& path){
     try{
-        const auto scene=ae3::loadStaticGlb(fs::path(name));
+        const auto scene=ae3::loadStaticGlb(path);
         if(!gRenderer.displayScene(scene))
             throw std::runtime_error("Direct3D11 vertex buffer upload failed");
         gX=scene.bounds.center[0];
@@ -432,6 +425,16 @@ void openNativeGlb(){
     }catch(const std::exception& error){
         status(L"Native GLB model load failed: "+wide(error.what()));
     }
+}
+void openNativeGlb(){
+    wchar_t name[32768]={};
+    OPENFILENAMEW dialog{};
+    dialog.lStructSize=sizeof(dialog);
+    dialog.hwndOwner=gMain;dialog.lpstrFile=name;dialog.nMaxFile=32768;
+    dialog.lpstrFilter=L"Native I3D/GLB models (*.glb)\0*.glb\0All files (*.*)\0*.*\0";
+    dialog.Flags=OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_EXPLORER;
+    dialog.lpstrTitle=L"Open native GLB exported from original AE3 I3D model";
+    if(GetOpenFileNameW(&dialog))loadNativeGlb(fs::path(name));
 }
 void openRecoveredStage(){
     wchar_t path[32768]={};
@@ -598,17 +601,22 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
     case WM_KEYUP: if(w<256)gKeys[w]=false;return 0;
     case WM_TIMER:
         if(w==1){
+            // Host keyboard state works even if list box / child D3D view is focused.
+            auto held=[&](int key)->bool{
+                return GetForegroundWindow()==wnd &&
+                       (GetAsyncKeyState(key)&0x8000)!=0;
+            };
             float speed=.055f;
-            if(gKeys[VK_SHIFT])speed*=3;
-            float dx=std::sin(gYaw),dz=std::cos(gYaw);
-            if(gKeys['W']){gX+=dx*speed;gZ+=dz*speed;}
-            if(gKeys['S']){gX-=dx*speed;gZ-=dz*speed;}
-            if(gKeys['A']){gX-=dz*speed;gZ+=dx*speed;}
-            if(gKeys['D']){gX+=dz*speed;gZ-=dx*speed;}
-            if(gKeys['Q'])gHeight-=speed;
-            if(gKeys['E'])gHeight+=speed;
-            if(gKeys[VK_LEFT])gYaw-=.025f;
-            if(gKeys[VK_RIGHT])gYaw+=.025f;
+            if(held(VK_SHIFT))speed*=3;
+            const float dx=std::sin(gYaw),dz=std::cos(gYaw);
+            if(held('W')){gX+=dx*speed;gZ+=dz*speed;}
+            if(held('S')){gX-=dx*speed;gZ-=dz*speed;}
+            if(held('A')){gX-=dz*speed;gZ+=dx*speed;}
+            if(held('D')){gX+=dz*speed;gZ-=dx*speed;}
+            if(held('Q'))gHeight-=speed;
+            if(held('E'))gHeight+=speed;
+            if(held(VK_LEFT))gYaw-=.025f;
+            if(held(VK_RIGHT))gYaw+=.025f;
             // Runtime stage controller events run against host-monotonic
             // time; no PlayStation 2 hardware clock or system is simulated.
             const auto now=std::chrono::steady_clock::now();
@@ -665,7 +673,12 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR command,int show){
     if(command && *command){
         std::wstring arg=command;
         if(arg.front()==L'"' && arg.back()==L'"')arg=arg.substr(1,arg.size()-2);
-        loadArchive(fs::path(arg));
+        const fs::path file=fs::path(arg);
+        std::wstring extension=file.extension().wstring();
+        std::transform(extension.begin(),extension.end(),extension.begin(),
+                       [](wchar_t c){return wchar_t(std::towlower(c));});
+        if(extension==L".glb")loadNativeGlb(file);
+        else loadArchive(file);
     }
     MSG message{};
     while(GetMessageW(&message,nullptr,0,0)>0){
