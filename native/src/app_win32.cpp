@@ -1,4 +1,5 @@
 #include "ae3/archive.hpp"
+#include "ae3/tim2.hpp"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -67,6 +68,37 @@ public:
             nullptr,&vs_)))return false;
         if(FAILED(device_->CreatePixelShader(ps->GetBufferPointer(),ps->GetBufferSize(),
             nullptr,&ps_)))return false;
+        // Original game TIM2 pixels are converted into a regular D3D11 texture.
+        // Preview runs a native shader; no PlayStation graphics commands exist.
+        const char* previewShader=R"(
+            Texture2D Texture:register(t0);
+            SamplerState Sampler:register(s0);
+            struct PreviewOut {float4 position:SV_POSITION;float2 uv:TEXCOORD0;};
+            PreviewOut PreviewVS(uint id:SV_VertexID){
+                float2 uv=float2((id==2)?2:0,(id==1)?2:0);
+                PreviewOut o;
+                o.position=float4(uv*float2(2,-2)+float2(-1,1),0,1);
+                o.uv=uv;
+                return o;
+            }
+            float4 PreviewPS(PreviewOut i):SV_TARGET{
+                return Texture.Sample(Sampler,i.uv);
+            }
+        )";
+        ComPtr<ID3DBlob> pvs,pps;
+        if(FAILED(D3DCompile(previewShader,strlen(previewShader),nullptr,nullptr,nullptr,
+            "PreviewVS","vs_4_0",0,0,&pvs,&errors)))return false;
+        if(FAILED(D3DCompile(previewShader,strlen(previewShader),nullptr,nullptr,nullptr,
+            "PreviewPS","ps_4_0",0,0,&pps,&errors)))return false;
+        if(FAILED(device_->CreateVertexShader(pvs->GetBufferPointer(),pvs->GetBufferSize(),
+            nullptr,&previewVS_)))return false;
+        if(FAILED(device_->CreatePixelShader(pps->GetBufferPointer(),pps->GetBufferSize(),
+            nullptr,&previewPS_)))return false;
+        D3D11_SAMPLER_DESC sampler{};
+        sampler.Filter=D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        sampler.AddressU=sampler.AddressV=sampler.AddressW=D3D11_TEXTURE_ADDRESS_CLAMP;
+        sampler.MaxLOD=D3D11_FLOAT32_MAX;
+        if(FAILED(device_->CreateSamplerState(&sampler,&sampler_)))return false;
         const D3D11_INPUT_ELEMENT_DESC input[] = {
             {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D11_INPUT_PER_VERTEX_DATA,0},
             {"COLOR",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,12,D3D11_INPUT_PER_VERTEX_DATA,0}
@@ -104,6 +136,23 @@ public:
         if(FAILED(device_->CreateRenderTargetView(back.Get(),nullptr,&target_)))return false;
         width_=width;height_=height;return true;
     }
+    void clearTexture(){previewSRV_.Reset();}
+    bool displayTexture(const ae3::Texture& image){
+        if(!device_ || !image.width || !image.height ||
+            image.rgba.size()!=std::size_t(image.width)*image.height*4)return false;
+        clearTexture();
+        D3D11_TEXTURE2D_DESC tex{};
+        tex.Width=image.width;tex.Height=image.height;
+        tex.MipLevels=1;tex.ArraySize=1;
+        tex.Format=DXGI_FORMAT_R8G8B8A8_UNORM;
+        tex.SampleDesc.Count=1;tex.Usage=D3D11_USAGE_IMMUTABLE;
+        tex.BindFlags=D3D11_BIND_SHADER_RESOURCE;
+        D3D11_SUBRESOURCE_DATA data{};
+        data.pSysMem=image.rgba.data();data.SysMemPitch=image.width*4;
+        ComPtr<ID3D11Texture2D> texture;
+        if(FAILED(device_->CreateTexture2D(&tex,&data,&texture)))return false;
+        return SUCCEEDED(device_->CreateShaderResourceView(texture.Get(),nullptr,&previewSRV_));
+    }
     void render(){
         if(!target_)return;
         static constexpr float sky[4]={.055f,.09f,.14f,1};
@@ -112,6 +161,22 @@ public:
         vp.MinDepth=0;vp.MaxDepth=1;
         context_->RSSetViewports(1,&vp);
         context_->OMSetRenderTargets(1,target_.GetAddressOf(),nullptr);
+        if(previewSRV_) {
+            // Draw a native fullscreen texture via SV_VertexID (no vertex buffer).
+            context_->IASetInputLayout(nullptr);
+            context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            context_->VSSetShader(previewVS_.Get(),nullptr,0);
+            context_->PSSetShader(previewPS_.Get(),nullptr,0);
+            ID3D11ShaderResourceView* image=previewSRV_.Get();
+            ID3D11SamplerState* sampler=sampler_.Get();
+            context_->PSSetShaderResources(0,1,&image);
+            context_->PSSetSamplers(0,1,&sampler);
+            context_->Draw(3,0);
+            ID3D11ShaderResourceView* empty=nullptr;
+            context_->PSSetShaderResources(0,1,&empty);
+            swap_->Present(1,0);
+            return;
+        }
         XMVECTOR pos=XMVectorSet(gX,gHeight,gZ,1);
         XMVECTOR target=XMVectorSet(gX+std::sin(gYaw),gHeight-.3f,
                                     gZ+std::cos(gYaw),1);
@@ -147,6 +212,10 @@ private:
     ComPtr<ID3D11Buffer> vertices_,constants_;
     ComPtr<ID3D11VertexShader> vs_;
     ComPtr<ID3D11PixelShader> ps_;
+    ComPtr<ID3D11VertexShader> previewVS_;
+    ComPtr<ID3D11PixelShader> previewPS_;
+    ComPtr<ID3D11ShaderResourceView> previewSRV_;
+    ComPtr<ID3D11SamplerState> sampler_;
     ComPtr<ID3D11InputLayout> layout_;
 } gRenderer;
 std::wstring wide(const std::string& s) {
@@ -167,6 +236,7 @@ void loadArchive(const fs::path& path){
             SendMessageW(gList,LB_ADDSTRING,0,reinterpret_cast<LPARAM>(name.c_str()));
         }
         gSource=path.wstring();
+        gRenderer.clearTexture();
         gArchive=std::move(mounted);
         std::wstringstream info;info<<L"Native mount: "<<gArchive->entries().size()
             <<L" real AE3 assets | "<<wide(gArchive->sourceKind())
@@ -254,6 +324,21 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
                 std::wstringstream info;info<<wide(e.path)<<L" | "<<e.size
                     <<L" original bytes | "<<wide(ae3::assetType(e.path))
                     <<L" | export is native file I/O; no game logic is running.";
+                gRenderer.clearTexture();
+                if(e.size<=16*1024*1024) {
+                    try {
+                        auto bytes=gArchive->read(e);
+                        if(ae3::isTim2(bytes)){
+                            auto image=ae3::decodeTim2(bytes);
+                            if(gRenderer.displayTexture(image)){
+                                info<<L" | LIVE NATIVE TIM2 PREVIEW "<<image.width
+                                    <<L"x"<<image.height;
+                            }else info<<L" | D3D11 texture upload failed";
+                        }
+                    } catch(const std::exception& error) {
+                        info<<L" | asset preview unavailable: "<<wide(error.what());
+                    }
+                }
                 status(info.str());
             }
         }
