@@ -1,3 +1,32 @@
+## October 19, 2026 — REAL native Lua 5.0 gameplay scripting subsystem
+
+**Original-style AE3 stage Lua source now ACTUALLY RUNS inside the Windows
+C++20 + Direct3D11 engine** using the official SHA256-pinned Lua 5.0.3
+interpreter. The project keeps stage behavior written in Lua rather than
+rewriting its script logic into C++. The engine directly executes
+setupArea(opts), creates native entity descriptions, preserves original
+Lua parameters, nested c_order/c_ctrl command trees and flags, and now
+advances controller timelines with native elapsed game time. Timed wait,
+nested/looping controllers, trigger signals and typed action event
+dispatch are implemented. Independent Windows CTest ran real Lua 5.0
+code and verified controller behavior; no PS2 hardware runtime is involved.
+
+The Windows-native GUI offers "Run original Lua 5.0 stage" for locally
+recovered Lua SOURCE and a "Signal Lua trigger" test control; standalone
+Getchu3LuaStageRunner.exe runs the independently written example from
+native/examples/native_binding_demo.lua. Lua 5.0.3's MIT license and
+official checksum are tracked.
+
+**These are native stage scripting and event systems, not a finished
+Ape Escape 3 level.** The Win32 application still lacks actual original
+models/world rendering, player/monkey movement and interaction, authentic
+animation/collision, sound and complete game binding implementations.
+Original PS2 .luc bytecode must first be converted to source on the user's
+PC. See native/LUA50_NATIVE_GAMEPLAY.md for exact functionality and
+remaining requirements.
+
+---
+
 ## October 19, 2026 — Saru3VfiTool host-native asset preparation (NEW)
 
 The optional third-party [Saru3VfiTool](https://github.com/mthsk/Saru3VfiTool)
