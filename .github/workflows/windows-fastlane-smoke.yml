@@ -61,8 +61,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit 1 }
           $runner = "$env:RUNNER_TEMP\runtime-build\Release\ps2run.exe"
           if (-not (Test-Path -LiteralPath $runner)) { throw 'Runtime executable absent' }
-          & $runner 2>&1 | Out-File "$env:RUNNER_TEMP\usage.txt"
-          if ($LASTEXITCODE -ne 2) { throw "Unexpected no-argument runner exit code $LASTEXITCODE" }
+          # Use Start-Process so the runner usage exit code (2) does not
+          # become a PowerShell native-command error before we check it.
+          $usage = "$env:RUNNER_TEMP\usage.txt"
+          $proc = Start-Process -FilePath $runner -PassThru -Wait -NoNewWindow -RedirectStandardError $usage
+          if ($proc.ExitCode -ne 2) { throw "Unexpected no-argument runner exit code $($proc.ExitCode)" }
       - name: Upload portable-runtime diagnostic artifacts
         if: always()
         uses: actions/upload-artifact@v4
