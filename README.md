@@ -8,7 +8,23 @@ input, sound and saves. Older recompilation efforts are reference material only.
 This public repository contains recovery tools, original implementations,
 and tests, **not** the copyrighted ISO, ELF, BIOS, ROM or game assets.
 
-## Latest checkpoint — second Timer2 MODE and event initializer
+## Latest checkpoint — corrected CreateSema and original CreateThread boundary
+
+- Recovered missing retail MIPS instruction bytes from the user's PCSX2 EE
+  savestate (post-boot reference, **not BIOS boot state**). All **171** original
+  words across three pinned TSV files match its EE RAM bytes.
+- Corrected syscall `0x40`: **CreateSema**, not CreateEventFlag (`0x50`).
+  The actual MIPS return wrapper, semaphore ID delay-slot store, and thread
+  descriptor setup now execute to **CreateThread syscall `0x20` at
+  `0x004358E4`**. Both success and failure branches have verified native
+  regression coverage, including Clang ASan/UBSan.
+- **323,444** composed original guest instructions on the experimental boot
+  path; retail ELF complete boot integration, authentic BIOS, graphics, audio,
+  IOP, and gameplay remain **unverified/unimplemented**. Not playable.
+
+See [CHECKPOINT_SEMA_THREAD.md](CHECKPOINT_SEMA_THREAD.md).
+
+## Previous checkpoint — second Timer2 MODE and event initializer
 
 - The original guest MODE read at `0x00440710` is now performed against a
   mapped Timer 2 native register, not inferred. The enabled branch executes

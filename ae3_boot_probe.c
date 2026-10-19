@@ -420,19 +420,36 @@ int main(int argc,char**argv) {
                                      if(event_status==AE3_EVT_SYSCALL_PENDING){
                                          if(event_init.cpu.pc!=AE3_EVENT_GUEST_SYSCALL||
                                             event_init.cpu.gpr[3][0]!=0x40u){
-                                             fprintf(stderr,"Guest event syscalls not decoded\n");
+                                             fprintf(stderr,"Guest CreateSema syscall 0x40 not decoded\n");
                                              free(elf);free(ram);return 55;
                                          }
-                                         printf("EXPERIMENTAL: original event initializer loaded 006A1788=%08X; reached syscall 0x40 at %08X, argument guest=%08X, retired=%llu. Kernel syscall NOT answered.\n",
-                                            event_init.observed_global,event_init.cpu.pc,
-                                            (unsigned)event_init.cpu.gpr[4][0],
+                                         printf("EXPERIMENTAL original CreateSema descriptor at %08X; PC=%08X retired=%llu.\n",
+                                            (unsigned)event_init.cpu.gpr[4][0],event_init.cpu.pc,
                                             (unsigned long long)event_init.cpu.retired);
+                                         /* Same stateful semaphore compatibility registry used by
+                                            the earlier game's CreateSema calls. Not Sony BIOS. */
+                                         if(ae3_boot_event_service_sema(&event_init,&bus,&semakernel)!=AE3_EVT_YIELDED){
+                                             fprintf(stderr,"Original CreateSema syscall descriptor unreadable\n");
+                                             free(elf);free(ram);return 57;
+                                         }
+                                         event_status=ae3_boot_event_slice(&event_init,&bus,128);
+                                         if(event_status!=AE3_EVT_THREAD_SYSCALL_PENDING&&
+                                            event_status!=AE3_EVT_RETURNED){
+                                             fprintf(stderr,"Original semaphore return path halted PC=%08X status=%d\n",
+                                                 event_init.cpu.pc,(int)event_status);
+                                             free(elf);free(ram);return 58;
+                                         }
+                                         printf("EXPERIMENTAL CreateSema ID=%d; original MIPS branch reached %08X (retired=%llu); %s.\n",
+                                             event_init.sema_result,event_init.cpu.pc,
+                                             (unsigned long long)event_init.cpu.retired,
+                                             event_status==AE3_EVT_THREAD_SYSCALL_PENDING?
+                                                "next CreateThread 0x20 syscall is pending":"semaphore failure returned to initializer");
                                      }else if(event_status==AE3_EVT_RETURNED){
                                          printf("EXPERIMENTAL: existing event state %08X took original skip branch, returned to %08X, retired=%llu.\n",
                                             event_init.observed_global,event_init.cpu.pc,
                                             (unsigned long long)event_init.cpu.retired);
                                      }else{
-                                         fprintf(stderr,"Original next event initializer unsupported at %08X (result %d)\n",
+                                         fprintf(stderr,"Original semaphore/thread initializer unsupported at %08X (result %d)\n",
                                             event_init.cpu.pc,(int)event_status);
                                          free(elf);free(ram);return 56;
                                      }

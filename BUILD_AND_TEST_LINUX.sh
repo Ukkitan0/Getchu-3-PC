@@ -208,8 +208,9 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c \
   test_boot_timer2_finish.c -o build/test_boot_timer2_finish
 ./build/test_boot_timer2_finish
 
-# Original next system initialization: real 0x006A1788 global state, guest
-# descriptor stores and syscall 0x40 (stopped before experimental service).
+# Original semaphore/thread startup: real 0x006A1788 global, CreateSema
+# syscall 0x40, guest JR/BLTZ/delay-slot, then CreateThread 0x20 boundary.
 cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c \
-  ae3_boot_event_create.c test_boot_event_create.c -o build/test_boot_event_create
+  ae3_boot_event_create.c ae3_ee_sema_kernel.c ae3_boot_semaphore_init.c \
+  test_boot_event_create.c -o build/test_boot_event_create
 ./build/test_boot_event_create

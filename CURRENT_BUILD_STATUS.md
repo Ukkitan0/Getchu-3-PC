@@ -1,3 +1,18 @@
+# October 19 — CreateSema original return / CreateThread next boundary (newest)
+
+The original syscall at `0x00435AE4` is **CreateSema (0x40)**, not
+CreateEventFlag (0x50). A user-supplied PCSX2 post-boot snapshot confirmed
+171/171 currently pinned guest instruction bytes. The stateful compatibility
+semaphore model now responds to the guest descriptor; the retail guest JR,
+BLTZ, delay-slot store, CreateThread descriptor construction and wrapper run
+through the next pending syscall **0x20 at 0x004358E4**.
+
+Both success and failure tests pass, including Clang ASan/UBSan. Experimental
+instruction accounting is 323,444 along the default compatible branch. The
+full executable/BIOS runtime is not present; **NOT PLAYABLE**.
+
+See `CHECKPOINT_SEMA_THREAD.md`.
+
 # October 19 — second Timer 2 MODE and event initializer (newest)
 
 - Retail guest `LW` at `0x00440710` now executed through MMIO, followed by

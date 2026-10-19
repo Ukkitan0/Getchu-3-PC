@@ -1,3 +1,13 @@
+## October 19 — corrected CreateSema and CreateThread boundary (latest)
+
+Recovered the 32-MiB EE RAM from the previously provided user savestate, and
+validated all 171 pinned original opcode rows against it. Syscall 0x40 is
+CreateSema; 0x50 is CreateEventFlag. Actual original MIPS now executes the
+CreateSema result path into thread-descriptor construction and reaches the
+CreateThread syscall 0x20 at 0x004358E4 (positive-ID path), or exits to the
+parent initializer on generic negative service failure. Tested under ASan and
+UBSan; compatibility mode only, **NOT A PLAYABLE PORT**.
+
 ## October 19 — Timer 2 second MODE + guest event syscall (latest)
 
 Original retail instruction `0x00440710` is now executed, and both MODE
