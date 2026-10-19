@@ -66,34 +66,7 @@ $first = Execute 'first-run' $false
 if (-not (Test-Path -LiteralPath $Misses)) { throw "Initial JALR code miss not recorded; see $($first.trace)" }
 if (-not (Test-Path -LiteralPath $Ram)) { throw "No guest RAM image after missing code; see $($first.trace)" }
 $firstMiss = Get-Content -LiteralPath $Misses -Raw
-if ($firstMiss -notmatch '(?im)^(?:0x)?0*110000\s* { throw "Expected JALR into 00110000, misses were: $firstMiss" }
-Checked 'py' @('-3',(Join-Path $Upstream 'scripts\windows.py'),'capture',$Elf,$Ram,$Overlays,$Misses)
-$images = @(Get-ChildItem -LiteralPath $Overlays -Filter '*.bin' -File)
-if ($images.Count -ne 1) { throw "Expected exactly one captured window image, found $($images.Count)" }
-$overlayMiss = Get-Content -LiteralPath $Misses -Raw
-if ($overlayMiss -notmatch '(?i)00110000_[0-9a-f]{8}:0\b') { throw "Missing PC not rebased into captured overlay: $overlayMiss" }
-Copy-Item -LiteralPath $Misses -Destination $Entries -Force
-Translate
-Remove-Item -LiteralPath $Misses,$Ram -ErrorAction SilentlyContinue
-$second = Execute 'recompiled-run' $true
-$trace = Get-Content -LiteralPath $second.trace -Raw
-if ($second.code -ne 0 -or $trace -notmatch '(?m)^\[peek\] 00012000:\s+0000008f\b' -or
-    $trace -notmatch '(?m)^\[ee\] stopped after .*:\s*Exit\s*$') {
-    throw "Recompiled code-window execution failed (exit $($second.code)), inspect $($second.trace)"
-}
-[ordered]@{
-    result = 'PASS'
-    original_game_code_used = $false
-    observed_initial_code_miss = '00110000'
-    discovered_executable_window = $images[0].Name
-    dynamic_overlay_entry = $overlayMiss.Trim()
-    recompiled_guest_store_address = '00012000'
-    recompiled_guest_store_value = '0000008f'
-    runner_exit_code = $second.code
-} | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $Report -Encoding UTF8
-Write-Host "SYNTHETIC NATIVE CODE WINDOW PASS: missing JALR -> RAM capture -> overlay AOT -> 143 -> Exit"
-Write-Host "Report: $Report"
-) { throw "Expected JALR into 00110000, misses were: $firstMiss" }
+if ($firstMiss -notmatch '(?im)^(?:0x)?0*110000\s*$') { throw "Expected JALR into 00110000, misses were: $firstMiss" }
 Checked 'py' @('-3',(Join-Path $Upstream 'scripts\windows.py'),'capture',$Elf,$Ram,$Overlays,$Misses)
 $images = @(Get-ChildItem -LiteralPath $Overlays -Filter '*.bin' -File)
 if ($images.Count -ne 1) { throw "Expected exactly one captured window image, found $($images.Count)" }
