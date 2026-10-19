@@ -1,0 +1,27 @@
+GETCHU-3-PC — second constructor focused verification — 2026-10-19
+gcc -O2 bounded execution:
+PASS numeric pre-call: 46 further retail MIPS, double high=40240000, next JAL at 0041F118
+PASS second retail constructor: 51 original MIPS instructions, two real stub calls, numeric routine pending at 0041EFD0
+clang AddressSanitizer and UndefinedBehaviorSanitizer:
+PASS numeric pre-call: 46 further retail MIPS, double high=40240000, next JAL at 0041F118
+PASS second retail constructor: 51 original MIPS instructions, two real stub calls, numeric routine pending at 0041EFD0
+Prior first-constructor regression:
+PASS first guest constructor cold: 225 retired MIPS; 12 reference-counter stores and 12 genuine stub calls; next PC 00428AE8
+PASS first guest constructor already initialized: 164 retired MIPS; 12 reference-counter stores and 0 genuine stub calls; next PC 00428AE8
+PASS first guest constructor cold: 225 retired MIPS; 12 reference-counter stores and 12 genuine stub calls; next PC 00428AFC
+PASS original first constructor executed through JALR, tail-call, 12 flag checks, stub returns, dispatcher loop
+Prior static-dispatch regression:
+PASS retail static initializer: 64 guest instructions, next JAL 00100354 to 00428B80
+PASS original guest constructor callback pending at 00428AE8, pointer 0041A390 (NOT invoked)
+PASS recovered constructor table: 143 retail callbacks, correct terminal sentinel, atomic scan
+PASS bounded original JALR/static startup; no implicit callback or BIOS state
+Prior TLB regression:
+PASS retail TLB function installer: 1695 real guest instructions, 204 original Copy SW, 3 SetSyscall, 2 FlushCache, GetEntryAddress pending 0043F454
+PASS TLB GetEntry: 227 more original MIPS instructions, 6 searches, 5 SetSyscall, final guest returned at 0043FEA0
+PASS: instruction-verified TLB copy and registry update, no synthetic BIOS execution
+Verified owner-supplied EE snapshot opcode rows:
+PASS: 877 pinned MIPS instruction bytes match the user-supplied EE snapshot
+Windows object identification:
+build/win64/ae3_boot_second_constructor.obj: x86-64 COFF object file, not stripped, 12 sections, symbol offset=0xc2d, 38 symbols, created Mon Oct 19 16:12:02 2026, 1st section name ".text", 2nd section name ".data"
+build/win64/ae3_boot_second_numeric.obj:     x86-64 COFF object file, not stripped, 13 sections, symbol offset=0xfca, 40 symbols, created Mon Oct 19 16:12:02 2026, 1st section name ".text", 2nd section name ".data"
+Integrated AE3 boot diagnostic: linked successfully (not executed with retail ELF).

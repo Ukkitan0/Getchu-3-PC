@@ -150,7 +150,8 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
   ae3_boot_timer2_setup.c ae3_boot_enable_intc.c ae3_boot_timer2_recheck.c \
   ae3_boot_timer2_finish.c ae3_boot_event_create.c ae3_ee_thread_kernel.c ae3_boot_thread_continue.c ae3_boot_thread_next.c \
   ae3_boot_thread_priority.c ae3_boot_osd_entry.c ae3_boot_osd_roundtrip.c \
-  ae3_boot_tlb_patch.c ae3_boot_tlb_finalize.c ae3_boot_post_tlb.c ae3_boot_main_resume.c ae3_boot_static_dispatch.c ae3_boot_first_constructor.c ae3_boot_probe.c -o build/ae3_boot_probe
+  ae3_boot_tlb_patch.c ae3_boot_tlb_finalize.c ae3_boot_post_tlb.c ae3_boot_main_resume.c ae3_boot_static_dispatch.c ae3_boot_first_constructor.c ae3_boot_second_constructor.c \
+  ae3_boot_second_numeric.c ae3_boot_probe.c -o build/ae3_boot_probe
 ./build/ae3_boot_probe "$AE3_ELF"
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture --test-sema-hle
@@ -270,3 +271,11 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c \
   ae3_boot_static_dispatch.c ae3_boot_first_constructor.c \
   test_boot_first_constructor.c -o build/test_boot_first_constructor
 ./build/test_boot_first_constructor
+
+# Second original static callback, executing both original retail return-stub
+# calls and 64-bit numeric helper until the next unimplemented guest JAL.
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_ee_memory_bus.c \
+  ae3_boot_static_dispatch.c ae3_boot_first_constructor.c \
+  ae3_boot_second_constructor.c ae3_boot_second_numeric.c \
+  test_boot_second_constructor.c -o build/test_boot_second_constructor
+./build/test_boot_second_constructor

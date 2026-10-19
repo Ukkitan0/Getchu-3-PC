@@ -134,5 +134,9 @@ clang-cl /nologo /std:c11 /W4 /WX /O2 /c ae3_boot_static_dispatch.c /Fobuild\ae3
 if errorlevel 1 exit /b 1
 clang-cl /nologo /std:c11 /W4 /WX /O2 /c ae3_boot_first_constructor.c /Fobuild\ae3_boot_first_constructor.obj
 if errorlevel 1 exit /b 1
+clang-cl /nologo /std:c11 /W4 /WX /O2 /c ae3_boot_second_constructor.c /Fobuild\ae3_boot_second_constructor.obj
+if errorlevel 1 exit /b 1
+clang-cl /nologo /std:c11 /W4 /WX /O2 /c ae3_boot_second_numeric.c /Fobuild\ae3_boot_second_numeric.obj
+if errorlevel 1 exit /b 1
 echo [AE3] Compiled x64 object files (NOT a playable executable).
 exit /b 0

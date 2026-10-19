@@ -1,21 +1,22 @@
 {
   "project": "Getchu-3-PC",
   "date": "2026-10-19",
-  "status": "first retail constructor executed; next 142 still pending; NOT playable",
-  "verified_boot_pc": "0x00428AE8 (before second retail constructor callback)",
-  "test_mode_retired_guest_instructions": 329376,
+  "status": "second retail constructor entered; numerical helper reaches 0x0041F118; no playable game",
+  "verified_boot_pc": "0x0041F118 (before second constructor nested math JAL)",
+  "test_mode_retired_guest_instructions": 329473,
   "kernel": "experimental compatibility mode; Sony BIOS not emulated",
   "new_modules": [
-    "ae3_boot_first_constructor"
+    "ae3_boot_second_constructor",
+    "ae3_boot_second_numeric"
   ],
   "windows_objects_compiled": 2,
   "retail_elf_sha256_expected": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
   "original_game_data_included": false,
-  "windows_objects_compiled_this_checkpoint": 1,
+  "windows_objects_compiled_this_checkpoint": 2,
   "integrated_retail_ELF_execution_verified_this_checkpoint": false,
   "standalone_guest_fixture_passed": true,
-  "next_work": "execute second real constructor 0x00417C58 -> 0x00417B50; then remaining 141 callbacks",
-  "retail_opcode_words_verified": 712,
+  "next_work": "execute original numeric callee 0x00423E20, then finish second constructor before third 0x003A6CD0",
+  "retail_opcode_words_verified": 877,
   "current_thread_id_fixture": 255,
   "current_thread_initial_priority_fixture": 64,
   "explicit_osd_word_fixture": "0x00004019",
@@ -23,7 +24,7 @@
     "0x4A SetOsdConfigParam",
     "0x4B GetOsdConfigParam"
   ],
-  "previous_checkpoint_commit": "af5c3156406185fe336da2df77c2cc4c8ea56835",
+  "previous_checkpoint_commit": "eac1fa72fcb86d09d61ba928f588f7347020a177",
   "tlb_copy_original_stores": 204,
   "tlb_bytes_copied": 816,
   "tlb_getentry_calls": 6,
@@ -47,5 +48,11 @@
   "first_ctor_warm_guest_instructions": 164,
   "first_ctor_reference_counter_stores": 12,
   "first_ctor_cold_stub_calls": 12,
-  "first_ctor_second_callback_target": "0x00417C58"
+  "first_ctor_second_callback_target": "0x00417C58",
+  "second_ctor_guest_instructions": 51,
+  "second_ctor_genuine_stub_calls": 2,
+  "second_numeric_guest_instructions": 46,
+  "second_numeric_ieee754_bits": "0x4024000000000000",
+  "second_numeric_next_original_jal": "0x0041F118 -> 0x00423E20",
+  "second_ctor_completed": false
 }

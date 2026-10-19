@@ -33,6 +33,8 @@
 #include "ae3_boot_main_resume.h"
 #include "ae3_boot_static_dispatch.h"
 #include "ae3_boot_first_constructor.h"
+#include "ae3_boot_second_constructor.h"
+#include "ae3_boot_second_numeric.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -712,6 +714,31 @@ int main(int argc,char**argv) {
                                                                      (unsigned long long)(first.cpu.retired-statics.cpu.retired),
                                                                      first.reference_count_stores,first.stub_calls,first.cpu.pc,
                                                                      first.next_constructor,(unsigned long long)first.cpu.retired);
+                                                                  AE3_BootSecondConstructor second;
+                                                                  if(ae3_boot_second_ctor_enter(&second,&first)!=AE3_SC_YIELDED ||
+                                                                     ae3_boot_second_ctor_slice(&second,&bus,200)!=AE3_SC_NUMERIC_PENDING){
+                                                                     fprintf(stderr,"Second original constructor halted at %08X; original numeric call not reached\n",
+                                                                        second.cpu.pc);
+                                                                     free(elf);free(ram);return 84;
+                                                                  }
+                                                                  AE3_BootSecondNumeric numeric;
+                                                                  if(ae3_boot_second_numeric_enter(&numeric,&second)!=AE3_SN_YIELDED ||
+                                                                     ae3_boot_second_numeric_slice(&numeric,&bus,200)!=AE3_SN_MATH_CALL_PENDING){
+                                                                     fprintf(stderr,"Original numeric helper did not reach validated nested JAL\n");
+                                                                     free(elf);free(ram);return 85;
+                                                                  }
+                                                                  printf("EXPERIMENTAL retail second constructor %08X -> %08X: "
+                                                                     "%llu guest MIPS instructions, %u real guest stub calls; "
+                                                                     "numeric pre-call %llu instructions, double high=%08X; "
+                                                                     "next real JAL at %08X to %08X. "
+                                                                     "No numeric result or constructor completion fabricated. Total=%llu.\n",
+                                                                     AE3_SECOND_CTOR_PC,AE3_SECOND_BODY_PC,
+                                                                     (unsigned long long)(second.cpu.retired-first.cpu.retired),
+                                                                     second.stub_calls,
+                                                                     (unsigned long long)(numeric.cpu.retired-second.cpu.retired),
+                                                                     numeric.double_high_word,numeric.cpu.pc,
+                                                                     AE3_SECOND_MATH_CALLEE,
+                                                                     (unsigned long long)numeric.cpu.retired);
                                                                }
                                                             }else if(static_state==AE3_STATIC_NEXT_CALL){
                                                                printf("EXPERIMENTAL retail initializer empty constructor table: %llu more guest instructions, next call %08X -> %08X. This is a state-dependent path, NOT asserted as game boot.\n",

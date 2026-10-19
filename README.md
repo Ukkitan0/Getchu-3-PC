@@ -1,3 +1,15 @@
+## 2026-10-19: second static constructor numeric call reached (NOT PLAYABLE)
+
+The real second constructor `0x00417C58` tail-jumps to `0x00417B50`; its
+original code invokes the genuine guest return stub twice, then enters the
+`0x0041EFD0` numeric routine with IEEE-754 double 10.0. **97** original guest
+instructions execute across the second constructor and numeric prefix, stopping
+**before** `JAL 0x0041F118 -> 0x00423E20`. The second constructor has not
+finished. **877/877** pinned opcode entries match the owner's later-game EE
+reference. Clang sanitizers, GCC, two Windows x64 object builds, boot diagnostic
+linking and existing targeted regressions pass. No verified complete retail ELF
+boot or playable Windows executable. See `CHECKPOINT_SECOND_CONSTRUCTOR.md`.
+
 ## 2026-10-19: first original static constructor executed (NOT PLAYABLE)
 
 Executed real `0x00428AE8` JALR into `0x0041A390`, tail jump to `0x0041A088`,
