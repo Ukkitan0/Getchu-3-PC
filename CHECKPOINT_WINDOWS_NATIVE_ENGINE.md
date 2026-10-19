@@ -103,3 +103,20 @@ intentional usage exit as an error. The process exit check was changed to
 native-command trap. A GPU compilation job was also added; it downloads the
 SHA-256 verified Windows x64 wgpu-native v29.0.1.1 release. These new jobs
 are not claimed successful until actual CI results say so.
+
+## Verified Windows CI milestone and GPU dependency fix (2026-10-19)
+
+GitHub Actions run 39311523506 succeeded on Windows Server 2022 using
+ClangCL: `eerecomp`, `vurecomp`, `ps2runtime`, `ps2game`, and the SDL2
+source-only `ps2run.exe` all built without the user's retail ELF. This
+compilation test deliberately links empty game registration stubs; it is
+**not** an Ape Escape 3 launch or a native gameplay test.
+
+A second CI matrix path downloaded SHA-pinned wgpu-native v29.0.1.1,
+compiled the real Win32 WebGPU renderer into `ps2runtime.lib`, and failed
+at final link because the Rust-based static library needs native Windows
+import libraries. `tools/windows_upstream_patch.py` now links `ws2_32`,
+`ntdll`, `userenv` and additional Win32 libraries; the updated GPU-capable
+link check is covered by `tools/test_windows_fastlane.py`. The new GPU
+CI result is pending; do not claim GPU compilation/link complete before
+that run passes. The local full suite passed 29 tests.
