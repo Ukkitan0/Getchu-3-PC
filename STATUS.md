@@ -1,3 +1,23 @@
+# Current milestone — registered EE syscalls and original FindAddress guest handler
+
+**Experimental. Not playable.** The previous stopping point at `SetSyscall` has
+advanced through *both* original 0x74 registrations. Original syscall 0x83 is
+routed to the retail 0x0043FCC0 guest handler, and its MIPS word-search code
+now runs with a caller-provided KSEG0 map (not a fabricated BIOS result).
+
+- Registered: `0x83 -> 0x0043FCC0`, `0x5A -> 0x0043FC88`.
+- Retired startup guest instructions at first 0x83 syscall: **315,977** in
+  opt-in fixture mode (initial SetupThread stack and semaphores still HLE).
+- Two subsequent guest FindAddress invocations and their wrappers execute
+  on synthetic kernel window through the next 0x0043FDC4 branch.
+- Using the later PCSX2 title-screen *recorded* EE RAM for a reference search:
+  0x0043FCC0 returned 0x80014F0C; 0x0043FC88 returned 0.
+  This is **not** evidence of original boot-time BIOS contents.
+- Tested against real retail ELF, one-instruction scheduling, faults, and
+  AddressSanitizer/UndefinedBehaviorSanitizer; Windows x64 COFF build passed.
+- Actual authentic boot still blocks at SetupThread without a kernel provider.
+  GS/VU/IOP/SIF/audio/gameplay remain to be integrated.
+
 ## Retail semaphores and first syscall-hook registration — 2026-10-18
 
 - Verified 34 additional original guest instructions in `0x0043FC08` and its two `CreateSema` syscall wrappers; returned EE semaphore IDs are written by the original code to `0x006A1EA8`/`0x006A1EAC`.
