@@ -12,6 +12,7 @@ from pathlib import Path
 import bulk_lift as b
 import call_lift as existing
 import resume_lift as resume
+import extend_stack as extension
 
 ROOT=Path(__file__).resolve().parent
 MAX_WORDS=72
@@ -94,7 +95,9 @@ def collect():
             stmt=b.emit(w)
             if stmt is None:break
             code.append((pc,w,'scalar',stmt));pc+=4
-    return dict(sorted(callers.items())),nested,indirect,leaf_entries
+    flow, flow_rejected=extension.collect(b.starts,occupied,set(callers)|leaf_entries)
+    callers.update(flow)
+    return dict(sorted(callers.items())),nested,indirect,leaf_entries,flow,flow_rejected
 
 HEADER=f'''#ifndef AE3_STACK_LEAVES_H
 #define AE3_STACK_LEAVES_H
@@ -120,7 +123,7 @@ uint32_t ae3_stack_address(size_t index);
 '''
 
 def generate():
-    callers,nested,indirect,leaves=collect()
+    callers,nested,indirect,leaves,flow,flow_rejected=collect()
     assert len(callers)==len(set(callers))
     (ROOT/'ae3_stack_leaves.h').write_text(HEADER)
     src=[resume.PREAMBLE.replace('"ae3_resumable_leaves.h"','"ae3_stack_leaves.h"')]
@@ -140,7 +143,7 @@ def generate():
         src.extend([f' case UINT32_C(0x{entry:08X}):', '  switch(a->pc){'])
         for pc,w,kind,arg in code:
             src.extend([f'   case UINT32_C(0x{pc:08X}):{{ /* {w:08X}: {kind} */',
-                        f'    if(a->pending!={1 if kind in ("call_slot","jalr_slot") else 2 if kind=="return_slot" else 0}u) return AE3_RESUME_INVALID;'])
+                        f'    if(a->pending!={1 if kind in ("call_slot","jalr_slot") else 2 if kind=="return_slot" else 3 if kind=="branch_slot" else 0}u) return AE3_RESUME_INVALID;'])
             if kind=='call':
                 src.extend([f'    R[31]=UINT32_C(0x{pc+8:08X});',
                             f'    a->target=UINT32_C(0x{arg:08X}); a->pending=1;',
@@ -148,10 +151,22 @@ def generate():
             elif kind=='jalr':
                 src.extend([f'    {{ uint64_t raw=R[{arg}];',
                             '      if(raw!=(uint64_t)(uint32_t)raw && raw!=(uint64_t)(int64_t)(int32_t)raw) return AE3_RESUME_UNKNOWN;',
-                            '      a->target=(uint32_t)raw;',
-                            '      if(!caller_entry(a->target) && !leaf_entry(a->target)) return AE3_RESUME_UNKNOWN; }',
+                            '      uint32_t candidate=(uint32_t)raw;',
+                            '      if(!caller_entry(candidate) && !leaf_entry(candidate)) return AE3_RESUME_UNKNOWN;',
+                            '      a->target=candidate; }',
                             f'    R[31]=UINT32_C(0x{pc+8:08X});a->pending=1;',
                             f'    a->pc=UINT32_C(0x{pc+4:08X});'])
+            elif kind=='branch':
+                condition,target=arg
+                src.extend([f'    a->target=({condition}) ? UINT32_C(0x{target:08X}) : UINT32_C(0x{pc+8:08X});',
+                            '    a->pending=3;',
+                            f'    a->pc=UINT32_C(0x{pc+4:08X});'])
+            elif kind=='jump':
+                src.extend([f'    a->target=UINT32_C(0x{arg:08X});a->pending=3;',
+                            f'    a->pc=UINT32_C(0x{pc+4:08X});'])
+            elif kind=='branch_slot':
+                src.extend([f'    {arg or "/* nop */"}',
+                            '    a->pc=a->target;a->target=0;a->pending=0;'])
             elif kind in ('call_slot','jalr_slot'):
                 # Atomic bound/target validation BEFORE modifying slot effects.
                 src.append('    if(!caller_entry(a->target) && !leaf_entry(a->target)) return AE3_RESUME_UNKNOWN;')
@@ -188,7 +203,7 @@ def generate():
                 ' if(!f->depth||f->frames[0].entry!=f->entry)return AE3_RESUME_INVALID;',
                 ' while(budget){',
                 '  AE3_StackActivation *a=&f->frames[f->depth-1u];',
-                '  if(a->reserved||a->pending>2||a->leaf_active>1)return AE3_RESUME_INVALID;',
+                '  if(a->reserved||a->pending>3||a->leaf_active>1)return AE3_RESUME_INVALID;',
                 '  if(a->leaf_active){',
                 '   uint64_t before=a->leaf.retired;',
                 '   int status=ae3_run_resume_slice(c,&a->leaf,budget);',
@@ -210,13 +225,15 @@ def generate():
                 'uint32_t ae3_stack_address(size_t i){return i<ae3_stack_count()?entries[i]:0;}'])
     (ROOT/'ae3_stack_leaves.c').write_text('\n'.join(src)+'\n')
     report={
-        'retail_sha256':b.EXPECTED,'existing_callers':len(callers)-len(nested)-len(indirect),
-        'new_nested_callers':len(nested),'new_jalr_callers':len(indirect),
+        'retail_sha256':b.EXPECTED,'existing_callers':len(callers)-len(nested)-len(indirect)-len(flow),
+        'new_nested_callers':len(nested),'new_jalr_callers':len(indirect),'new_branch_callers':len(flow),
         'jalr_addresses':[f'{a:08X}' for a in indirect],'callers_total':len(callers),
         'new_nested_addresses':[f'{a:08X}' for a in nested],
+        'new_branch_addresses':[f'{a:08X}' for a in flow],
+        'branch_caller_rejections':flow_rejected,
         'nested_direct_edges':sum(k=='call' and v in set(callers) for code in nested.values() for _,_,k,v in code),
-        'stack_bound':MAX_DEPTH,'instructions_new':sum(len(code) for code in nested.values())+sum(len(code) for code in indirect.values()),
-        'scope':'Bounded straight-line scalar callers. JALR supported with strict runtime whitelist of recovered call/leaf targets. Not full R5900 runtime.'
+        'stack_bound':MAX_DEPTH,'instructions_new':sum(len(code) for code in nested.values())+sum(len(code) for code in indirect.values())+sum(len(code) for code in flow.values()),
+        'scope':'Bounded scalar callers with forward CFG branches. JALR supported with strict runtime whitelist of recovered call/leaf targets. Not full R5900 runtime.'
     }
     (ROOT/'stack_lift_report.json').write_text(json.dumps(report,indent=2)+'\n')
     return report
