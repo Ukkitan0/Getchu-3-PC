@@ -11,6 +11,8 @@ on:
       - 'tools/boot_report.py'
       - 'tools/test_boot_report.py'
       - 'tools/bulk_recompile.py'
+      - 'tools/aot_cache.py'
+      - 'tools/test_native_resume.py'
       - 'tools/native_explore.py'
       - 'tools/test_windows_fastlane.py'
       - 'tools/synthetic_aot_smoke.py'
@@ -40,6 +42,7 @@ jobs:
         shell: pwsh
         run: |
           python -m unittest discover -s tools -p 'test_windows_fastlane.py' -v
+          python -m unittest discover -s tools -p 'test_native_resume.py' -v
           python -m unittest discover -s tools -p 'test_synthetic*.py' -v
           python -m unittest discover -s tools -p 'test_prepare_disc.py' -v
           python -m unittest discover -s tools -p 'test_boot_report.py' -v
