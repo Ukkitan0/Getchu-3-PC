@@ -2,6 +2,7 @@
 #define CGLTF_IMPLEMENTATION
 #include "cgltf.h"
 #include <algorithm>
+#include <cctype>
 #include <array>
 #include <cmath>
 #include <cstddef>
@@ -10,6 +11,8 @@
 #include <fstream>
 #include <limits>
 #include <memory>
+#include <map>
+#include <utility>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -49,22 +52,30 @@ void addTriangle(StaticScene& out,Point a,Point b,Point c,
                  const std::array<float,4>& material,
                  const std::array<float,4>& ca,
                  const std::array<float,4>& cb,
-                 const std::array<float,4>& cc){
+                 const std::array<float,4>& cc,
+                 const std::array<float,2>& ua,
+                 const std::array<float,2>& ub,
+                 const std::array<float,2>& uc){
     Point n=cross(diff(b,a),diff(c,a));
     const float length=std::sqrt(dot(n,n));
     if(!std::isfinite(length)||length<1e-8f)return;
     const Point sunlight={0.35f,0.85f,0.39f};
     const float irradiance=std::clamp(
-       0.26f+0.74f*std::abs(dot(n,sunlight)/(length*0.99f)),0.26f,1.f);
-    for(const auto& record : {std::pair{a,ca},std::pair{c,cc},std::pair{b,cb}}){
-        const auto& pos=record.first;
-        const auto& col=record.second;
+        0.26f+0.74f*std::abs(dot(n,sunlight)/(length*0.99f)),0.26f,1.f);
+    // Flip triangle orientation when changing from glTF RH to D3D LH.
+    const std::array<Point,3> coords{a,c,b};
+    const std::array<std::array<float,4>,3> colors{ca,cc,cb};
+    const std::array<std::array<float,2>,3> uvs{ua,uc,ub};
+    for(std::size_t i=0;i<3;++i){
+        const auto& pos=coords[i];
+        const auto& col=colors[i];
         out.triangles.push_back({
             pos[0],pos[1],pos[2],
             materialColor(material.data(),0)*materialColor(col.data(),0)*irradiance,
             materialColor(material.data(),1)*materialColor(col.data(),1)*irradiance,
             materialColor(material.data(),2)*materialColor(col.data(),2)*irradiance,
-            materialColor(material.data(),3)*materialColor(col.data(),3)
+            materialColor(material.data(),3)*materialColor(col.data(),3),
+            uvs[i][0],uvs[i][1]
         });
     }
     if(out.triangles.size()>maxHostVertices)
@@ -86,7 +97,91 @@ std::array<float,4> colorOf(const cgltf_accessor* accessor,cgltf_size index){
     }
     return out;
 }
-void appendMesh(const cgltf_node* node,StaticScene& out){
+std::array<float,2> texcoordOf(const cgltf_accessor* accessor,cgltf_size at){
+    if(!accessor)return {0,0};
+    float uv[2]={0,0};
+    if(!cgltf_accessor_read_float(accessor,at,uv,2))
+        throw std::runtime_error("GLB TEXCOORD_0 accessor cannot be read");
+    return {clean(uv[0]),clean(uv[1])};
+}
+bool withinRoot(const std::filesystem::path& file,const std::filesystem::path& root){
+    auto a=root.begin(),b=file.begin();
+    for(;a!=root.end();++a,++b){
+        if(b==file.end()||*a!=*b)return false;
+    }
+    return true;
+}
+std::filesystem::path allowedTextureRoot(const std::filesystem::path& glb){
+    namespace fs=std::filesystem;
+    fs::path directory=glb.parent_path();
+    for(fs::path cursor=directory;!cursor.empty();cursor=cursor.parent_path()){
+        std::string component=cursor.filename().string();
+        std::transform(component.begin(),component.end(),component.begin(),
+                       [](unsigned char c){return char(std::tolower(c));});
+        if(component=="glb")return cursor.parent_path();
+        if(cursor==cursor.root_path()||cursor.parent_path()==cursor)break;
+    }
+    return directory;
+}
+std::vector<std::uint8_t> originalTextureBytes(const cgltf_image* image,
+                                                const std::filesystem::path* source){
+    namespace fs=std::filesystem;
+    constexpr std::size_t maxTexBytes=32*1024*1024;
+    if(!image)return {};
+    if(image->buffer_view){
+        const auto* view=image->buffer_view;
+        const auto* buffer=view->buffer;
+        if(!buffer||!buffer->data||view->offset>buffer->size ||
+            view->size>buffer->size-view->offset || view->size>maxTexBytes)
+            return {};
+        const auto* bytes=static_cast<const std::uint8_t*>(buffer->data);
+        return std::vector<std::uint8_t>(bytes+view->offset,
+                                         bytes+view->offset+view->size);
+    }
+    if(!source||!image->uri)return {};
+    const std::string uri=image->uri;
+    if(uri.empty()||uri.size()>1024||uri.find(':')!=std::string::npos||
+       uri.find('%')!=std::string::npos||uri.find('?')!=std::string::npos||
+       uri.find('#')!=std::string::npos)return {};
+    const fs::path relative=fs::u8path(uri);
+    if(relative.is_absolute()||relative.has_root_path())return {};
+    std::error_code error;
+    const auto root=fs::weakly_canonical(allowedTextureRoot(*source),error);
+    if(error)return {};
+    const auto resolved=fs::weakly_canonical(source->parent_path()/relative,error);
+    if(error||!withinRoot(resolved,root))return {};
+    if(!fs::is_regular_file(resolved,error)||error)return {};
+    const auto length=fs::file_size(resolved,error);
+    if(error||length<16||length>maxTexBytes)return {};
+    std::ifstream stream(resolved,std::ios::binary);
+    std::vector<std::uint8_t> bytes(static_cast<std::size_t>(length));
+    if(!stream.read(reinterpret_cast<char*>(bytes.data()),
+                    static_cast<std::streamsize>(bytes.size())))return {};
+    return bytes;
+}
+struct TextureCache {
+    StaticScene& out;
+    const std::filesystem::path* file=nullptr;
+    std::map<const cgltf_image*,int> entries;
+    int index(const cgltf_image* image){
+        if(!image)return -1;
+        auto existing=entries.find(image);
+        if(existing!=entries.end())return existing->second;
+        auto bytes=originalTextureBytes(image,file);
+        if(bytes.empty()){
+            ++out.missingTextures;
+            entries[image]=-1;
+            return -1;
+        }
+        if(out.textures.size()>=512)
+            throw std::runtime_error("GLB too many native image resources");
+        const int index=static_cast<int>(out.textures.size());
+        out.textures.push_back({std::move(bytes)});
+        entries[image]=index;
+        return index;
+    }
+};
+void appendMesh(const cgltf_node* node,StaticScene& out,TextureCache& texCache){
     if(!node->mesh)return;
     ++out.sourceNodes;
     cgltf_float matrix[16]{};
@@ -99,11 +194,14 @@ void appendMesh(const cgltf_node* node,StaticScene& out){
         }
         const cgltf_accessor* pos=nullptr;
         const cgltf_accessor* col=nullptr;
+        const cgltf_accessor* uv=nullptr;
         for(cgltf_size a=0;a<primitive.attributes_count;++a){
             const auto& attribute=primitive.attributes[a];
             if(attribute.type==cgltf_attribute_type_position)pos=attribute.data;
             if(attribute.type==cgltf_attribute_type_color &&
                attribute.index==0)col=attribute.data;
+            if(attribute.type==cgltf_attribute_type_texcoord &&
+               attribute.index==0)uv=attribute.data;
         }
         if(!pos || pos->type!=cgltf_type_vec3){
             ++out.unsupportedPrimitives;
@@ -118,6 +216,12 @@ void appendMesh(const cgltf_node* node,StaticScene& out){
             rgba=primitive.material->pbr_metallic_roughness.base_color_factor;
         std::array<float,4> color{};
         for(int i=0;i<4;++i)color[std::size_t(i)]=materialColor(rgba,std::size_t(i));
+        int textureIndex=-1;
+        if(primitive.material && primitive.material->has_pbr_metallic_roughness){
+            const auto* tex=primitive.material->pbr_metallic_roughness.base_color_texture.texture;
+            if(tex)textureIndex=texCache.index(tex->image);
+        }
+        const auto firstVertex=static_cast<std::uint32_t>(out.triangles.size());
         for(cgltf_size i=0;i<count;i+=3){
             std::array<cgltf_size,3> idx{};
             for(cgltf_size k=0;k<3;++k){
@@ -127,25 +231,30 @@ void appendMesh(const cgltf_node* node,StaticScene& out){
                     throw std::runtime_error("GLB triangle index outside POSITION bounds");
                 if(col && idx[k]>=col->count)
                     throw std::runtime_error("GLB COLOR_0 count does not cover vertex");
+                if(uv && idx[k]>=uv->count)
+                    throw std::runtime_error("GLB TEXCOORD_0 does not cover vertex");
             }
             addTriangle(out,
               positionOf(pos,idx[0],matrix),
               positionOf(pos,idx[1],matrix),
               positionOf(pos,idx[2],matrix),
-              color,colorOf(col,idx[0]),colorOf(col,idx[1]),colorOf(col,idx[2]));
+              color,colorOf(col,idx[0]),colorOf(col,idx[1]),colorOf(col,idx[2]),
+              texcoordOf(uv,idx[0]),texcoordOf(uv,idx[1]),texcoordOf(uv,idx[2]));
         }
+        const auto emitted=static_cast<std::uint32_t>(out.triangles.size())-firstVertex;
+        if(emitted)out.batches.push_back({firstVertex,emitted,textureIndex});
         if(node->skin)++out.skinnedPrimitives;
         ++out.sourcePrimitives;
     }
 }
-void visit(const cgltf_node* node,StaticScene& out,unsigned depth,
-           std::vector<const cgltf_node*>& ancestry){
+void visit(const cgltf_node* node,StaticScene& out,TextureCache& textures,
+           unsigned depth,std::vector<const cgltf_node*>& ancestry){
     if(depth>128||std::find(ancestry.begin(),ancestry.end(),node)!=ancestry.end())
         throw std::runtime_error("GLB scene graph has a cycle or excessive depth");
     ancestry.push_back(node);
-    appendMesh(node,out);
+    appendMesh(node,out,textures);
     for(cgltf_size i=0;i<node->children_count;++i)
-        visit(node->children[i],out,depth+1,ancestry);
+        visit(node->children[i],out,textures,depth+1,ancestry);
     ancestry.pop_back();
 }
 void bounds(StaticScene& out){
@@ -173,7 +282,8 @@ void bounds(StaticScene& out){
 }
 } // namespace
 
-StaticScene loadStaticGlbBytes(const std::vector<std::uint8_t>& bytes){
+static StaticScene loadImpl(const std::vector<std::uint8_t>& bytes,
+                            const std::filesystem::path* source){
     if(bytes.size()<20||bytes.size()>maxGlbBytes)
         throw std::runtime_error("invalid/oversized native GLB input");
     cgltf_options options{};
@@ -195,11 +305,15 @@ StaticScene loadStaticGlbBytes(const std::vector<std::uint8_t>& bytes){
     if(!scene && data->scenes_count)scene=&data->scenes[0];
     if(!scene)throw std::runtime_error("GLB has no scene hierarchy");
     StaticScene out;
+    TextureCache textureCache{out,source,{}};
     std::vector<const cgltf_node*> ancestry;
     for(cgltf_size i=0;i<scene->nodes_count;++i)
-        visit(scene->nodes[i],out,0,ancestry);
+        visit(scene->nodes[i],out,textureCache,0,ancestry);
     bounds(out);
     return out;
+}
+StaticScene loadStaticGlbBytes(const std::vector<std::uint8_t>& bytes){
+    return loadImpl(bytes,nullptr);
 }
 StaticScene loadStaticGlb(const std::filesystem::path& path){
     std::error_code error;
@@ -212,6 +326,6 @@ StaticScene loadStaticGlb(const std::filesystem::path& path){
     if(!stream.read(reinterpret_cast<char*>(bytes.data()),
                     static_cast<std::streamsize>(bytes.size())))
         throw std::runtime_error("short GLB filesystem read");
-    return loadStaticGlbBytes(bytes);
+    return loadImpl(bytes,&path);
 }
 } // namespace ae3
