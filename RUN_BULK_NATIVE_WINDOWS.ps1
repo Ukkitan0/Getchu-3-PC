@@ -211,9 +211,10 @@ if ($ExploreRounds -gt 0) {
     $Misses = Join-Path $Workspace 'misses.txt'
     $VuPrograms = Join-Path $Workspace 'vu1'
     $Shots = Join-Path $Workspace 'shots'
+    $ShotSession = Join-Path $Shots ('session-' + [guid]::NewGuid().ToString('N'))
     $Card = Join-Path $Workspace 'explore.ps2'
     $RamDump = Join-Path $Workspace 'explore_ram.bin'
-    New-Item -ItemType Directory -Path $VuPrograms, $Shots -Force | Out-Null
+    New-Item -ItemType Directory -Path $VuPrograms, $ShotSession -Force | Out-Null
     $OldVu = $env:PS2_VU_RECORD
     $OldGpu = $env:PS2_GPU_LOW_POWER
     $OldDump = $env:PS2_DUMP
@@ -222,6 +223,8 @@ if ($ExploreRounds -gt 0) {
         $env:PS2_VU_RECORD = $VuPrograms
         $env:PS2_GPU_LOW_POWER = '1'
         for ($Round=1; $Round -le $ExploreRounds; $Round++) {
+            $RoundShots = Join-Path $ShotSession ("round_{0:D2}" -f $Round)
+            New-Item -ItemType Directory -Path $RoundShots -Force | Out-Null
             Remove-Item -LiteralPath $Misses, $RamDump, $Card -ErrorAction SilentlyContinue
             $env:PS2_DUMP = $RamDump
             $RoundErr = Join-Path $Workspace ("explore_round_{0:D2}.stderr.txt" -f $Round)
@@ -236,7 +239,7 @@ if ($ExploreRounds -gt 0) {
             # stays in the owner's gitignored workspace.
             $Arguments = @(('"' + $Elf + '"'),'--disc',('"' + $Disc + '"'),'--frames',"$ExploreFrames",
                            '--misses',('"' + $Misses + '"'),'--memcard',('"' + $Card + '"'),
-                           '--frames-dir',('"' + $Shots + '"'),'--frame-every','300',
+                           '--frames-dir',('"' + $RoundShots + '"'),'--frame-every','300',
                            '--press','300:start')
             for ($Frame=600; $Frame -lt $ExploreFrames; $Frame += 300) {
                 $Arguments += @('--press',($Frame.ToString() + ':cross'))
@@ -271,6 +274,7 @@ if ($ExploreRounds -gt 0) {
                 new_code_entries = $Summary.new_entries
                 new_code_images = $Captured
                 total_code_entries = $Summary.total_entries
+                shot_dir = $RoundShots
                 stderr = $RoundErr; stdout = $RoundOut
             }
             $RoundResults | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $Workspace 'explore_summary.json') -Encoding UTF8
