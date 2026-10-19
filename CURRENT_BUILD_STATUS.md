@@ -57,3 +57,14 @@ On Linux (requires original executable):
 On Windows use `BUILD_BOOT_DIAGNOSTIC_WINDOWS.bat` in a Visual Studio developer terminal. Default stops at SetupThread; `set AE3_BOOT_TEST_HLE=1` opts into test-only continuation. Windows build and actual runtime still need verification on Windows.
 
 Next: real SetupThread kernel semantics; SetSyscall 0x74 registrations and handler dispatch; deeper EE code/IOP/SIF/VU/GS integration. A running game window is not provided.
+
+### 2026-10-18 EE startup model extension
+
+Added `ae3_ee_boot_services.c` and `test_ee_boot_services.c`, plus the
+`--test-ee-boot-model` diagnostic. This new **opt-in compatibility mode**
+computes stack pointer and heap metadata from game syscall registers and
+validates ranges and overlap against the shared EE bus. It avoids a literal
+stack-pointer return value in the diagnostic. The 16-byte stack-top reserve
+remains a chosen policy (NOT confirmed Sony BIOS behavior). Native unit,
+sanitizer and full downstream guest-handler parity tests passed. Default boot
+still cannot pass authentic `SetupThread`; graphics/gameplay remain unavailable.
