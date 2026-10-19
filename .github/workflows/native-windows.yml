@@ -35,9 +35,13 @@ jobs:
           foreach ($name in @("Getchu3Native.exe", "Getchu3AssetProbe.exe")) {
             if (-not (Test-Path -LiteralPath "$p/$name")) { throw "Missing native EXE $name" }
           }
-          $native = Get-Content native/CMakeLists.txt -Raw
-          if ($native -match 'ps2run|eerecomp|pcsx2|PS2_GENERATED') {
-            throw "Console emulation runtime dependency was found in native CMake"
+          # Search executable CMake statements, not comments documenting
+          # specifically excluded emulators. Previous CI falsely rejected
+          # CMake because the phrase "no PCSX2" was present in a comment.
+          $native = ((Get-Content native/CMakeLists.txt) |
+            Where-Object { $_ -notmatch '^\s*#' }) -join "`n"
+          if ($native -match '(?i)ps2run|eerecomp|pcsx2|PS2_GENERATED') {
+            throw "Console hardware runtime dependency was found in executable native CMake"
           }
           Write-Host "Only Win32, Direct3D11 and standard C++: no EE interpreter, IOP runtime or PS2 GS"
       - uses: actions/upload-artifact@v4
