@@ -16,6 +16,8 @@ from pathlib import Path
 from derive_elf_inventory import derive
 import subprocess
 import sys
+import tempfile
+from native_explore import parse_entries
 
 ROOT = Path(__file__).resolve().parent.parent
 EXPECTED_ELF_SHA = '5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63'
@@ -91,7 +93,7 @@ def sha256(path: Path):
     return h.hexdigest()
 
 
-def write_outputs(out: Path, records, groups, calls, constructors, seed_mode="constructors"):
+def write_outputs(out: Path, records, groups, calls, constructors, seed_mode="constructors", *, reset_entries=False):
     out.mkdir(parents=True, exist_ok=True)
     if seed_mode not in {"constructors", "common", "all"}:
         raise ValueError(f"Unknown seed mode: {seed_mode}")
@@ -106,8 +108,29 @@ def write_outputs(out: Path, records, groups, calls, constructors, seed_mode="co
         if entry not in records:
             raise ValueError(f'Entry not present in original game word inventory {entry:08x}')
     entry_file = out / 'entries.txt'
-    # eerecomp upstream read_entries() accepts whitespace-separated hex without 0x.
-    entry_file.write_text(''.join(f'{x:08x}\n' for x in seeds), encoding='ascii')
+    # Never discard addresses found by earlier native exploration rounds.
+    # The compiler accepts bare hex addresses and image-name:offset tokens.
+    # Validate stored main-ELF addresses against the same authenticated ELF
+    # inventory before preserving them; reject corrupt/stale code instead of
+    # silently passing it into the compiler.
+    previous = parse_entries(entry_file) if entry_file.exists() and not reset_entries else set()
+    for token in previous:
+        if ':' not in token and int(token, 16) not in records:
+            raise ValueError(f'Existing discovered entry outside original EE inventory: {token}')
+    seed_tokens = {f'{x:08x}' for x in seeds}
+    combined = sorted(seed_tokens | previous)
+    content = ''.join(token + '\n' for token in combined)
+    # Atomically update, without touching mtime on no-op rebuilds.
+    if not entry_file.is_file() or entry_file.read_text(encoding='ascii') != content:
+        with tempfile.NamedTemporaryFile(
+                mode='w', dir=out, prefix='.entries-', encoding='ascii',
+                newline='\n', delete=False) as fp:
+            fp.write(content)
+            tmp = Path(fp.name)
+        try:
+            tmp.replace(entry_file)
+        finally:
+            tmp.unlink(missing_ok=True)
     (out / 'constructors.tsv').write_text('pointer_address\tguest_target\n' + ''.join(
         f'{address:08x}\t{target:08x}\n' for address, target in constructors), encoding='ascii')
     (out / 'direct_targets.tsv').write_text('target\tsites\n' + ''.join(
@@ -121,6 +144,10 @@ def write_outputs(out: Path, records, groups, calls, constructors, seed_mode="co
         'constructor_target_count': len(constructors),
         'constructor_first': f'0x{constructors[0][1]:08x}',
         'total_unique_seed_entries': len(seeds),
+        'total_compile_entries': len(combined),
+        'preserved_discovered_entries': len(set(combined) - seed_tokens),
+        'preserved_module_entries': sum(':' in t for t in combined),
+        'entries_reset_explicitly': bool(reset_entries),
         'entry_profile': seed_mode,
         'direct_call_candidates_included_as_seeds': len(selected_calls),
         'all_entries_in_retail_inventory': True,
@@ -152,6 +179,8 @@ def main(argv=None):
     p.add_argument('--cpp-out', type=Path, help='Private destination for translated C++ code')
     p.add_argument('--modules', type=Path, help='Private extracted SNR2 modules from owned ISO')
     p.add_argument('--overlays', type=Path, help='Private captured executable code-window images')
+    p.add_argument('--reset-entries', action='store_true',
+                   help='Explicitly discard discovered guest code and rebuild seed list (not default)')
     args = p.parse_args(argv)
     if (args.modules or args.overlays) and not args.eerecomp:
         p.error('--modules/--overlays require --eerecomp')
@@ -173,7 +202,8 @@ def main(argv=None):
     records, groups = load_inventory(inv)
     calls = load_calls(targets, records)
     ctors = load_constructors(CONSTRUCTORS, records)
-    report, entries = write_outputs(args.out, records, groups, calls, ctors, args.seed_mode)
+    report, entries = write_outputs(args.out, records, groups, calls, ctors, args.seed_mode,
+                                    reset_entries=args.reset_entries)
     print(json.dumps({k: v for k, v in report.items() if k != 'opcode_major_histogram'}, indent=2))
     if args.eerecomp:
         if not args.eerecomp.is_file():
