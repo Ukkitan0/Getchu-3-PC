@@ -21,7 +21,7 @@ The scalar resumption generator maps 9,390 original instruction locations (inclu
 
 - `bulk_lift.py`, `cfg_lift.py`, `loop_lift.py`: conservative low-64-bit scalar MIPS R5900 leaf candidates.
 - `resume_lift.py`: resumable guest-PC, branch and delay-slot execution.
-- `call_lift.py`, `stack_lift.py`, `extend_stack.py`: direct JAL, nested calls, dynamically checked JALR, and **forward control-flow callers**.
+- `call_lift.py`, `stack_lift.py`, `extend_stack.py`, `loop_stack.py`: direct JAL, nested calls, checked JALR and **forward/backward branch callers with calls**.
 - `test_*`: independent reference execution of the original retail MIPS instruction words, comparing GPRs, byte-exact RAM, instruction counts, PC, pending slot state, and errors.
 - `ae3_native_dispatch.c/h`: common entrypoints for the above restricted routines; not a PS2 hardware runtime.
 
@@ -61,3 +61,10 @@ See [CHECKPOINT_BRANCH_CALLS.md](CHECKPOINT_BRANCH_CALLS.md) and [STATUS.md](STA
 ## Remaining work
 
 The executable still requires broad function coverage, verified 128-bit GPR/MMI/COP1/VU support, EE/IOP scheduling and services, VIF/GIF/GS rendering, disc/asset handling, audio, controllers, save logic, and a real Windows game boot/integration test. Only supported scalar candidates can run today, and indirect calls must resolve to known entries. Nothing in this repository claims completed gameplay or graphics.
+
+## Backward caller loops (October 18)
+
+- New scanner: `loop_stack.py` with strict body/branch-target and delay-slot checks.
+- **42 additional** loop-and-call candidate routines, bringing the accepted stack caller set to **176**, and total candidate addresses to **1,646**. These counts describe bounded subsets, not verified full-game coverage.
+- `test_backward_structure.py` checks the discovered CFG bodies. `test_backward_call_paths.py` checks the real 0x00105AC4 loop executing 0, 1 and 3 table reads via JAL 0x00105A28 and compares memory/register/PC states after every slice with an independent original-word interpreter.
+- Windows x64 stack COFF object compiled with clang-cl, no warnings. This remains a non-playable source-recovery checkpoint. See [CHECKPOINT_BACKWARD_CALLS.md](CHECKPOINT_BACKWARD_CALLS.md).
