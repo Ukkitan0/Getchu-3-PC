@@ -8,6 +8,7 @@ param(
     [switch]$ReuseUpstream,
     [ValidateRange(0,64)][int]$ExploreRounds = 0,
     [ValidateRange(60,20000)][int]$ExploreFrames = 1800,
+    [ValidateRange(30,1800)][int]$ExploreTimeoutSeconds = 300,
     [string]$WgpuDir = "",
     [string]$VcpkgRoot = "",
     [switch]$SoftwareRenderer
@@ -200,40 +201,86 @@ if (-not $SoftwareRenderer) {
     }
 }
 if ($ExploreRounds -gt 0) {
-    if (-not $Disc -or -not (Test-Path -LiteralPath $Disc -PathType Leaf)) {
-        Fail 'Exploration requires -Disc with the ISO you own.'
-    }
-    $Disc = (Resolve-Path -LiteralPath $Disc).Path
     $Misses = Join-Path $Workspace 'misses.txt'
     $VuPrograms = Join-Path $Workspace 'vu1'
-    New-Item -ItemType Directory -Path $VuPrograms -Force | Out-Null
+    $Shots = Join-Path $Workspace 'shots'
+    $Card = Join-Path $Workspace 'explore.ps2'
+    $RamDump = Join-Path $Workspace 'explore_ram.bin'
+    New-Item -ItemType Directory -Path $VuPrograms, $Shots -Force | Out-Null
     $OldVu = $env:PS2_VU_RECORD
     $OldGpu = $env:PS2_GPU_LOW_POWER
+    $OldDump = $env:PS2_DUMP
+    $RoundResults = @()
     try {
         $env:PS2_VU_RECORD = $VuPrograms
         $env:PS2_GPU_LOW_POWER = '1'
         for ($Round=1; $Round -le $ExploreRounds; $Round++) {
-            Remove-Item -LiteralPath $Misses -ErrorAction SilentlyContinue
-            "`n== exploration round $Round ==" | Tee-Object -FilePath $Log -Append
-            # A diagnostic may stop intentionally on missing code; capture and continue only after validating misses.
-            $OldPreference = $ErrorActionPreference
-            $ErrorActionPreference = 'Continue'
-            try {
-                & $Runner $Elf '--disc' $Disc '--frames' "$ExploreFrames" '--misses' $Misses '--press' '300:start' '--press' '600:cross' 2>&1 | ForEach-Object { "$_" | Out-File -FilePath $Log -Append }
-                $ExploreExit = $LASTEXITCODE
-            } finally { $ErrorActionPreference = $OldPreference }
-            "explore process code: $ExploreExit" | Out-File -FilePath $Log -Append
-            RunProcess 'py' @('-3',(Join-Path $Project 'tools\native_explore.py'),'--entries',$EntryList,'--misses',$Misses,'--inventory',$AnalysisInventory,'--report',(Join-Path $Workspace 'explore_last.json'))
-            $Summary = Get-Content -LiteralPath (Join-Path $Workspace 'explore_last.json') -Raw | ConvertFrom-Json
-            if (-not $Summary.changed) { break }
-            RunProcess $Compiler @($Elf,'--entries',$EntryList,'--out',$Generated)
+            Remove-Item -LiteralPath $Misses, $RamDump, $Card -ErrorAction SilentlyContinue
+            $env:PS2_DUMP = $RamDump
+            $RoundErr = Join-Path $Workspace ("explore_round_{0:D2}.stderr.txt" -f $Round)
+            $RoundOut = Join-Path $Workspace ("explore_round_{0:D2}.stdout.txt" -f $Round)
+            Remove-Item -LiteralPath $RoundErr, $RoundOut -ErrorAction SilentlyContinue
+            $Before = 0
+            if ($OverlayArgs.Count -gt 0) {
+                $Before = @(Get-ChildItem -LiteralPath $DiscInfo.overlays_dir -Filter '*.bin' -File).Count
+            }
+            # Upstream's 300-frame menu traversal, fresh memcard each round,
+            # real screenshots, RAM dump and VU1 recording. All guest data
+            # stays in the owner's gitignored workspace.
+            $Arguments = @(('"' + $Elf + '"'),'--disc',('"' + $Disc + '"'),'--frames',"$ExploreFrames",
+                           '--misses',('"' + $Misses + '"'),'--memcard',('"' + $Card + '"'),
+                           '--frames-dir',('"' + $Shots + '"'),'--frame-every','300',
+                           '--press','300:start')
+            for ($Frame=600; $Frame -lt $ExploreFrames; $Frame += 300) {
+                $Arguments += @('--press',($Frame.ToString() + ':cross'))
+            }
+            ("== exploration round $Round ==") | Tee-Object -FilePath $Log -Append
+            $Process = Start-Process -FilePath $Runner -ArgumentList $Arguments -PassThru -NoNewWindow -RedirectStandardError $RoundErr -RedirectStandardOutput $RoundOut
+            if (-not $Process.WaitForExit($ExploreTimeoutSeconds * 1000)) {
+                Stop-Process -Id $Process.Id -Force -ErrorAction SilentlyContinue
+                Fail "Native guest exploration timed out after $ExploreTimeoutSeconds seconds; see $RoundErr"
+            }
+            $ExploreExit = $Process.ExitCode
+            ("round $Round native exit=$ExploreExit") | Out-File -FilePath $Log -Append
+            if (Test-Path -LiteralPath $RoundErr) {
+                Get-Content -LiteralPath $RoundErr -Tail 20 | Out-File -FilePath $Log -Append
+            }
+            $Captured = 0
+            if ($OverlayArgs.Count -gt 0 -and (Test-Path -LiteralPath $RamDump -PathType Leaf)) {
+                # This updates code-window miss tokens to IMAGE:OFFSET; the
+                # translator then builds each distinct runtime code image.
+                RunProcess 'py' @('-3',(Join-Path $Upstream 'scripts\windows.py'),
+                                  'capture',$Elf,$RamDump,$DiscInfo.overlays_dir,$Misses)
+                $After = @(Get-ChildItem -LiteralPath $DiscInfo.overlays_dir -Filter '*.bin' -File).Count
+                $Captured = [Math]::Max(0,$After - $Before)
+            }
+            $ExploreReport = Join-Path $Workspace ("explore_round_{0:D2}.json" -f $Round)
+            RunProcess 'py' @('-3',(Join-Path $Project 'tools\native_explore.py'),
+                              '--entries',$EntryList,'--misses',$Misses,
+                              '--inventory',$AnalysisInventory,'--report',$ExploreReport)
+            $Summary = Get-Content -LiteralPath $ExploreReport -Raw | ConvertFrom-Json
+            $RoundResults += [pscustomobject]@{
+                round = $Round; runner_exit_code = $ExploreExit
+                new_code_entries = $Summary.new_entries
+                new_code_images = $Captured
+                total_code_entries = $Summary.total_entries
+                stderr = $RoundErr; stdout = $RoundOut
+            }
+            $RoundResults | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $Workspace 'explore_summary.json') -Encoding UTF8
+            "round $Round: $($Summary.new_entries) entries, $Captured new overlays, exit $ExploreExit" | Tee-Object -FilePath $Log -Append
+            if (-not $Summary.changed -and $Captured -eq 0) { break }
+            RunProcess $Compiler $TranslateArgs
             BuildRunner
         }
-        if ((Get-ChildItem -LiteralPath $VuPrograms -Filter '*.bin' -File | Measure-Object).Count -gt 0) {
+        if (@(Get-ChildItem -LiteralPath $VuPrograms -Filter '*.bin' -File).Count -gt 0) {
             RunProcess $VuCompiler @($VuPrograms,$Generated)
             BuildRunner
         }
-    } finally { $env:PS2_VU_RECORD = $OldVu; $env:PS2_GPU_LOW_POWER = $OldGpu }
+    } finally {
+        $env:PS2_VU_RECORD = $OldVu
+        $env:PS2_GPU_LOW_POWER = $OldGpu
+        $env:PS2_DUMP = $OldDump
+    }
 }
 Write-Host "Native Windows executable built: $Runner"
 Write-Host 'Not a gameplay certification. Check the build log and try the optional renderer.'
