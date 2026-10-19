@@ -8,6 +8,30 @@ input, sound and saves. Older recompilation efforts are reference material only.
 This public repository contains recovery tools, original implementations,
 and tests, **not** the copyrighted ISO, ELF, BIOS, ROM or game assets.
 
+## Current checkpoint — retail Timer 2 MODE through real COP0/ERET writes
+
+- The opt-in boot runner has advanced from the guest `LW` at `0x00440590`
+  through its original branch and delay slot. It executes the **retail MIPS**
+  `SetT2_COUNT`, `SetT2_COMP`, and `SetT2_MODE` wrappers and their shared
+  COP0/ERET store routine, preserving guest addresses and register updates.
+- A new native Timer 2 MMIO model supports physical and uncached KSEG1 aliases,
+  COUNT/MODE/COMP, write-one-to-clear flags, and caller-specified clock ticks.
+  Unsupported HBLANK/gate timing is explicitly rejected, not approximated.
+- With explicit test-only COP0 Status=0 and reset Timer 2 MODE=0, three real
+  MMIO writes configure COUNT=0, COMP=0xFFFF, and timer MODE; execution reaches
+  the next original `EnableIntc` JAL at **`0x004405C8`**, after **323,338**
+  counted guest MIPS instructions. With MODE bit 7 already enabled, the game
+  correctly skips COUNT/COMP initialization; both paths are tested.
+- Tests verify retail opcodes, step-vs-batch parity, atomic MMIO fault retry,
+  alias consistency, unsupported timing modes, and regression preservation.
+  GCC/Clang sanitizer tests pass, and three Windows x64 COFF objects build.
+- These are limited, experimental kernel/COP0 behaviors, **not a Sony BIOS or
+  playable Windows game**. The ordinary boot diagnostic still stops at the
+  authentic `SetupThread` request. The next guest kernel boundary is
+  `EnableIntc` (EE syscall `0x14` for the lower-level service).
+
+See [CHECKPOINT_TIMER2_BOOT.md](CHECKPOINT_TIMER2_BOOT.md).
+
 ## Current native checkpoint — EE interrupt registration to Timer 2 MODE
 
 - Actual allocator startup now executes through its `AddIntcHandler` (`0x10`)
