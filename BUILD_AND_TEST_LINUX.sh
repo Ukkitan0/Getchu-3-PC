@@ -9,6 +9,7 @@ python3 loop_lift.py
 python3 resume_lift.py
 python3 call_lift.py
 python3 stack_lift.py
+python3 audit_boot_entry.py
 cc -std=c11 -O1 -fPIC -shared ae3_scalar_leaves.c -o libae3_scalar.so
 cc -std=c11 -O1 -fPIC -shared ae3_control_leaves.c -o libae3_control.so
 cc -std=c11 -O1 -fPIC -shared ae3_loop_leaves.c -o libae3_loop.so
