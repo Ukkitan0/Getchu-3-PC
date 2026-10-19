@@ -18,6 +18,7 @@ import subprocess
 import sys
 import tempfile
 from native_explore import parse_entries
+from aot_cache import compile_cached
 
 ROOT = Path(__file__).resolve().parent.parent
 EXPECTED_ELF_SHA = '5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63'
@@ -209,15 +210,10 @@ def main(argv=None):
         if not args.eerecomp.is_file():
             raise FileNotFoundError(f'Upstream recompiler not found: {args.eerecomp}')
         args.cpp_out.mkdir(parents=True, exist_ok=True)
-        command = [str(args.eerecomp.resolve()), str(args.elf.resolve()),
-                   '--entries', str(entries.resolve())]
-        if args.modules:
-            command += ['--modules', str(args.modules.resolve())]
-        if args.overlays:
-            command += ['--overlays', str(args.overlays.resolve())]
-        command += ['--out', str(args.cpp_out.resolve())]
-        print('Invoking upstream recompiler with original-game seed candidates', flush=True)
-        subprocess.run(command, check=True)
+        print('Preparing cached native AOT translation from validated retail ELF', flush=True)
+        cached = compile_cached(args.eerecomp, args.elf, entries, args.cpp_out,
+                                args.modules, args.overlays)
+        print('AE3_AOT_TRANSLATION ' + json.dumps(cached), flush=True)
     return 0
 
 
