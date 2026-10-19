@@ -5,6 +5,7 @@
 #include "ae3_boot_init_prefix.h"
 #include "ae3_ee_sema_kernel.h"
 #include "ae3_boot_hook_init.h"
+#include "ae3_ee_syscall_kernel.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -66,7 +67,32 @@ int main(int argc,char**argv) {
     AE3_BootHookInit hook;
     if(ae3_boot_hook_enter(&hook,&sema)!=AE3_HOOK_YIELDED ||
       ae3_boot_hook_slice(&hook,ram,RAM_SIZE,100)!=AE3_HOOK_SET_SYSCALL){fprintf(stderr,"SetSyscall boundary was not reached\n");free(elf);free(ram);return 15;}
-    printf("Original SetSyscall 0x74 pending at %08X: syscall_no=%08X handler=%08X (no kernel hook applied)\n",hook.cpu.pc,hook.guest_handler_number,hook.guest_handler_address);
+    printf("Original SetSyscall 0x74 pending at %08X: syscall_no=%08X handler=%08X\n",hook.cpu.pc,hook.guest_handler_number,hook.guest_handler_address);
+    AE3_EESyscallKernel syscall_kernel;ae3_ee_syscall_kernel_init(&syscall_kernel);
+    int routed=0;
+    for(unsigned step=0;step<8;step++) {
+       if(ae3_boot_hook_register(&hook,&syscall_kernel,ram,RAM_SIZE)!=AE3_HOOK_YIELDED){
+          fprintf(stderr,"SetSyscall registration failed\n");free(elf);free(ram);return 16;
+       }
+       printf("EXPERIMENTAL kernel registered syscall %02X -> original guest handler %08X\n",
+          hook.registered_numbers[hook.registered-1],hook.registered_handlers[hook.registered-1]);
+       AE3_HookResult state=ae3_boot_hook_slice(&hook,ram,RAM_SIZE,100);
+       if(state==AE3_HOOK_GUEST_SYSCALL){
+          uint32_t handler=0;
+          if(ae3_boot_hook_route(&hook,&syscall_kernel,&handler)!=AE3_HOOK_GUEST_SYSCALL){
+             fprintf(stderr,"Could not route guest syscall\n");free(elf);free(ram);return 17;
+          }
+          printf("Original syscall %02X reached at %08X: registered guest handler %08X\n",
+             hook.invoked_number,hook.cpu.pc,handler);
+          printf("Guest handler cannot execute until EE kernel address space is mapped. No fabricated result.\n");
+          routed=1;break;
+       }
+       if(state!=AE3_HOOK_SET_SYSCALL) {
+          fprintf(stderr,"Unexpected hook continuation: %d at %08X\n",state,hook.cpu.pc);
+          free(elf);free(ram);return 18;
+       }
+    }
+    if(!routed || hook.registered!=2){free(elf);free(ram);return 19;}
     printf("Retired original EE instruction count: %llu (initial stack remains test-only).\n",(unsigned long long)hook.cpu.retired);
  }
  printf("No GS rendering, BIOS emulation, IOP or gameplay. This is a boot diagnostic only.\n");
