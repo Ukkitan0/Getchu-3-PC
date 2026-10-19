@@ -107,3 +107,19 @@ translated scalar leaves; nested caller-to-caller calls, computed `JALR`/`JR`
 targets, ordinary conditional branches inside callers, high R5900 lanes,
 VU/MMI/COP, PS2 system devices, and a playable Windows runtime are not
 implemented by this milestone.
+
+## Stack dispatch and virtual JALR checkpoint (2026-10-18)
+
+The native-C pipeline now includes `stack_lift.py` and `test_stack.py`.
+The recovered 62 caller candidates include one real nested JAL chain and 31
+virtual-dispatch/JALR wrappers. `ae3_native_stack_init` and
+`ae3_run_native_stack_slice` provide a bounded stack-based instruction-slice
+API, with strict rejection of indirect targets not yet recovered.
+
+To build the generated objects, use `BUILD_WINDOWS_OBJECTS.bat` on Windows.
+For Linux differential tests, run `BUILD_AND_TEST_LINUX.sh` with `AE3_ELF`
+pointing to your **own** retail executable. Generated game-specific C and
+objects are not checked into GitHub. Details: [CHECKPOINT_STACK.md](CHECKPOINT_STACK.md).
+
+**Not playable.** Translating 1,532 candidate entrypoints is not a complete
+reverse engineering or a Windows port of the game.
