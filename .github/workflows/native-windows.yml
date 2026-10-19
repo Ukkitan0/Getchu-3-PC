@@ -60,11 +60,19 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & native/build/Release/Getchu3GlbSceneProbe.exe native/build/native_arena_test.glb
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Validate host-native AE3 level instance placement, original PCK and I3M tools
+        shell: pwsh
+        run: |
+          python native/tools/make_level_fixture.py native/build/native_synthetic_level
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & native/build/Release/Getchu3LevelSceneProbe.exe native/build/native_synthetic_level native/build/native_synthetic_level/placeholder.plc
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host 'Level native composition, PLC placement and mesh materials OK'
       - name: Confirm compiled EXEs and native Win32 dependencies
         shell: pwsh
         run: |
           $p = "native/build/Release"
-          foreach ($name in @("Getchu3Native.exe", "Getchu3AssetProbe.exe", "Getchu3StageProbe.exe", "Getchu3LuaStageRunner.exe", "Getchu3GlbSceneProbe.exe")) {
+          foreach ($name in @("Getchu3Native.exe", "Getchu3AssetProbe.exe", "Getchu3StageProbe.exe", "Getchu3LuaStageRunner.exe", "Getchu3GlbSceneProbe.exe", "Getchu3LevelSceneProbe.exe", "Getchu3PckProbe.exe", "Getchu3I3mProbe.exe")) {
             if (-not (Test-Path -LiteralPath "$p/$name")) { throw "Missing native EXE $name" }
           }
           # Search executable CMake statements, not comments documenting
@@ -85,6 +93,10 @@ jobs:
             native/build/Release/Getchu3StageProbe.exe
             native/build/Release/Getchu3LuaStageRunner.exe
             native/build/Release/Getchu3GlbSceneProbe.exe
+            native/build/Release/Getchu3LevelSceneProbe.exe
+            native/build/Release/Getchu3PckProbe.exe
+            native/build/Release/Getchu3I3mProbe.exe
+            native/build/native_synthetic_level/
             native/build/native_arena_test.glb
             native/examples/native_binding_demo.lua
           if-no-files-found: error
