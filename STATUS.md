@@ -1,3 +1,7 @@
+## October 19, 2026: verified seven-region native AOT + Windows GPU compilation (GAME-FREE)
+
+GitHub Actions [run 39318625918](https://github.com/Ukkitan0/Getchu-3-PC/actions/runs/39318625918) succeeded. The real upstream R5900 recompiler and native ClangCL Windows runtime executed 143 indirect synthetic callbacks across seven distinct 16 KiB code regions and guest RAM reads/writes across three memory pages. The workflow also passed Windows WebGPU runtime compilation/linking. The owner-local Windows game builder now bootstraps pinned vcpkg/SDL2 and copies SDL2.dll to the test executable. **No actual retail Ape Escape 3 executable or ISO was executed in CI; no playable Windows test build exists yet.** See `CHECKPOINT_AOT_MULTIREGION.md`.
+
 ## Windows toolchain smoke now compiled a native runner (game-free stub)
 
 GitHub CI at commit `b98c874` compiled the upstream real EE and VU compilers,
