@@ -8,6 +8,23 @@ input, sound and saves. Older recompilation efforts are reference material only.
 This public repository contains recovery tools, original implementations,
 and tests, **not** the copyrighted ISO, ELF, BIOS, ROM or game assets.
 
+## Latest native boot checkpoint — EE Timer 3 and kernel copy
+
+- An optional EE Timer 3 MMIO device handles `0x10001810` and the game's
+  genuine mode-bit branch. Disabled CMPE leads to another SetSyscall call;
+  enabled CMPE returns to the original caller.
+- The original `SetSyscall` / guest syscall `0x5A` wrappers are followed
+  through a **test-only compatibility kernel**. The recovered original MIPS
+  handler copies the embedded **1,856-byte** game kernel payload from
+  `0x006A2678` to `0x80076000`, verified byte-for-byte in shared EE RAM.
+- The opt-in diagnostic reaches `0x00440398`, or 321,484 retired guest
+  instructions on that controlled path. **Without simulated kernel startup
+  services the real guest boot still stops at `SetupThread`.**
+- `BUILD_BOOT_DIAGNOSTIC_WINDOWS.bat` with `AE3_BOOT_TEST_TIMER3_COPY=1`
+  selects this experimental check. It is NOT a playable Windows port.
+
+See [CHECKPOINT_TIMER3_KERNEL_PATCH.md](CHECKPOINT_TIMER3_KERNEL_PATCH.md).
+
 ## Verified checkpoint — 2026-10-19
 
 - Original retail ELF: SHA-256
