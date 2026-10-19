@@ -1,0 +1,49 @@
+name: TRUE native Windows C++ and Direct3D11 port
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "native/**"
+      - "BUILD_NATIVE_WINDOWS.bat"
+      - "TEST_APE_ESCAPE_3_WINDOWS.bat"
+      - ".github/workflows/native-windows.yml"
+jobs:
+  native-win64:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure native host-only engine
+        shell: pwsh
+        run: |
+          cmake -S native -B native/build -G "Visual Studio 17 2022" -A x64
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build native Direct3D11 executable and asset tools
+        shell: pwsh
+        run: |
+          cmake --build native/build --config Release --parallel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test real native ISO9660 and VFI archive extraction
+        shell: pwsh
+        run: |
+          ctest --test-dir native/build -C Release --output-on-failure
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Confirm compiled EXEs and native Win32 dependencies
+        shell: pwsh
+        run: |
+          $p = "native/build/Release"
+          foreach ($name in @("Getchu3Native.exe", "Getchu3AssetProbe.exe")) {
+            if (-not (Test-Path -LiteralPath "$p/$name")) { throw "Missing native EXE $name" }
+          }
+          $native = Get-Content native/CMakeLists.txt -Raw
+          if ($native -match 'ps2run|eerecomp|pcsx2|PS2_GENERATED') {
+            throw "Console emulation runtime dependency was found in native CMake"
+          }
+          Write-Host "Only Win32, Direct3D11 and standard C++: no EE interpreter, IOP runtime or PS2 GS"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Getchu3-TRUE-NATIVE-Windows-x64-engine-test
+          path: |
+            native/build/Release/Getchu3Native.exe
+            native/build/Release/Getchu3AssetProbe.exe
+          if-no-files-found: error
