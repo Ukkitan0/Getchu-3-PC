@@ -4,6 +4,7 @@
 #include "ae3/controller_timeline.hpp"
 #include "ae3/gltf_scene.hpp"
 #include "ae3/level_scene.hpp"
+#include "ae3/native_walking.hpp"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -44,6 +45,10 @@ std::size_t gScriptEventCount=0;
 std::wstring gSource, gError, gProgress;
 float gYaw=.4f,gX=0,gZ=-5,gHeight=2.5f;
 bool gKeys[256]={};
+ae3::StaticScene gWalkCollisionScene;
+ae3::NativeWalkingController gNativeWalker;
+bool gNativeWalkMode=false;
+bool gF5HeldLastFrame=false;
 struct Vertex { float x,y,z; float r,g,b,a; float u=0,v=0; };
 static_assert(sizeof(Vertex)==sizeof(ae3::SceneVertex));
 class NativeRenderer {
@@ -386,6 +391,8 @@ void loadArchive(const fs::path& path){
         gNativeWorld.reset();
         gRenderer.clearTexture();
         gRenderer.clearScene();
+        gWalkCollisionScene={};
+        gNativeWalkMode=false;
         gArchive=std::move(mounted);
         std::wstringstream info;info<<L"Native mount: "<<gArchive->entries().size()
             <<L" real AE3 assets | "<<wide(gArchive->sourceKind())
@@ -408,6 +415,8 @@ void loadNativeGlb(const fs::path& path){
         const auto scene=ae3::loadStaticGlb(path);
         if(!gRenderer.displayScene(scene))
             throw std::runtime_error("Direct3D11 vertex buffer upload failed");
+        gWalkCollisionScene=scene;
+        gNativeWalkMode=false;
         gX=scene.bounds.center[0];
         gHeight=scene.bounds.center[1]+scene.bounds.radius*.15f;
         gZ=scene.bounds.center[2]-std::max(2.f,scene.bounds.radius*2.8f);
@@ -421,7 +430,8 @@ void loadNativeGlb(const fs::path& path){
            <<L"Texture files loaded: "<<scene.textures.size()<<L", "
            <<L"missing: "<<scene.missingTextures<<L", "
            <<L"decode failures: "<<gRenderer.textureFailures()<<L". "
-           <<L"Skin animations still TODO; this is NOT playable gameplay.";
+           <<L"F5 toggles native walk/jump testing on mesh geometry. "
+           <<L"Original animation, I3C collision and game logic remain TODO.";
         status(msg.str());
         gRenderer.render();
     }catch(const std::exception& error){
@@ -448,6 +458,8 @@ void loadNativeLevel(const fs::path& folder) {
         const auto level=ae3::loadNativeLevelFolder(folder,plc);
         if(!gRenderer.displayScene(level.scene))
             throw std::runtime_error("Direct3D11 native level vertex upload failed");
+        gWalkCollisionScene=level.scene;
+        gNativeWalkMode=false;
         const auto& box=level.scene.bounds;
         gX=box.center[0];
         gHeight=box.center[1]+box.radius*.2f;
@@ -461,12 +473,31 @@ void loadNativeLevel(const fs::path& folder) {
             <<level.unplaced<<L" skipped unplaced objects. "
             <<(plc.empty()?L"NO PLC PROVIDED: original world placement UNVERIFIED. ":
                             L"Original simple PLC placement active. ")
-            <<L"Walkable collision/player gameplay NOT YET IMPLEMENTED.";
+            <<L"F5 activates basic native WASD/Space walk/jump test. "
+            <<L"Original I3C collision and player behavior NOT YET RECOVERED.";
         status(info.str());
         gRenderer.render();
     }catch(const std::exception& e){
         status(L"Native original-level geometry load failed: "+wide(e.what()));
     }
+}
+void toggleNativeWalkMode(){
+    if(gNativeWalkMode){
+        gNativeWalkMode=false;
+        status(L"Native walk test OFF. Free-fly camera restored. "
+               L"Arrow keys rotate, WASD/QE fly.");
+        return;
+    }
+    if(!gNativeWalker.reset(gWalkCollisionScene)){
+        status(L"Cannot enter native walk test: imported 3D scene has no walkable triangle.");
+        return;
+    }
+    gNativeWalkMode=true;
+    const auto& pawn=gNativeWalker.state();
+    gX=pawn.x;gHeight=pawn.y+1.65f;gZ=pawn.z;
+    status(L"NATIVE MESH WALK TEST ON: WASD movement, Shift sprint, "
+           L"Space jump, arrows turn, F5 free flight. "
+           L"This is an early host-native collision/controller test, NOT original AE3 gameplay.");
 }
 void openNativeLevel(){
     BROWSEINFOW dlg{};
@@ -650,28 +681,49 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
     case WM_KEYUP: if(w<256)gKeys[w]=false;return 0;
     case WM_TIMER:
         if(w==1){
-            // Host keyboard state works even if list box / child D3D view is focused.
-            auto held=[&](int key)->bool{
-                return GetForegroundWindow()==wnd &&
-                       (GetAsyncKeyState(key)&0x8000)!=0;
-            };
-            float speed=.055f;
-            if(held(VK_SHIFT))speed*=3;
-            const float dx=std::sin(gYaw),dz=std::cos(gYaw);
-            if(held('W')){gX+=dx*speed;gZ+=dz*speed;}
-            if(held('S')){gX-=dx*speed;gZ-=dz*speed;}
-            if(held('A')){gX-=dz*speed;gZ+=dx*speed;}
-            if(held('D')){gX+=dz*speed;gZ-=dx*speed;}
-            if(held('Q'))gHeight-=speed;
-            if(held('E'))gHeight+=speed;
-            if(held(VK_LEFT))gYaw-=.025f;
-            if(held(VK_RIGHT))gYaw+=.025f;
-            // Runtime stage controller events run against host-monotonic
-            // time; no PlayStation 2 hardware clock or system is simulated.
+            // Native host-time game loop. Controller and Lua use the
+            // same monotonic time delta: NO PlayStation hardware clock.
             const auto now=std::chrono::steady_clock::now();
             const double dt=std::clamp(
                 std::chrono::duration<double>(now-gLastScriptTick).count(),0.0,0.1);
             gLastScriptTick=now;
+            auto held=[&](int key)->bool{
+                return GetForegroundWindow()==wnd &&
+                       (GetAsyncKeyState(key)&0x8000)!=0;
+            };
+            const bool f5=held(VK_F5);
+            if(f5&&!gF5HeldLastFrame)toggleNativeWalkMode();
+            gF5HeldLastFrame=f5;
+            if(held(VK_LEFT))gYaw-=.025f;
+            if(held(VK_RIGHT))gYaw+=.025f;
+            if(gNativeWalkMode){
+                ae3::WalkInput input;
+                input.forward=(held('W')?1.f:0.f)-(held('S')?1.f:0.f);
+                input.strafe=(held('D')?1.f:0.f)-(held('A')?1.f:0.f);
+                input.facingRadians=gYaw;
+                input.sprint=held(VK_SHIFT);
+                input.jump=held(VK_SPACE);
+                try{
+                    gNativeWalker.tick(gWalkCollisionScene,
+                                      static_cast<float>(dt),input);
+                    const auto& pawn=gNativeWalker.state();
+                    gX=pawn.x;gHeight=pawn.y+1.65f;gZ=pawn.z;
+                }catch(const std::exception& e){
+                    status(L"Native walking test stopped: "+wide(e.what()));
+                    gNativeWalkMode=false;
+                }
+            }else{
+                // Free-flight camera for examining original GLB exports.
+                float speed=.055f;
+                if(held(VK_SHIFT))speed*=3;
+                const float dx=std::sin(gYaw),dz=std::cos(gYaw);
+                if(held('W')){gX+=dx*speed;gZ+=dz*speed;}
+                if(held('S')){gX-=dx*speed;gZ-=dz*speed;}
+                if(held('A')){gX-=dz*speed;gZ+=dx*speed;}
+                if(held('D')){gX+=dz*speed;gZ-=dx*speed;}
+                if(held('Q'))gHeight-=speed;
+                if(held('E'))gHeight+=speed;
+            }
             if(gNativeWorld) {
                 try{
                     for(auto& controller:gControllerTimelines) {
