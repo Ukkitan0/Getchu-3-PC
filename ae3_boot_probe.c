@@ -11,6 +11,9 @@
 #include "ae3_ee_boot_services.h"
 #include "ae3_boot_post_find.h"
 #include "ae3_boot_next_init.h"
+#include "ae3_boot_timer3_resume.h"
+#include "ae3_ee_timer3.h"
+#include "ae3_boot_timer3_syscalls.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,8 +31,8 @@ int main(int argc,char**argv) {
  if(argc<2||argc>6||(argc>=3&&strcmp(argv[2],"--test-kernel-fixture")&&!model_mode)||
     (argc>=4&&strcmp(argv[3],"--test-sema-hle"))||
     (argc>=5&&strcmp(argv[4],"--test-ee-alias"))||
-    (argc==6&&strcmp(argv[5],"--test-post-find")&&strcmp(argv[5],"--test-next-mmio"))) {
-  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture|--test-ee-boot-model [--test-sema-hle [--test-ee-alias [--test-post-find|--test-next-mmio]]]\n",argv[0]);return 2;
+    (argc==6&&strcmp(argv[5],"--test-post-find")&&strcmp(argv[5],"--test-next-mmio")&&strcmp(argv[5],"--test-timer3")&&strcmp(argv[5],"--test-timer3-enabled")&&strcmp(argv[5],"--test-timer3-copy"))) {
+  fprintf(stderr,"Usage: %s SCUS_975.01 [--test-kernel-fixture|--test-ee-boot-model [--test-sema-hle [--test-ee-alias [--test-post-find|--test-next-mmio|--test-timer3|--test-timer3-enabled|--test-timer3-copy]]]\n",argv[0]);return 2;
  }
  size_t bytes=0;uint8_t *elf=read_file(argv[1],&bytes);
  if(!elf){fprintf(stderr,"Cannot read game executable\n");return 2;}
@@ -112,7 +115,7 @@ int main(int argc,char**argv) {
              printf("TEST ONLY: running original 0x83 MIPS handler with KSEG0 aliased to current EE RAM.\n");
              printf("  BIOS/kernel was not initialized: no authentic startup kernel bytes are claimed.\n");
              AE3_EEMemoryBus bus;ae3_ee_bus_init(&bus,ram,RAM_SIZE);
-             if(argc==6&&!strcmp(argv[5],"--test-next-mmio")) {
+             if(argc==6&&(!strcmp(argv[5],"--test-next-mmio")||!strcmp(argv[5],"--test-timer3")||!strcmp(argv[5],"--test-timer3-enabled")||!strcmp(argv[5],"--test-timer3-copy"))) {
                 /* Explicitly artificial values, with the exact offset
                    relationship required by the retail reconciliation code. */
                 if(ae3_ee_bus_write32(&bus,UINT32_C(0x80000300),AE3_FIND_ENTRY)!=AE3_EE_BUS_OK||
@@ -162,7 +165,7 @@ int main(int argc,char**argv) {
                     printf("Kernel data absent: stopped before third syscall, no synthetic address inserted.\n");
                 }else if(stage==AE3_POST_NEXT_INIT) {
                     printf("Original reconciliation reached next real init JAL at %08X.\n",post.cpu.pc);
-                    if(!strcmp(argv[5],"--test-next-mmio")) {
+                    if(!strcmp(argv[5],"--test-next-mmio")||!strcmp(argv[5],"--test-timer3")||!strcmp(argv[5],"--test-timer3-enabled")||!strcmp(argv[5],"--test-timer3-copy")) {
                         AE3_BootNextInit next;
                         if(ae3_boot_next_init_enter(&next,&post)!=AE3_NEXT_YIELDED ||
                            ae3_boot_next_init_slice(&next,&bus,40)!=AE3_NEXT_MMIO_PENDING){
@@ -172,7 +175,60 @@ int main(int argc,char**argv) {
                         printf("Next retail callee entered at %08X; hardware read pending at %08X address %08X (retired %llu).\n",
                           AE3_NEXT_INIT_CALLEE,next.cpu.pc,AE3_NEXT_INIT_MMIO_ADDRESS,
                           (unsigned long long)next.cpu.retired);
-                        printf("No hardware register read was simulated. Not a playable game.\n");
+                        if(!strcmp(argv[5],"--test-next-mmio")){
+                            printf("No hardware register read was simulated. Not a playable game.\n");
+                        }else{
+                            /* Explicit device-model continuation. MODE defaults
+                             * to zero; the enabled case is a deliberate test
+                             * fixture, NOT an inference about Sony BIOS. */
+                            AE3_EETimer3 timer;ae3_ee_timer3_reset(&timer);
+                            ae3_ee_bus_attach_mmio(&bus,ae3_ee_timer3_read,ae3_ee_timer3_write,&timer);
+                            if(!strcmp(argv[5],"--test-timer3-enabled") &&
+                               ae3_ee_bus_write32(&bus,AE3_T3_MODE,AE3_T3_CMPE)!=AE3_EE_BUS_OK){
+                               fprintf(stderr,"Could not stage test-only Timer3 bit 8\n");free(elf);free(ram);return 29;
+                            }
+                            AE3_BootTimer3Resume resume;
+                            if(ae3_boot_timer3_enter(&resume,&next)!=AE3_TIMER_BOOT_YIELDED){
+                               fprintf(stderr,"Timer3 guest code entry failed\n");free(elf);free(ram);return 30;
+                            }
+                            AE3_TimerBootResult result=ae3_boot_timer3_slice(&resume,&bus,40);
+                            if(result!=AE3_TIMER_BOOT_NEXT_CALL&&result!=AE3_TIMER_BOOT_RETURNED){
+                               fprintf(stderr,"Timer3 guest continuation failed at %08X (result %d)\n",resume.cpu.pc,result);
+                               free(elf);free(ram);return 31;
+                            }
+                            printf("EXPERIMENTAL EE Timer3 model: MODE=%08X, original guest result %s, PC=%08X, retired=%llu\n",
+                               timer.mode,result==AE3_TIMER_BOOT_RETURNED?"returned to first-init caller":"next SetSyscall JAL pending",
+                               resume.cpu.pc,(unsigned long long)resume.cpu.retired);
+                            if(!strcmp(argv[5],"--test-timer3-copy")){
+                               AE3_Timer3Syscalls t3sys;
+                               if(result!=AE3_TIMER_BOOT_NEXT_CALL||
+                                  ae3_timer3_syscalls_enter(&t3sys,&resume)!=AE3_TS_YIELDED){
+                                  fprintf(stderr,"Timer3 syscall wrappers not entered\n");free(elf);free(ram);return 32;
+                               }
+                               if(ae3_timer3_syscalls_slice(&t3sys,&bus,40)!=AE3_TS_SET_SYSCALL||
+                                  ae3_timer3_syscalls_dispatch(&t3sys,&bus,&syscall_kernel)!=AE3_TS_YIELDED||
+                                  ae3_timer3_syscalls_slice(&t3sys,&bus,40)!=AE3_TS_COPY_SYSCALL||
+                                  ae3_timer3_syscalls_dispatch(&t3sys,&bus,&syscall_kernel)!=AE3_TS_YIELDED){
+                                  fprintf(stderr,"Original nested kernel syscall wrappers failed\n");
+                                  free(elf);free(ram);return 33;
+                               }
+                               AE3_TimerSysResult copied=AE3_TS_YIELDED;
+                               for(unsigned tries=0;tries<8;tries++){
+                                  copied=ae3_timer3_syscalls_slice(&t3sys,&bus,4000);
+                                  if(copied==AE3_TS_RETURNED)break;
+                                  if(copied!=AE3_TS_YIELDED)break;
+                               }
+                               if(copied!=AE3_TS_RETURNED||
+                                  memcmp(ram+0x76000,ram+0x6a2678,0x740)!=0){
+                                  fprintf(stderr,"Guest 0x5A kernel patch byte parity failed\n");
+                                  free(elf);free(ram);return 34;
+                               }
+                               printf("EXPERIMENTAL guest syscall dispatch: original 0x5A MIPS handler copied 1856 source bytes 006A2678 -> KSEG0 80076000, then reached %08X (retired %llu).\n",
+                                  t3sys.cpu.pc,(unsigned long long)t3sys.cpu.retired);
+                               printf("This is a guest payload copy with compatibility-kernel dispatcher, NOT a verified BIOS exception path.\n");
+                            }
+                            printf("Original MIPS mode branch executed with explicit hardware state, not authentic boot-time BIOS settings.\n");
+                        }
                     }
                 }else {
                     fprintf(stderr,"Reconciliation stopped unexpectedly: result %d PC %08X\n",stage,post.cpu.pc);
