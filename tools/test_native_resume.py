@@ -95,7 +95,8 @@ class NativeTranslationCache(unittest.TestCase):
     def fake_run(self, command, **kwargs):
         self.commands.append(command)
         self.out.mkdir(parents=True, exist_ok=True)
-        (self.out / "registration.cpp").write_text("void game() {}\n")
+        (self.out / "table.cpp").write_text("void register_generated_code() {}\n")
+        (self.out / "units.hpp").write_text("#pragma once\n")
 
     def compile(self, **kwargs):
         return aot_cache.compile_cached(self.compiler, self.elf,
@@ -143,7 +144,38 @@ class NativeTranslationCache(unittest.TestCase):
     def test_lost_cpp_output_forces_accurate_rebuild(self):
         with patch.object(aot_cache.subprocess, "run", side_effect=self.fake_run):
             self.compile()
-            (self.out / "registration.cpp").unlink()
+            (self.out / "table.cpp").unlink()
+            self.assertEqual(self.compile()["mode"], "translated")
+        self.assertEqual(len(self.commands), 2)
+
+    def test_changed_cpp_content_same_count_forces_recompile(self):
+        with patch.object(aot_cache.subprocess, "run", side_effect=self.fake_run):
+            self.compile()
+            (self.out / "table.cpp").write_text("void register_generated_code() { /* changed */ }\n")
+            self.assertEqual(self.compile()["mode"], "translated")
+        self.assertEqual(len(self.commands), 2)
+
+    def test_replaced_cpp_filename_same_count_forces_recompile(self):
+        with patch.object(aot_cache.subprocess, "run", side_effect=self.fake_run):
+            self.compile()
+            (self.out / "table.cpp").rename(self.out / "other.cpp")
+            self.assertEqual(self.compile()["mode"], "translated")
+        self.assertEqual(len(self.commands), 2)
+
+    def test_changed_generated_header_forces_recompile(self):
+        with patch.object(aot_cache.subprocess, "run", side_effect=self.fake_run):
+            self.compile()
+            (self.out / "units.hpp").write_text("#pragma once\n// local corruption\n")
+            self.assertEqual(self.compile()["mode"], "translated")
+        self.assertEqual(len(self.commands), 2)
+
+    def test_old_cache_schema_recompiled_safely(self):
+        with patch.object(aot_cache.subprocess, "run", side_effect=self.fake_run):
+            self.compile()
+            marker = self.out / ".ae3-aot-cache.json"
+            previous = json.loads(marker.read_text())
+            previous["version"] = 1
+            marker.write_text(json.dumps(previous))
             self.assertEqual(self.compile()["mode"], "translated")
         self.assertEqual(len(self.commands), 2)
 
