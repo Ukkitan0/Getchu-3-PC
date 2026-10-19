@@ -2,6 +2,7 @@
 #include "ae3/tim2.hpp"
 #include "ae3/lua_stage.hpp"
 #include "ae3/controller_timeline.hpp"
+#include "ae3/gltf_scene.hpp"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -17,6 +18,7 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -26,7 +28,7 @@ using namespace DirectX;
 namespace fs = std::filesystem;
 
 namespace {
-constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104, kSignalTrigger=105;
+constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104, kSignalTrigger=105, kOpenGlb=106;
 HWND gMain=nullptr,gList=nullptr,gView=nullptr,gInfo=nullptr;
 std::unique_ptr<ae3::Archive> gArchive;
 std::unique_ptr<ae3::NativeStageWorld> gNativeWorld;
@@ -38,6 +40,7 @@ std::wstring gSource, gError, gProgress;
 float gYaw=.4f,gX=0,gZ=-5,gHeight=2.5f;
 bool gKeys[256]={};
 struct Vertex { float x,y,z; float r,g,b,a; };
+static_assert(sizeof(Vertex)==sizeof(ae3::SceneVertex));
 class NativeRenderer {
 public:
     bool init(HWND hwnd) {
@@ -131,17 +134,51 @@ public:
         vb.Usage=D3D11_USAGE_IMMUTABLE;vb.BindFlags=D3D11_BIND_VERTEX_BUFFER;
         D3D11_SUBRESOURCE_DATA src{};src.pSysMem=grid.data();
         if(FAILED(device_->CreateBuffer(&vb,&src,&vertices_)))return false;
+        D3D11_RASTERIZER_DESC both{};
+        both.FillMode=D3D11_FILL_SOLID;
+        both.CullMode=D3D11_CULL_NONE;
+        both.DepthClipEnable=TRUE;
+        if(FAILED(device_->CreateRasterizerState(&both,&bothSides_)))return false;
         return resize(std::max(1L,rc.right),std::max(1L,rc.bottom));
     }
     bool resize(int width,int height){
         if(!swap_||width<=0||height<=0)return false;
         context_->OMSetRenderTargets(0,nullptr,nullptr);
         target_.Reset();
+        depthView_.Reset();
+        depthBuffer_.Reset();
         if(FAILED(swap_->ResizeBuffers(0,width,height,DXGI_FORMAT_UNKNOWN,0)))return false;
         ComPtr<ID3D11Texture2D> back;
         if(FAILED(swap_->GetBuffer(0,IID_PPV_ARGS(&back))))return false;
         if(FAILED(device_->CreateRenderTargetView(back.Get(),nullptr,&target_)))return false;
+        D3D11_TEXTURE2D_DESC depth{};
+        depth.Width=static_cast<UINT>(width);
+        depth.Height=static_cast<UINT>(height);
+        depth.MipLevels=1;depth.ArraySize=1;
+        depth.SampleDesc.Count=1;
+        depth.Format=DXGI_FORMAT_D24_UNORM_S8_UINT;
+        depth.BindFlags=D3D11_BIND_DEPTH_STENCIL;
+        if(FAILED(device_->CreateTexture2D(&depth,nullptr,&depthBuffer_)))return false;
+        if(FAILED(device_->CreateDepthStencilView(depthBuffer_.Get(),nullptr,&depthView_)))return false;
         width_=width;height_=height;return true;
+    }
+    void clearScene(){sceneVertices_.Reset();sceneCount_=0;}
+    bool displayScene(const ae3::StaticScene& scene){
+        if(!device_ || scene.triangles.empty() ||
+           scene.triangles.size()>3'000'000 ||
+           scene.triangles.size()>std::numeric_limits<UINT>::max()/sizeof(Vertex))
+            return false;
+        clearTexture();
+        clearScene();
+        D3D11_BUFFER_DESC vb{};
+        vb.ByteWidth=static_cast<UINT>(scene.triangles.size()*sizeof(Vertex));
+        vb.Usage=D3D11_USAGE_IMMUTABLE;
+        vb.BindFlags=D3D11_BIND_VERTEX_BUFFER;
+        D3D11_SUBRESOURCE_DATA data{};
+        data.pSysMem=scene.triangles.data();
+        if(FAILED(device_->CreateBuffer(&vb,&data,&sceneVertices_)))return false;
+        sceneCount_=static_cast<UINT>(scene.triangles.size());
+        return true;
     }
     void clearTexture(){previewSRV_.Reset();}
     bool displayTexture(const ae3::Texture& image){
@@ -184,6 +221,13 @@ public:
             swap_->Present(1,0);
             return;
         }
+        if(sceneCount_ && depthView_){
+            context_->ClearDepthStencilView(depthView_.Get(),D3D11_CLEAR_DEPTH,1.0f,0);
+            context_->OMSetRenderTargets(1,target_.GetAddressOf(),depthView_.Get());
+            context_->RSSetState(bothSides_.Get());
+        }else{
+            context_->RSSetState(nullptr);
+        }
         XMVECTOR pos=XMVectorSet(gX,gHeight,gZ,1);
         XMVECTOR target=XMVectorSet(gX+std::sin(gYaw),gHeight-.3f,
                                     gZ+std::cos(gYaw),1);
@@ -200,18 +244,24 @@ public:
         ID3D11Buffer* cb=constants_.Get();
         context_->VSSetConstantBuffers(0,1,&cb);
         context_->IASetInputLayout(layout_.Get());
-        ID3D11Buffer* vb=vertices_.Get();
+        ID3D11Buffer* vb=sceneCount_?sceneVertices_.Get():vertices_.Get();
         context_->IASetVertexBuffers(0,1,&vb,&stride,&offset);
-        context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+        context_->IASetPrimitiveTopology(sceneCount_?
+            D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
+            D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
         context_->VSSetShader(vs_.Get(),nullptr,0);
         context_->PSSetShader(ps_.Get(),nullptr,0);
-        context_->Draw(gridCount_,0);
+        context_->Draw(sceneCount_?sceneCount_:gridCount_,0);
         swap_->Present(1,0);
     }
 private:
     HWND hwnd_{};
     int width_=1,height_=1;
-    UINT gridCount_=0;
+    UINT gridCount_=0,sceneCount_=0;
+    ComPtr<ID3D11Buffer> sceneVertices_;
+    ComPtr<ID3D11Texture2D> depthBuffer_;
+    ComPtr<ID3D11DepthStencilView> depthView_;
+    ComPtr<ID3D11RasterizerState> bothSides_;
     ComPtr<IDXGISwapChain> swap_;
     ComPtr<ID3D11Device> device_;
     ComPtr<ID3D11DeviceContext> context_;
@@ -247,6 +297,7 @@ void loadArchive(const fs::path& path){
         gNativeStage.reset();
         gNativeWorld.reset();
         gRenderer.clearTexture();
+        gRenderer.clearScene();
         gArchive=std::move(mounted);
         std::wstringstream info;info<<L"Native mount: "<<gArchive->entries().size()
             <<L" real AE3 assets | "<<wide(gArchive->sourceKind())
@@ -263,6 +314,36 @@ void openFile(){
     dialog.Flags=OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_EXPLORER;
     dialog.lpstrTitle=L"Choose YOUR Ape Escape 3 USA ISO or extracted DATA.BIN";
     if(GetOpenFileNameW(&dialog))loadArchive(name);
+}
+void openNativeGlb(){
+    wchar_t name[32768]={};
+    OPENFILENAMEW dialog{};
+    dialog.lStructSize=sizeof(dialog);
+    dialog.hwndOwner=gMain;dialog.lpstrFile=name;dialog.nMaxFile=32768;
+    dialog.lpstrFilter=L"Native I3D/GLB models (*.glb)\0*.glb\0All files (*.*)\0*.*\0";
+    dialog.Flags=OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_EXPLORER;
+    dialog.lpstrTitle=L"Open native GLB exported from original AE3 I3D model";
+    if(!GetOpenFileNameW(&dialog))return;
+    try{
+        const auto scene=ae3::loadStaticGlb(fs::path(name));
+        if(!gRenderer.displayScene(scene))
+            throw std::runtime_error("Direct3D11 vertex buffer upload failed");
+        gX=scene.bounds.center[0];
+        gHeight=scene.bounds.center[1]+scene.bounds.radius*.15f;
+        gZ=scene.bounds.center[2]-std::max(2.f,scene.bounds.radius*2.8f);
+        gYaw=0.f;
+        std::wstringstream msg;
+        msg<<L"Native GLB: "<<scene.sourceNodes<<L" scene nodes, "
+           <<scene.sourcePrimitives<<L" mesh primitives, "
+           <<scene.triangles.size()/3<<L" triangles; "
+           <<scene.skinnedPrimitives<<L" skinned rest-pose primitives. "
+           <<L"WASD/QE + arrows to move debug camera. "
+           <<L"Textures/skeletal animation still TODO; not a playable level.";
+        status(msg.str());
+        gRenderer.render();
+    }catch(const std::exception& error){
+        status(L"Native GLB model load failed: "+wide(error.what()));
+    }
 }
 void openRecoveredStage(){
     wchar_t path[32768]={};
@@ -297,6 +378,7 @@ void openRecoveredStage(){
         gNativeStage=std::move(stage);
         gArchive.reset();
         gRenderer.clearTexture();
+        gRenderer.clearScene();
         SendMessageW(gList,LB_RESETCONTENT,0,0);
         for(const auto& ent:gNativeWorld->entities()){
             std::wstring line=wide(ent.entityClass)+L": "+wide(ent.name);
@@ -378,6 +460,8 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
             465,8,225,32,wnd,reinterpret_cast<HMENU>(INT_PTR(kLuaStage)),inst,nullptr);
         CreateWindowW(L"BUTTON",L"Signal Lua trigger",WS_CHILD|WS_VISIBLE,
             700,8,155,32,wnd,reinterpret_cast<HMENU>(INT_PTR(kSignalTrigger)),inst,nullptr);
+        CreateWindowW(L"BUTTON",L"Open native 3D model (GLB)",WS_CHILD|WS_VISIBLE,
+            866,8,240,32,wnd,reinterpret_cast<HMENU>(INT_PTR(kOpenGlb)),inst,nullptr);
         gList=CreateWindowExW(WS_EX_CLIENTEDGE,L"LISTBOX",nullptr,
             WS_CHILD|WS_VISIBLE|WS_VSCROLL|LBS_NOTIFY|LBS_NOINTEGRALHEIGHT,
             0,0,1,1,wnd,reinterpret_cast<HMENU>(INT_PTR(kList)),inst,nullptr);
@@ -395,6 +479,7 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         if(LOWORD(w)==kExport && HIWORD(w)==BN_CLICKED)exportSelected();
         if(LOWORD(w)==kLuaStage && HIWORD(w)==BN_CLICKED)openRecoveredStage();
         if(LOWORD(w)==kSignalTrigger && HIWORD(w)==BN_CLICKED)signalFirstNativeTrigger();
+        if(LOWORD(w)==kOpenGlb && HIWORD(w)==BN_CLICKED)openNativeGlb();
         if(LOWORD(w)==kList && HIWORD(w)==LBN_SELCHANGE && gArchive){
             auto idx=SendMessageW(gList,LB_GETCURSEL,0,0);
             if(idx!=LB_ERR && static_cast<std::size_t>(idx)<gArchive->entries().size()){
