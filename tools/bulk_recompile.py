@@ -206,7 +206,7 @@ def ensure_private_inventory(elf: Path, out: Path) -> tuple[Path, Path]:
                                      suffix='.json', encoding='utf-8',
                                      delete=False) as fp:
         json.dump(cache, fp, indent=2)
-        fp.write('\\n')
+        fp.write('\n')
         temporary = Path(fp.name)
     try:
         temporary.replace(manifest)
