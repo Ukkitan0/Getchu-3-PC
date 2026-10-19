@@ -282,11 +282,17 @@ if ($ExploreRounds -gt 0) {
         $env:PS2_DUMP = $OldDump
     }
 }
+if ($ExploreRounds -gt 0) {
+    RunProcess 'py' @('-3',(Join-Path $Project 'tools\boot_report.py'),
+                      '--workspace',$Workspace)
+}
 Write-Host "Native Windows executable built: $Runner"
 Write-Host 'Not a gameplay certification. Check the build log and try the optional renderer.'
 if ($Run) {
     if (-not $Disc -or -not (Test-Path -LiteralPath $Disc -PathType Leaf)) {
         Fail 'Provide your owned ISO with -Disc to run the compiled native game.'
     }
-    RunProcess $Runner @($Elf,'--disc',(Resolve-Path -LiteralPath $Disc).Path,'--window','--trace-syscalls')
+    $PersistentCard = Join-Path $Workspace 'ae3_native_save.ps2'
+    RunProcess $Runner @($Elf,'--disc',(Resolve-Path -LiteralPath $Disc).Path,'--window',
+                         '--memcard',$PersistentCard,'--trace-syscalls')
 }
