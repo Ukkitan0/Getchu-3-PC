@@ -95,11 +95,22 @@ if [ -f analysis/pcsx2_title_ee_ram.bin ]; then
 else
   ./build/test_findaddress_bus "$AE3_ELF"
 fi
+# Reconciliation after the first two original syscall 0x83 returns.
+# Both branch-to-next-init and genuine repeated-guest-search paths are covered.
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c \
+  ae3_ee_memory_bus.c ae3_guest_find_address.c ae3_boot_post_find.c \
+  test_boot_post_find.c -o build/test_boot_post_find
+./build/test_boot_post_find "$AE3_ELF"
+cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c \
+  ae3_ee_memory_bus.c ae3_boot_post_find.c ae3_guest_find_address.c \
+  ae3_boot_next_init.c test_boot_next_init.c -o build/test_boot_next_init
+./build/test_boot_next_init "$AE3_ELF"
 cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
   ae3_boot_memory_fill.c ae3_boot_thread_setup.c ae3_boot_kernel_bridge.c \
   ae3_boot_init_prefix.c ae3_boot_semaphore_init.c ae3_ee_sema_kernel.c \
   ae3_ee_syscall_kernel.c ae3_boot_hook_init.c ae3_ee_memory_bus.c \
-  ae3_guest_find_address.c ae3_ee_boot_services.c ae3_boot_probe.c -o build/ae3_boot_probe
+  ae3_guest_find_address.c ae3_boot_post_find.c ae3_boot_next_init.c \
+  ae3_ee_boot_services.c ae3_boot_probe.c -o build/ae3_boot_probe
 ./build/ae3_boot_probe "$AE3_ELF"
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture
 ./build/ae3_boot_probe "$AE3_ELF" --test-kernel-fixture --test-sema-hle
@@ -114,4 +125,6 @@ cc -std=c11 -O2 -Wall -Wextra -Werror ae3_elf_image.c ae3_boot_prefix.c \
 ./build/test_ee_boot_services "$AE3_ELF"
 ./build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model
 ./build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model --test-sema-hle --test-ee-alias
+./build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model --test-sema-hle --test-ee-alias --test-post-find
+./build/ae3_boot_probe "$AE3_ELF" --test-ee-boot-model --test-sema-hle --test-ee-alias --test-next-mmio
 python3 test_boot_services_integration.py build/ae3_boot_probe "$AE3_ELF"
