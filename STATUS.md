@@ -1,3 +1,14 @@
+## 2026-10-19 — genuine runtime-generated guest code captured and AOT-executed (synthetic; game-free)
+
+Windows CI run [39322608306](https://github.com/Ukkitan0/Getchu-3-PC/actions/runs/39322608306)
+passed the dedicated dynamic-code stage. The native R5900 runtime executed an
+original synthetic ELF that wrote new instructions to executable guest RAM,
+discovered the missing JALR target, dumped guest memory, converted the window
+to a named code image, recompiled the overlay with the real upstream recompiler
+and executed that new code through guest RAM result 143 and Exit. **No retail
+game execution or playable title screen is implied.** The parent workflow GPU
+step may still be in progress. See `CHECKPOINT_NATIVE_DISC_BOOT.md`.
+
 ## Native game ISO integration checkpoint (2026-10-19)
 
 The native game-build script accepts only an owned ISO (no manual ELF path
