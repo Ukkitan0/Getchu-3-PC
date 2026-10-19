@@ -51,6 +51,7 @@ bool gOriginalI3cActive=false;
 ae3::NativeWalkingController gNativeWalker;
 bool gNativeWalkMode=false;
 bool gF5HeldLastFrame=false;
+bool gF7HeldLastFrame=false;
 struct Vertex { float x,y,z; float r,g,b,a; float u=0,v=0; };
 static_assert(sizeof(Vertex)==sizeof(ae3::SceneVertex));
 class NativeRenderer {
@@ -187,6 +188,46 @@ public:
     void clearScene(){
         sceneVertices_.Reset();sceneCount_=0;
         sceneBatches_.clear();sceneTextures_.clear();sceneTextureFailures_=0;
+        clearCollisionOverlay();
+    }
+    void clearCollisionOverlay(){
+        collisionWire_.Reset();collisionLineCount_=0;showCollision_=true;
+    }
+    bool toggleCollisionOverlay(){
+        showCollision_=!showCollision_;
+        return showCollision_;
+    }
+    bool setCollisionOverlay(const ae3::StaticScene& collision){
+        constexpr std::size_t maxSampleTris=80000;
+        const auto count=collision.triangles.size()/3;
+        if(!device_||count==0)return false;
+        const std::size_t stride=std::max<std::size_t>(1,count/maxSampleTris);
+        std::vector<Vertex> lines;
+        lines.reserve(std::min(count,maxSampleTris+1)*6);
+        const auto wire=[](const ae3::SceneVertex& v)->Vertex{
+            return {v.x,v.y,v.z,0.18f,0.95f,0.35f,1.f,0,0};
+        };
+        for(std::size_t tri=0;tri<count;tri+=stride){
+            const auto& a=collision.triangles[tri*3];
+            const auto& b=collision.triangles[tri*3+1];
+            const auto& c=collision.triangles[tri*3+2];
+            lines.push_back(wire(a));lines.push_back(wire(b));
+            lines.push_back(wire(b));lines.push_back(wire(c));
+            lines.push_back(wire(c));lines.push_back(wire(a));
+        }
+        if(lines.empty()||
+           lines.size()>std::numeric_limits<UINT>::max()/sizeof(Vertex))return false;
+        D3D11_BUFFER_DESC vb{};
+        vb.ByteWidth=static_cast<UINT>(lines.size()*sizeof(Vertex));
+        vb.Usage=D3D11_USAGE_IMMUTABLE;
+        vb.BindFlags=D3D11_BIND_VERTEX_BUFFER;
+        D3D11_SUBRESOURCE_DATA data{};data.pSysMem=lines.data();
+        ComPtr<ID3D11Buffer> replacement;
+        if(FAILED(device_->CreateBuffer(&vb,&data,&replacement)))return false;
+        collisionWire_=std::move(replacement);
+        collisionLineCount_=static_cast<UINT>(lines.size());
+        showCollision_=true;
+        return true;
     }
     unsigned textureFailures() const noexcept{return sceneTextureFailures_;}
     bool uploadRGBA(UINT width,UINT height,const unsigned char* pixels,
@@ -343,6 +384,18 @@ public:
             context_->PSSetShaderResources(0,1,&texture);
             context_->Draw(gridCount_,0);
         }
+        if(collisionWire_ && collisionLineCount_ && showCollision_) {
+            // Overlay collision in a separate native pass. Depth is disabled
+            // on purpose so original I3C data can be compared through art.
+            context_->OMSetRenderTargets(1,target_.GetAddressOf(),nullptr);
+            UINT lineStride=sizeof(Vertex),offset=0;
+            ID3D11Buffer* vb=collisionWire_.Get();
+            context_->IASetVertexBuffers(0,1,&vb,&lineStride,&offset);
+            context_->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+            ID3D11ShaderResourceView* white=whiteTexture_.Get();
+            context_->PSSetShaderResources(0,1,&white);
+            context_->Draw(collisionLineCount_,0);
+        }
         swap_->Present(1,0);
     }
 private:
@@ -350,6 +403,9 @@ private:
     int width_=1,height_=1;
     UINT gridCount_=0,sceneCount_=0;
     ComPtr<ID3D11Buffer> sceneVertices_;
+    ComPtr<ID3D11Buffer> collisionWire_;
+    UINT collisionLineCount_=0;
+    bool showCollision_=true;
     std::vector<ae3::SceneBatch> sceneBatches_;
     std::vector<ComPtr<ID3D11ShaderResourceView>> sceneTextures_;
     ComPtr<ID3D11ShaderResourceView> whiteTexture_;
@@ -491,6 +547,8 @@ void loadOriginalCollision(const fs::path& file){
         // Decode native triangle DATA. This is not original PS2 hardware emulation.
         const auto original=fs::is_directory(file)?
             ae3::loadOriginalI3cDirectory(file):ae3::parseOriginalI3c(file);
+        if(!gRenderer.setCollisionOverlay(original.geometry))
+            throw std::runtime_error("unable to upload original I3C diagnostic wireframe");
         gWalkCollisionScene=original.geometry;
         gOriginalI3cActive=true;
         gNativeWalkMode=false;
@@ -498,7 +556,7 @@ void loadOriginalCollision(const fs::path& file){
         msg<<L"ORIGINAL I3C COLLISION ACTIVE: "
            <<original.geometry.triangles.size()/3<<L" real triangles, "
            <<original.originalVertices<<L" original vertices, "
-           <<original.bvhNodes<<L" BVH nodes. F5 walks on collision. "
+           <<original.bvhNodes<<L" BVH nodes. F5 walks; F7 toggles green collision wireframe. "
            <<L"Select I3C from the SAME original stage as the loaded GLB.";
         status(msg.str());
     }catch(const std::exception& error){
@@ -734,6 +792,13 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
             const bool f5=held(VK_F5);
             if(f5&&!gF5HeldLastFrame)toggleNativeWalkMode();
             gF5HeldLastFrame=f5;
+            const bool f7=held(VK_F7);
+            if(f7&&!gF7HeldLastFrame){
+                const bool visible=gRenderer.toggleCollisionOverlay();
+                status(visible?L"Original I3C collision diagnostic overlay visible.":
+                               L"Original I3C collision wireframe hidden; collision remains active.");
+            }
+            gF7HeldLastFrame=f7;
             if(held(VK_LEFT))gYaw-=.025f;
             if(held(VK_RIGHT))gYaw+=.025f;
             if(gNativeWalkMode){
