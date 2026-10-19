@@ -73,3 +73,9 @@ Sources in the GitHub repository are the canonical work. Old recompilation snaps
 - `test_elf_image.c` passes byte-exact PT_LOAD mapping, BSS zeroes, sentinels outside load, and six malformed-file rejection cases that preserve RAM.
 - Both new modules cross-compiled as Windows x64 COFF objects with `clang-cl` (C11, warning-as-error). Prior stack/branch/loop tests also passed on this checkpoint; comprehensive from-scratch script exceeded the local command timeout after passing scalar/CFG/loop/resumable/direct-call stages; remaining component tests were run separately.
 - **Still not playable:** the true game startup entry remains outside the supported translation set. No IOP, BIOS, PS2 graphics/audio/disc or gameplay scheduler integration has been demonstrated.
+
+### First real boot instruction audit
+
+- Retail entry `0x00100134` begins with 29 `PADDUW` clears of 128-bit GPRs (r1–r25, r28–r31), followed by 4 primary/secondary HI/LO clears, a taken link branch, then 32 `MTC1` FPR resets.
+- `audit_boot_entry.py` validates each original 32-bit instruction word and refuses a mismatch. The first unmodeled FPU accumulator instruction is at `0x0010023C`; the source audit **does not run those 66+ instructions**.
+- This confirms why 64-bit-only translated leaves cannot faithfully boot the EE: real 128-bit GPR and COP1 state are needed.
