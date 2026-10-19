@@ -1,0 +1,26 @@
+Getchu-3-PC — retail AddIntcHandler / Timer 2 MODE checkpoint
+Date 2026-10-19
+Original input: user-owned NTSC-U SCUS_975.01 (excluded from package)
+
+PASS gcc -std=c11 -O1 -fsanitize=address,undefined retail test_boot_post_intc
+PASS clang -std=c11 -O1 -fsanitize=address,undefined retail test_boot_post_intc
+PASS gcc retail test_boot_alloc_init (preceding path unchanged)
+PASS Linux full boot probe build, default stops at authentic SetupThread
+PASS Linux explicit compatibility boot probe executes AddIntcHandler
+PASS Linux explicit COP0 Status=0 route reaches PC 0x00440590
+PASS Original guest stores modeled handler ID at physical RAM 0x006A2E28
+PASS Both positive and negative original BGEZL branches and delay annulment
+PASS Memory faults leave guest CPU/kernel state unchanged; retry succeeds
+PASS One-step and batched CPU execution match with complete 32 MiB guest RAM
+PASS clang-cl -std=c11 /W4 /WX x64 COFF modules:
+  ae3_ee_intc_kernel.c, ae3_boot_post_intc.c, ae3_boot_intc_critical.c
+
+IMPORTANT REGISTER-MAP CORRECTION:
+  0x10001010 == EE Timer 2 MODE (T2_MODE), NOT INTC_STAT.
+  INTC_STAT is 0x1000F000 and INTC_MASK is 0x1000F010.
+  Original guest PC 0x00440590 waits on T2_MODE without a fabricated value.
+
+Latest opt-in guest retired instruction total: 323264.
+Default genuine kernel stop: 315897.
+These are tests of partial original code with experimental BIOS compatibility;
+NOT a playable Windows game or complete EE kernel emulation.
