@@ -16,6 +16,8 @@
 #include "ae3_boot_timer3_syscalls.h"
 #include "ae3_boot_post_patch.h"
 #include "ae3_boot_alloc_init.h"
+#include "ae3_boot_post_intc.h"
+#include "ae3_boot_intc_critical.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -300,6 +302,41 @@ int main(int argc,char**argv) {
                                   printf("ORIGINAL AddIntcHandler syscall 0x10 pending at %08X (cause=%u handler=%08X next=%u); no BIOS response supplied. Total retired=%llu.\n",
                                      alloc.cpu.pc,(unsigned)alloc.cpu.gpr[4][0],(unsigned)alloc.cpu.gpr[5][0],
                                      (unsigned)alloc.cpu.gpr[6][0],(unsigned long long)alloc.cpu.retired);
+                                  /* Opt-in compatibility testing ONLY: create a stateful guest
+                                     INTC registration and run the real JR/branch-likely sequence. */
+                                  AE3_EEIntcKernel intc_kernel;
+                                  ae3_ee_intc_init(&intc_kernel);
+                                  AE3_BootPostIntc intc_after;
+                                  if(ae3_boot_post_intc_enter(&intc_after,&alloc)!=AE3_POST_INTC_YIELDED||
+                                     ae3_boot_post_intc_service(&intc_after,&intc_kernel,&bus)!=AE3_POST_INTC_YIELDED||
+                                     ae3_boot_post_intc_slice(&intc_after,&bus,64)!=AE3_POST_INTC_NEXT_CALL){
+                                     fprintf(stderr,"Original EE AddIntcHandler guest continuation failed\n");
+                                     free(elf);free(ram);return 44;
+                                  }
+                                  AE3_EEIntcHandler intc_entry;
+                                  if(ae3_ee_intc_lookup(&intc_kernel,intc_after.handler_id,&intc_entry)!=0||
+                                     intc_entry.cause!=11||intc_entry.entry!=0x00440a50u){
+                                     fprintf(stderr,"EE INTC compatibility handler registry mismatch\n");
+                                     free(elf);free(ram);return 45;
+                                  }
+                                  printf("EXPERIMENTAL AddIntcHandler model allocated ID %u: original JALR return and BGEZL now at %08X; returned ID is NOT validated against Sony BIOS.\n",
+                                     intc_after.handler_id,intc_after.cpu.pc);
+                                  AE3_BootIntcCritical intc_critical;
+                                  if(ae3_boot_intc_critical_enter(&intc_critical,&intc_after,0)!=AE3_INTC_CRITICAL_YIELDED||
+                                     ae3_boot_intc_critical_slice(&intc_critical,&bus,64)!=AE3_INTC_CRITICAL_T2_MODE_PENDING){
+                                     fprintf(stderr,"Original EE COP0-disabled critical section could not reach Timer2 MODE\n");
+                                     free(elf);free(ram);return 46;
+                                  }
+                                  uint32_t committed_id=0;
+                                  if(ae3_ee_bus_read32(&bus,0x006a2e28u,&committed_id)!=AE3_EE_BUS_OK||
+                                     committed_id!=intc_after.handler_id||intc_critical.cpu.pc!=0x00440590u){
+                                     fprintf(stderr,"Original guest INTC registration/store mismatch\n");
+                                     free(elf);free(ram);return 47;
+                                  }
+                                  printf("EXPERIMENTAL explicit COP0 Status=0: original EE guest wrote handler ID to 006A2E28; stopped BEFORE real Timer2 MODE read at PC %08X, MMIO %08X. Retired=%llu.\n",
+                                     intc_critical.cpu.pc,AE3_T2_MODE_REGISTER,
+                                     (unsigned long long)intc_critical.cpu.retired);
+
                                }
                             }
                             printf("Original MIPS mode branch executed with explicit hardware state, not authentic boot-time BIOS settings.\n");
