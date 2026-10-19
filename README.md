@@ -63,6 +63,32 @@ memory, interrupts/IOP/SIF, GS/VU graphics, disc, sound and saves remain missing
 
 **Canonical source project.** Target: a native Windows port of the NTSC-U retail game (*Ape Escape 3*, `SCUS_975.01`). The old recompilation experiments are references only. **This source is not a playable Windows game.** No original game executable or assets are distributed in this repository.
 
+## October 19: real retail init through EE Timer 3 MODE boundary
+
+Two new bounded guest interpreters expand the executable **beyond both original
+`FindAddress` calls**: `ae3_boot_post_find.[ch]` executes the comparison,
+original backward-branch search and 64-bit register restore at `0x0043FDC4`.
+When both kernel lookup results have the required relationship, the next
+original `JAL` at `0x0043FE70` is reached. The new
+`ae3_boot_next_init.[ch]` follows that call into `0x00440338` and stops at
+`0x00440354`: an original `LW` from `0x10001810`, which is **EE Timer 3 MODE**
+(PS2SDK `A_EE_T3_MODE`). No hardware value is fabricated.
+
+Default boot still stops at authentic, unimplemented `SetupThread`.
+The continuation requires opt-in modelled kernel services and, for the
+successful branch, two **explicitly artificial kernel-memory search entries**.
+Reproduce both test cases with the retail ELF:
+
+```sh
+build/ae3_boot_probe SCUS_975.01 --test-ee-boot-model --test-sema-hle --test-ee-alias --test-post-find
+build/ae3_boot_probe SCUS_975.01 --test-ee-boot-model --test-sema-hle --test-ee-alias --test-next-mmio
+```
+
+Native C, original opcode checks, one-step parity, guest memory-fault recovery,
+actual repeated MIPS `FindAddress` execution, Clang ASan/UBSan, and Windows x64
+COFF object builds passed. See [CHECKPOINT_POST_FIND_TIMER3.md](CHECKPOINT_POST_FIND_TIMER3.md).
+**No PS2 Timer 3 implementation or playable Windows build exists yet.**
+
 ## Latest verified checkpoint — October 18, 2026
 
 | Layer | Recovered candidate entrypoints | Verified behavior |
