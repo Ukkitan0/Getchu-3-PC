@@ -18,9 +18,12 @@ SIGNALS = (
     ("guest_halt", re.compile(r"\[ee\] halted:", re.I)),
     ("guest_exit", re.compile(r"\[ee\] stopped after .*Exit", re.I)),
     ("gpu_issue", re.compile(r"(?:WebGPU|wgpu).*?(?:failed|error|unavailable)", re.I)),
-    ("missing_compiled_code", re.compile(r"(?:code|function).*?(?:missing|not compiled)", re.I)),
+    # Matches the pinned upstream dispatch.cpp stderr, not just generic wording.
+    ("missing_compiled_code", re.compile(
+        r"\[ee\]\s+(?:no translated code at|halted: missing code at)", re.I)),
 )
 MARKER_LIMIT = 12
+FRAMES = re.compile(r"\[ee\] stopped after (\d+) frames,\s+(\d+) cycles:\s*(.*)")
 
 
 def analyze(workspace: Path) -> dict:
@@ -35,8 +38,14 @@ def analyze(workspace: Path) -> dict:
         raise ValueError("Malformed exploration summary JSON")
     counts = Counter()
     examples: dict[str, list[str]] = {}
+    observed_frames = []
+    last_halt_reason = None
     for stream in sorted(workspace.glob("explore_round_*.stderr.txt")):
         for line in stream.read_text(encoding="utf-8", errors="replace").splitlines():
+            frame = FRAMES.search(line)
+            if frame:
+                observed_frames.append(int(frame.group(1)))
+                last_halt_reason = frame.group(3).strip()
             for label, pattern in SIGNALS:
                 if pattern.search(line):
                     counts[label] += 1
@@ -74,6 +83,9 @@ def analyze(workspace: Path) -> dict:
         "rounds": rounds,
         "signal_counts": dict(sorted(counts.items())),
         "signal_examples": examples,
+        "maximum_reported_guest_frames": max(observed_frames, default=0),
+        "last_guest_halt_reason": last_halt_reason,
+        "reached_guest_frame_execution": any(n > 0 for n in observed_frames),
         "rendered_frame_files": len(shots),
         "vu_programs_recorded": len(vu),
         "distinct_code_window_images": len(overlays),
