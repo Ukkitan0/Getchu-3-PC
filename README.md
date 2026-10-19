@@ -19,6 +19,12 @@ The guest execution adapter and ELF loader are written in portable C11 (`ae3_gue
 
 These 1,646 entries are conservative **candidate** functions, not verified complete-game coverage. We still lack EE full 128-bit/MMI/COP1/VU instructions, sufficient caller/function coverage, EE/IOP/BIOS services, PS2 graphics, audio and disc/game runtime integration.
 
+## Latest kernel-to-initialization checkpoint (2026-10-18)
+
+The boot code now has an **explicit kernel-service boundary interface** for the real `SetupThread` (`0x001002FC`) and `SetupHeap` (`0x00100318`) syscalls. With a **test-only** stack response, our native C executes the original follow-up opcodes, enters the first initialization function at `0x0043FE58`, saves the true return address on the guest stack, and stops at its first nested call to `0x0043FC08`. Original-instruction behavior and recoverable memory faults are tested; the actual EE kernel implementation has NOT yet been connected. See [CHECKPOINT_KERNEL_BRIDGE.md](CHECKPOINT_KERNEL_BRIDGE.md).
+
+A non-game diagnostic `ae3_boot_probe.c` now works on Linux; Windows users with Visual Studio/Clang tools can compile it using `BUILD_BOOT_DIAGNOSTIC_WINDOWS.bat`. Default mode **does not** fabricate kernel responses. No playable game executable exists.
+
 ## Rebuild and verify
 
 Use an unmodified `SCUS_975.01` from your own copy of the NTSC-U game. Required SHA-256:
