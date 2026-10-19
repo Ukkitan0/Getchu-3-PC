@@ -279,5 +279,34 @@ class NativeLauncherDependencies(unittest.TestCase):
         self.assertIn("ExpectedHash", launcher)
         self.assertIn('-DPS2_GENERATED=', launcher)
 
+class NativeDiscExplorationContract(unittest.TestCase):
+    def test_disc_preparation_and_dynamic_overlay_wired_into_game_launcher(self):
+        root = Path(__file__).resolve().parent.parent
+        launcher = (root/'RUN_BULK_NATIVE_WINDOWS.ps1').read_text()
+        for keyword in ('prepare_disc.py', 'disc_prepare.json', '$ModuleArgs',
+                        '$OverlayArgs', '$TranslateArgs', 'PS2_DUMP',
+                        'scripts\\windows.py', 'capture', 'PS2_VU_RECORD',
+                        '--frames-dir', 'explore_summary.json', 'boot_report.py',
+                        'ae3_native_save.ps2'):
+            self.assertIn(keyword, launcher)
+        self.assertIn('disabled-wgpu', launcher)
+
+    def test_windows_iso_picker_reuses_only_matching_local_build(self):
+        root = Path(__file__).resolve().parent.parent
+        source = (root/'TEST_APE_ESCAPE_3_WINDOWS.ps1').read_text()
+        for keyword in ('OpenFileDialog', 'ShowDialog()', '-RunOnly',
+                        'disc_prepare.json', 'Prep.disc', 'ae3_native_save.ps2',
+                        'RUN_BULK_NATIVE_WINDOWS.ps1'):
+            self.assertIn(keyword, source)
+
+    def test_dynamic_overlay_two_stage_runtime_contract(self):
+        root = Path(__file__).resolve().parent.parent
+        source = (root/'tools/run_synthetic_overlay_windows.ps1').read_text()
+        for keyword in ('PS2_DUMP', '--overlays', 'windows.py',
+                        "'capture'", "Copy-Item -LiteralPath $Misses",
+                        '0000008f', 'recompiled-run', 'Exit'):
+            self.assertIn(keyword, source)
+
+
 if __name__=='__main__':
     unittest.main(verbosity=2)
