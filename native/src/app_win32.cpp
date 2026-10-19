@@ -5,6 +5,7 @@
 #include "ae3/gltf_scene.hpp"
 #include "ae3/level_scene.hpp"
 #include "ae3/native_walking.hpp"
+#include "ae3/i3c_collision.hpp"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -34,7 +35,7 @@ using namespace DirectX;
 namespace fs = std::filesystem;
 
 namespace {
-constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104, kSignalTrigger=105, kOpenGlb=106, kOpenLevel=107;
+constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104, kSignalTrigger=105, kOpenGlb=106, kOpenLevel=107, kOriginalCollision=108;
 HWND gMain=nullptr,gList=nullptr,gView=nullptr,gInfo=nullptr;
 std::unique_ptr<ae3::Archive> gArchive;
 std::unique_ptr<ae3::NativeStageWorld> gNativeWorld;
@@ -46,6 +47,7 @@ std::wstring gSource, gError, gProgress;
 float gYaw=.4f,gX=0,gZ=-5,gHeight=2.5f;
 bool gKeys[256]={};
 ae3::StaticScene gWalkCollisionScene;
+bool gOriginalI3cActive=false;
 ae3::NativeWalkingController gNativeWalker;
 bool gNativeWalkMode=false;
 bool gF5HeldLastFrame=false;
@@ -392,6 +394,7 @@ void loadArchive(const fs::path& path){
         gRenderer.clearTexture();
         gRenderer.clearScene();
         gWalkCollisionScene={};
+        gOriginalI3cActive=false;
         gNativeWalkMode=false;
         gArchive=std::move(mounted);
         std::wstringstream info;info<<L"Native mount: "<<gArchive->entries().size()
@@ -416,6 +419,7 @@ void loadNativeGlb(const fs::path& path){
         if(!gRenderer.displayScene(scene))
             throw std::runtime_error("Direct3D11 vertex buffer upload failed");
         gWalkCollisionScene=scene;
+        gOriginalI3cActive=false;
         gNativeWalkMode=false;
         gX=scene.bounds.center[0];
         gHeight=scene.bounds.center[1]+scene.bounds.radius*.15f;
@@ -459,6 +463,7 @@ void loadNativeLevel(const fs::path& folder) {
         if(!gRenderer.displayScene(level.scene))
             throw std::runtime_error("Direct3D11 native level vertex upload failed");
         gWalkCollisionScene=level.scene;
+        gOriginalI3cActive=false;
         gNativeWalkMode=false;
         const auto& box=level.scene.bounds;
         gX=box.center[0];
@@ -481,6 +486,35 @@ void loadNativeLevel(const fs::path& folder) {
         status(L"Native original-level geometry load failed: "+wide(e.what()));
     }
 }
+void loadOriginalCollision(const fs::path& file){
+    try{
+        // Decode native triangle DATA. This is not original PS2 hardware emulation.
+        const auto original=fs::is_directory(file)?
+            ae3::loadOriginalI3cDirectory(file):ae3::parseOriginalI3c(file);
+        gWalkCollisionScene=original.geometry;
+        gOriginalI3cActive=true;
+        gNativeWalkMode=false;
+        std::wstringstream msg;
+        msg<<L"ORIGINAL I3C COLLISION ACTIVE: "
+           <<original.geometry.triangles.size()/3<<L" real triangles, "
+           <<original.originalVertices<<L" original vertices, "
+           <<original.bvhNodes<<L" BVH nodes. F5 walks on collision. "
+           <<L"Select I3C from the SAME original stage as the loaded GLB.";
+        status(msg.str());
+    }catch(const std::exception& error){
+        status(L"Native I3C collision rejected: "+wide(error.what()));
+    }
+}
+void openOriginalCollision(){
+    wchar_t file[32768]={};
+    OPENFILENAMEW dlg{};
+    dlg.lStructSize=sizeof(dlg);dlg.hwndOwner=gMain;dlg.lpstrFile=file;
+    dlg.nMaxFile=32768;
+    dlg.lpstrFilter=L"Original AE3 collision (*.i3c;*.i3d)\0*.i3c;*.i3d\0All files (*.*)\0*.*\0";
+    dlg.Flags=OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_EXPLORER;
+    dlg.lpstrTitle=L"Select ORIGINAL I3D_I3C collision for the same stage as the 3D model";
+    if(GetOpenFileNameW(&dlg))loadOriginalCollision(fs::path(file));
+}
 void toggleNativeWalkMode(){
     if(gNativeWalkMode){
         gNativeWalkMode=false;
@@ -495,7 +529,10 @@ void toggleNativeWalkMode(){
     gNativeWalkMode=true;
     const auto& pawn=gNativeWalker.state();
     gX=pawn.x;gHeight=pawn.y+1.65f;gZ=pawn.z;
-    status(L"NATIVE MESH WALK TEST ON: WASD movement, Shift sprint, "
+    status(gOriginalI3cActive?
+           L"ORIGINAL I3C COLLISION WALK TEST ON: WASD movement, Space jump, "
+           L"Shift sprint. Movement is an experimental native controller.":
+           L"NATIVE MESH WALK TEST ON: WASD movement, Shift sprint, "
            L"Space jump, arrows turn, F5 free flight. "
            L"This is an early host-native collision/controller test, NOT original AE3 gameplay.");
 }
@@ -601,10 +638,10 @@ void layout(HWND wnd){
     RECT rect{};GetClientRect(wnd,&rect);
     int w=std::max(1L,rect.right),h=std::max(1L,rect.bottom);
     const int panel=std::clamp(w/3,250,440);
-    MoveWindow(gList,10,46,panel-20,std::max(1,h-122),TRUE);
-    MoveWindow(gView,panel,46,std::max(1,w-panel-10),std::max(1,h-122),TRUE);
+    MoveWindow(gList,10,84,panel-20,std::max(1,h-160),TRUE);
+    MoveWindow(gView,panel,84,std::max(1,w-panel-10),std::max(1,h-160),TRUE);
     MoveWindow(gInfo,10,std::max(1,h-68),std::max(1,w-20),56,TRUE);
-    if(gRenderer.resize(w-panel-10,h-122))gRenderer.render();
+    if(gRenderer.resize(w-panel-10,h-160))gRenderer.render();
 }
 LRESULT CALLBACK viewProc(HWND hwnd,UINT msg,WPARAM w,LPARAM l){
     if(msg==WM_ERASEBKGND)return 1;
@@ -632,6 +669,8 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
             866,8,240,32,wnd,reinterpret_cast<HMENU>(INT_PTR(kOpenGlb)),inst,nullptr);
         CreateWindowW(L"BUTTON",L"Open GLB level folder",WS_CHILD|WS_VISIBLE,
             1117,8,170,32,wnd,reinterpret_cast<HMENU>(INT_PTR(kOpenLevel)),inst,nullptr);
+        CreateWindowW(L"BUTTON",L"Use original I3C collision",WS_CHILD|WS_VISIBLE,
+            10,48,260,30,wnd,reinterpret_cast<HMENU>(INT_PTR(kOriginalCollision)),inst,nullptr);
         gList=CreateWindowExW(WS_EX_CLIENTEDGE,L"LISTBOX",nullptr,
             WS_CHILD|WS_VISIBLE|WS_VSCROLL|LBS_NOTIFY|LBS_NOINTEGRALHEIGHT,
             0,0,1,1,wnd,reinterpret_cast<HMENU>(INT_PTR(kList)),inst,nullptr);
@@ -651,6 +690,7 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
         if(LOWORD(w)==kSignalTrigger && HIWORD(w)==BN_CLICKED)signalFirstNativeTrigger();
         if(LOWORD(w)==kOpenGlb && HIWORD(w)==BN_CLICKED)openNativeGlb();
         if(LOWORD(w)==kOpenLevel && HIWORD(w)==BN_CLICKED)openNativeLevel();
+        if(LOWORD(w)==kOriginalCollision && HIWORD(w)==BN_CLICKED)openOriginalCollision();
         if(LOWORD(w)==kList && HIWORD(w)==LBN_SELCHANGE && gArchive){
             auto idx=SendMessageW(gList,LB_GETCURSEL,0,0);
             if(idx!=LB_ERR && static_cast<std::size_t>(idx)<gArchive->entries().size()){
@@ -780,6 +820,7 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR command,int show){
                        [](wchar_t c){return wchar_t(std::towlower(c));});
         if(fs::is_directory(file))loadNativeLevel(file);
         else if(extension==L".glb")loadNativeGlb(file);
+        else if(extension==L".i3c"||extension==L".i3d")loadOriginalCollision(file);
         else loadArchive(file);
     }
     MSG message{};
