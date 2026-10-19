@@ -8,7 +8,27 @@ input, sound and saves. Older recompilation efforts are reference material only.
 This public repository contains recovery tools, original implementations,
 and tests, **not** the copyrighted ISO, ELF, BIOS, ROM or game assets.
 
-## Current native checkpoint — allocator and AddIntcHandler boundary
+## Current native checkpoint — EE interrupt registration to Timer 2 MODE
+
+- Actual allocator startup now executes through its `AddIntcHandler` (`0x10`)
+  wrapper, with an **experimental stateful INTC handler registry** instead of a
+  preselected return ID. Guest cause 11 registers handler `0x00440A50`.
+- The original guest `JR`, `BGEZL` branch-likely and delay slots are executed,
+  including **both success and negative error-return paths**. The successful
+  guest writes the returned ID into physical EE RAM at `0x006A2E28`.
+- With **explicit guest COP0 Status bit 16 clear**, the real status-check helper
+  `0x0043FBA0` runs and the guest reaches its next unmapped MMIO read at PC
+  `0x00440590`: `0x10001010`, **EE Timer 2 MODE (not INTC_STAT)**.
+- The opt-in boot diagnostic now retires **323,264 original MIPS instructions**;
+  tests pass with GCC/Clang sanitizers, one-step/batched parity, and all three
+  new modules compile to Windows x64 COFF. The original 8-KiB MMI memset was
+  translated by semantic equivalence and not counted as retired instructions.
+- **Not playable:** real Sony BIOS `SetupThread` still blocks default boot;
+  hardware timer/INTC/COP0 semantics, VU/GS, IOP and gameplay remain missing.
+
+See [CHECKPOINT_INTC_TIMER2.md](CHECKPOINT_INTC_TIMER2.md).
+
+## Prior native checkpoint — allocator and AddIntcHandler boundary
 
 - Executed the retail initializer at `0x004404B0`, including the genuine
   loop building **128 descending stack-area links**, and nested routine
