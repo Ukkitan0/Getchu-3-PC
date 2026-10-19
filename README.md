@@ -29,9 +29,9 @@ On Linux:
 AE3_ELF=/path/to/SCUS_975.01 bash BUILD_AND_TEST_LINUX.sh
 ```
 
-This generates local C source from the ELF, builds three C shared test libraries and a unified dispatcher test, and runs three MIPS-word comparison suites. *These generated C files are intentionally git-ignored.*
+This generates local C source from the ELF, builds five native-C shared test libraries and a unified dispatcher test, and runs five MIPS-word comparison suites. *These generated C files are intentionally git-ignored.*
 
-On Windows, install Python 3 and LLVM/Visual Studio C++ Clang tools and run `BUILD_WINDOWS_OBJECTS.bat`. This builds four **Windows x64 object files**, not an executable game.
+On Windows, install Python 3 and LLVM/Visual Studio C++ Clang tools and run `BUILD_WINDOWS_OBJECTS.bat`. This builds six **Windows x64 object files**, not an executable game.
 
 ## Execution status
 
@@ -76,3 +76,33 @@ executable**, generated locally, and excluded from this public repository.
 indirect calls and returns, external IOP/BIOS/SIF devices, sound, GS/GIF/VIF,
 level assets and a complete playable runtime remain unimplemented. Candidate
 instruction addresses can still be data rather than verified code boundaries.
+
+## Direct native-C inter-function execution (2026-10-18)
+
+`call_lift.py` scans the original retail ELF for **strictly bounded, straight-line
+caller routines** that contain real MIPS `JAL` instructions targeting one of the
+1,470 existing resumable candidates. It currently accepts **30 additional
+candidate callers, 35 direct call edges and 550 original instruction sites**;
+all caller sites are disjoint from the previously recovered 9,390 leaf sites.
+The combined entry count is therefore **1,500 candidate routines** and 9,940
+represented instruction sites (including original `JR ra` instructions).
+
+The generated `ae3_call_leaves.c/.h` retains the calling function's guest PC,
+call-target, `JAL` delay slot, and child resume frame across instruction budgets.
+The common dispatcher exposes `ae3_native_caller_init()` and
+`ae3_run_native_caller_slice()` alongside the existing leaf interfaces.
+Return address `$ra` is updated when `JAL` executes, before its delay slot.
+A callee returning somewhere other than the expected continuation is rejected,
+not misrepresented as a completed call. Memory faults preserve the state for
+retry after a mapping is supplied.
+
+Independent original-MIPS differential tests passed **1,167 call execution
+slices** across 90 trials, with 81 completions, six memory faults, and three
+bounded still-running executions. A further caller fault/retry test passed.
+The Linux dispatcher integration and Windows x64 COFF builds passed.
+
+**Remaining limitations:** callers may only make direct calls into previously
+translated scalar leaves; nested caller-to-caller calls, computed `JALR`/`JR`
+targets, ordinary conditional branches inside callers, high R5900 lanes,
+VU/MMI/COP, PS2 system devices, and a playable Windows runtime are not
+implemented by this milestone.
