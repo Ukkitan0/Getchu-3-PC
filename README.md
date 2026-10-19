@@ -1,3 +1,24 @@
+# Getchu-3-PC — Ape Escape 3 native Windows recompilation
+
+**Current status (2026-10-19): native toolchain and game-free AOT execution verified; retail game is NOT yet playable.**
+
+## One-click owner-local native game attempt
+
+On Windows 10/11 x64 with Visual Studio 2022/ClangCL, Python 3, Git and CMake,
+double-click `TEST_APE_ESCAPE_3_WINDOWS.bat` and select your own **US Ape
+Escape 3 ISO**. The script validates the BOOT2 ELF, builds the native
+runtime, explores missing executable code and attempts to launch a window.
+Commercial files and generated code remain in `fastlane/private`, ignored
+by Git. To relaunch an existing build, supply `-RunOnly`.
+
+The new ISO boot reader, dynamic module/code-window integration and native
+diagnostics are documented in [CHECKPOINT_NATIVE_DISC_BOOT.md](CHECKPOINT_NATIVE_DISC_BOOT.md).
+Confirmed Windows runner CI: [39321437767](https://github.com/Ukkitan0/Getchu-3-PC/actions/runs/39321437767).
+An additional game-free unpacked-code recompile test is in progress.
+No actual game boot, title screen or 3D level has been verified.
+
+---
+
 ## Windows toolchain smoke now compiled a native runner (game-free stub)
 
 GitHub CI at commit `b98c874` compiled the upstream real EE and VU compilers,
