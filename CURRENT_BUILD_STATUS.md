@@ -1,3 +1,27 @@
+# Current verified checkpoint — native EE handler dispatch and original FindAddress
+
+Experimental and NOT PLAYABLE. Original US `SCUS_975.01` remains the sole game input.
+
+- Authentic retail instruction prefix reaches `SetupThread` (315,897 retired instructions) without synthetic kernel effects.
+- Opt-in fixture mode executes subsequent guest code through two `CreateSema`
+  wrappers; experimental semaphore HLE supplies IDs.
+- New kernel syscall table accepts original `SetSyscall` 0x74 registrations:
+  0x83 -> 0x0043FCC0 and 0x5A -> 0x0043FC88.
+- Original guest reaches the first 0x83 syscall at 0x0043FD04 (315,977
+  retired instructions before guest handler execution). It is routed, not faked.
+- New real MIPS `0x0043FCC0` handler executes against an externally supplied
+  KSEG0 window. Tests run both handler invocations to the 0x0043FDC4
+  branch using **synthetic kernel RAM**, including retryable unmapped reads,
+  branch-likely delay slots, and one-step/batched state equality.
+- The user-supplied later PCSX2 title-screen EE RAM snapshot provides an
+  *independent reference* for word searches: `0x0043FCC0 -> 0x80014F0C`
+  (21,444 reads) and `0x0043FC88 -> 0` (131,073 reads). It does not
+  authenticate the original BIOS memory state during startup.
+- Windows x64 COFF objects and Linux sanitizer tests pass for new C modules.
+- No bootable or playable Windows game exists.
+
+Repository: https://github.com/Ukkitan0/Getchu-3-PC
+
 # Getchu-3-PC checkpoint — native boot through EE kernel hook boundary
 
 Source canonical: https://github.com/Ukkitan0/Getchu-3-PC
