@@ -67,6 +67,13 @@ class Win32Overlay(unittest.TestCase):
         self.assertIn('WGPUSurfaceSourceWindowsHWND', (self.root/'runtime/src/gs/gpu/gpu.cpp').read_text())
         self.assertIn('GetProcessMemoryInfo', (self.root/'host/window.cpp').read_text())
 
+    def test_windows_gpu_system_imports(self):
+        windows_upstream_patch.patch_sources(self.root)
+        cmake = (self.root / 'CMakeLists.txt').read_text()
+        for library in ('ws2_32', 'ntdll', 'userenv', 'bcrypt', 'secur32',
+                        'crypt32', 'ole32', 'advapi32', 'shell32'):
+            self.assertIn(library, cmake)
+
     def test_idempotent(self):
         windows_upstream_patch.patch_sources(self.root)
         old = {p: (self.root / p).read_bytes() for p in self.paths}

@@ -157,7 +157,9 @@ if(EMSCRIPTEN OR EXISTS "${PS2_WGPU_LINK}")''',
               '''        target_include_directories(ps2runtime PRIVATE "${PS2_WGPU_DIR}/include")
         target_link_libraries(ps2runtime PUBLIC "${PS2_WGPU_LINK}")
         if(WIN32)
-            target_link_libraries(ps2runtime PUBLIC psapi)
+            # wgpu-native's Rust static library requires Windows system
+            # imports in addition to the C GPU interface.
+            target_link_libraries(ps2runtime PUBLIC psapi ws2_32 ntdll userenv bcrypt secur32 crypt32 ole32 advapi32 shell32)
         elseif(UNIX)
             target_link_libraries(ps2runtime PUBLIC ${CMAKE_DL_LIBS} pthread m)
         endif()
