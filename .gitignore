@@ -45,3 +45,8 @@ direct_jal_targets.tsv
 *_test
 # Local PS2 AOT workspace: may contain owner-derived translated game code and assets
 /fastlane/private/
+
+# Original AE3 game data and derived assets MUST remain on the owner PC.
+/native/private/
+/native/owned_assets/
+/AE3_PRIVATE_*/
