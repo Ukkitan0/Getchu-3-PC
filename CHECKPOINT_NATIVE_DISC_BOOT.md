@@ -94,3 +94,15 @@ fastlane/private/shots/
 Do not infer a functioning title screen, graphics, controls or gameplay
 from compiler CI or game-free callback tests. Those require the real disc
 being run on the user's computer and observed frames.
+
+
+## Verified synthetic dynamic-code execution
+
+The dedicated executable-RAM replay stage passed in Windows Actions
+[39322608306](https://github.com/Ukkitan0/Getchu-3-PC/actions/runs/39322608306).
+It ran a game-free MIPS ELF that generated its own callback code in RAM,
+halted at missing native code, captured the memory window, rebound an indirect
+target to the captured overlay and passed the second native AOT run. Guest
+RAM readback was 143 and the runner reached the Exit syscall. This verifies
+the end-to-end runtime-unpacked code path, **not** a retail AE3 title screen.
+The overall run's last GPU check is tracked independently.
