@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import struct
 from pathlib import Path
 import subprocess
 import sys
@@ -42,6 +43,33 @@ def original_collision(files: list[Path]) -> list[Path]:
     return [path for path in files if path.stat().st_size>=8 and
             path.open("rb").read(8)==I3C_MAGIC]
 
+def original_pck_collision(path: Path) -> bool:
+    """Detect genuine I3D_I3C members inside a retail PCK without extracting assets."""
+    size=path.stat().st_size
+    if size<16 or size>512*1024*1024:
+        return False
+    with path.open("rb") as stream:
+        header=stream.read(16)
+        if header[:4]!=b"PCK\x00":
+            return False
+        table,count=struct.unpack_from("<II",header,4)
+        if table<16 or count>100000 or table+count*16>size:
+            raise ValueError(f"Corrupt original PCK member table: {path}")
+        stream.seek(table)
+        entries=stream.read(count*16)
+        if len(entries)!=count*16:
+            raise ValueError(f"Truncated original PCK member table: {path}")
+        for index in range(count):
+            _,_,offset,length=struct.unpack_from("<IIII",entries,index*16)
+            if offset>size or offset<table+count*16 or length>size-offset:
+                raise ValueError(f"Corrupt original PCK member bounds: {path}")
+            if length>=32:
+                stream.seek(offset)
+                if stream.read(8)==I3C_MAGIC:
+                    return True
+    return False
+
+
 def choose_glb_folder(glbs: list[Path], stage: str) -> Path | None:
     # Stage's actual geometry must come from one stage directory.
     # All source assets must have the same source stage-ID folder.
@@ -63,9 +91,11 @@ def launch(*, iso: Path, stage: str, extracted: Path, glb: Path, exe: Path,
         raise FileNotFoundError("original owner-extracted retail game files missing")
     if not glb.is_dir():
         raise FileNotFoundError("real I3D-to-GLB conversion output missing")
-    source=stage_candidates(extracted,stage,{".plc",".i3c",".i3d"})
+    source=stage_candidates(extracted,stage,{".plc",".i3c",".i3d",".pck"})
     original_plcs=[p for p in source if p.name.casefold()=="placeholder.plc"]
-    collision=original_collision(source)
+    collision=original_collision([p for p in source if p.suffix.casefold()!=".pck"])
+    packed_collision=[p for p in source if p.suffix.casefold()==".pck"
+                      and original_pck_collision(p)]
     model_files=stage_candidates(glb,stage,{".glb"})
     real_models=[p for p in model_files if p.stat().st_size>20 and
                  p.open("rb").read(4)==b"glTF"]
@@ -78,6 +108,7 @@ def launch(*, iso: Path, stage: str, extracted: Path, glb: Path, exe: Path,
         "original_iso":str(iso.resolve()),
         "original_plc_candidates":[str(p) for p in original_plcs],
         "original_i3c_candidates":[str(p) for p in collision],
+        "original_pck_collision_candidates":[str(p) for p in packed_collision],
         "native_glb_model_count":len(real_models),
         "native_glb_stage_directory":str(folder) if folder else None,
         "gameplay_verified":False,
@@ -86,9 +117,9 @@ def launch(*, iso: Path, stage: str, extracted: Path, glb: Path, exe: Path,
     if len(original_plcs)!=1:
         report["missing_original_requirements"].append(
             f"Exactly one authentic placeholder.plc for {stage} is needed; found {len(original_plcs)}")
-    if not collision:
+    if not collision and not packed_collision:
         report["missing_original_requirements"].append(
-            f"No I3D_I3C collision data from the SAME original stage {stage}")
+            f"No I3D_I3C collision data from the SAME original stage {stage} (loose or inside PCK)")
     if not real_models or folder is None:
         report["missing_original_requirements"].append(
             f"No converted original I3D GLB models from stage {stage}")
@@ -104,7 +135,7 @@ def launch(*, iso: Path, stage: str, extracted: Path, glb: Path, exe: Path,
     # verifies that the script and stage ID exist before reading the bytecode.
     # A directory argument lets native loader concatenate ALL collision
     # members from this stage (no guessed single-file substitution).
-    collision_dir=choose_glb_folder(collision,stage)
+    collision_dir=choose_glb_folder(collision or packed_collision,stage)
     if collision_dir is None:
         raise RuntimeError("Cannot determine original collision stage folder")
     command=[str(exe.resolve()),"--retail",str(iso.resolve()),stage,
