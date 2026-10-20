@@ -1,4 +1,5 @@
 #pragma once
+#include "ae3/player_state.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <map>
@@ -56,11 +57,11 @@ private:
 
 // Executes Lua 5.0 SOURCE on the host CPU through an embedded Lua interpreter.
 // This DOES NOT translate, interpret or emulate Sony's PS2 machine instructions.
-// Direct retail .luc PS2 bytecode is rejected until conversion/architecture
-// compatibility is validated; use recover_lua50.py for .lua source instead.
+// Original retail .luc is losslessly repacked from float32/size_t32 into
+// host-native Lua 5.0 bytecode; unsupported game callbacks fail explicitly.
 class LuaStage {
 public:
-    explicit LuaStage(NativeStageWorld& world);
+    explicit LuaStage(NativeStageWorld& world,const PlayerProgress* progress=nullptr);
     ~LuaStage();
     LuaStage(const LuaStage&)=delete;
     LuaStage& operator=(const LuaStage&)=delete;
@@ -70,6 +71,10 @@ public:
 private:
     lua_State* state_ = nullptr;
     NativeStageWorld& world_;
+    // Actual AE3 Data save/progression layout, not a dummy Lua return value.
+    // Can point to a separately decoded original save/new-game state.
+    const PlayerProgress* progress_ = nullptr;
+    bool retailChunk_ = false;
     std::string error_;
     void registerCallback(const char* name,int (*callback)(lua_State*));
     static LuaStage* self(lua_State* L);
