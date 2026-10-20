@@ -1,4 +1,5 @@
 #include "ae3/lua_stage.hpp"
+#include "ae3/retail_lua50.hpp"
 extern "C" {
 #include "lua.h"
 #include "lauxlib.h"
@@ -117,8 +118,16 @@ ScriptValue LuaStage::takeValue(lua_State* L,int index,int depth){
 }
 void LuaStage::executeSource(std::string_view source,const std::string& chunkName){
     if(source.size()>16*1024*1024)throw std::runtime_error("Lua stage source exceeds native load limit");
-    if(source.size()>=4 && source[0]=='\x1b' && source.substr(1,3)=="Lua")
-        throw std::runtime_error("original PS2 Lua bytecode requires verified conversion to Lua source");
+    // Retail AE3's Lua 5.0 is still Lua, not Sony machine code.
+    // Its binary dump uses float32 and 32-bit size_t; Windows x64 Lua
+    // uses double and 64-bit size_t. Repack only the original storage
+    // representation. Do not change or replace a single Lua opcode.
+    std::vector<std::uint8_t> hostChunk;
+    if(source.size()>=4 && source.substr(0,4)==std::string_view("\x1bLua",4)){
+        hostChunk=retargetRetailLua50(source);
+        source=std::string_view(
+            reinterpret_cast<const char*>(hostChunk.data()),hostChunk.size());
+    }
     error_.clear();
     int status=luaL_loadbuffer(state_,source.data(),source.size(),chunkName.c_str());
     if(status==0)status=lua_pcall(state_,0,0,0);
