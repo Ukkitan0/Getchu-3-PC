@@ -47,7 +47,7 @@ std::vector<ae3::NativeControllerTimeline> gControllerTimelines;
 std::chrono::steady_clock::time_point gLastScriptTick=std::chrono::steady_clock::now();
 std::size_t gScriptEventCount=0;
 std::wstring gSource, gError, gProgress;
-float gYaw=.4f,gX=0,gZ=-5,gHeight=2.5f;
+float gYaw=.4f,gX=0,gZ=-5,gHeight=2.5f,gCameraPitchDrop=.3f;
 bool gKeys[256]={};
 ae3::StaticScene gWalkCollisionScene;
 bool gOriginalI3cActive=false;
@@ -371,7 +371,7 @@ public:
             context_->RSSetState(nullptr);
         }
         XMVECTOR pos=XMVectorSet(gX,gHeight,gZ,1);
-        XMVECTOR target=XMVectorSet(gX+std::sin(gYaw),gHeight-.3f,
+        XMVECTOR target=XMVectorSet(gX+std::sin(gYaw),gHeight-gCameraPitchDrop,
                                     gZ+std::cos(gYaw),1);
         auto view=XMMatrixLookAtLH(pos,target,XMVectorSet(0,1,0,0));
         auto proj=XMMatrixPerspectiveFovLH(XMConvertToRadians(65),
@@ -670,17 +670,38 @@ void openOriginalCollision(){
 void toggleNativeWalkMode(){
     if(gNativeWalkMode){
         gNativeWalkMode=false;
+        gCameraPitchDrop=.3f;
         status(L"Native walk test OFF. Free-fly camera restored. "
                L"Arrow keys rotate, WASD/QE fly.");
         return;
     }
-    if(!gNativeWalker.reset(gWalkCollisionScene)){
-        status(L"Cannot enter native walk test: imported 3D scene has no walkable triangle.");
+    const ae3::NativeActor* player=nullptr;
+    if(gStageActors){
+        for(const auto& actor:gStageActors->actors()){
+            if(actor.entityClass=="Player"){player=&actor;break;}
+        }
+    }
+    bool groundedAtLuaSpawn=false;
+    if(player){
+        groundedAtLuaSpawn=gNativeWalker.resetAt(
+            gWalkCollisionScene,player->position[0],player->position[2]);
+    }
+    if(!groundedAtLuaSpawn&&!gNativeWalker.reset(gWalkCollisionScene)){
+        status(L"Cannot enter native walk test: scene has no walkable ground.");
         return;
     }
     gNativeWalkMode=true;
     const auto& pawn=gNativeWalker.state();
-    gX=pawn.x;gHeight=pawn.y+1.65f;gZ=pawn.z;
+    if(player){
+        // Native third-person placeholder, NOT recovered retail AE3 camera.
+        gCameraPitchDrop=1.0f;
+        gX=pawn.x-std::sin(gYaw)*3.4f;
+        gHeight=pawn.y+2.8f;
+        gZ=pawn.z-std::cos(gYaw)*3.4f;
+    }else{
+        gCameraPitchDrop=.3f;
+        gX=pawn.x;gHeight=pawn.y+1.65f;gZ=pawn.z;
+    }
     status(gOriginalI3cActive?
            L"ORIGINAL I3C COLLISION WALK TEST ON: WASD movement, Space jump, "
            L"Shift sprint. Movement is an experimental native controller.":
@@ -950,7 +971,27 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
                     gNativeWalker.tick(gWalkCollisionScene,
                                       static_cast<float>(dt),input);
                     const auto& pawn=gNativeWalker.state();
-                    gX=pawn.x;gHeight=pawn.y+1.65f;gZ=pawn.z;
+                    if(gStageActors){
+                        bool hasPlayer=false;
+                        for(const auto& actor:gStageActors->actors()){
+                            if(actor.entityClass=="Player"){hasPlayer=true;break;}
+                        }
+                        if(hasPlayer){
+                            // Track the native player actor with a visible
+                            // over-the-shoulder camera, not a first-person
+                            // camera hidden inside its own model.
+                            gX=pawn.x-std::sin(gYaw)*3.4f;
+                            gHeight=pawn.y+2.8f;
+                            gZ=pawn.z-std::cos(gYaw)*3.4f;
+                            gCameraPitchDrop=1.0f;
+                        }else{
+                            gX=pawn.x;gHeight=pawn.y+1.65f;gZ=pawn.z;
+                            gCameraPitchDrop=.3f;
+                        }
+                    }else{
+                        gX=pawn.x;gHeight=pawn.y+1.65f;gZ=pawn.z;
+                        gCameraPitchDrop=.3f;
+                    }
                     if(gStageActors){
                         for(const auto& actor:gStageActors->actors()){
                             if(actor.entityClass!="Player")continue;
