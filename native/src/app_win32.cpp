@@ -1138,7 +1138,7 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
             const fs::path i3c=argc>=7?fs::path(argv[6]):fs::path{};
             const std::string spawn=argc>=8?
                 fs::path(argv[7]).string():"spawn_default";
-            openOriginalRetailStage(iso,stageId,glbDir,plc,i3c,spawn);
+            loadOriginalRetailStage(iso,stageId,glbDir,plc,i3c,spawn);
         }else if(argc>=2){
             const fs::path file=fs::path(argv[1]);
             std::wstring extension=file.extension().wstring();
