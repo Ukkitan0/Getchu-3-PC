@@ -106,10 +106,17 @@ def main(argv=None):
         and (args.all_scripts or f.name.casefold()=="area.luc"))
     if not files:raise SystemExit("No original area.luc files")
     stage={}
+    rejected={}
     gets=Counter()
     sets=Counter()
     for f in files:
-        r=RetailLua(f.read_bytes()).analyze()
+        try:
+            r=RetailLua(f.read_bytes()).analyze()
+        except (OSError,ValueError) as exc:
+            # Keep the authentic bytecode; do not substitute another script
+            # or pretend a rejected Lua file was successfully inventoried.
+            rejected[str(f)]={"failure":type(exc).__name__,"reason":str(exc)}
+            continue
         gets.update(r.get)
         sets.update(r.set)
         defined=set(r.set)|LUA_NATIVE|IMPLEMENTED_NATIVE
@@ -120,11 +127,15 @@ def main(argv=None):
                        "globals_read":dict(r.get.most_common()),
                        "globals_written":dict(r.set.most_common()),
                        "unresolved_engine_or_external_globals":unresolved}
+    if not stage:
+        raise ValueError("No original Lua 5.0 scripts passed bytecode validation")
     implemented=set(sets)|LUA_NATIVE|IMPLEMENTED_NATIVE
     missing={k:v for k,v in gets.most_common() if k not in implemented}
     report={"schema":"native-original-ae3-retail-lua50-game-api-audit/v1",
             "source":"real owned Lua 5.0 bytecode, NOT synthetic examples",
-            "scripts":len(files),
+            "scripts_discovered":len(files),
+            "scripts_validated":len(stage),
+            "scripts_rejected":rejected,
             "all_scripts_scanned":bool(args.all_scripts),
             "total_getglobal_sites":sum(gets.values()),
             "total_setglobal_sites":sum(sets.values()),
@@ -134,7 +145,8 @@ def main(argv=None):
     if args.out:
         args.out.parent.mkdir(parents=True,exist_ok=True)
         args.out.write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8")
-    print(f"ORIGINAL_AE3_LUA_ENGINE_AUDIT: {len(files)} original Lua scripts")
+    print(f"ORIGINAL_AE3_LUA_ENGINE_AUDIT: {len(stage)}/{len(files)} validated original Lua scripts")
+    if rejected: print(f"UNRECOGNIZED_ORIGINAL_SCRIPT_FORMATS {len(rejected)}; see private report")
     print(f"ORIGINAL_LUA_GLOBAL_READS {sum(gets.values())}")
     print(f"UNKNOWN_GAME_ENGINE_GLOBALS {len(missing)}")
     for name,count in list(missing.items())[:120]:
