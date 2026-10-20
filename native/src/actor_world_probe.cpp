@@ -9,13 +9,14 @@
 #include <string>
 int main(int argc,char** argv){
     if(argc!=2 && argc!=3){
-        std::cerr<<"Usage: Getchu3ActorWorldProbe <private-stage-GLB-folder> [private-area.lua]\n";
+        std::cerr<<"Usage: Getchu3ActorWorldProbe <private-stage-GLB-folder> [original-area.luc|area.lua]\n";
         return 2;
     }
     try{
         namespace fs=std::filesystem;
         const fs::path root=fs::u8path(argv[1]);
-        const fs::path script=argc==3?fs::u8path(argv[2]):root/"area.lua";
+        const fs::path script=argc==3?fs::u8path(argv[2]):
+           (fs::is_regular_file(root/"area.luc")?root/"area.luc":root/"area.lua");
         std::ifstream source(script,std::ios::binary);
         if(!source)throw std::runtime_error("no owner-local Lua stage source");
         std::string text((std::istreambuf_iterator<char>(source)),{});
