@@ -12,10 +12,13 @@ param(
     [string]$Unluac = '',
     [switch]$AllLua,
     [switch]$StrictOriginalStage,
+    [string]$LaunchOriginalStage = '',
+    [string]$OriginalSpawn = 'spawn_default',
     [string]$Ae3Cli = 'ae3'
 )
 $ErrorActionPreference = 'Stop'
 if ($Animate) { $Gltf = $true }
+if ($LaunchOriginalStage) { $Gltf = $true; $Animate = $true; $StrictOriginalStage = $true }
 $Project = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $Native = Join-Path $Project 'native'
 $Private = Join-Path $Native 'private'
@@ -114,6 +117,25 @@ if ($StrictOriginalStage) { $StageAuditArgs += '--require-real-stage' }
 & py @StageAuditArgs
 if ($LASTEXITCODE -ne 0) {
     throw 'Original Ape Escape 3 stage is incomplete. Read original_stage_audit.json for the specific missing original assets.'
+}
+if ($LaunchOriginalStage) {
+    # Launch ONLY with original retail stage data. No mock level, no
+    # hand-authored substitute scripts, and no PlayStation runtime.
+    $NativeExe = Join-Path $BuildDir 'Release\Getchu3Native.exe'
+    & cmake --build $BuildDir --config Release --target Getchu3Native --parallel
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $NativeExe -PathType Leaf)) {
+        throw 'Native original-game Windows C++ renderer did not build.'
+    }
+    $LaunchTool = Join-Path $Native 'tools\launch_owned_retail_stage.py'
+    $LaunchArgs = @('-3', $LaunchTool, '--iso', $Game,
+        '--stage', $LaunchOriginalStage, '--extracted', $ExtractedRoot,
+        '--glb', (Join-Path $Out 'glb'), '--exe', $NativeExe,
+        '--spawn', $OriginalSpawn,
+        '--report', (Join-Path $Out 'original_retail_stage_launch.json'))
+    & py @LaunchArgs
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Authentic Ape Escape 3 stage launch failed; see original_retail_stage_launch.json. No synthetic fallback was executed.'
+    }
 }
 Write-Host ''
 Write-Host 'Getchu 3: NATIVE Windows asset preparation completed.'
