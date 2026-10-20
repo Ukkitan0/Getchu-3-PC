@@ -28,7 +28,7 @@ void NativeStageWorld::addParameters(ScriptValue params){
     parameters_.push_back(std::move(params));
 }
 void NativeStageWorld::clear(){
-    entities_.clear();parameters_.clear();flags_.clear();
+    entities_.clear();parameters_.clear();flags_.clear();playerWeaponSelection_.reset();
 }
 
 LuaStage::LuaStage(NativeStageWorld& world,const PlayerProgress* progress)
@@ -62,6 +62,8 @@ LuaStage::LuaStage(NativeStageWorld& world,const PlayerProgress* progress)
     registerCallback("is_survival_mode",&isSurvival);
     registerCallback("get_costume_possess",&costumePossess);
     registerCallback("get_costume_possess_ninja",&costumePossessNinja);
+    registerCallback("get_sex_distinction",&sexDistinction);
+    registerCallback("set_player_weapon",&setPlayerWeapon);
 }
 LuaStage::~LuaStage(){if(state_)lua_close(state_);}
 void LuaStage::registerCallback(const char* name,int (*callback)(lua_State*)){
@@ -282,5 +284,31 @@ int LuaStage::costumePossessNinja(lua_State* L){
     // Original Data+0x28 is costume_possess[3]; no Lua argument.
     lua_pushboolean(L,stage->progress_->costume_possess[3]==2);
     return 1;
+}
+int LuaStage::sexDistinction(lua_State* L){
+    auto* stage=self(L);
+    if(!stage->progress_)
+        return luaL_error(L,"original get_sex_distinction requires Data save state");
+    // SCUS_975.01 @ 0x219C8C: load Data.player_type at 0x649910,
+    // then push exact original string "boy" (0), "girl" (1), or "nil"
+    // (all other values). The last is a STRING, not the Lua nil value.
+    const int kind=stage->progress_->player_type;
+    const char* value=kind==0?"boy":kind==1?"girl":"nil";
+    lua_pushstring(L,value);
+    return 1;
+}
+int LuaStage::setPlayerWeapon(lua_State* L){
+    // SCUS_975.01 @ 0x512000 compares arg one against original strings
+    // "empty" (0), "net" (1), "club" (2), default (3), then calls
+    // 0x266CF4 which stores the value in the game-owned object at
+    // [0x6496D8]+0xBC. The original callback returns zero Lua values.
+    const char* weapon=luaL_checkstring(L,1);
+    int selection=3;
+    if(std::strcmp(weapon,"empty")==0)selection=0;
+    else if(std::strcmp(weapon,"net")==0)selection=1;
+    else if(std::strcmp(weapon,"club")==0)selection=2;
+    // Native temporary state, not a fabricated active gadget or player.
+    self(L)->world_.setPlayerWeaponSelection(selection);
+    return 0;
 }
 } // namespace ae3

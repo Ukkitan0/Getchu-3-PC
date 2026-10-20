@@ -1,0 +1,30 @@
+{
+  "format": "getchu3/recovered-original-lua-engine-methods/v1",
+  "elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "source": "Original USA SCUS_975.01 MIPS R5900 machine-code disassembly",
+  "methods": [
+    {
+      "name": "get_sex_distinction",
+      "original_va": "0x219c8c",
+      "source_data_address": "0x649910",
+      "data_field": "Data.player_type",
+      "exact_behavior": "0=>string boy;1=>string girl;any other integer=>string nil",
+      "native_status": "ported and unit-tested"
+    },
+    {
+      "name": "set_player_weapon",
+      "original_va": "0x512000",
+      "original_setter_va": "0x266cf4",
+      "original_pointer_address": "0x6496d8",
+      "original_slot_offset": "0xbc",
+      "string_constants_addresses": [
+        "0x6ecc10",
+        "0x6ecc18",
+        "0x6ecc20"
+      ],
+      "exact_behavior": "empty=>0;net=>1;club=>2;unknown=>3; callback returns 0 Lua values",
+      "native_status": "original decoding and state setter ported; actual game-owned object lifecycle not implemented"
+    }
+  ],
+  "limitation": "Unit tests alone do not establish authentic gameplay. No commercial executable or original bytes included."
+}

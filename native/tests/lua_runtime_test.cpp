@@ -121,6 +121,47 @@ void originalProgressBindingTests(){
     catch(const std::runtime_error&){rejected=true;}
     check(rejected,"real capture flag boundary allowed invalid original save index");
 }
+void originalEngineBindingsFromElf(){
+    // These are direct translations of two original machine-code callbacks,
+    // not a synthetic gameplay implementation or a guessed gadget system.
+    struct Example {int playerType;const char* sex;const char* weapon;int code;};
+    const Example cases[]={
+        {0,"boy","empty",0},
+        {1,"girl","net",1},
+        {5,"nil","club",2},
+        {-1,"nil","other-original-code",3}
+    };
+    for(const auto& test:cases){
+        ae3::PlayerProgress progress{};
+        progress.player_type=test.playerType;
+        ae3::NativeStageWorld world;
+        ae3::LuaStage native(world,&progress);
+        const std::string chunk=
+            std::string("function setupArea(o) new_ent('OriginalResult',{name=get_sex_distinction()}); ") +
+            "set_player_weapon('"+test.weapon+"') end";
+        native.executeSource(chunk);
+        native.callSetupArea("entry");
+        check(world.entities().size()==1,"original sex callback lost return value");
+        check(world.entities()[0].name==test.sex,
+              "original ELF get_sex_distinction returned incorrect text");
+        check(world.playerWeaponSelection().has_value(),
+              "original ELF set_player_weapon did not store selection");
+        check(*world.playerWeaponSelection()==test.code,
+              "original ELF weapon string-to-integer mapping changed");
+        world.clear();
+        check(!world.playerWeaponSelection().has_value(),
+              "game weapon selection leaked after native stage reset");
+    }
+    // This callback reads original progression Data rather than returning
+    // an invented player kind when the Data singleton has not been loaded.
+    ae3::NativeStageWorld world;
+    ae3::LuaStage missing(world);
+    missing.executeSource("function setupArea(o) return get_sex_distinction() end");
+    bool blocked=false;
+    try{missing.callSetupArea("entry");}
+    catch(const std::runtime_error&){blocked=true;}
+    check(blocked,"game sex query did not reject missing original Data");
+}
 void errorCases(){
     ae3::NativeStageWorld world;
     ae3::LuaStage lua(world);
@@ -147,6 +188,7 @@ int main(){
     try{
         runRealScriptSample();
         originalProgressBindingTests();
+        originalEngineBindingsFromElf();
         errorCases();
         std::cout<<"NATIVE_REAL_LUA50_EXECUTION_PASSED: "
                     "setupArea,new_ent,lua_param,c_order,c_ctrl,flags,control flow\n";

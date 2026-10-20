@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -45,6 +46,11 @@ public:
     const std::vector<StageEntity>& entities() const noexcept {return entities_;}
     const std::vector<ScriptValue>& parameters() const noexcept {return parameters_;}
     bool flag(const std::string& scope,const std::string& key) const;
+    // Original game 0x266CF4 stores one integer at [0x6496D8]+0xBC.
+    // This optional value is uninitialized until the Lua weapon call runs;
+    // original global object creation is still under reconstruction.
+    std::optional<int> playerWeaponSelection() const noexcept {return playerWeaponSelection_;}
+    void setPlayerWeaponSelection(int value) noexcept {playerWeaponSelection_=value;}
     void setFlag(const std::string& scope,const std::string& key,bool value);
     void addEntity(StageEntity entity);
     void addParameters(ScriptValue params);
@@ -53,6 +59,7 @@ private:
     std::vector<StageEntity> entities_;
     std::vector<ScriptValue> parameters_;
     std::map<std::string,bool> flags_;
+    std::optional<int> playerWeaponSelection_;
 };
 
 // Executes Lua 5.0 SOURCE on the host CPU through an embedded Lua interpreter.
@@ -89,5 +96,7 @@ private:
     static int isSurvival(lua_State* L);
     static int costumePossess(lua_State* L);
     static int costumePossessNinja(lua_State* L);
+    static int sexDistinction(lua_State* L);
+    static int setPlayerWeapon(lua_State* L);
 };
 } // namespace ae3
