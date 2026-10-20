@@ -1,0 +1,98 @@
+{
+  "format": "getchu3/original-retail-elf-direct-lua-registration-addresses/v1",
+  "source_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "method": "Mapped actual MIPS JAL 0x3E5F90 (Lua name) + JAL 0x3E60B8 (function pointer) to derived callback targets; verified pointer/string addresses against original executable.",
+  "direct_bindings_sample": [
+    {
+      "name": "new_ent",
+      "register_jal": "0x21aab8",
+      "original_function": "0x21498c"
+    },
+    {
+      "name": "c_order",
+      "register_jal": "0x21aae8",
+      "original_function": "0x217e38"
+    },
+    {
+      "name": "c_ctrl",
+      "register_jal": "0x21ab18",
+      "original_function": "0x219810"
+    },
+    {
+      "name": "c_which",
+      "register_jal": "0x21ab48",
+      "original_function": "0x218b28"
+    },
+    {
+      "name": "get_capture_flag",
+      "register_jal": "0x21aba8",
+      "original_function": "0x219be0"
+    },
+    {
+      "name": "get_game_round",
+      "register_jal": "0x21abd8",
+      "original_function": "0x219cdc"
+    },
+    {
+      "name": "get_random",
+      "register_jal": "0x21ac08",
+      "original_function": "0x219c2c"
+    },
+    {
+      "name": "set_scene_eff",
+      "register_jal": "0x21acf8",
+      "original_function": "0x217b3c"
+    },
+    {
+      "name": "fog_param",
+      "register_jal": "0x21ad28",
+      "original_function": "0x21a1a8"
+    },
+    {
+      "name": "light_param",
+      "register_jal": "0x21ad58",
+      "original_function": "0x21a368"
+    },
+    {
+      "name": "spring_param",
+      "register_jal": "0x21ad88",
+      "original_function": "0x21a02c"
+    },
+    {
+      "name": "lua_param",
+      "register_jal": "0x21adb8",
+      "original_function": "0x219e4c"
+    },
+    {
+      "name": "create_object",
+      "register_jal": "0x25f850",
+      "original_function": "0x511674"
+    },
+    {
+      "name": "create_bg",
+      "register_jal": "0x25f880",
+      "original_function": "0x511e24"
+    },
+    {
+      "name": "delete_object",
+      "register_jal": "0x25f8b0",
+      "original_function": "0x511ed0"
+    },
+    {
+      "name": "object_display",
+      "register_jal": "0x25f8e0",
+      "original_function": "0x511f30"
+    },
+    {
+      "name": "set_player_weapon",
+      "register_jal": "0x25f910",
+      "original_function": "0x512000"
+    }
+  ],
+  "analysis_totals": {
+    "direct_registration_pairs": 40,
+    "entity_type_comparisons_in_new_ent": 64,
+    "controller_command_comparisons_in_c_ctrl": 20
+  },
+  "caution": "Counts refer to confirmed static JAL/name comparison sites; other registration mechanisms and actor constructors still require mapping. First-party game binary and instructions are not published."
+}
