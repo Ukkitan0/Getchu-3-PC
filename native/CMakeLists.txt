@@ -139,3 +139,6 @@ add_test(NAME NativeI3cWallSlidingAndSpawn COMMAND Getchu3WallMotionTests)
 add_executable(Getchu3NativeSkinningTests tests/native_skinning_test.cpp)
 target_link_libraries(Getchu3NativeSkinningTests PRIVATE Getchu3Assets)
 add_test(NAME NativeOriginalI3mGltfSkinnedBoneAnimation COMMAND Getchu3NativeSkinningTests)
+
+add_executable(Getchu3SkinningProbe src/native_skinning_probe.cpp)
+target_link_libraries(Getchu3SkinningProbe PRIVATE Getchu3Assets)
