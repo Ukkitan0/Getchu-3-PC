@@ -82,3 +82,48 @@ in the inspected dispatch body:
 game's object and event behavior. The prior native implementation merely
 captured Lua data; following these functions and reconstructing their
 real side effects is now the main development direction.
+
+## Expanded verified native function routing — 2026-10-20
+
+Direct original ELF static analysis now identifies the **first early JAL
+target for 45 of the 64** compared entity names, including many
+original camera, mechanism, destructible, enemy, and stage-object handlers.
+The remaining **18** names use shared dispatch
+blocks or follow indirect/longer branches; see the explicit unresolved
+list in `native/reference/original_entity_controller_routes.json`.
+
+For controller actions, **19 of the 20** original commands jump directly
+to a distinct native handler. Examples:
+
+| Original controller opcode | Actual MIPS code target |
+|---|---|
+| `anim_replay` | `0x218A20` |
+| `trig_wait` | `0x218E9C` |
+| `weapon_spawn` | `0x218D38` |
+| `monkey_cap_wait` | `0x218C48` |
+| `se` | `0x2191D4` |
+| `message` | `0x218F24` |
+| `path_replay` | `0x2186E4` |
+| `onDamage` | `0x217FE4` |
+
+The `message_b` branch requires additional CFG inspection. The first
+`Monkey` call at `0x20D70C` is a Lua parameter parser, NOT a proven
+monkey constructor. The original `Player` wrapper at `0x20DAA4`
+calls `0x35AB88`, `0x20D514`, `0x20D49C` and `0x34A70C`.
+The last routine allocates a 0x260-byte game object and dispatches
+original game initialization at `0x5B0258`. This is a function-level
+reconstruction **in progress**, not playable player movement.
+
+Two additional small original game functions are now translated directly
+into native host C++ with unit tests:
+
+- `get_sex_distinction` at `0x219C8C` reads `Data.player_type`
+  at `0x649910` and pushes exact strings `boy`, `girl` or `nil`.
+- `set_player_weapon` at `0x512000` maps string `empty` → 0,
+  `net` → 1, `club` → 2, other → 3; the original setter
+  `0x266CF4` stores the value at `[0x6496D8] + 0xBC`. Native
+  code preserves the decoded selection, but the original game-owned
+  object creation and active gadget behavior are still outstanding.
+
+Exact route map generator, which verifies the original USA ELF hash:
+`python native/tools/map_original_engine_routes.py SCUS_975.01 --out routes.json`.

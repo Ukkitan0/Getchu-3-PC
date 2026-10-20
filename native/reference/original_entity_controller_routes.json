@@ -1,0 +1,361 @@
+{
+  "format": "getchu3/original-retail-entity-command-early-edges/v1",
+  "source_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "verification": "Address targets extracted by decoding original R5900 JAL/J from the authenticated ELF following actual Lua-dispatch name comparisons. No ELF bytes included.",
+  "metrics": {
+    "entity_comparisons": 64,
+    "entities_with_early_jal": 45,
+    "entities_needing_deeper_cfg": 18,
+    "controller_comparisons": 20,
+    "controllers_with_direct_jumps": 19,
+    "controllers_needing_deeper_cfg": 1
+  },
+  "entity_first_original_jal": [
+    {
+      "name": "Antlion",
+      "target": "0x20e388",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Tie",
+      "target": "0x20e22c",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Rope",
+      "target": "0x20dffc",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Hanger",
+      "target": "0x20de58",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "MagnetCamera",
+      "target": "0x20e4c8",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "StationCamera",
+      "target": "0x20e958",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "MGSHostage",
+      "target": "0x213ff4",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "MGSMine",
+      "target": "0x213ea8",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "MGSMetal",
+      "target": "0x213e70",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "MGSBossProc",
+      "target": "0x213de0",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "MGSMonica",
+      "target": "0x214374",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "MGSGenBomb",
+      "target": "0x2141dc",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "MGSDispUI_StageInfo",
+      "target": "0x213db0",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "MGSCboard",
+      "target": "0x214588",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "BehindCamera",
+      "target": "0x20e7c8",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "ChopCamera",
+      "target": "0x20e5d8",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Scales",
+      "target": "0x20dd88",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Punching",
+      "target": "0x20ef04",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Icicle",
+      "target": "0x20f080",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Cannon",
+      "target": "0x20f230",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Objspawn",
+      "target": "0x20f678",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Force",
+      "target": "0x20f988",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Car",
+      "target": "0x2106f8",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Draggable",
+      "target": "0x2105a8",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Stone",
+      "target": "0x2103a8",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "HugeSpecter",
+      "target": "0x210180",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Button",
+      "target": "0x2135a8",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "CountSwitch",
+      "target": "0x2133e8",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "RollerHandle",
+      "target": "0x213194",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Player",
+      "target": "0x20daa4",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "MGSPlayer",
+      "target": "0x20db18",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "MGSSnake",
+      "target": "0x20db8c",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "MatTrigger",
+      "target": "0x213914",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Monkey",
+      "target": "0x20d70c",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "DashBall",
+      "target": "0x211988",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Guide",
+      "target": "0x2118e4",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Liq",
+      "target": "0x21189c",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "KeepWatchOnEntity",
+      "target": "0x211504",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "FogHandler",
+      "target": "0x2115e4",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "FogSelector",
+      "target": "0x2115b0",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "AlertTrigger",
+      "target": "0x20d70c",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "HeroSwitch",
+      "target": "0x2117c4",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "InfraredRaysEntity",
+      "target": "0x210e68",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "PhoneAntenna",
+      "target": "0x4e16f4",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "RoundCamera",
+      "target": "0x379864",
+      "classification": "first early call; may be parser, allocator, or constructor"
+    }
+  ],
+  "controller_direct_original_jump": [
+    {
+      "command": "anim_replay",
+      "target": "0x218a20",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "anim_roller_play",
+      "target": "0x217f08",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "trig_access",
+      "target": "0x218ba0",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "trig_wait",
+      "target": "0x218e9c",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "weapon_spawn",
+      "target": "0x218d38",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "monkey_cap_wait",
+      "target": "0x218c48",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "wait",
+      "target": "0x21937c",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "se",
+      "target": "0x2191d4",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "se_stop",
+      "target": "0x2190d8",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "add_entity_se",
+      "target": "0x219454",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "kick_entity_effect",
+      "target": "0x2196f0",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "kick_entity_se",
+      "target": "0x2195d0",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "message",
+      "target": "0x218f24",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "mgs_signal_alert",
+      "target": "0x2190a4",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "message_wait",
+      "target": "0x219024",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "path_replay",
+      "target": "0x2186e4",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "value",
+      "target": "0x218104",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "onDamage",
+      "target": "0x217fe4",
+      "classification": "direct original MIPS jump after name comparison"
+    },
+    {
+      "command": "print",
+      "target": "0x218cac",
+      "classification": "direct original MIPS jump after name comparison"
+    }
+  ],
+  "no_early_direct_jal": [
+    "MGSBullet",
+    "MGSBullet_Respawn",
+    "MGSBomb",
+    "MGSBomb_Respawn",
+    "MGSGrenade",
+    "MGSGrenade_Respawn",
+    "MGSRation",
+    "MGSRation_Respawn",
+    "RangeSwitch",
+    "Seesaw",
+    "Eaves",
+    "EavesSingle",
+    "Enviroment",
+    "EnergyCharger",
+    "MajinJar",
+    "GenieJar",
+    "MajinStage",
+    "SceneParticle"
+  ],
+  "no_early_direct_jump": [
+    "message_b"
+  ],
+  "warning": "A verified entrypoint is NOT proof the underlying behavior has been reconstructed or ported. The Player/Monkey functions require dependency analysis and C++ reimplementation."
+}
