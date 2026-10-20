@@ -1,0 +1,67 @@
+{
+  "format": "ae3/authentic-original-player-action-dispatch/v1",
+  "source_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "player_main_vtable": [
+    "0x5b05cc",
+    "0x5b0694",
+    "0x34a014",
+    "0x34a21c",
+    "0x442028",
+    "0x442030",
+    "0x34a1b8",
+    "0x349f9c",
+    "0x442048",
+    "0x349fe4",
+    "0x349ffc"
+  ],
+  "monkey_main_vtable": [
+    "0x571d0c",
+    "0x571d8c",
+    "0x5717fc",
+    "0x5719ac",
+    "0x442028",
+    "0x442030",
+    "0x571aa4",
+    "0x571834",
+    "0x442048",
+    "0x5718cc",
+    "0x571904"
+  ],
+  "player_secondary_method": "0x34a57c",
+  "monkey_secondary_methods": [
+    "0x571648",
+    "0x571658",
+    "0x571668",
+    "0x571688",
+    "0x5716a8",
+    "0x5716c4",
+    "0x5716d8",
+    "0x57173c",
+    "0x57178c"
+  ],
+  "player_switch_table": "0x7122fc",
+  "original_case_addresses": [
+    "0x34a5b4",
+    "0x34a5b4",
+    "0x34a5b4",
+    "0x34a608",
+    "0x34a5e4",
+    "0x34a5fc",
+    "0x34a608",
+    "0x34a614",
+    "0x34a628",
+    "0x34a630",
+    "0x34a640",
+    "0x34a640"
+  ],
+  "original_constants": [
+    20,
+    100
+  ],
+  "shared_virtual_noops": [
+    "0x442028",
+    "0x442030",
+    "0x442048"
+  ],
+  "limits": "Underlying original 0x33fce4,0x34675c,0x3509ac,0x33fd90,0x324260 implementations remain outstanding. Source ELF not committed."
+}
