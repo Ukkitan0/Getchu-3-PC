@@ -1,0 +1,16 @@
+{
+  "format": "ae3/verified-retail-monkey-secondary-accessors/v1",
+  "source_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "original_secondary_vtable": "0x6b14d0",
+  "original_getter_word08": "0x571648",
+  "original_getter_word38": "0x571658",
+  "original_set_flag50": "0x5716c4",
+  "original_angle_method": "0x571688",
+  "original_angle_callee": "0x316928",
+  "angle_source_float_offset": "0x37c",
+  "angle_factor_global": "0x708278",
+  "angle_factor_ieee754_hex": "0x3c8efa34",
+  "angle_factor_value": 0.01745329052209854,
+  "confidence": "Exact instructions and vtable verified against original retail ELF",
+  "unknowns": "Original subobject ownership, remaining method bodies and full gameplay lifecycle"
+}
