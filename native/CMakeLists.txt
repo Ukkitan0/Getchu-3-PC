@@ -153,3 +153,7 @@ target_link_libraries(Getchu3ActorWorldProbe PRIVATE Getchu3Assets)
 add_executable(Getchu3RetailLua50Tests tests/retail_lua50_test.cpp)
 target_link_libraries(Getchu3RetailLua50Tests PRIVATE Getchu3Assets)
 add_test(NAME NativeActualRetailLua50FormatRetarget COMMAND Getchu3RetailLua50Tests)
+
+# Audit actual game-owned ISO stages, without synthetic scenery or emulated hardware.
+add_executable(Getchu3RetailStageAudit src/retail_stage_audit.cpp)
+target_link_libraries(Getchu3RetailStageAudit PRIVATE Getchu3Assets)
