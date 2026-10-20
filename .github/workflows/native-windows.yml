@@ -21,6 +21,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m unittest discover -s native/tools -p 'test_unpack_original_stage_pck.py' -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s native/tools -p 'test_extract_retail_iso.py' -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m unittest discover -s native/tools -p 'test_package_private_retail_evidence.py' -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Enforce strict original retail stage selection; reject all missing source assets
         shell: pwsh
         run: |
@@ -42,7 +46,7 @@ jobs:
       - name: Validate original retail game asset pipeline
         shell: pwsh
         run: |
-          python -m py_compile native/tools/audit_original_stage.py native/tools/recover_lua50.py native/tools/prepare_owned_assets.py native/tools/convert_models_to_glb.py native/tools/launch_owned_retail_stage.py native/tools/unpack_original_stage_pck.py
+          python -m py_compile native/tools/audit_original_stage.py native/tools/recover_lua50.py native/tools/prepare_owned_assets.py native/tools/convert_models_to_glb.py native/tools/launch_owned_retail_stage.py native/tools/unpack_original_stage_pck.py native/tools/extract_retail_iso.py native/tools/package_private_retail_evidence.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Configure native host-only engine
         shell: pwsh
