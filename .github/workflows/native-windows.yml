@@ -19,6 +19,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m unittest discover -s native/tools -p 'test_convert_models_to_glb.py' -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Enforce strict original retail stage selection; reject all missing source assets
+        shell: pwsh
+        run: |
+          python -m unittest discover -s native/tools -p 'test_launch_owned_retail_stage.py' -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Validate native-only local asset-preparation PowerShell syntax
         shell: pwsh
         run: |
@@ -35,7 +40,7 @@ jobs:
       - name: Validate original retail game asset pipeline
         shell: pwsh
         run: |
-          python -m py_compile native/tools/audit_original_stage.py native/tools/recover_lua50.py native/tools/prepare_owned_assets.py native/tools/convert_models_to_glb.py
+          python -m py_compile native/tools/audit_original_stage.py native/tools/recover_lua50.py native/tools/prepare_owned_assets.py native/tools/convert_models_to_glb.py native/tools/launch_owned_retail_stage.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Configure native host-only engine
         shell: pwsh
@@ -116,25 +121,6 @@ jobs:
             throw "Console hardware runtime dependency was found in executable native CMake"
           }
           Write-Host "Only Win32, Direct3D11 and standard C++: no EE interpreter, IOP runtime or PS2 GS"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Getchu3-TRUE-NATIVE-Windows-x64-engine-test
-          path: |
-            native/build/Release/Getchu3Native.exe
-            native/build/Release/Getchu3AssetProbe.exe
-            native/build/Release/Getchu3StageProbe.exe
-            native/build/Release/Getchu3LuaStageRunner.exe
-            native/build/Release/Getchu3GlbSceneProbe.exe
-            native/build/Release/Getchu3LevelSceneProbe.exe
-            native/build/Release/Getchu3PckProbe.exe
-            native/build/Release/Getchu3I3mProbe.exe
-            native/build/Release/Getchu3I3cProbe.exe
-            native/build/Release/Getchu3SkinningProbe.exe
-            native/build/Release/Getchu3ActorWorldProbe.exe
-            native/build/native_lua_actor_stage/
-            native/build/native_bone_animation_test.glb
-            native/build/native_collision_cube.i3c
-            native/build/native_synthetic_level/
-            native/build/native_arena_test.glb
-            native/examples/native_binding_demo.lua
-          if-no-files-found: error
+      # No downloadable "game" package is published while actual
+      # original Ape Escape 3 gameplay has not been implemented and
+      # verified. CI fixtures remain internal engineering checks only.
