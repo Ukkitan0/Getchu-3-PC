@@ -234,7 +234,7 @@ OriginalCollision loadOriginalI3cDirectory(const std::filesystem::path& folder,
         if(extension!=".i3d"&&extension!=".i3c")continue;
         std::ifstream stream(it->path(),std::ios::binary);
         char magic[8]{};
-        if(stream.read(magic,sizeof(magic)) && std::memcmp(magic,"I3D_I3C\\0",8)==0){
+        if(stream.read(magic,sizeof(magic)) && std::memcmp(magic,"I3D_I3C\0",8)==0){
             files.push_back(it->path());
             if(packs.size()+files.size()>maxFiles)
                 throw std::runtime_error("too many original collision source files");
