@@ -50,3 +50,42 @@ These are *not* missing gameplay operations.
 Next: source-level recover `0x33FCE4`, `0x34675C`, `0x3509AC`,
 `0x33FD90`, `0x324260`, then call this dispatcher from reconstructed
 original Player lifecycle code, retaining the source game's Lua 5.0 scripts.
+
+## Decompiled genuine chip counter accumulation
+
+The Player selector case 0, 1, or 2 invokes original function
+`0x33FCE4` with amount **1**, **5**, or **10**. That function accesses
+original Data at `0x649910` and loads its counter at `0x6499D4`,
+which equals `Data + 0xC4` = the recovered `chip_count` field.
+
+Its directly recovered arithmetic is:
+
+```cpp
+int32_t pending = wrap32(originalData.chip_count + gained);
+int32_t threshold = survivalMode ? 1000
+                  : specialHundredLimitFlag ? 100 : -1;
+if (threshold > 0 && pending >= threshold) {
+    // Original 0x33FD90 and 0x349B2C side effects occur here.
+    pending = wrap32(pending - threshold);  // only once, not modulo
+}
+// Original 0x26FB24 stores/clamps counters;
+// original 0x2915EC forwards the display/update event.
+```
+
+The arithmetic is implemented in
+`originalChipGainBeforeClamp`, keeping its return value explicitly
+named *pendingBeforeFinalClamp*. The actual original `0x26FB24`
+subroutine **writes both** `Data+0xC4` and `Data+0xC8`
+(`chip_count` and `max_chip_count`) using R5900 packed instructions.
+It has **not yet** been translated, so the computed pending value is
+not falsely presented as the final saved chip count.
+
+The 100-limit flag was read at original `0x647930`, and the 1,000
+override comes from the same original `0x236928` routine used by
+`is_survival_mode`. The conditional wrap also invokes actual
+`0x33FD90` and `0x349B2C` (effects not yet fully recovered).
+
+A native, release-mode C++ test covers 100/1,000 threshold crossings,
+the no-limit case, a single wrap with a large increment, and two's
+complement 32-bit overflow. This is real source-level recovery of a
+game counter algorithm, **not a fake collectible or an operational gadget**.

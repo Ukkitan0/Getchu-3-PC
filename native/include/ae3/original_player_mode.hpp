@@ -18,3 +18,18 @@ public:
 bool dispatchOriginalPlayerMode(std::uint32_t originalMode,
                                 OriginalPlayerModeCalls& original);
 } // namespace ae3
+
+
+namespace ae3 {
+struct OriginalChipGainCore {
+    std::int32_t pendingBeforeFinalClamp = 0;
+    std::int32_t threshold = -1;
+    bool crossedThreshold = false;
+};
+// Source-level port of the integer branch logic of original 0x33FCE4.
+// The returned pending value feeds original 0x26FB24, which performs
+// further packed-instruction clamping and max-chip state updates.
+OriginalChipGainCore originalChipGainBeforeClamp(
+    std::int32_t chipCount, std::int32_t gained,
+    bool limitedTo100, bool survivalMode) noexcept;
+}
