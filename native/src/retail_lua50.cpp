@@ -37,7 +37,7 @@ public:
         appendDouble(static_cast<double>(check));
         parseFunction(0);
         if(pos_!=data_.size())fail("trailing bytes after original Lua prototype");
-        if(stats)*stats=stats_;
+        if(report)*report=stats_;
         return std::move(output_);
     }
 private:
