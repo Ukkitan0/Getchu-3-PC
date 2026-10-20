@@ -126,8 +126,10 @@ void test(std::vector<std::uint8_t> bytes){
           "native quaternion interpolation did not rotate skinned mesh");
     check(std::abs(half[0].y-1.70710678f)<.002f,
           "native weighted skin translation not composed with rotation");
-    check(std::abs(half[1].x+0.70710678f)<.002f,
-          "native second vertex did not follow original animated joint");
+    check(std::abs(half[2].x+0.70710678f)<.002f,
+          "native second original source vertex did not follow animated joint");
+    check(std::abs(half[1].y-1.f)<.002f,
+          "native root triangle vertex did not follow original bone translation");
     const auto& loop=model.sample(0,1.5).triangles;
     check(std::abs(loop[0].x-half[0].x)<1e-5f &&
           std::abs(loop[0].y-half[0].y)<1e-5f,
