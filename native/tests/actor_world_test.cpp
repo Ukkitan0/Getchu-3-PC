@@ -143,6 +143,23 @@ void integration(){
         require(world.report().actorsCreated==0 &&
                 world.report().modelsRejected==1,
                 "private actor override could escape model-root security scope");
+        // Native Lua model_name must resolve the actual original model
+        // basename despite PCK's collision-safe numbered extraction name.
+        fs::create_directories(root/"pck_assets"/"bg");
+        write(root/"pck_assets"/"bg"/"0000_woods_actor.glb",triangle());
+        ae3::NativeStageWorld originalActor;
+        ae3::LuaStage originalVm(originalActor);
+        originalVm.executeSource(R"LUA(
+            function setupArea(opts)
+              new_ent("Monkey",{name="original_monkey",model_name="woods_actor",pos={1,0,2}})
+            end
+        )LUA");
+        originalVm.callSetupArea("start");
+        ae3::NativeActorWorld extractedWorld(backdrop);
+        extractedWorld.bind(originalActor,root);
+        require(extractedWorld.report().actorsCreated==1 &&
+                extractedWorld.actor("original_monkey")->modelName=="0000_woods_actor.glb",
+                "retail Lua model_name failed to bind uniquely to numbered PCK-extracted I3D GLB");
         fs::remove_all(root);
     }catch(...){fs::remove_all(root);throw;}
 }
