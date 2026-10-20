@@ -1,6 +1,7 @@
 """Original retail stage launch gate: never substitutes synthetic game resources."""
 from __future__ import annotations
 import importlib.util
+import struct
 from pathlib import Path
 import tempfile
 import unittest
@@ -62,6 +63,39 @@ class OriginalRetailLaunchTests(unittest.TestCase):
         foreign.mkdir(parents=True)
         (foreign/"collision.i3c").write_bytes(b"I3D_I3C\x00")
         with self.assertRaisesRegex(RuntimeError,"No I3D_I3C"):
+            self.run_real()
+        self.assertEqual(self.calls,[])
+    def write_pck(self,collision=True):
+        payload=b"I3D_I3C\x00"+b"\x00"*56 if collision else b"I3D_BIN\x00"+b"\x00"*56
+        pck=bytearray(128+len(payload))
+        pck[:4]=b"PCK\x00"
+        struct.pack_into("<II",pck,4,64,1)
+        struct.pack_into("<IIII",pck,64,0,0,128,len(payload))
+        pck[128:]=payload
+        candidate=self.stage_src/"bg.pck"
+        candidate.write_bytes(pck)
+        return candidate
+    def test_original_pck_contained_collision_is_accepted_without_fabrication(self):
+        (self.stage_src/"collision.i3d").unlink()
+        source=self.write_pck(collision=True)
+        report=self.run_real()
+        self.assertEqual(len(self.calls),1)
+        self.assertEqual(Path(self.calls[0][6]),self.stage_src.resolve())
+        self.assertEqual(report["original_pck_collision_candidates"],[str(source.resolve())])
+        self.assertFalse(report["gameplay_verified"])
+    def test_pck_visual_mesh_does_not_falsely_satisfy_collision(self):
+        (self.stage_src/"collision.i3d").unlink()
+        self.write_pck(collision=False)
+        with self.assertRaisesRegex(RuntimeError,"No I3D_I3C"):
+            self.run_real()
+        self.assertEqual(self.calls,[])
+    def test_broken_pck_member_offsets_rejected_before_launch(self):
+        (self.stage_src/"collision.i3d").unlink()
+        path=self.write_pck(collision=True)
+        pck=bytearray(path.read_bytes())
+        struct.pack_into("<I",pck,72,0xFFFFFFF0)
+        path.write_bytes(pck)
+        with self.assertRaisesRegex(ValueError,"PCK member bounds"):
             self.run_real()
         self.assertEqual(self.calls,[])
     def test_missing_original_plc_blocks_entire_game_launch(self):
