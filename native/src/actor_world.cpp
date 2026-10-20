@@ -177,19 +177,25 @@ void NativeActorWorld::bind(const NativeStageWorld& stage,
     const auto canonical=fs::canonical(privateGlbDirectory);
     const auto index=indexModels(canonical);
     const auto overrides=readBindings(optionalBindingFile);
-    // Recover original script tag_name -> exact original level-object
-    // placement only when the tag is present in the local PLC file. The
-    // original retail Lua example gives monkey/player tag_name, not XYZ.
-    std::map<std::string,std::vector<std::array<float,3>>> originalTags;
-    const fs::path originalPlc=canonical/"placeholder.plc";
-    if(fs::is_regular_file(originalPlc)){
-        const auto plc=parsePlacements(originalPlc);
-        for(const auto& entry:plc.entries)
-            originalTags[lowered(entry.name)].push_back(entry.xyz);
-    }
     actors_.clear();
     report_={};
     report_.stageEntities=stage.entities().size();
+    // Recover original script tag_name -> exact original level-object
+    // placement only when the tag is present in the local PLC file. The
+    // retail Lua script examples supply spawn tags instead of inline XYZ.
+    // Unsupported original collision-placement revisions may still render
+    // models: a failed PLC probe must not block all native actors.
+    std::map<std::string,std::vector<std::array<float,3>>> originalTags;
+    const fs::path originalPlc=canonical/"placeholder.plc";
+    if(fs::is_regular_file(originalPlc)){
+        try{
+            const auto plc=parsePlacements(originalPlc);
+            for(const auto& entry:plc.entries)
+                originalTags[lowered(entry.name)].push_back(entry.xyz);
+        }catch(const std::exception& e){
+            warn(report_,"Original PLC tag matching unavailable: "+std::string(e.what()));
+        }
+    }
     std::set<std::string> unique;
     for(const auto& entity:stage.entities()){
         fs::path modelPath;
