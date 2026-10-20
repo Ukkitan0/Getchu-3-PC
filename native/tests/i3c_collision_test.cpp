@@ -1,5 +1,6 @@
 #include "ae3/i3c_collision.hpp"
 #include "ae3/native_walking.hpp"
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -108,6 +109,34 @@ void corruptions(){
     try{ae3::parseOriginalI3c(invalid);}catch(const std::runtime_error&){rejected=true;}
     check(rejected,"I3C file size mismatch accepted");
 }
+void originalPckCollisionDiscovery(){
+    namespace fs=std::filesystem;
+    // PCK storage uses the authentic 16-byte member table. The I3C data
+    // inside is a test-only collision geometry fixture (no retail assets).
+    const auto embedded=cube();
+    std::vector<std::uint8_t> pack(128+embedded.size(),0);
+    str(pack,0,"PCK");
+    str(pack,16,"collision");
+    u32(pack,4,64);u32(pack,8,1);
+    u32(pack,64,0);u32(pack,68,0);
+    u32(pack,72,128);u32(pack,76,
+        static_cast<std::uint32_t>(embedded.size()));
+    std::copy(embedded.begin(),embedded.end(),pack.begin()+128);
+    const fs::path root=fs::temp_directory_path()/"getchu3_native_pck_collision";
+    fs::remove_all(root);
+    fs::create_directories(root);
+    try{
+        std::ofstream file(root/"bg.pck",std::ios::binary);
+        file.write(reinterpret_cast<const char*>(pack.data()),
+                   static_cast<std::streamsize>(pack.size()));
+        file.close();
+        const auto collision=ae3::loadOriginalI3cDirectory(root);
+        check(collision.geometry.triangles.size()==36 &&
+              collision.originalVertices==8 && collision.bvhNodes==13,
+              "real PCK member indexing failed to feed original-format I3C native collision");
+        fs::remove_all(root);
+    }catch(...){fs::remove_all(root);throw;}
+}
 void originalFileDiscovery(){
     namespace fs=std::filesystem;
     const fs::path root=fs::temp_directory_path()/"getchu3_native_true_i3c_fixture";
@@ -134,6 +163,7 @@ int main(){
         fullNativeCollision();
         corruptions();
         originalFileDiscovery();
+        originalPckCollisionDiscovery();
         std::cout<<"NATIVE_REAL_I3C_PASS original_vertices=8 original_triangles=12 "
                     "collision_ground=1 bvh=13 no_ps2_runtime=1\n";
         return 0;
