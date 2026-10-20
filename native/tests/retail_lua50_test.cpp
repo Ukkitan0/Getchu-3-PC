@@ -123,7 +123,7 @@ void testRetailBytecodeExecution(){
     std::vector<std::uint8_t> nativeChunk;
     const int dumped=lua_dump(compiler,collect,&nativeChunk);
     lua_close(compiler);
-    check(dumped==0 && nativeChunk.size()>100,
+    check(dumped==1 && nativeChunk.size()>100,
           "native Lua5.0 binary compiler produced no real machine-independent Lua bytecode");
     auto originalFormat=HostToRetail(nativeChunk).convert();
     ae3::RetailLua50Stats report;
