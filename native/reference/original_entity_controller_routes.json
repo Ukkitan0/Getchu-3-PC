@@ -4,7 +4,7 @@
   "verification": "Address targets extracted by decoding original R5900 JAL/J from the authenticated ELF following actual Lua-dispatch name comparisons. No ELF bytes included.",
   "metrics": {
     "entity_comparisons": 64,
-    "entities_with_early_jal": 45,
+    "entities_with_early_jal": 46,
     "entities_needing_deeper_cfg": 18,
     "controller_comparisons": 20,
     "controllers_with_direct_jumps": 19,
@@ -235,6 +235,12 @@
       "name": "RoundCamera",
       "target": "0x379864",
       "classification": "first early call; may be parser, allocator, or constructor"
+    },
+    {
+      "name": "Generator",
+      "target": "0x4e16ac",
+      "classification": "first early call; game helper/constructor identity not fully established",
+      "further_early_call": "0x20d70c"
     }
   ],
   "controller_direct_original_jump": [

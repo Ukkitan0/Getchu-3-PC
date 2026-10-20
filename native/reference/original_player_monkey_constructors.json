@@ -1,0 +1,150 @@
+{
+  "format": "getchu3/original-game-player-monkey-creation-and-vtables/v1",
+  "source_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "method": "Original retail ELF R5900 disassembly and PT_LOAD virtual-address interpretation; only metadata published.",
+  "player": {
+    "script_class": "Player",
+    "lua_dispatch_name_match": "0x214fd0",
+    "lua_creation_wrapper": "0x20daa4",
+    "object_factory": "0x34a70c",
+    "alloc_call_site": "0x34a730",
+    "alloc_heap_function": "0x41b800",
+    "allocation_bytes": 608,
+    "initializer": "0x5b0258",
+    "initializer_base_method": "0x20ae70",
+    "vtable_main": {
+      "at": "0x6b3918",
+      "assigned_to_offset": "0x00",
+      "virtual_methods": [
+        "0x5b05cc",
+        "0x5b0694",
+        "0x34a014",
+        "0x34a21c",
+        "0x442028",
+        "0x442030",
+        "0x34a1b8",
+        "0x349f9c",
+        "0x442048",
+        "0x349fe4",
+        "0x349ffc"
+      ]
+    },
+    "vtable_secondary": {
+      "at": "0x6b3960",
+      "assigned_to_offset": "0x64",
+      "virtual_methods": [
+        "0x34a57c"
+      ]
+    },
+    "observed_object_writes": [
+      {
+        "offset": "0x68",
+        "value": "self pointer"
+      },
+      {
+        "offset": "0x70",
+        "value": "0 initial"
+      },
+      {
+        "offset": "0xf0",
+        "value": "0 initial"
+      },
+      {
+        "offset": "0x100",
+        "value": "0 initial byte"
+      },
+      {
+        "offset": "0x101",
+        "value": "0 initial byte"
+      }
+    ],
+    "limits": "These are exact low-level object layouts and entrypoints, not identified movement functions or a functional native player."
+  },
+  "monkey": {
+    "script_class": "Monkey",
+    "lua_dispatch_name_match": "0x21508c",
+    "lua_argument_parser": "0x20d70c",
+    "parsed_fields": [
+      "tag_name",
+      "seq_init",
+      "seq_idle",
+      "seq_esc",
+      "nav"
+    ],
+    "lua_dispatch_creation_call": "0x215240",
+    "factory": "0x315a0c",
+    "preallocation_calls": [
+      "0x3177d0",
+      "0x316f6c"
+    ],
+    "allocation_guard": "When 0x316f6c returns zero, no object is allocated at this factory call",
+    "alloc_call_site": "0x315a64",
+    "alloc_heap_function": "0x41b800",
+    "allocation_bytes": 768,
+    "initializer": "0x5714b0",
+    "initializer_base_method": "0x20ae70",
+    "vtable_main": {
+      "at": "0x6b1498",
+      "assigned_to_offset": "0x00",
+      "virtual_methods": [
+        "0x571d0c",
+        "0x571d8c",
+        "0x5717fc",
+        "0x5719ac",
+        "0x442028",
+        "0x442030",
+        "0x571aa4",
+        "0x571834",
+        "0x442048",
+        "0x5718cc",
+        "0x571904"
+      ]
+    },
+    "vtable_secondary": {
+      "at": "0x6b14d0",
+      "assigned_to_offset": "0x58",
+      "virtual_methods": [
+        "0x571648",
+        "0x571658",
+        "0x571668",
+        "0x571688",
+        "0x5716a8",
+        "0x5716c4",
+        "0x5716d8",
+        "0x57173c",
+        "0x57178c"
+      ]
+    },
+    "observed_object_writes": [
+      {
+        "offset": "0x5c",
+        "value": "self pointer"
+      },
+      {
+        "offset": "0x60",
+        "value": "subobject pointer"
+      },
+      {
+        "offset": "0x64",
+        "value": "subobject pointer"
+      },
+      {
+        "offset": "0x68",
+        "value": "result of 0x208f2c"
+      }
+    ],
+    "model_constructor_sequence": [
+      "0x5714b0",
+      "0x20ae70",
+      "0x208f2c",
+      "0x4432cc",
+      "0x3177d0",
+      "0x31784c",
+      "0x30f92c",
+      "0x315990",
+      "0x30d35c"
+    ],
+    "limits": "Virtual table method names, animation state machine and monkey capture/AI semantics need genuine further decompilation, not guessed behavior."
+  },
+  "caveat": "In the original C++ build these are derived game runtime allocations, not standalone native Windows C++ types. Reconstructed source must implement the same logic without requiring original PlayStation hardware."
+}

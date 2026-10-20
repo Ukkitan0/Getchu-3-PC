@@ -127,3 +127,45 @@ into native host C++ with unit tests:
 
 Exact route map generator, which verifies the original USA ELF hash:
 `python native/tools/map_original_engine_routes.py SCUS_975.01 --out routes.json`.
+
+## Verified real Player/Monkey factory and object-layout addresses
+
+Deep disassembly of the original, hash-verified USA executable now traces
+both **real class creation paths**, including their allocated object sizes
+and initialized C++ vtable addresses. These facts go beyond merely
+knowing the original Lua class strings.
+
+| Original class | Lua wrapper | Game object factory | Allocation | Object initialization | Main vtable |
+|---|---|---|---|---|---|
+| Player | `0x20DAA4` | `0x34A70C` | `0x260` bytes | `0x5B0258` | `0x6B3918` |
+| Monkey | in `0x21508C` branch | `0x315A0C` | `0x300` bytes | `0x5714B0` | `0x6B1498` |
+
+The **Player** constructor writes its main vtable at offset `0`,
+secondary vtable `0x6B3960` at offset `0x64`, and internal self
+pointer at offset `0x68`. The constructor initializes several more
+state fields. Its first two original virtual-method entrypoints are
+`0x5B05CC` and `0x5B0694` — *their exact semantic names remain
+undetermined*.
+
+The **Monkey** factory first calls `0x3177D0` and `0x316F6C`.
+Only if the latter returns nonzero does it request **0x300 bytes**
+from the real game allocator `0x41B800` and invoke `0x5714B0`.
+The Monkey initializer writes the main vtable `0x6B1498` at offset
+`0`, secondary vtable `0x6B14D0` at offset `0x58`, and the self
+pointer at offset `0x5C`. Its first two original virtual-method
+targets are `0x571D0C` and `0x571D8C`.
+
+The original Monkey Lua dispatch parses `tag_name`, `seq_init`,
+`seq_idle`, `seq_esc` and `nav` before invoking the factory;
+these strings were verified directly at the referenced original
+ELF data addresses. They are not inferred replacement fields.
+
+The complete verified C++ class-layout and virtual-method address
+inventory, including 11 Player and 11 Monkey main vtable members,
+is recorded without game bytes at
+`native/reference/original_player_monkey_constructors.json`.
+
+**Next actual decompilation target:** the virtual methods reachable
+through these tables, their original update loops and their
+dependencies. Do not present address recovery as reconstructed
+animation/physics/AI or as a playable Windows game.
