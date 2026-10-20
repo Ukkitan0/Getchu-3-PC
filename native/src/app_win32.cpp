@@ -601,7 +601,7 @@ void openNativeGlb(){
     dialog.lpstrTitle=L"Open native GLB exported from original AE3 I3D model";
     if(GetOpenFileNameW(&dialog))loadNativeGlb(fs::path(name));
 }
-void loadNativeLevel(const fs::path& folder) {
+bool loadNativeLevel(const fs::path& folder) {
     try {
         // The owner may supply the matching original placeholder.plc in
         // the level export folder. If none is available, clearly report
@@ -636,15 +636,19 @@ void loadNativeLevel(const fs::path& folder) {
         status(info.str());
         if(gNativeWorld)bindNativeStageActors();
         gRenderer.render();
+        return true;
     }catch(const std::exception& e){
         status(L"Native original-level geometry load failed: "+wide(e.what()));
+        return false;
     }
 }
-void loadOriginalCollision(const fs::path& file){
+bool loadOriginalCollision(const fs::path& file){
     try{
         // Decode native triangle DATA. This is not original PS2 hardware emulation.
         const auto original=fs::is_directory(file)?
             ae3::loadOriginalI3cDirectory(file):ae3::parseOriginalI3c(file);
+        if(original.geometry.triangles.empty())
+            throw std::runtime_error("original I3C collision directory contains no collision triangles");
         if(!gRenderer.setCollisionOverlay(original.geometry))
             throw std::runtime_error("unable to upload original I3C diagnostic wireframe");
         gWalkCollisionScene=original.geometry;
@@ -657,8 +661,10 @@ void loadOriginalCollision(const fs::path& file){
            <<original.bvhNodes<<L" BVH nodes. F5 walks; F7 toggles green collision wireframe. "
            <<L"Select I3C from the SAME original stage as the loaded GLB.";
         status(msg.str());
+        return true;
     }catch(const std::exception& error){
         status(L"Native I3C collision rejected: "+wide(error.what()));
+        return false;
     }
 }
 void openOriginalCollision(){
@@ -725,7 +731,7 @@ void openNativeLevel(){
     CoTaskMemFree(chosen);
     if(ok)loadNativeLevel(fs::path(folder));
 }
-void loadNativeStageBytes(const std::string& source,const std::string& stageName,
+bool loadNativeStageBytes(const std::string& source,const std::string& stageName,
                           const std::string& spawnTag){
     try{
         auto world=std::make_unique<ae3::NativeStageWorld>();
@@ -774,8 +780,10 @@ void loadNativeStageBytes(const std::string& source,const std::string& stageName
         status(info.str());
         if(!gPrivateGlbFolder.empty())bindNativeStageActors();
         else status(info.str()+L" Open GLB level folder to instantiate original Lua actors.");
+        return true;
     }catch(const std::exception& e){
         status(L"Native Lua 5.0 stage failed: "+wide(e.what()));
+        return false;
     }
 }
 void loadRecoveredStageFile(const fs::path& path){
@@ -790,7 +798,7 @@ void loadRecoveredStageFile(const fs::path& path){
         status(L"Original stage Lua read BLOCKED: "+wide(e.what()));
     }
 }
-void loadOriginalRetailStage(const fs::path& originalIso,
+bool loadOriginalRetailStage(const fs::path& originalIso,
                              const std::string& originalStage,
                              const fs::path& localGlb,
                              const fs::path& originalPlc,
@@ -807,8 +815,11 @@ void loadOriginalRetailStage(const fs::path& originalIso,
             throw std::runtime_error("original I3D models have not been exported to a real stage GLB directory");
         if(!originalPlc.empty() && !fs::is_regular_file(originalPlc))
             throw std::runtime_error("original stage placeholder.plc missing");
-        if(!originalCollision.empty() && !fs::is_regular_file(originalCollision))
-            throw std::runtime_error("original stage I3D_I3C collision file missing");
+        // The owned-stage launcher passes the ORIGINAL stage collision directory
+        // so every same-stage I3D_I3C member is loaded, not a single guessed file.
+        if(!originalCollision.empty() && !fs::is_regular_file(originalCollision) &&
+           !fs::is_directory(originalCollision))
+            throw std::runtime_error("original stage I3D_I3C collision file/directory missing");
 
         ae3::Archive game(originalIso);
         const std::string name="debug/us/stage/"+originalStage+"/area.luc";
@@ -821,13 +832,17 @@ void loadOriginalRetailStage(const fs::path& originalIso,
             throw std::runtime_error("stage is not original retail Lua 5.0 bytecode");
 
         gPrivateOriginalPlc=originalPlc;
-        loadNativeLevel(localGlb);
-        if(!originalCollision.empty())loadOriginalCollision(originalCollision);
-        loadNativeStageBytes(std::string(raw.begin(),raw.end()),name,originalSpawnTag);
-        // At this point Lua has executed, but real game behavior is NOT
-        // implemented simply by spawning meshes. Do not announce playability.
+        if(!loadNativeLevel(localGlb))
+            throw std::runtime_error("original stage GLB geometry failed: "+std::string(gProgress.begin(),gProgress.end()));
+        if(!originalCollision.empty() && !loadOriginalCollision(originalCollision))
+            throw std::runtime_error("original stage I3C collision failed: "+std::string(gProgress.begin(),gProgress.end()));
+        if(!loadNativeStageBytes(std::string(raw.begin(),raw.end()),name,originalSpawnTag))
+            throw std::runtime_error("original area.luc setup failed: "+std::string(gProgress.begin(),gProgress.end()));
+        // Only successful resource loading and Lua setup: NOT gameplay verification.
+        return true;
     }catch(const std::exception& e){
         status(L"ACTUAL RETAIL GAME STAGE BLOCKED: "+wide(e.what()));
+        return false;
     }
 }
 void openRecoveredStage(){
@@ -1138,6 +1153,7 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
     // unless the user explicitly asks for the offline asset viewer.
     int argc=0;
     LPWSTR* argv=CommandLineToArgvW(GetCommandLineW(),&argc);
+    bool retailLaunchFailed=false;
     if(argv){
         if(argc>=5 && std::wstring(argv[1])==L"--retail"){
             const fs::path iso=argv[2];
@@ -1147,7 +1163,7 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
             const fs::path i3c=argc>=7?fs::path(argv[6]):fs::path{};
             const std::string spawn=argc>=8?
                 fs::path(argv[7]).string():"spawn_default";
-            loadOriginalRetailStage(iso,stageId,glbDir,plc,i3c,spawn);
+            retailLaunchFailed=!loadOriginalRetailStage(iso,stageId,glbDir,plc,i3c,spawn);
         }else if(argc>=2){
             const fs::path file=fs::path(argv[1]);
             std::wstring extension=file.extension().wstring();
@@ -1168,6 +1184,14 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
             if(stage.extension()==L".lua"||stage.extension()==L".luc")loadRecoveredStageFile(stage);
         }
         LocalFree(argv);
+    }
+    if(retailLaunchFailed){
+        // Automation must see a nonzero exit; do not leave a normal-looking
+        // asset workbench running after a retail game-stage failure.
+        OutputDebugStringW(gProgress.c_str());
+        DestroyWindow(window);
+        if(SUCCEEDED(com))CoUninitialize();
+        return 3;
     }
     MSG message{};
     while(GetMessageW(&message,nullptr,0,0)>0){
