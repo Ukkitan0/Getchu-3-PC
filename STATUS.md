@@ -1,3 +1,37 @@
+## October 19–20, 2026 — Native original I3M skeletal animation playback
+
+**Ape Escape 3's I3M-derived skeletal animation can now DRIVE REAL MOVING
+TRIANGLES in Getchu3Native.exe.** The owner-local MIT ae3-sdk tool pairs
+original named I3M tracks with matching I3D model skeletons, and the host
+native C++20 runtime parses the exported GLB JOINTS_0/WEIGHTS_0 and inverse
+bind matrices, evaluates its named glTF rotation/translation/scale channels
+using quaternion SLERP, and computes host CPU animated vertex positions.
+
+The Direct3D11 renderer now uses a dynamic native GPU vertex buffer for
+those skinned models and updates it every Windows frame. Press **F8** to
+cycle clips and **F9** to pause/resume animation. Original texture/UV
+and mesh material batches remain intact.
+
+The offline `-Animate` asset-preparation option was also corrected to
+**regenerate previously static GLBs** rather than silently skipping them.
+The repo includes a legally game-free GLB fixture with one animated
+joint/triangle and an original-independent native
+`Getchu3SkinningProbe.exe` for skeleton diagnostics. Windows CTest
+checks native skinning, interpolation, looping, previous original
+collision/wall walking tests and Lua 5.0 stage execution.
+
+See [native/NATIVE_SKELETAL_ANIMATION.md](native/NATIVE_SKELETAL_ANIMATION.md).
+
+**Limits:** The runtime animates a loaded standalone model; it does not
+yet instantiate all original Lua-controlled monkey and player models
+simultaneously, nor does it recover gameplay animation state transitions,
+original attack/capture interactions or AI. Real retail character visual
+playback remains unverified until the user's own fully exported animated
+GLB is tested on Windows. This is **not yet a playable Ape Escape 3**.
+No PS2 EE/IOP/GS/hardware runtime is involved.
+
+---
+
 ## October 19, 2026 — Real original I3D_I3C collision (current milestone)
 
 **The original AE3 collision DATA now loads directly into the native C++20
