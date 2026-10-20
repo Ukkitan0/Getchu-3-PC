@@ -509,7 +509,15 @@ void bindNativeStageActors(){
         actors->bind(*gNativeWorld,gPrivateGlbFolder,file);
         const auto report=actors->report();
         if(report.actorsCreated==0){
+            // A different Lua stage must never leave previous scene actors
+            // visible after the corresponding old native actors are destroyed.
             gStageActors.reset();
+            if(!gStaticLevelGeometry.triangles.empty()){
+                if(!gRenderer.displayScene(gStaticLevelGeometry))
+                    throw std::runtime_error("could not restore static original level");
+                if(gOriginalI3cActive)
+                    gRenderer.setCollisionOverlay(gWalkCollisionScene);
+            }
             std::wstringstream msg;
             msg<<L"Lua entities parsed: "<<report.stageEntities
                <<L"; 0 actors have an exact matching GLB. Put private "
@@ -718,9 +726,9 @@ void loadRecoveredStageFile(const fs::path& path){
         gArchive.reset();
         gStageActors.reset();
         gRenderer.clearTexture();
-        // Keep an already loaded original-model GLB visible when setting
-        // up Lua stage entities: world art and Lua scripts share one window.
-        // Entity-to-model placement and behavior still need reconstruction.
+        // Keep imported GLB world geometry and original native collision
+        // while replacing Lua stage actors. Real actor-to-asset matches are
+        // made by NativeActorWorld using private owner-local model names.
         SendMessageW(gList,LB_RESETCONTENT,0,0);
         for(const auto& ent:gNativeWorld->entities()){
             std::wstring line=wide(ent.entityClass)+L": "+wide(ent.name);
