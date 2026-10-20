@@ -13,6 +13,7 @@
 #include <windows.h>
 #include <commdlg.h>
 #include <shlobj.h>
+#include <shellapi.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <wincodec.h>
@@ -691,17 +692,9 @@ void openNativeLevel(){
     CoTaskMemFree(chosen);
     if(ok)loadNativeLevel(fs::path(folder));
 }
-void openRecoveredStage(){
-    wchar_t path[32768]={};
-    OPENFILENAMEW dialog{};
-    dialog.lStructSize=sizeof(dialog);
-    dialog.hwndOwner=gMain;dialog.lpstrFile=path;dialog.nMaxFile=32768;
-    dialog.lpstrFilter=L"Recovered Lua 5.0 source (*.lua)\0*.lua\0All files (*.*)\0*.*\0";
-    dialog.Flags=OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_EXPLORER;
-    dialog.lpstrTitle=L"Open recovered AE3 area.lua (original scripts remain Lua)";
-    if(!GetOpenFileNameW(&dialog))return;
+void loadRecoveredStageFile(const fs::path& path){
     try{
-        std::ifstream stream(fs::path(path),std::ios::binary);
+        std::ifstream stream(path,std::ios::binary);
         if(!stream)throw std::runtime_error("cannot open recovered Lua source");
         std::string source((std::istreambuf_iterator<char>(stream)),
                             std::istreambuf_iterator<char>());
@@ -748,6 +741,18 @@ void openRecoveredStage(){
         status(L"Native Lua 5.0 stage failed: "+wide(e.what()));
     }
 }
+void openRecoveredStage(){
+    wchar_t path[32768]={};
+    OPENFILENAMEW dialog{};
+    dialog.lStructSize=sizeof(dialog);
+    dialog.hwndOwner=gMain;dialog.lpstrFile=path;dialog.nMaxFile=32768;
+    dialog.lpstrFilter=L"Recovered Lua 5.0 source (*.lua)\0*.lua\0All files (*.*)\0*.*\0";
+    dialog.Flags=OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_EXPLORER;
+    dialog.lpstrTitle=L"Open recovered AE3 area.lua (original scripts remain Lua)";
+    if(GetOpenFileNameW(&dialog))loadRecoveredStageFile(fs::path(path));
+
+}
+
 void signalFirstNativeTrigger(){
     for(auto& timeline:gControllerTimelines){
         if(timeline.isWaitingForTrigger()){
@@ -1003,7 +1008,7 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
     return DefWindowProcW(wnd,msg,w,l);
 }
 } // namespace
-int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR command,int show){
+int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
     WNDCLASSW view{};view.lpfnWndProc=viewProc;view.hInstance=inst;view.lpszClassName=L"AE3NativeViewport";
     view.hCursor=LoadCursorW(nullptr,IDC_ARROW);RegisterClassW(&view);
     WNDCLASSW win{};win.lpfnWndProc=wndProc;win.hInstance=inst;win.lpszClassName=L"AE3NativePort";
@@ -1019,17 +1024,32 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR command,int show){
         return 2;
     }
     ShowWindow(window,show);UpdateWindow(window);
-    if(command && *command){
-        std::wstring arg=command;
-        if(arg.front()==L'"' && arg.back()==L'"')arg=arg.substr(1,arg.size()-2);
-        const fs::path file=fs::path(arg);
-        std::wstring extension=file.extension().wstring();
-        std::transform(extension.begin(),extension.end(),extension.begin(),
-                       [](wchar_t c){return wchar_t(std::towlower(c));});
-        if(fs::is_directory(file))loadNativeLevel(file);
-        else if(extension==L".glb")loadNativeGlb(file);
-        else if(extension==L".i3c"||extension==L".i3d")loadOriginalCollision(file);
-        else loadArchive(file);
+    // Real Windows argv parsing supports two separate user-local inputs:
+    // level GLB folder + original stage Lua file. Never reads a PS2 ISO at runtime
+    // unless the user explicitly asks for the offline asset viewer.
+    int argc=0;
+    LPWSTR* argv=CommandLineToArgvW(GetCommandLineW(),&argc);
+    if(argv){
+        if(argc>=2){
+            const fs::path file=fs::path(argv[1]);
+            std::wstring extension=file.extension().wstring();
+            std::transform(extension.begin(),extension.end(),extension.begin(),
+                           [](wchar_t c){return wchar_t(std::towlower(c));});
+            try{
+                if(fs::is_directory(file))loadNativeLevel(file);
+                else if(extension==L".glb")loadNativeGlb(file);
+                else if(extension==L".i3c"||extension==L".i3d")
+                    loadOriginalCollision(file);
+                else loadArchive(file);
+            }catch(const std::exception& e){
+                status(L"Native asset launch argument failed: "+wide(e.what()));
+            }
+        }
+        if(argc>=3){
+            const fs::path stage=fs::path(argv[2]);
+            if(stage.extension()==L".lua")loadRecoveredStageFile(stage);
+        }
+        LocalFree(argv);
     }
     MSG message{};
     while(GetMessageW(&message,nullptr,0,0)>0){
