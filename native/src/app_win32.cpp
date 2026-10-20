@@ -61,6 +61,7 @@ std::unique_ptr<ae3::NativeSkinnedGlb> gAnimatedModel;
 std::unique_ptr<ae3::NativeActorWorld> gStageActors;
 ae3::StaticScene gStaticLevelGeometry;
 fs::path gPrivateGlbFolder;
+fs::path gPrivateOriginalPlc;
 std::size_t gActiveClip=0;
 double gAnimationSeconds=0;
 bool gAnimationPaused=false;
@@ -506,7 +507,7 @@ void bindNativeStageActors(){
         auto actors=std::make_unique<ae3::NativeActorWorld>(gStaticLevelGeometry);
         auto file=gPrivateGlbFolder/"actor_bindings.txt";
         if(!fs::is_regular_file(file))file.clear();
-        actors->bind(*gNativeWorld,gPrivateGlbFolder,file);
+        actors->bind(*gNativeWorld,gPrivateGlbFolder,file,gPrivateOriginalPlc);
         const auto report=actors->report();
         if(report.actorsCreated==0){
             // A different Lua stage must never leave previous scene actors
@@ -604,7 +605,7 @@ void loadNativeLevel(const fs::path& folder) {
         // The owner may supply the matching original placeholder.plc in
         // the level export folder. If none is available, clearly report
         // unpositioned models rather than pretending an authentic world.
-        fs::path plc=folder/"placeholder.plc";
+        fs::path plc=gPrivateOriginalPlc.empty()?folder/"placeholder.plc":gPrivateOriginalPlc;
         if(!fs::is_regular_file(plc))plc.clear();
         const auto level=ae3::loadNativeLevelFolder(folder,plc);
         if(!gRenderer.displayScene(level.scene))
@@ -723,18 +724,13 @@ void openNativeLevel(){
     CoTaskMemFree(chosen);
     if(ok)loadNativeLevel(fs::path(folder));
 }
-void loadRecoveredStageFile(const fs::path& path){
+void loadNativeStageBytes(const std::string& source,const std::string& stageName,
+                          const std::string& spawnTag){
     try{
-        std::ifstream stream(path,std::ios::binary);
-        if(!stream)throw std::runtime_error("cannot open recovered Lua source");
-        std::string source((std::istreambuf_iterator<char>(stream)),
-                            std::istreambuf_iterator<char>());
-        if(source.size()>16*1024*1024)
-            throw std::runtime_error("Lua source exceeds stage size budget");
         auto world=std::make_unique<ae3::NativeStageWorld>();
         auto stage=std::make_unique<ae3::LuaStage>(*world);
-        stage->executeSource(source,"area.lua");
-        stage->callSetupArea("spawn_default");
+        stage->executeSource(source,stageName);
+        stage->callSetupArea(spawnTag);
         std::vector<ae3::NativeControllerTimeline> controllers;
         for(const auto& entity:world->entities()) {
             if(entity.controllers.kind==ae3::ScriptValue::Kind::object)
@@ -770,6 +766,18 @@ void loadRecoveredStageFile(const fs::path& path){
         else status(info.str()+L" Open GLB level folder to instantiate original Lua actors.");
     }catch(const std::exception& e){
         status(L"Native Lua 5.0 stage failed: "+wide(e.what()));
+    }
+}
+void loadRecoveredStageFile(const fs::path& path){
+    try{
+        std::ifstream stream(path,std::ios::binary);
+        if(!stream)throw std::runtime_error("original Lua file unavailable");
+        std::string bytes((std::istreambuf_iterator<char>(stream)),std::istreambuf_iterator<char>());
+        if(bytes.empty()||bytes.size()>16*1024*1024)
+            throw std::runtime_error("invalid original Lua file");
+        loadNativeStageBytes(bytes,path.filename().string(),"spawn_default");
+    }catch(const std::exception& e){
+        status(L"Original stage Lua read BLOCKED: "+wide(e.what()));
     }
 }
 void openRecoveredStage(){
