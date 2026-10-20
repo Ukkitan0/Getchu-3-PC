@@ -39,7 +39,8 @@ public:
     explicit NativeActorWorld(StaticScene backdrop={});
     void bind(const NativeStageWorld& stage,
               const std::filesystem::path& privateGlbDirectory,
-              const std::filesystem::path& optionalBindingFile={});
+              const std::filesystem::path& optionalBindingFile={},
+              const std::filesystem::path& originalPlacementFile={});
     void tick(double seconds);
     bool moveActor(const std::string& uniqueName,
                    float x,float y,float z,float facingRadians);
