@@ -38,6 +38,11 @@ jobs:
             exit 1
           }
           Write-Host 'Native owned-asset preparation launcher syntax: OK'
+      - name: Validate original retail game asset pipeline
+        shell: pwsh
+        run: |
+          python -m py_compile native/tools/audit_original_stage.py native/tools/recover_lua50.py native/tools/prepare_owned_assets.py native/tools/convert_models_to_glb.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Configure native host-only engine
         shell: pwsh
         run: |
