@@ -10,6 +10,50 @@ Original Lua 5.0 stage bytecode is read directly from the user's retail ISO. The
 
 Actual player progress fields from the original SCUS_975.01 Data layout now back Lua capture and costume checks. An unsaved new-game baseline is explicit; authentic memory-card save reading is **not yet implemented**. Unknown original game engine functions fail visibly instead of inventing values.
 
+## Recover the original Lua and ALL game resources from your ISO
+
+On the owner PC, update this repository and double-click:
+
+    RECOVER_ORIGINAL_GAME_WINDOWS.bat
+
+The launcher uses the previously documented default game path
+`C:\ApeEscape3\Ape Escape 3 (USA).iso` when present, or opens an ISO picker.
+It directly reads the original ISO9660 disc, DATA.BIN/VFI game archive, every
+real original `.luc` / `.luc.sz` file, other VFI game resources (including
+original PCK, PLC, animations, collision, sound and textures), and original
+`SCUS_975.01` ELF. It expands original SZ compression without changing
+retail Lua opcodes. No Saru, ae3-sdk, unluac, Java or emulator is needed for
+the default direct extraction and static engine API audit (Python 3 required).
+
+Inside `native/private/original_iso_.../` it creates:
+
+- `vfi/`: original extracted game resources, including original Lua bytecode.
+- `SCUS_975.01`: original game ELF, used for actual Lua registration recovery.
+- `original_lua_engine_api_audit.json`: recovered real GETGLOBAL/SETGLOBAL
+  sites across **all** original compiled Lua scripts.
+- `original_elf_lua_registrations.json`: original game registration call
+  addresses if the ELF matches the pinned verified USA executable.
+- `AE3_ORIGINAL_LUA_AND_ELF_PRIVATE.zip`: shareable owner-private source
+  evidence containing scripts and executable, not the full disc or all assets.
+
+If the ELF does not match the documented hash, registration names are not
+invented; the original code is preserved and only that specific analysis is
+reported as unverified. The entire ISO stays on the owner's machine.
+**Do not commit the private ZIP or commercial files to GitHub.**
+
+To extract just original Lua and ELF (not all VFI resources):
+
+    .\RECOVER_ORIGINAL_GAME_WINDOWS.ps1 -OnlyLua
+
+To select another original ISO or output folder:
+
+    .\RECOVER_ORIGINAL_GAME_WINDOWS.ps1 -ISO "D:\Games\Ape Escape 3 (USA).iso" -Output "D:\AE3_PRIVATE\Recovered"
+
+The next actual game-engine work is to implement the recovered Lua callback
+registrations and native entity/player/gadget logic from original
+`SCUS_975.01`, not to replace `area.luc` with a synthetic script.
+Successful asset extraction alone does **not** make Ape Escape 3 playable.
+
 ## Run the original-game resource path (developer investigation only)
 
 This is **not a playable release**. It is for identifying which authentic game systems fail.
