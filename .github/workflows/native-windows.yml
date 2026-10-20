@@ -83,11 +83,19 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & native/build/Release/Getchu3SkinningProbe.exe native/build/native_bone_animation_test.glb
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test full native Lua stage with simultaneously rendered player and monkey models
+        shell: pwsh
+        run: |
+          python native/tools/make_actor_scene_fixture.py native/build/native_lua_actor_stage
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & native/build/Release/Getchu3ActorWorldProbe.exe native/build/native_lua_actor_stage
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Write-Host 'Original-style Lua new_ent -> 3 independent native C++ GLB player/monkey instances'
       - name: Confirm compiled EXEs and native Win32 dependencies
         shell: pwsh
         run: |
           $p = "native/build/Release"
-          foreach ($name in @("Getchu3Native.exe", "Getchu3AssetProbe.exe", "Getchu3StageProbe.exe", "Getchu3LuaStageRunner.exe", "Getchu3GlbSceneProbe.exe", "Getchu3LevelSceneProbe.exe", "Getchu3PckProbe.exe", "Getchu3I3mProbe.exe", "Getchu3I3cProbe.exe", "Getchu3SkinningProbe.exe")) {
+          foreach ($name in @("Getchu3Native.exe", "Getchu3AssetProbe.exe", "Getchu3StageProbe.exe", "Getchu3LuaStageRunner.exe", "Getchu3GlbSceneProbe.exe", "Getchu3LevelSceneProbe.exe", "Getchu3PckProbe.exe", "Getchu3I3mProbe.exe", "Getchu3I3cProbe.exe", "Getchu3SkinningProbe.exe", "Getchu3ActorWorldProbe.exe")) {
             if (-not (Test-Path -LiteralPath "$p/$name")) { throw "Missing native EXE $name" }
           }
           # Search executable CMake statements, not comments documenting
@@ -113,6 +121,8 @@ jobs:
             native/build/Release/Getchu3I3mProbe.exe
             native/build/Release/Getchu3I3cProbe.exe
             native/build/Release/Getchu3SkinningProbe.exe
+            native/build/Release/Getchu3ActorWorldProbe.exe
+            native/build/native_lua_actor_stage/
             native/build/native_bone_animation_test.glb
             native/build/native_collision_cube.i3c
             native/build/native_synthetic_level/
