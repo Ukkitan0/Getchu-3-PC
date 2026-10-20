@@ -113,7 +113,17 @@ std::map<std::string,std::vector<fs::path>> indexModels(const fs::path& root){
            lowered(it->path().extension().string())!=".glb")continue;
         if(++count>2048)
             throw std::runtime_error("private actor model directory contains too many GLBs");
-        candidates[lowered(it->path().stem().string())].push_back(it->path());
+        const auto stem=lowered(it->path().stem().string());
+        candidates[stem].push_back(it->path());
+        // PCK-derived originals have a stable four-digit archive index
+        // prefix. Original retail Lua refers to model_name without that
+        // extraction index. Index the true asset under both spellings,
+        // preserving the ambiguity guard when archives repeat a name.
+        if(stem.size()>5 && stem[4]=='_' &&
+           std::all_of(stem.begin(),stem.begin()+4,[](unsigned char ch){
+               return std::isdigit(ch)!=0;
+           }))
+            candidates[stem.substr(5)].push_back(it->path());
     }
     return candidates;
 }
