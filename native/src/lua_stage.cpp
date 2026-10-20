@@ -31,7 +31,8 @@ void NativeStageWorld::clear(){
     entities_.clear();parameters_.clear();flags_.clear();
 }
 
-LuaStage::LuaStage(NativeStageWorld& world):world_(world){
+LuaStage::LuaStage(NativeStageWorld& world,const PlayerProgress* progress)
+    :world_(world),progress_(progress){
     state_=lua_open();
     if(!state_)throw std::runtime_error("native Lua 5.0 state allocation failed");
     // No IO, OS, debug or external-module libraries in game stage environment.
@@ -123,7 +124,8 @@ void LuaStage::executeSource(std::string_view source,const std::string& chunkNam
     // uses double and 64-bit size_t. Repack only the original storage
     // representation. Do not change or replace a single Lua opcode.
     std::vector<std::uint8_t> hostChunk;
-    if(source.size()>=4 && source.substr(0,4)==std::string_view("\x1bLua",4)){
+    retailChunk_=source.size()>=4 && source.substr(0,4)==std::string_view("\x1bLua",4);
+    if(retailChunk_){
         hostChunk=retargetRetailLua50(source);
         source=std::string_view(
             reinterpret_cast<const char*>(hostChunk.data()),hostChunk.size());
@@ -213,14 +215,57 @@ int LuaStage::setFlag(lua_State* L){
     return 0;
 }
 int LuaStage::getFlag(lua_State* L){
-    const char* key=luaL_checkstring(L,1);
+    auto* stage=self(L);
     const char* binding=lua_tostring(L,lua_upvalueindex(2));
-    std::string scope=binding?binding:"area_get_flag";
-    scope=scope.substr(0,scope.find('_'));
-    lua_pushboolean(L,self(L)->world_.flag(scope,key));
+    const std::string name=binding?binding:"";
+    if(name=="get_capture_flag"){
+        // Original game Data::capture_flag[570] at offset 204,
+        // verified by recovered save-data decompilation.
+        // Never invent a captured-monkey state for a retail script.
+        const double n=luaL_checknumber(L,1);
+        if(!std::isfinite(n)||n<0||n>=570||n!=std::floor(n))
+            return luaL_error(L,"original capture flag index outside 0..569");
+        if(!stage->progress_){
+            if(stage->retailChunk_)
+                return luaL_error(L,"get_capture_flag needs actual native PlayerProgress/new game data");
+            lua_pushboolean(L,0);
+        }else{
+            const auto index=static_cast<std::size_t>(n);
+            lua_pushboolean(L,stage->progress_->capture_flag[index]!=0);
+        }
+        return 1;
+    }
+    const char* key=luaL_checkstring(L,1);
+    const std::string scope=name.substr(0,name.find('_'));
+    lua_pushboolean(L,stage->world_.flag(scope,key));
     return 1;
 }
-int LuaStage::getStageInt(lua_State* L){ (void)L;lua_pushnumber(L,0);return 1; }
-int LuaStage::isSurvival(lua_State* L){lua_pushboolean(L,0);return 1;}
-int LuaStage::costumePossess(lua_State* L){lua_pushboolean(L,0);return 1;}
+int LuaStage::getStageInt(lua_State* L){
+    if(self(L)->retailChunk_)
+        return luaL_error(L,
+            "original stage_var_get_int semantics not yet reconstructed from SCUS_975.01");
+    lua_pushnumber(L,0);
+    return 1;
+}
+int LuaStage::isSurvival(lua_State* L){
+    if(self(L)->retailChunk_)
+        return luaL_error(L,
+            "original is_survival_mode runtime flag not initialized from retail data");
+    lua_pushboolean(L,0);
+    return 1;
+}
+int LuaStage::costumePossess(lua_State* L){
+    auto* stage=self(L);
+    if(!stage->progress_){
+        if(stage->retailChunk_)
+            return luaL_error(L,"original get_costume_possess requires native PlayerProgress");
+        lua_pushboolean(L,0);
+        return 1;
+    }
+    const double n=luaL_checknumber(L,1);
+    if(!std::isfinite(n)||n<0||n>=8||n!=std::floor(n))
+        return luaL_error(L,"original costume inventory index outside 0..7");
+    lua_pushboolean(L,stage->progress_->costume_possess[static_cast<std::size_t>(n)]!=0);
+    return 1;
+}
 } // namespace ae3
