@@ -74,6 +74,39 @@ void runRealScriptSample(){
     // Lua condition must be evaluated, not merely parsed by a regex.
     check(world.entities().back().name=="door_switch","nested condition not executed");
 }
+void originalProgressBindingTests(){
+    // Real Ape Escape 3 Data fields, not fabricated 0-return values:
+    // Data::capture_flag[570], Data::costume_possess[8].
+    ae3::PlayerProgress progress{};
+    progress.capture_flag[29]=1;
+    progress.costume_possess[2]=1;
+    ae3::NativeStageWorld world;
+    ae3::LuaStage stage(world,&progress);
+    stage.executeSource(R"LUA(
+      function setupArea(opts)
+        if get_capture_flag(29) and get_costume_possess(2) then
+          new_ent('Monkey',{name='persisted_monkey_captured'})
+        end
+        if not get_capture_flag(30) and not get_costume_possess(3) then
+          new_ent('Player',{name='missing_capture_and_costume'})
+        end
+      end
+    )LUA");
+    stage.callSetupArea("entry");
+    check(world.entities().size()==2,
+          "native original AE3 Lua bindings ignored real capture/costume save flags");
+    check(world.entities()[0].name=="persisted_monkey_captured",
+          "original captured monkey condition did not use recovered Data field");
+    check(world.entities()[1].name=="missing_capture_and_costume",
+          "original uncaptured monkey condition ignored false save state");
+    ae3::NativeStageWorld badWorld;
+    ae3::LuaStage bad(badWorld,&progress);
+    bad.executeSource("function setupArea(opts) return get_capture_flag(570) end");
+    bool rejected=false;
+    try{bad.callSetupArea("entry");}
+    catch(const std::runtime_error&){rejected=true;}
+    check(rejected,"real capture flag boundary allowed invalid original save index");
+}
 void errorCases(){
     ae3::NativeStageWorld world;
     ae3::LuaStage lua(world);
@@ -99,6 +132,7 @@ void errorCases(){
 int main(){
     try{
         runRealScriptSample();
+        originalProgressBindingTests();
         errorCases();
         std::cout<<"NATIVE_REAL_LUA50_EXECUTION_PASSED: "
                     "setupArea,new_ent,lua_param,c_order,c_ctrl,flags,control flow\n";
