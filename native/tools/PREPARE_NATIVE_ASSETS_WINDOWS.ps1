@@ -74,6 +74,17 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $ExtractedRoot = Join-Path $Out 'extracted'
+# Original level geometry and textures often live within retail bg.pck,
+# not as loose .i3d/.tm2 files. Unpack only real owner-local model,
+# animation and texture members before the existing GLB converter runs.
+# Collision is decoded from PCK in memory by the native C++ engine.
+$PckUnpacker = Join-Path $Native 'tools\unpack_original_stage_pck.py'
+$PckArgs = @('-3', $PckUnpacker, '--extracted', $ExtractedRoot)
+if ($LaunchOriginalStage) { $PckArgs += @('--stage', $LaunchOriginalStage) }
+& py @PckArgs
+if ($LASTEXITCODE -ne 0) {
+    throw 'Original game PCK unpack failed; no replacement models or fake level will be made.'
+}
 $Inventory = Join-Path $Out 'native_stage_script_inventory.txt'
 & $StageProbe $ExtractedRoot > $Inventory
 if ($LASTEXITCODE -ne 0) {
