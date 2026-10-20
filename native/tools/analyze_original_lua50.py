@@ -97,8 +97,13 @@ def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("original",type=Path,help="Original owner-local area.luc or extracted stage directory")
     p.add_argument("--out",type=Path,help="Optional local JSON report path OUTSIDE the public repo")
+    p.add_argument("--all-scripts",action="store_true",
+                   help="Inspect EVERY original .luc file, not just area.luc scripts")
     args=p.parse_args(argv)
-    files=[args.original] if args.original.is_file() else sorted(args.original.rglob("area.luc"))
+    files=[args.original] if args.original.is_file() else sorted(
+        f for f in args.original.rglob("*") if f.is_file() and not f.is_symlink()
+        and f.name.casefold().endswith(".luc")
+        and (args.all_scripts or f.name.casefold()=="area.luc"))
     if not files:raise SystemExit("No original area.luc files")
     stage={}
     gets=Counter()
@@ -119,7 +124,8 @@ def main(argv=None):
     missing={k:v for k,v in gets.most_common() if k not in implemented}
     report={"schema":"native-original-ae3-retail-lua50-game-api-audit/v1",
             "source":"real owned Lua 5.0 bytecode, NOT synthetic examples",
-            "stages":len(files),
+            "scripts":len(files),
+            "all_scripts_scanned":bool(args.all_scripts),
             "total_getglobal_sites":sum(gets.values()),
             "total_setglobal_sites":sum(sets.values()),
             "external_or_unimplemented_globals":missing,
@@ -128,7 +134,7 @@ def main(argv=None):
     if args.out:
         args.out.parent.mkdir(parents=True,exist_ok=True)
         args.out.write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8")
-    print(f"ORIGINAL_AE3_LUA_ENGINE_AUDIT: {len(files)} retail stages")
+    print(f"ORIGINAL_AE3_LUA_ENGINE_AUDIT: {len(files)} original Lua scripts")
     print(f"ORIGINAL_LUA_GLOBAL_READS {sum(gets.values())}")
     print(f"UNKNOWN_GAME_ENGINE_GLOBALS {len(missing)}")
     for name,count in list(missing.items())[:120]:
