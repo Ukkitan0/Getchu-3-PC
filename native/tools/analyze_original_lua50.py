@@ -13,12 +13,14 @@ import json
 from pathlib import Path
 import struct
 
-# Directly provided by existing Getchu3Native LuaStage::registerCallback.
+# Actually implemented game APIs only. Registered callbacks that merely
+# raise on original retail bytecode MUST remain on the missing list:
+# stage_var_get_int, is_survival_mode. They cannot be counted as playable.
 IMPLEMENTED_NATIVE={
   "new_ent","lua_param","c_ctrl","c_order",
   "gw_set_flag","lw_set_flag","area_set_flag","gw_get_flag",
   "lw_get_flag","area_get_flag","get_capture_flag",
-  "stage_var_get_int","is_survival_mode","get_costume_possess"
+  "get_costume_possess"
 }
 # Host Lua 5.0 interpreter builtins (not game engine functions).
 LUA_NATIVE={
