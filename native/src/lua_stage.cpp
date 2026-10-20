@@ -61,6 +61,7 @@ LuaStage::LuaStage(NativeStageWorld& world,const PlayerProgress* progress)
     registerCallback("stage_var_get_int",&getStageInt);
     registerCallback("is_survival_mode",&isSurvival);
     registerCallback("get_costume_possess",&costumePossess);
+    registerCallback("get_costume_possess_ninja",&costumePossessNinja);
 }
 LuaStage::~LuaStage(){if(state_)lua_close(state_);}
 void LuaStage::registerCallback(const char* name,int (*callback)(lua_State*)){
@@ -211,7 +212,16 @@ int LuaStage::setFlag(lua_State* L){
     const char* binding=lua_tostring(L,lua_upvalueindex(2));
     std::string scope=binding?binding:"area_set_flag";
     scope=scope.substr(0,scope.find('_'));
-    self(L)->world_.setFlag(scope,key,lua_toboolean(L,2)!=0);
+    // Derived from real USA SCUS_975.01 virtual callbacks:
+    // gw_set_flag @ 0x6175E8 passes the constant TRUE to 0x38545C.
+    // lw_set_flag @ 0x617728 and area_set_flag @ 0x6177E4 default TRUE
+    // and accept a second argument only when it is a Lua boolean.
+    // The world_ flag store is still temporary native stage state;
+    // retail persistence and global flag-manager semantics remain open.
+    bool value=true;
+    if(scope!="gw" && lua_gettop(L)>=2 && lua_type(L,2)==LUA_TBOOLEAN)
+        value=lua_toboolean(L,2)!=0;
+    self(L)->world_.setFlag(scope,key,value);
     return 0;
 }
 int LuaStage::getFlag(lua_State* L){
@@ -256,16 +266,21 @@ int LuaStage::isSurvival(lua_State* L){
 }
 int LuaStage::costumePossess(lua_State* L){
     auto* stage=self(L);
-    if(!stage->progress_){
-        if(stage->retailChunk_)
-            return luaL_error(L,"original get_costume_possess requires native PlayerProgress");
-        lua_pushboolean(L,0);
-        return 1;
-    }
-    const double n=luaL_checknumber(L,1);
-    if(!std::isfinite(n)||n<0||n>=8||n!=std::floor(n))
-        return luaL_error(L,"original costume inventory index outside 0..7");
-    lua_pushboolean(L,stage->progress_->costume_possess[static_cast<std::size_t>(n)]!=0);
+    if(!stage->progress_)
+        return luaL_error(L,"get_costume_possess requires original Data save state");
+    // USA ELF callback 0x617924 reads [0x649948] and tests == 2.
+    // Original Data base is 0x649910: +0x38 is costume_possess[7].
+    // The original callback does not read a Lua argument.
+    lua_pushboolean(L,stage->progress_->costume_possess[7]==2);
+    return 1;
+}
+int LuaStage::costumePossessNinja(lua_State* L){
+    auto* stage=self(L);
+    if(!stage->progress_)
+        return luaL_error(L,"get_costume_possess_ninja requires original Data save state");
+    // USA ELF callback 0x617958 reads [0x649938] and tests == 2.
+    // Original Data+0x28 is costume_possess[3]; no Lua argument.
+    lua_pushboolean(L,stage->progress_->costume_possess[3]==2);
     return 1;
 }
 } // namespace ae3

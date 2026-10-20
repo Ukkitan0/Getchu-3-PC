@@ -1,0 +1,112 @@
+{
+  "format": "getchu3/original-retail-lua-vtable-recovery/v1",
+  "sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "elf": "USA SCUS_975.01",
+  "registration_helper": "0x255bd8",
+  "verification": "Decoded and validated each real MIPS JAL, Lua string address and derived C++ vtable, then read its first method pointer from the authenticated game ELF.",
+  "limitations": "Only methods registered through this helper; others may use different registries. Raw game instructions and assets intentionally omitted.",
+  "callbacks": [
+    {
+      "name": "BindTester",
+      "registration_jal": "0x21a95c",
+      "derived_vtable": "0x6adf78",
+      "original_callback": "0x4e183c"
+    },
+    {
+      "name": "createFeatureLauncher",
+      "registration_jal": "0x21a98c",
+      "derived_vtable": "0x6adf60",
+      "original_callback": "0x4e18b0"
+    },
+    {
+      "name": "createWarpGateLauncher",
+      "registration_jal": "0x21a9bc",
+      "derived_vtable": "0x6adf48",
+      "original_callback": "0x4e19ac"
+    },
+    {
+      "name": "createTutorialExit",
+      "registration_jal": "0x21a9ec",
+      "derived_vtable": "0x6adf30",
+      "original_callback": "0x4e1a74"
+    },
+    {
+      "name": "createMGSGenerator",
+      "registration_jal": "0x21aa1c",
+      "derived_vtable": "0x6adf00",
+      "original_callback": "0x4e1bd8"
+    },
+    {
+      "name": "LocaleInfo_getID",
+      "registration_jal": "0x21aa4c",
+      "derived_vtable": "0x6adf18",
+      "original_callback": "0x4e1b08"
+    },
+    {
+      "name": "gw_set_flag",
+      "registration_jal": "0x3854e8",
+      "derived_vtable": "0x6b70f0",
+      "original_callback": "0x6175e8"
+    },
+    {
+      "name": "gw_get_flag",
+      "registration_jal": "0x385518",
+      "derived_vtable": "0x6b70d8",
+      "original_callback": "0x617618"
+    },
+    {
+      "name": "gw_get_string",
+      "registration_jal": "0x385548",
+      "derived_vtable": "0x6b70c0",
+      "original_callback": "0x61765c"
+    },
+    {
+      "name": "lw_set_flag",
+      "registration_jal": "0x385578",
+      "derived_vtable": "0x6b7090",
+      "original_callback": "0x617728"
+    },
+    {
+      "name": "lw_get_flag",
+      "registration_jal": "0x3855a8",
+      "derived_vtable": "0x6b7078",
+      "original_callback": "0x6177a0"
+    },
+    {
+      "name": "area_set_flag",
+      "registration_jal": "0x3855d8",
+      "derived_vtable": "0x6b7060",
+      "original_callback": "0x6177e4"
+    },
+    {
+      "name": "area_get_flag",
+      "registration_jal": "0x385608",
+      "derived_vtable": "0x6b7048",
+      "original_callback": "0x61788c"
+    },
+    {
+      "name": "get_costume_possess",
+      "registration_jal": "0x385638",
+      "derived_vtable": "0x6b7018",
+      "original_callback": "0x617924"
+    },
+    {
+      "name": "get_costume_possess_ninja",
+      "registration_jal": "0x385668",
+      "derived_vtable": "0x6b7000",
+      "original_callback": "0x617958"
+    },
+    {
+      "name": "stage_var_get_int",
+      "registration_jal": "0x385698",
+      "derived_vtable": "0x6b70a8",
+      "original_callback": "0x6176c8"
+    },
+    {
+      "name": "is_survival_mode",
+      "registration_jal": "0x3856c8",
+      "derived_vtable": "0x6b7030",
+      "original_callback": "0x6178f0"
+    }
+  ]
+}

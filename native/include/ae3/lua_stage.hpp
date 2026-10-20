@@ -88,5 +88,6 @@ private:
     static int getStageInt(lua_State* L);
     static int isSurvival(lua_State* L);
     static int costumePossess(lua_State* L);
+    static int costumePossessNinja(lua_State* L);
 };
 } // namespace ae3

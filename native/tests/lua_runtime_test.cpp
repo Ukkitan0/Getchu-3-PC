@@ -36,7 +36,9 @@ void runRealScriptSample(){
           new_ent("Monkey", {name="ape_cty_02",tag_name="ape_02"})
           brk_wbox_l("crate", "crate_se", 3)
         end
-        gw_set_flag("stage_started", true)
+        gw_set_flag("stage_started")
+        gw_set_flag("always_true_even_with_false_second_arg", false)
+        lw_set_flag("default_on")
         area_set_flag("door_open", false)
         if gw_get_flag("stage_started") and not area_get_flag("door_open") then
            new_ent("Button", {name="door_switch"})
@@ -70,24 +72,29 @@ void runRealScriptSample(){
     check(get(children->array[2],"kind")=="order","nested c_order not preserved");
     check(world.parameters().size()==2,"function-local lua_param did not execute");
     check(world.flag("gw","stage_started"),"global world Lua set_flag lost");
+    check(world.flag("gw","always_true_even_with_false_second_arg"),
+          "original gw_set_flag always sets true, regardless of Lua argument two");
+    check(world.flag("lw","default_on"),
+          "original lw_set_flag defaults to true without a second boolean argument");
     check(!world.flag("area","door_open"),"area flag must be false");
     // Lua condition must be evaluated, not merely parsed by a regex.
     check(world.entities().back().name=="door_switch","nested condition not executed");
 }
 void originalProgressBindingTests(){
-    // Real Ape Escape 3 Data fields, not fabricated 0-return values:
-    // Data::capture_flag[570], Data::costume_possess[8].
+    // Grounded in original ELF virtual methods 0x617924 and 0x617958;
+    // costume status is a fixed original Data field compared to exactly 2.
     ae3::PlayerProgress progress{};
     progress.capture_flag[29]=1;
-    progress.costume_possess[2]=1;
+    progress.costume_possess[7]=2;
+    progress.costume_possess[3]=0;
     ae3::NativeStageWorld world;
     ae3::LuaStage stage(world,&progress);
     stage.executeSource(R"LUA(
       function setupArea(opts)
-        if get_capture_flag(29) and get_costume_possess(2) then
+        if get_capture_flag(29) and get_costume_possess() then
           new_ent('Monkey',{name='persisted_monkey_captured'})
         end
-        if not get_capture_flag(30) and not get_costume_possess(3) then
+        if not get_capture_flag(30) and not get_costume_possess_ninja() then
           new_ent('Player',{name='missing_capture_and_costume'})
         end
       end
@@ -99,6 +106,13 @@ void originalProgressBindingTests(){
           "original captured monkey condition did not use recovered Data field");
     check(world.entities()[1].name=="missing_capture_and_costume",
           "original uncaptured monkey condition ignored false save state");
+    progress.costume_possess[7]=1;
+    ae3::NativeStageWorld exactWorld;
+    ae3::LuaStage exact(exactWorld,&progress);
+    exact.executeSource("function setupArea(opts) if get_costume_possess() then new_ent('Player',{name='wrong'}) end end");
+    exact.callSetupArea("entry");
+    check(exactWorld.entities().empty(),
+          "original costume query compares to 2, not truthy/nonzero");
     ae3::NativeStageWorld badWorld;
     ae3::LuaStage bad(badWorld,&progress);
     bad.executeSource("function setupArea(opts) return get_capture_flag(570) end");
