@@ -37,13 +37,16 @@ int main(int argc,char** argv){
                  <<"Independent skeleton animators: "<<report.animatedActors<<"\n"
                  <<"Unbound script entities: "<<report.unboundEntities<<"\n"
                  <<"Unresolved/invalid actor models: "<<report.modelsRejected<<"\n"
+                 <<"Exact original PLC actor spawn matches: "<<report.matchedOriginalPlcTags<<"\n"
+                 <<"Unverified actor positions: "<<report.unresolvedSpawnPositions<<"\n"
                  <<"Original background triangles: "<<backdrop.scene.triangles.size()/3<<"\n"
                  <<"Combined native world triangles: "<<world.scene().triangles.size()/3<<"\n";
         for(const auto& actor:world.actors())
             std::cout<<actor.entityClass<<" "<<actor.name<<" "<<actor.modelName
                      <<" position "<<actor.position[0]<<","
                      <<actor.position[1]<<","<<actor.position[2]
-                     <<" animated="<<actor.hasAnimation<<"\n";
+                     <<" animated="<<actor.hasAnimation
+                     <<" source="<<actor.positionSource<<"\n";
         for(const auto& note:report.diagnostics)
             std::cerr<<"Binding diagnostic: "<<note<<"\n";
         return report.actorsCreated?0:1;
