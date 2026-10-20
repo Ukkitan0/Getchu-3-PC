@@ -41,7 +41,8 @@ std::string nameAt(const std::vector<std::uint8_t>& data,
 }
 PckAssetKind detect(const std::vector<std::uint8_t>& b,std::size_t p,std::size_t n){
     if(n>=8 && std::memcmp(b.data()+p,"I3D_BIN",7)==0)return PckAssetKind::mesh;
-    if(n>=8 && std::memcmp(b.data()+p,"I3D_I3M",7)==0)return PckAssetKind::animation;
+    if(n>=8 && std::memcmp(b.data()+p,"I3D_I3M",8)==0)return PckAssetKind::animation;
+    if(n>=8 && std::memcmp(b.data()+p,"I3D_I3C",8)==0)return PckAssetKind::collision;
     if(n>=4 && std::memcmp(b.data()+p,"TIM2",4)==0)return PckAssetKind::texture;
     return PckAssetKind::other;
 }
@@ -60,6 +61,7 @@ const char* pckExtension(PckAssetKind kind){
     switch(kind){
     case PckAssetKind::mesh:return ".i3d";
     case PckAssetKind::animation:return ".i3m";
+    case PckAssetKind::collision:return ".i3c";
     case PckAssetKind::texture:return ".tm2";
     default:return ".bin";
     }
