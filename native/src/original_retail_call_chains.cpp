@@ -27,14 +27,34 @@ bool originalMonkeyTransitionToMode2_20af68(OriginalMonkeyOwnedObjects& o) noexc
   if(o.source_state_at_4c==2)return false;
   o.source_state_at_4c=2;return true;
 }
-bool originalMonkeyUpdateLifecycle_571904(OriginalMonkeyOwnedObjects& o,OriginalMonkeyLifecycleCalls& b){
+std::uint32_t originalMonkeyComposeFlags_571e10(std::uint32_t x,std::uint32_t y) noexcept {
+  return (x&0xff ? 1u : 0u)|(y&0xff ? 2u : 0u);
+}
+bool originalMonkeyDispatchVirtual5_316174(void* attached,std::uint32_t flags,
+                                            OriginalMonkeyCallGlobals& globals,
+                                            OriginalMonkeyLifecycleCalls& backend){
+  // Original 0x316188...0x3161A8 changes reentrancy count around
+  // the real indirect call to the child vtable slot at +0x14.
+  ++globals.active_nested_calls_696c98;
+  try {
+    const bool result=backend.call_attached_virtual_slot_5(attached,flags);
+    --globals.active_nested_calls_696c98;
+    return result;
+  }catch(...){
+    --globals.active_nested_calls_696c98;
+    throw;
+  }
+}
+bool originalMonkeyUpdateLifecycle_571904(OriginalMonkeyOwnedObjects& o,
+                                          OriginalMonkeyCallGlobals& globals,
+                                          OriginalMonkeyLifecycleCalls& b){
   // Original Monkey virtual 0x571904: 0x310890, 0x571E10, 0x316174.
-  alignas(16)std::array<std::uint8_t,0x30> scratch{};
+  // Original 0x571E10(0,0) ALWAYS stores zero; prior synthetic scratch
+  // values were incorrect. The real 0x316174 virtual-dispatch guard is
+  // now reconstructed as native code, not an opaque placeholder.
   b.call_310890(o.primary_at_60);
-  b.call_571e10(scratch.data(),0,0);
-  const std::uint32_t word=std::uint32_t(scratch[0])|(std::uint32_t(scratch[1])<<8)|
-                           (std::uint32_t(scratch[2])<<16)|(std::uint32_t(scratch[3])<<24);
-  if(!b.call_316174(o.attached_at_64,word)){
+  const auto originalFlags=originalMonkeyComposeFlags_571e10(0,0);
+  if(!originalMonkeyDispatchVirtual5_316174(o.attached_at_64,originalFlags,globals,b)){
     b.call_3108d4(o.primary_at_60);
     return false;
   }

@@ -4,7 +4,7 @@
 
 ## What was actually recovered
 
-The original PS2 executable's **18 original routine/control-flow translations and 28 direct JAL/J edges** have been checked against the machine instructions. Their source-level control flow is now in `native/src/original_retail_call_chains.cpp`, with explicit abstract interfaces for engine functions not yet recovered.
+The original PS2 executable's **20 original routine/control-flow translations and 28 direct JAL/J edges** have been checked against the machine instructions. Their source-level control flow is now in `native/src/original_retail_call_chains.cpp`, with explicit abstract interfaces for engine functions not yet recovered.
 
 | Original VA | Authentically reconstructed source-level behavior |
 |---|---|
@@ -41,10 +41,10 @@ The audit at `native/tools/audit_original_actor_lifecycle.py`:
 1. Requires the **exact** original USA ELF SHA-256.
 2. Validates original Player and Monkey virtual tables, selected object field loads/writes, allocation size and float constant.
 3. Validates **25** original branch/call sites across **13** method entries.
-4. Samples 128 bytes of direct calls for **59** class, factory, helper and event entry points.
+4. Samples 128 bytes of direct calls for **61** class, factory, helper and event entry points.
 5. Finds potential direct incoming J/JAL references throughout original executable sections, without assuming that these are all valid instructions or complete function bodies.
 
-Local private run: **4,991 potential incoming references** across 59 entry points, and 146 sampled outbound direct edges. These are *research leads*, not 4,843 translated functions. The frequently referenced allocator `0x41B800` dominates the count.
+Local private run: **5,173 potential incoming references** across 61 entry points, and 147 sampled outbound direct edges. These are *research leads*, not 4,843 translated functions. The frequently referenced allocator `0x41B800` dominates the count.
 
 To reproduce (metadata only):
 
@@ -92,3 +92,43 @@ Updated retail ELF audit: **18** method/control-flow translations,
 **146** outbound edges in fixed-length windows, and **4,991**
 potential direct incoming references. Those last two quantities
 are metadata, not translated gameplay function counts.
+
+## Corrected and completed original Monkey controller dependency
+
+Further decoding of the original actual **`0x571E10`** reveals it is
+not an unknown constructor or a generic scratch writer. It writes a
+two-bit mask derived from the low bytes of its second and third arguments:
+
+```cpp
+uint32_t bits = ((first & 0xFF) ? 1u : 0u)
+              | ((second & 0xFF) ? 2u : 0u);
+```
+
+Its call in Monkey `0x571904` is **always `(0,0)`**, therefore the
+original scratch word passed to `0x316174` is exactly **zero**.
+
+An earlier regression test incorrectly let a mock invent a nonzero scratch
+word. This test has been corrected, and the host-native `0x571904`
+translation now computes the original mask directly.
+
+Original **`0x316174`** increments a global reentrancy counter at
+`0x696C98`, invokes the attachment's original **virtual method slot 5**
+(vtable offset `0x14`), then decrements that counter and returns the
+virtual method's result. The increment/decrement sequence is translated
+directly into C++, and the call to the child method is the only remaining
+abstract dependency at this point. The native code also preserves
+counter integrity if a host callback throws.
+
+Both methods have exact original instruction-word checks in the ELF
+audit. Tests now verify the 16 low-byte flag input combinations,
+the original zero mask in `0x571904`, correct counter value inside
+the child call, and counter restoration afterward.
+
+**Updated actual pass:** 20 recovered method/control-flow translations;
+28 verified direct branch edges, 61 sampled original entrypoints,
+147 outgoing window edges and 5,173 *potential* inbound sites.
+Only code actually translated into host C++ is described as implemented;
+these callsite counts are research metadata.
+
+The original child virtual method at slot 5 and genuine Monkey AI state
+machine remain unported, and there is still no playable game build.

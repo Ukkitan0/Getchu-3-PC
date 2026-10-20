@@ -37,7 +37,7 @@ OTHERS=[0x20daa4,0x20d70c,0x20d514,0x34a70c,0x5b0258,0x315a0c,
         0x33fd90,0x349b2c,0x2915ec,0x33f240,0x33f26c,
         0x33fce4,0x26fb24,0x29157c,0x29164c,
         0x34310c,0x3511d4,0x2762bc,0x277118,0x41b800,
-        0x26fa1c,0x20af68,0x291588,0x2915c0,0x291560]
+        0x26fa1c,0x20af68,0x291588,0x2915c0,0x291560,0x571e10,0x316174]
 class OriginalElf:
     def __init__(self,path):
         self.bytes=path.read_bytes()
@@ -69,6 +69,12 @@ def analyze(elf):
                         (0x20af7c,0x8c8f004c),(0x20af8c,0x8def0010),
                         (0x20af98,0xae11004c),(0x291584,0x8de21fe8),
                         (0x2915b0,0xadf01fe8),(0x2915d8,0xae001fe8),
+                        (0x571e10,0xac800000),(0x571e14,0x30a500ff),
+                        (0x571e1c,0x30c600ff),(0x571e24,0xac8f0000),
+                        (0x571e34,0x35ef0002),(0x571e38,0xac8f0000),
+                        (0x316188,0x8e0f6c98),(0x31618c,0x8dc20014),
+                        (0x316190,0x25ef0001),(0x316198,0xae0f6c98),
+                        (0x3161a4,0x25efffff),(0x3161a8,0xae0f6c98),
                         (0x707100,0x3e4ccccd),(0x312704,0x24040008),
                         (0x312710,0x25ef1240),(0x312714,0xac510004),
                         (0x312718,0xac4f0000),(0x571774,0x8e040060),
@@ -104,7 +110,7 @@ def analyze(elf):
     return {
         "format":"ae3/original-engine-callgraph-and-lifecycle/v1",
         "retail_elf_sha256":PIN,
-        "source_methods_checked":len(ROUTES)+3,
+        "source_methods_checked":len(ROUTES)+5,
         "exact_original_branches_verified":sum(len(v) for v in ROUTES.values()),
         "sampled_entry_count":len(roots),
         "semantics":"Source-level host C++ call ordering reconstructed for original routines; original callees remain to be ported.",

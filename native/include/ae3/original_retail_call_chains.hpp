@@ -30,8 +30,7 @@ class OriginalMonkeyLifecycleCalls {
 public:
   virtual ~OriginalMonkeyLifecycleCalls()=default;
   virtual void call_310890(void*)=0;
-  virtual void call_571e10(void*,std::uint32_t,std::uint32_t)=0;
-  virtual bool call_316174(void*,std::uint32_t)=0;
+  virtual bool call_attached_virtual_slot_5(void*,std::uint32_t)=0;
   virtual void call_3108d4(void*)=0;
   virtual void call_attached_virtual_1(void*)=0;
   virtual void call_30fc4c(void*)=0;
@@ -39,7 +38,13 @@ public:
 };
 // True = original branch released primary and attached objects;
 // false = original normal processing path. No PS2 CPU/memory is emulated.
-bool originalMonkeyUpdateLifecycle_571904(OriginalMonkeyOwnedObjects&,OriginalMonkeyLifecycleCalls&);
+struct OriginalMonkeyCallGlobals {std::uint32_t active_nested_calls_696c98=0;};
+// Original 0x571E10: low-byte booleans packed into bits 0 and 1.
+std::uint32_t originalMonkeyComposeFlags_571e10(std::uint32_t,std::uint32_t) noexcept;
+// Original 0x316174: increment global 0x696C98, invoke child virtual[5],
+// then decrement the global, returning the actual child result.
+bool originalMonkeyDispatchVirtual5_316174(void*,std::uint32_t,OriginalMonkeyCallGlobals&,OriginalMonkeyLifecycleCalls&);
+bool originalMonkeyUpdateLifecycle_571904(OriginalMonkeyOwnedObjects&,OriginalMonkeyCallGlobals&,OriginalMonkeyLifecycleCalls&);
 // Original 0x20AF68: state +0x4C becomes 2. Monkey virtual slot 4
 // is verified real no-op 0x442028; no fabricated game behavior.
 bool originalMonkeyTransitionToMode2_20af68(OriginalMonkeyOwnedObjects&) noexcept;

@@ -1,11 +1,11 @@
 {
   "format": "ae3/original-engine-callgraph-and-lifecycle-summary/v1",
   "original_elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
-  "verified_source_method_entries": 18,
+  "verified_source_method_entries": 20,
   "exact_machine_code_calls_or_jumps": 28,
-  "original_engine_roots_examined": 59,
-  "sampled_outgoing_direct_edges": 146,
-  "potential_direct_incoming_references": 4991,
+  "original_engine_roots_examined": 61,
+  "sampled_outgoing_direct_edges": 147,
+  "potential_direct_incoming_references": 5173,
   "most_referenced_targets": [
     {
       "original_va": "0x41b800",
@@ -28,6 +28,6 @@
       "potential_direct_refs": 52
     }
   ],
-  "native_status": "18 original routines or control-flow translations including real life counter Data+4, Monkey mode 2, event singleton and child lifecycle. Local C++20 release tests passed; Windows runtime not verified.",
-  "notes": "The 18 are NOT all complete original subsystem implementations; some are small routines or call chains with unresolved native callees. Incoming refs may include false positives. No commercial bytes."
+  "native_status": "20 original executable method/control-flow translations. Real 0x571E10 flag mask, 0x316174 global counter and child virtual dispatch, 0x26FA1C life clamp, event singleton and Monkey lifecycle. Local C++20 release tests passed; complete game and Windows CI unverified.",
+  "notes": "Corrected an earlier fabricated nonzero scratch-word test: original Monkey 0x571904 calls 0x571E10 with (0,0), yielding exactly zero. Actual child slot 5 remains an unresolved original game method. Incoming refs are potential metadata, not 5173 gameplay functions."
 }

@@ -18,13 +18,13 @@ struct Monkey final:ae3::OriginalMonkeyNativeCalls {
  void call_30fda0(void* p)override{check(p==(void*)0x10);log.push_back("30fda0");}
 };
 struct Lifecycle final:ae3::OriginalMonkeyLifecycleCalls {
- Log log; bool release=false;
+ Log log; bool release=false;ae3::OriginalMonkeyCallGlobals* global=nullptr;
  void call_310890(void* p)override{check(p==(void*)0x10);log.push_back("310890");}
- void call_571e10(void* p,std::uint32_t a,std::uint32_t b)override{
-   check(p&&a==0&&b==0);auto* x=static_cast<std::uint8_t*>(p);
-   x[0]=0xcd;x[1]=0xab;x[2]=0x34;x[3]=0x12;log.push_back("571e10");
+ bool call_attached_virtual_slot_5(void* p,std::uint32_t flags)override{
+   check(p==(void*)0x20&&flags==0);
+   check(global && global->active_nested_calls_696c98==1);
+   log.push_back("virtual5");return release;
  }
- bool call_316174(void* p,std::uint32_t n)override{check(p==(void*)0x20&&n==0x1234abcd);log.push_back("316174");return release;}
  void call_3108d4(void* p)override{check(p==(void*)0x10);log.push_back("3108d4");}
  void call_attached_virtual_1(void* p)override{check(p==(void*)0x20);log.push_back("virtual1");}
  void call_30fc4c(void* p)override{check(p==(void*)0x10);log.push_back("30fc4c");}
@@ -78,13 +78,18 @@ int main(){
  bool failed=false;try{ae3::originalMonkeyRunAttachment_5718cc(o,m);}catch(const std::runtime_error&){failed=true;}
  check(failed);
  Lifecycle l;ae3::OriginalMonkeyOwnedObjects state{(void*)0x10,(void*)0x20};
- check(!ae3::originalMonkeyUpdateLifecycle_571904(state,l));
- check(l.log==Log({"310890","571e10","316174","3108d4"}));
+ ae3::OriginalMonkeyCallGlobals globals{};l.global=&globals;
+ for(std::uint32_t a: {0u,1u,0x100u,0x101u})
+   for(std::uint32_t b: {0u,1u,0x100u,0x101u})
+     check(ae3::originalMonkeyComposeFlags_571e10(a,b)==((a&0xff?1u:0u)|(b&0xff?2u:0u)));
+ check(!ae3::originalMonkeyUpdateLifecycle_571904(state,globals,l));
+ check(l.log==Log({"310890","virtual5","3108d4"}));
  check(state.primary_at_60&&(state.attached_at_64));
  l.release=true;l.log.clear();
- check(ae3::originalMonkeyUpdateLifecycle_571904(state,l));
- check(l.log==Log({"310890","571e10","316174","virtual1","30fc4c","41a3b0"}));
+ check(ae3::originalMonkeyUpdateLifecycle_571904(state,globals,l));
+ check(l.log==Log({"310890","virtual5","virtual1","30fc4c","41a3b0"}));
  check(!state.primary_at_60&&!state.attached_at_64&&state.source_state_at_4c==2);
+ check(globals.active_nested_calls_696c98==0);
  check(!ae3::originalMonkeyTransitionToMode2_20af68(state));
  EventSingletonFactory fc;ae3::OriginalGameEventSingleton stored{};
  check(ae3::originalGameEventGet_29157c(stored)==nullptr);
