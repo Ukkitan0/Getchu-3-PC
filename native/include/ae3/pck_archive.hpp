@@ -6,7 +6,7 @@
 #include <vector>
 
 namespace ae3 {
-enum class PckAssetKind { mesh, animation, texture, other };
+enum class PckAssetKind { mesh, animation, collision, texture, other };
 struct PckMember {
     std::size_t index = 0;
     std::string name;
