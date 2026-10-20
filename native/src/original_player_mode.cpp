@@ -38,3 +38,26 @@ OriginalChipGainCore originalChipGainBeforeClamp(
     return {pending,threshold,false};
 }
 }
+
+
+#include <algorithm>
+#include <cstddef>
+namespace ae3 {
+OriginalChipGainCore applyOriginalChipGainDataWrites(
+    PlayerProgress& originalData,std::int32_t gained,
+    bool limitedTo100,bool survivalMode) noexcept {
+    // Authentic MIPS R5900 sequence at 0x26FB24:
+    // PMAXW $t6,$a1,$t6: nonnegative = max(0, pending)
+    // PMAXW $a1,$t5,$a1: max_chip = max(old_max,pending)
+    // PMINW $t7,$t6,$t7: chip = min(nonnegative, 9999)
+    // Store Data+0xC8=max_chip, Data+0xC4=chip in branch delay slot.
+    static_assert(offsetof(PlayerProgress,chip_count)==0xc4);
+    static_assert(offsetof(PlayerProgress,max_chip_count)==0xc8);
+    const auto result=originalChipGainBeforeClamp(
+        originalData.chip_count,gained,limitedTo100,survivalMode);
+    const auto pending=result.pendingBeforeFinalClamp;
+    originalData.max_chip_count=std::max(originalData.max_chip_count,pending);
+    originalData.chip_count=std::clamp(pending,std::int32_t(0),std::int32_t(9999));
+    return result;
+}
+}

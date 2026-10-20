@@ -77,8 +77,9 @@ The arithmetic is implemented in
 named *pendingBeforeFinalClamp*. The actual original `0x26FB24`
 subroutine **writes both** `Data+0xC4` and `Data+0xC8`
 (`chip_count` and `max_chip_count`) using R5900 packed instructions.
-It has **not yet** been translated, so the computed pending value is
-not falsely presented as the final saved chip count.
+It has now been **translated and compiled as native C++**, including
+its R5900 packed-word saturation instructions. The remaining event/UI
+side effects are not implemented and are not claimed to work.
 
 The 100-limit flag was read at original `0x647930`, and the 1,000
 override comes from the same original `0x236928` routine used by
@@ -89,3 +90,34 @@ A native, release-mode C++ test covers 100/1,000 threshold crossings,
 the no-limit case, a single wrap with a large increment, and two's
 complement 32-bit overflow. This is real source-level recovery of a
 game counter algorithm, **not a fake collectible or an operational gadget**.
+
+## Completed original storage routine `0x26FB24`
+
+Recovered the real R5900 MMI instructions using original ELF instruction
+words and the published R5900 opcode tables (PMAXW, PMINW). The exact
+source-level storage operation is:
+
+```cpp
+// Incoming value is the pending count after the original threshold logic.
+Data.max_chip_count = std::max(Data.max_chip_count, pending);
+Data.chip_count = std::min(std::max(pending, 0), 9999);
+```
+
+This faithfully maps original `Data+0xC8` and `Data+0xC4` writes
+at `0x26FB48` and `0x26FB50`, respectively. Note that the
+high-water `max_chip_count` is **not clipped to 9,999** in this
+routine, while the current count is.
+
+Implemented as `applyOriginalChipGainDataWrites(PlayerProgress&, ...)`,
+so the code now updates the **actual reconstructed Data fields** rather
+than an isolated return value. A separate C++20 release-mode test verifies
+normal counting, wrapping at 100/1,000, negative values, the 9,999
+clip, high-water updates and original 32-bit arithmetic overflow.
+
+The **event and HUD calls** `0x33FD90`, `0x349B2C`,
+`0x2915EC` and their dependencies remain **unimplemented**.
+The method returns `crossedThreshold` to expose that required
+work; it does not invent rewards or silently claim gameplay.
+
+R5900 opcode reference:
+https://github.com/PCSX2/pcsx2/blob/master/pcsx2/DebugTools/DisR5900asm.cpp

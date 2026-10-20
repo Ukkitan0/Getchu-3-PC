@@ -27,9 +27,20 @@ struct OriginalChipGainCore {
     bool crossedThreshold = false;
 };
 // Source-level port of the integer branch logic of original 0x33FCE4.
-// The returned pending value feeds original 0x26FB24, which performs
-// further packed-instruction clamping and max-chip state updates.
+// The returned pending value feeds original 0x26FB24, whose exact PMAXW/PMINW counter writes are
+// now ported separately below.
 OriginalChipGainCore originalChipGainBeforeClamp(
     std::int32_t chipCount, std::int32_t gained,
     bool limitedTo100, bool survivalMode) noexcept;
+}
+
+
+#include "ae3/player_state.hpp"
+namespace ae3 {
+// Complete original 0x26FB24 Data writes after 0x33FCE4 computation.
+// Event/UI handlers 0x33FD90/0x349B2C/0x2915EC still need porting.
+// The return value tells the caller whether original wrap side effects apply.
+OriginalChipGainCore applyOriginalChipGainDataWrites(
+    PlayerProgress& originalData,std::int32_t gained,
+    bool limitedTo100,bool survivalMode) noexcept;
 }
