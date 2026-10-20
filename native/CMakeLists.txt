@@ -146,3 +146,6 @@ target_link_libraries(Getchu3SkinningProbe PRIVATE Getchu3Assets)
 add_executable(Getchu3ActorWorldTests tests/actor_world_test.cpp)
 target_link_libraries(Getchu3ActorWorldTests PRIVATE Getchu3Assets)
 add_test(NAME NativeOriginalLuaEntitiesToAnimatedSceneActors COMMAND Getchu3ActorWorldTests)
+
+add_executable(Getchu3ActorWorldProbe src/actor_world_probe.cpp)
+target_link_libraries(Getchu3ActorWorldProbe PRIVATE Getchu3Assets)
