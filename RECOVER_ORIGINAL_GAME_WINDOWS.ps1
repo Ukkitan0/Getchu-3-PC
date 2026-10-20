@@ -64,7 +64,7 @@ $Elf = Join-Path $Output 'SCUS_975.01'
 $RegistrationMap = Join-Path $Output 'original_elf_lua_registrations.json'
 & py -3 (Join-Path $Tools 'map_original_lua_registrations.py') $Elf '--out' $RegistrationMap
 if ($LASTEXITCODE -ne 0) {
-    throw 'Original executable registration analysis failed (unknown ELF/revision); unmodified ELF remains private.'
+    Write-Warning 'Original executable does not match the previously mapped USA revision. Keep the original ELF; no callback names will be invented.'
 }
 
 if (-not $OnlyLua) {
@@ -89,11 +89,20 @@ if ($Unluac) {
         Write-Warning 'Optional Lua source decompilation was incomplete. Original .luc bytecode and native API audit remain available.'
     }
 }
+# Small owner-private uploadable package: ALL original Lua bytecode,
+# original executable and analysis. The full ISO and unrelated assets remain
+# in the private extraction directory on the owner's Windows machine.
+$PrivateHandoff = Join-Path $Output 'AE3_ORIGINAL_LUA_AND_ELF_PRIVATE.zip'
+& py -3 (Join-Path $Tools 'package_private_retail_evidence.py') '--source' $Output '--out' $PrivateHandoff
+if ($LASTEXITCODE -ne 0) {
+    throw 'Original private Lua+ELF handoff packaging failed; extracted original files remain intact.'
+}
 Write-Host ''
 Write-Host 'Original retail game extraction and native API analysis completed.'
 Write-Host "ALL original Lua 5.0 bytecode: $LuaDir"
 Write-Host "Original native-engine Lua API report: $LuaAudit"
 Write-Host "Original ELF Lua registration sites: $RegistrationMap"
 Write-Host "Original ISO manifest: $(Join-Path $Output 'original_iso_recovery_manifest.json')"
+Write-Host "Owner-private Lua and original ELF handoff: $PrivateHandoff"
 Write-Host 'The original ELF and game resources are NOT committed or published.'
 Write-Host 'Extracted files are original retail data; they are NOT a playable Windows port.'
