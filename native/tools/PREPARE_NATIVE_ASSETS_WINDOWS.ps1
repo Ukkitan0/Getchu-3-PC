@@ -9,6 +9,9 @@ param(
     [switch]$KeepTim2,
     [switch]$Gltf,
     [switch]$Animate,
+    [string]$Unluac = '',
+    [switch]$AllLua,
+    [switch]$StrictOriginalStage,
     [string]$Ae3Cli = 'ae3'
 )
 $ErrorActionPreference = 'Stop'
@@ -83,10 +86,40 @@ if ($Gltf) {
     }
     Write-Host "Original I3D model GLBs: $GlbDir"
 }
+# Original retail game scripts are required for authentic gameplay.
+# Never silently substitute a hand-written test area.lua in the actual path.
+$LuaOut = Join-Path $Out 'recovered_lua'
+if ($Unluac) {
+    if (-not (Test-Path -LiteralPath $Unluac -PathType Leaf)) {
+        throw "Lua 5.0 unluac JAR missing: $Unluac"
+    }
+    if (-not (Get-Command java -ErrorAction SilentlyContinue)) {
+        throw "Java is required for OFFLINE recovery of the original game's Lua 5.0 scripts."
+    }
+    $argsLua = @('-3', (Join-Path $Native 'tools\recover_lua50.py'),
+        '--extracted', $ExtractedRoot, '--out', $LuaOut,
+        '--unluac', $Unluac)
+    if ($AllLua) { $argsLua += '--all-scripts' }
+    & py @argsLua
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Recovery of original game Lua 5.0 source failed; no synthetic replacement will be created.'
+    }
+}
+$StageAuditArgs = @('-3', (Join-Path $Native 'tools\audit_original_stage.py'),
+    '--extracted', $ExtractedRoot,
+    '--out', (Join-Path $Out 'original_stage_audit.json'))
+if ($Gltf) { $StageAuditArgs += @('--glb', (Join-Path $Out 'glb')) }
+if ($Unluac) { $StageAuditArgs += @('--lua', $LuaOut) }
+if ($StrictOriginalStage) { $StageAuditArgs += '--require-real-stage' }
+& py @StageAuditArgs
+if ($LASTEXITCODE -ne 0) {
+    throw 'Original Ape Escape 3 stage is incomplete. Read original_stage_audit.json for the specific missing original assets.'
+}
 Write-Host ''
 Write-Host 'Getchu 3: NATIVE Windows asset preparation completed.'
 Write-Host "Private extracted data: $ExtractedRoot"
 Write-Host "Lua stage inventory: $Inventory"
+Write-Host "Original stage validation: $(Join-Path $Out 'original_stage_audit.json')"
 Write-Host "Private summary: $(Join-Path $Out 'native_asset_inventory.json')"
 Write-Host 'Original disc files were not modified. No PS2 CPU/GPU runtime was used.'
 Write-Host 'This is preparation toward a native game, NOT playable gameplay.'
