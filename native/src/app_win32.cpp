@@ -540,7 +540,9 @@ void bindNativeStageActors(){
            <<L" instantiated mesh actors ("
            <<report.animatedActors<<L" skinned/animated), "
            <<report.unboundEntities<<L" script-only entities, "
-           <<report.modelsRejected<<L" unresolved/rejected models. "
+           <<report.modelsRejected<<L" unresolved/rejected models, "
+           <<report.matchedOriginalPlcTags<<L" authentic PLC tag spawns, "
+           <<report.unresolvedSpawnPositions<<L" unverified positions. "
            <<L"F5 walks and moves Lua Player actor, F8 cycles first actor animation, F9 pauses.";
         status(msg.str());
     }catch(const std::exception& e){
