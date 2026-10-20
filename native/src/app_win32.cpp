@@ -6,6 +6,7 @@
 #include "ae3/level_scene.hpp"
 #include "ae3/native_walking.hpp"
 #include "ae3/i3c_collision.hpp"
+#include "ae3/native_skinning.hpp"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -52,6 +53,12 @@ ae3::NativeWalkingController gNativeWalker;
 bool gNativeWalkMode=false;
 bool gF5HeldLastFrame=false;
 bool gF7HeldLastFrame=false;
+bool gF8HeldLastFrame=false;
+bool gF9HeldLastFrame=false;
+std::unique_ptr<ae3::NativeSkinnedGlb> gAnimatedModel;
+std::size_t gActiveClip=0;
+double gAnimationSeconds=0;
+bool gAnimationPaused=false;
 struct Vertex { float x,y,z; float r,g,b,a; float u=0,v=0; };
 static_assert(sizeof(Vertex)==sizeof(ae3::SceneVertex));
 class NativeRenderer {
@@ -188,6 +195,7 @@ public:
     void clearScene(){
         sceneVertices_.Reset();sceneCount_=0;
         sceneBatches_.clear();sceneTextures_.clear();sceneTextureFailures_=0;
+        animatedBuffer_=false;
         clearCollisionOverlay();
     }
     void clearCollisionOverlay(){
@@ -273,7 +281,18 @@ public:
             static_cast<UINT>(pixels.size()),pixels.data())))return false;
         return uploadRGBA(width,height,pixels.data(),destination);
     }
-    bool displayScene(const ae3::StaticScene& scene){
+    bool updateAnimation(const ae3::StaticScene& frame){
+        if(!sceneVertices_ || !animatedBuffer_ ||
+           frame.triangles.size()!=sceneCount_)return false;
+        D3D11_MAPPED_SUBRESOURCE map{};
+        if(FAILED(context_->Map(sceneVertices_.Get(),0,D3D11_MAP_WRITE_DISCARD,0,&map)))
+            return false;
+        std::memcpy(map.pData,frame.triangles.data(),
+                    frame.triangles.size()*sizeof(Vertex));
+        context_->Unmap(sceneVertices_.Get(),0);
+        return true;
+    }
+    bool displayScene(const ae3::StaticScene& scene,bool animated=false){
         if(!device_ || scene.triangles.empty() ||
            scene.triangles.size()>3'000'000 ||
            scene.triangles.size()>std::numeric_limits<UINT>::max()/sizeof(Vertex))
@@ -282,12 +301,14 @@ public:
         clearScene();
         D3D11_BUFFER_DESC vb{};
         vb.ByteWidth=static_cast<UINT>(scene.triangles.size()*sizeof(Vertex));
-        vb.Usage=D3D11_USAGE_IMMUTABLE;
+        vb.Usage=animated?D3D11_USAGE_DYNAMIC:D3D11_USAGE_IMMUTABLE;
         vb.BindFlags=D3D11_BIND_VERTEX_BUFFER;
+        vb.CPUAccessFlags=animated?D3D11_CPU_ACCESS_WRITE:0;
         D3D11_SUBRESOURCE_DATA data{};
         data.pSysMem=scene.triangles.data();
         if(FAILED(device_->CreateBuffer(&vb,&data,&sceneVertices_)))return false;
         sceneCount_=static_cast<UINT>(scene.triangles.size());
+        animatedBuffer_=animated;
         sceneBatches_=scene.batches;
         sceneTextures_.resize(scene.textures.size());
         for(std::size_t t=0;t<scene.textures.size();++t) {
@@ -402,6 +423,7 @@ private:
     HWND hwnd_{};
     int width_=1,height_=1;
     UINT gridCount_=0,sceneCount_=0;
+    bool animatedBuffer_=false;
     ComPtr<ID3D11Buffer> sceneVertices_;
     ComPtr<ID3D11Buffer> collisionWire_;
     UINT collisionLineCount_=0;
@@ -449,6 +471,7 @@ void loadArchive(const fs::path& path){
         gNativeWorld.reset();
         gRenderer.clearTexture();
         gRenderer.clearScene();
+        gAnimatedModel.reset();
         gWalkCollisionScene={};
         gOriginalI3cActive=false;
         gNativeWalkMode=false;
@@ -471,9 +494,15 @@ void openFile(){
 }
 void loadNativeGlb(const fs::path& path){
     try{
-        const auto scene=ae3::loadStaticGlb(path);
-        if(!gRenderer.displayScene(scene))
+        auto motion=std::make_unique<ae3::NativeSkinnedGlb>(path);
+        const auto& scene=motion->restScene();
+        const bool animated=motion->clipCount()>0 && motion->skinnedVertexCount()>0;
+        if(!gRenderer.displayScene(scene,animated))
             throw std::runtime_error("Direct3D11 vertex buffer upload failed");
+        gAnimatedModel=animated?std::move(motion):nullptr;
+        gAnimationSeconds=0;
+        gActiveClip=0;
+        gAnimationPaused=false;
         gWalkCollisionScene=scene;
         gOriginalI3cActive=false;
         gNativeWalkMode=false;
@@ -491,7 +520,9 @@ void loadNativeGlb(const fs::path& path){
            <<L"missing: "<<scene.missingTextures<<L", "
            <<L"decode failures: "<<gRenderer.textureFailures()<<L". "
            <<L"F5 toggles native walk/jump testing on mesh geometry. "
-           <<L"Original animation, I3C collision and game logic remain TODO.";
+           <<(animated?L" ORIGINAL I3M-GLB skeletal playback active. F8 clip, F9 pause. ":
+                       L" No valid skeleton animation clip in this GLB. ")
+           <<L"Original entity AI/capture not yet implemented.";
         status(msg.str());
         gRenderer.render();
     }catch(const std::exception& error){
@@ -518,6 +549,7 @@ void loadNativeLevel(const fs::path& folder) {
         const auto level=ae3::loadNativeLevelFolder(folder,plc);
         if(!gRenderer.displayScene(level.scene))
             throw std::runtime_error("Direct3D11 native level vertex upload failed");
+        gAnimatedModel.reset();
         gWalkCollisionScene=level.scene;
         gOriginalI3cActive=false;
         gNativeWalkMode=false;
@@ -799,6 +831,32 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
                                L"Original I3C collision wireframe hidden; collision remains active.");
             }
             gF7HeldLastFrame=f7;
+            const bool f8=held(VK_F8);
+            if(f8&&!gF8HeldLastFrame&&gAnimatedModel){
+                gActiveClip=(gActiveClip+1)%gAnimatedModel->clipCount();
+                gAnimationSeconds=0;
+                status(L"Native I3M/glTF skeleton animation clip: "+
+                       wide(gAnimatedModel->clipNames()[gActiveClip]));
+            }
+            gF8HeldLastFrame=f8;
+            const bool f9=held(VK_F9);
+            if(f9&&!gF9HeldLastFrame&&gAnimatedModel){
+                gAnimationPaused=!gAnimationPaused;
+                status(gAnimationPaused?L"Native skinned animation paused (F9 resumes).":
+                                        L"Native skeletal animation playing.");
+            }
+            gF9HeldLastFrame=f9;
+            if(gAnimatedModel && !gAnimationPaused){
+                try{
+                    gAnimationSeconds+=dt;
+                    const auto& pose=gAnimatedModel->sample(gActiveClip,gAnimationSeconds);
+                    if(!gRenderer.updateAnimation(pose))
+                        throw std::runtime_error("Direct3D11 animated vertex-buffer map failed");
+                }catch(const std::exception& e){
+                    status(L"Native original skeleton playback stopped: "+wide(e.what()));
+                    gAnimatedModel.reset();
+                }
+            }
             if(held(VK_LEFT))gYaw-=.025f;
             if(held(VK_RIGHT))gYaw+=.025f;
             if(gNativeWalkMode){
