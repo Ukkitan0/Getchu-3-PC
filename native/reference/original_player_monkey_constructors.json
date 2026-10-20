@@ -146,5 +146,54 @@
     ],
     "limits": "Virtual table method names, animation state machine and monkey capture/AI semantics need genuine further decompilation, not guessed behavior."
   },
-  "caveat": "In the original C++ build these are derived game runtime allocations, not standalone native Windows C++ types. Reconstructed source must implement the same logic without requiring original PlayStation hardware."
+  "caveat": "In the original C++ build these are derived game runtime allocations, not standalone native Windows C++ types. Reconstructed source must implement the same logic without requiring original PlayStation hardware.",
+  "verified_virtual_destructors": [
+    {
+      "klass": "Player",
+      "entry": "0x5b05cc",
+      "variant": "destructor",
+      "release": [
+        "0x381950",
+        "0x350874",
+        "0x221650",
+        "0x382670",
+        "0x381724"
+      ],
+      "details": "replaces main vtable; tears down owned game subobjects; invokes base destructor"
+    },
+    {
+      "klass": "Player",
+      "entry": "0x5b0694",
+      "variant": "deleting destructor",
+      "release": [
+        "0x381950",
+        "0x350874",
+        "0x221650",
+        "0x382670",
+        "0x381724",
+        "0x41a3b0"
+      ],
+      "details": "same teardown plus final game allocator free"
+    },
+    {
+      "klass": "Monkey",
+      "entry": "0x571d0c",
+      "variant": "destructor",
+      "release": [
+        "0x30fc4c",
+        "0x41a3b0"
+      ],
+      "details": "replaces main vtable; releases object at +0x60 and its associated object at +0x64; chains to base destructor"
+    },
+    {
+      "klass": "Monkey",
+      "entry": "0x571d8c",
+      "variant": "deleting destructor",
+      "release": [
+        "0x30fc4c",
+        "0x41a3b0"
+      ],
+      "details": "same teardown, plus final free of Monkey object"
+    }
+  ]
 }

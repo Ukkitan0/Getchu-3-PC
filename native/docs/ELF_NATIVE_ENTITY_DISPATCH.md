@@ -169,3 +169,27 @@ is recorded without game bytes at
 through these tables, their original update loops and their
 dependencies. Do not present address recovery as reconstructed
 animation/physics/AI or as a playable Windows game.
+
+## Identified virtual destructor methods (original engine)
+
+Further examination of the **actual virtual method bodies** identifies
+their first two entries as the destructor pair used by the original C++
+compiler. They are **not** player movement or monkey AI update methods.
+
+| Game class | Original regular destructor | Original deleting destructor |
+|---|---|---|
+| Player | `0x5B05CC` | `0x5B0694` |
+| Monkey | `0x571D0C` | `0x571D8C` |
+
+These are grounded in their actual MIPS control flow: both variants
+replace their class vtable, clean up owned objects and delegate to
+base-class destruction; the deleting variants additionally call the
+original memory deallocator `0x41A3B0`. The Monkey destructor
+conditionally releases child pointers at object offsets `0x60` and
+`0x64`, calling `0x30FC4C` for cleanup before freeing. The Player
+destructor follows its own teardown chain through `0x381950`,
+`0x350874`, `0x221650`, `0x382670`, and `0x381724`.
+
+This avoids a common decompilation error: confusing first vtable slots
+for game update handlers. The **remaining original virtual methods**
+must be classified before translating their behavior.
