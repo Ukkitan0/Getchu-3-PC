@@ -4,6 +4,23 @@
 
 The goal is the complete original retail Ape Escape 3 USA (SCUS_975.01) rebuilt as a normal Windows PC program. An asset viewer, synthetic scene, test monkey or simulated PlayStation hardware is NOT a finished game and will not be packaged or advertised as one.
 
+## Actual original ISO recovered
+
+On October 20, 2026, the owner's seven earlier ChatGPT Library
+uploads of the **USA retail ISO** were located and correctly concatenated.
+The verified image is 2,174,091,264 bytes; all 3,994 retail DATA.BIN/VFI
+resources and all 168 original Lua 5.0 `area.luc` chunks were successfully
+extracted into private working files. The original 6,488,148-byte
+`SCUS_975.01` ELF was independently verified against its pinned hash.
+For exact original code registration callsite addresses and observed use
+counts, see `native/reference/verified_original_retail_api_sites.json`.
+
+The source repo intentionally contains **no commercial ISO, ELF or original
+Lua script bytes**. The prior user-uploaded multipart files are in the
+ChatGPT file library. For this investigation, **the user does not need to
+re-upload the ISO or run the local recovery launcher**. Native original
+gameplay reconstruction is still incomplete.
+
 ## Architecture
 
 Original Lua 5.0 stage bytecode is read directly from the user's retail ISO. The bytecode's 32-bit numeric/string representation is converted for a real host-native Lua 5.0.3 interpreter; no PS2 instructions or devices execute. The native C++20 / Direct3D11 engine uses user-extracted game meshes, collision, textures, animation and game script data.
