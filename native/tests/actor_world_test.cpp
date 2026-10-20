@@ -50,6 +50,15 @@ void integration(){
     try{
         write(root/"monkey.glb",triangle());
         write(root/"player.glb",triangle());
+        // Original AE3 PLC tag_name-to-world-coordinate placement sample.
+        std::vector<std::uint8_t> plc(0xc0+0x80);
+        const char tag[]="ape_spawn_tag";
+        std::memcpy(plc.data()+0xc0,tag,sizeof(tag));
+        const std::uint32_t count=1;
+        std::memcpy(plc.data(),&count,sizeof(count));
+        const float originalPosition[3]={-2.f,1.f,4.f};
+        std::memcpy(plc.data()+0xc0+0x40,originalPosition,sizeof(originalPosition));
+        write(root/"placeholder.plc",plc);
         {
             std::ofstream file(root/"actor_bindings.txt");
             file<<"# Explicit owner-local name and class mapping\n"
@@ -60,7 +69,7 @@ void integration(){
             function setupArea(opts)
               new_ent("Player",{name="player",pos={0,0,2}})
               new_ent("Monkey",{name="ape_01",pos={2,1,3}})
-              new_ent("Monkey",{name="ape_02",pos={-2,1,4}})
+              new_ent("Monkey",{name="ape_02",tag_name="ape_spawn_tag"})
               new_ent("Controller",{name="event_only"})
               lua_param({namespace="real_stage"})
             end
@@ -90,6 +99,13 @@ void integration(){
                 "original world meshes and native actor batch offsets lost");
         const auto& player=*world.actor("player");
         const auto& ape=*world.actor("ape_01");
+        const auto& apeTag=*world.actor("ape_02");
+        require(report.matchedOriginalPlcTags==1 &&
+                apeTag.positionSource=="original_plc_exact_tag",
+                "Lua monkey original tag_name was not resolved using actual PLC fields");
+        require(std::abs(apeTag.position[0]+2.f)<1e-5f &&
+                std::abs(apeTag.position[2]+4.f)<1e-5f,
+                "original AE3 tag spawn coordinates were not correctly converted to host LH");
         require(player.entityClass=="Player" && ape.entityClass=="Monkey",
                 "original Lua entity identity lost");
         const auto& vertices=world.scene().triangles;
@@ -134,7 +150,7 @@ void integration(){
 int main(){
     try{
         integration();
-        std::cout<<"NATIVE_LUA_ACTOR_WORLD_PASSED actors=3 monkey_instances=2 "
+        std::cout<<"NATIVE_LUA_ACTOR_WORLD_PASSED actors=3 monkey_instances=2 original_plc_tags=1 "
                     "gpu_batches=4 player_movement=1 private_asset_guards=1\n";
         return 0;
     }catch(const std::exception& e){
