@@ -24,6 +24,7 @@
 #include <chrono>
 #include <cstring>
 #include <cwctype>
+#include <cctype>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -780,6 +781,46 @@ void loadRecoveredStageFile(const fs::path& path){
         status(L"Original stage Lua read BLOCKED: "+wide(e.what()));
     }
 }
+void loadOriginalRetailStage(const fs::path& originalIso,
+                             const std::string& originalStage,
+                             const fs::path& localGlb,
+                             const fs::path& originalPlc,
+                             const fs::path& originalCollision,
+                             const std::string& originalSpawnTag){
+    try{
+        if(originalStage.empty()||originalStage.size()>70 ||
+           !std::all_of(originalStage.begin(),originalStage.end(),
+               [](unsigned char c){return std::isalnum(c)||c=='_';}))
+            throw std::runtime_error("invalid original AE3 retail stage identifier");
+        if(!fs::is_regular_file(originalIso))
+            throw std::runtime_error("owned original Ape Escape 3 ISO not present");
+        if(!fs::is_directory(localGlb))
+            throw std::runtime_error("original I3D models have not been exported to a real stage GLB directory");
+        if(!originalPlc.empty() && !fs::is_regular_file(originalPlc))
+            throw std::runtime_error("original stage placeholder.plc missing");
+        if(!originalCollision.empty() && !fs::is_regular_file(originalCollision))
+            throw std::runtime_error("original stage I3D_I3C collision file missing");
+
+        ae3::Archive game(originalIso);
+        const std::string name="debug/us/stage/"+originalStage+"/area.luc";
+        const auto found=game.find(name);
+        if(!found)throw std::runtime_error("original game disc has no stage "+name);
+        const auto raw=game.read(game.entries()[*found]);
+        if(raw.size()<24 || raw.size()>16*1024*1024 ||
+           raw[0]!=27 || raw[1]!='L' || raw[2]!='u' ||
+           raw[3]!='a' || raw[4]!=0x50)
+            throw std::runtime_error("stage is not original retail Lua 5.0 bytecode");
+
+        gPrivateOriginalPlc=originalPlc;
+        loadNativeLevel(localGlb);
+        if(!originalCollision.empty())loadOriginalCollision(originalCollision);
+        loadNativeStageBytes(std::string(raw.begin(),raw.end()),name,originalSpawnTag);
+        // At this point Lua has executed, but real game behavior is NOT
+        // implemented simply by spawning meshes. Do not announce playability.
+    }catch(const std::exception& e){
+        status(L"ACTUAL RETAIL GAME STAGE BLOCKED: "+wide(e.what()));
+    }
+}
 void openRecoveredStage(){
     wchar_t path[32768]={};
     OPENFILENAMEW dialog{};
@@ -1089,7 +1130,16 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
     int argc=0;
     LPWSTR* argv=CommandLineToArgvW(GetCommandLineW(),&argc);
     if(argv){
-        if(argc>=2){
+        if(argc>=5 && std::wstring(argv[1])==L"--retail"){
+            const fs::path iso=argv[2];
+            const std::string stageId=fs::path(argv[3]).string();
+            const fs::path glbDir=argv[4];
+            const fs::path plc=argc>=6?fs::path(argv[5]):fs::path{};
+            const fs::path i3c=argc>=7?fs::path(argv[6]):fs::path{};
+            const std::string spawn=argc>=8?
+                fs::path(argv[7]).string():"spawn_default";
+            openOriginalRetailStage(iso,stageId,glbDir,plc,i3c,spawn);
+        }else if(argc>=2){
             const fs::path file=fs::path(argv[1]);
             std::wstring extension=file.extension().wstring();
             std::transform(extension.begin(),extension.end(),extension.begin(),
