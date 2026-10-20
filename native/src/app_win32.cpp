@@ -729,7 +729,16 @@ void loadNativeStageBytes(const std::string& source,const std::string& stageName
                           const std::string& spawnTag){
     try{
         auto world=std::make_unique<ae3::NativeStageWorld>();
-        auto stage=std::make_unique<ae3::LuaStage>(*world);
+        // Genuine retail area.luc reads the actual recovered Data structure.
+        // An unsaved new-game baseline is explicit; original save parsing
+        // remains incomplete and is never silently substituted.
+        static ae3::PlayerProgress freshGameProgress{};
+        const bool authenticLua=source.size()>=5 &&
+            static_cast<unsigned char>(source[0])==27 &&
+            source.substr(1,3)=="Lua" &&
+            static_cast<unsigned char>(source[4])==0x50;
+        auto stage=std::make_unique<ae3::LuaStage>(
+            *world,authenticLua?&freshGameProgress:nullptr);
         stage->executeSource(source,stageName);
         stage->callSetupArea(spawnTag);
         std::vector<ae3::NativeControllerTimeline> controllers;
