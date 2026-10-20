@@ -1,0 +1,146 @@
+{
+  "schema": "getchu3/owner-verified-original-retail-api-sites/v1",
+  "note": "VERIFIED from owner's reassembled 7-part original USA ISO. This stores only addresses and observed usage counts, no copyrighted game bytes. All registration sites listed are through ONE ELF helper at 0x255BD8, not all runtime Lua APIs.",
+  "disc": {
+    "size": 2174091264,
+    "sha256": "5b4c6272c9daf190b3f72081f124edd7ea2af3cc0dafeaef206ded97a022fd09"
+  },
+  "elf": {
+    "name": "SCUS_975.01",
+    "size": 6488148,
+    "sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63"
+  },
+  "vfi": {
+    "files": 3994,
+    "compressed_sz_members": 1706,
+    "lua_scripts": 168,
+    "plc_placements": 168,
+    "actionseq_asq": 168,
+    "pck_archives": 958
+  },
+  "lua": {
+    "scripts_validated": 168,
+    "scripts_rejected": 0,
+    "functions": 805,
+    "instructions": 135820,
+    "reads_top": {
+      "c_ctrl": 7018,
+      "new_ent": 6572,
+      "c_order": 1893,
+      "lua_param": 1460,
+      "gw_get_flag": 191,
+      "area_get_flag": 64,
+      "get_capture_flag": 56,
+      "createTutorialExit": 31,
+      "LocaleInfo_getID": 19,
+      "createFeatureLauncher": 15,
+      "stage_var_get_int": 13
+    }
+  },
+  "registration_helper_address": "0x255BD8",
+  "registrations": [
+    {
+      "name": "BindTester",
+      "register_jal": "0x21A95C",
+      "string_va": "0x6E3120",
+      "lua_getglobal_sites": 0
+    },
+    {
+      "name": "createFeatureLauncher",
+      "register_jal": "0x21A98C",
+      "string_va": "0x6E3130",
+      "lua_getglobal_sites": 15
+    },
+    {
+      "name": "createWarpGateLauncher",
+      "register_jal": "0x21A9BC",
+      "string_va": "0x6E3148",
+      "lua_getglobal_sites": 1
+    },
+    {
+      "name": "createTutorialExit",
+      "register_jal": "0x21A9EC",
+      "string_va": "0x6E3160",
+      "lua_getglobal_sites": 31
+    },
+    {
+      "name": "createMGSGenerator",
+      "register_jal": "0x21AA1C",
+      "string_va": "0x6E3178",
+      "lua_getglobal_sites": 7
+    },
+    {
+      "name": "LocaleInfo_getID",
+      "register_jal": "0x21AA4C",
+      "string_va": "0x6E3190",
+      "lua_getglobal_sites": 19
+    },
+    {
+      "name": "gw_set_flag",
+      "register_jal": "0x3854E8",
+      "string_va": "0x71CEB8",
+      "lua_getglobal_sites": 3
+    },
+    {
+      "name": "gw_get_flag",
+      "register_jal": "0x385518",
+      "string_va": "0x71CEC8",
+      "lua_getglobal_sites": 191
+    },
+    {
+      "name": "gw_get_string",
+      "register_jal": "0x385548",
+      "string_va": "0x71CED8",
+      "lua_getglobal_sites": 0
+    },
+    {
+      "name": "lw_set_flag",
+      "register_jal": "0x385578",
+      "string_va": "0x71CEE8",
+      "lua_getglobal_sites": 8
+    },
+    {
+      "name": "lw_get_flag",
+      "register_jal": "0x3855A8",
+      "string_va": "0x71CEF8",
+      "lua_getglobal_sites": 5
+    },
+    {
+      "name": "area_set_flag",
+      "register_jal": "0x3855D8",
+      "string_va": "0x71CF08",
+      "lua_getglobal_sites": 3
+    },
+    {
+      "name": "area_get_flag",
+      "register_jal": "0x385608",
+      "string_va": "0x71CF18",
+      "lua_getglobal_sites": 64
+    },
+    {
+      "name": "get_costume_possess",
+      "register_jal": "0x385638",
+      "string_va": "0x71CF28",
+      "lua_getglobal_sites": 23
+    },
+    {
+      "name": "get_costume_possess_ninja",
+      "register_jal": "0x385668",
+      "string_va": "0x71CF40",
+      "lua_getglobal_sites": 1
+    },
+    {
+      "name": "stage_var_get_int",
+      "register_jal": "0x385698",
+      "string_va": "0x71CF60",
+      "lua_getglobal_sites": 13
+    },
+    {
+      "name": "is_survival_mode",
+      "register_jal": "0x3856C8",
+      "string_va": "0x71CF78",
+      "lua_getglobal_sites": 3
+    }
+  ],
+  "limitations": "A GETGLOBAL site is a bytecode reference, not necessarily a runtime call. Some game API names are registered by other paths. These registrations do not imply their native game functionality has been implemented."
+}
