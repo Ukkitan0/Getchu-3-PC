@@ -1,5 +1,6 @@
 #include "ae3/original_retail_call_chains.hpp"
 #include <cstdint>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -25,7 +26,6 @@ struct Lifecycle final:ae3::OriginalMonkeyLifecycleCalls {
  }
  bool call_316174(void* p,std::uint32_t n)override{check(p==(void*)0x20&&n==0x1234abcd);log.push_back("316174");return release;}
  void call_3108d4(void* p)override{check(p==(void*)0x10);log.push_back("3108d4");}
- void call_20af68()override{log.push_back("20af68");}
  void call_attached_virtual_1(void* p)override{check(p==(void*)0x20);log.push_back("virtual1");}
  void call_30fc4c(void* p)override{check(p==(void*)0x10);log.push_back("30fc4c");}
  void call_41a3b0(void* p)override{check(p==(void*)0x10);log.push_back("41a3b0");}
@@ -47,12 +47,16 @@ struct Small final:ae3::OriginalSmallFactoryCalls {
 };
 struct Chips final:ae3::OriginalChipSideEffectCalls {
  Log log;void* scratch=nullptr;
- void call_26fa1c(void* p,std::uint32_t n)override{check(p==(void*)0x649910&&n==1);log.push_back("26fa1c");}
- void* call_29157c()override{log.push_back("29157c");return (void*)0x70;}
  void call_29164c(void* p,std::uint32_t n)override{check(p==(void*)0x70&&n==1);log.push_back("29164c");}
  void call_35ab88(void* p)override{scratch=p;log.push_back("35ab88");}
  void call_362178(void* p)override{check(p==scratch&&p!=nullptr);log.push_back("362178");}
  void call_2acc6c(void* p)override{check(p==(void*)0x40);log.push_back("2acc6c");}
+};
+struct EventSingletonFactory final:ae3::OriginalGameEventFactoryCalls {
+ Log log;bool fail=false;
+ void* call_41b800(std::uint32_t n)override{check(n==0x18);log.push_back("alloc18");return fail?nullptr:(void*)0x100;}
+ void call_291560(void* p)override{check(p==(void*)0x100);log.push_back("291560");}
+ void call_41a3b0(void* p)override{check(p==(void*)0x100);log.push_back("free");}
 };
 }
 int main(){
@@ -79,8 +83,20 @@ int main(){
  check(state.primary_at_60&&(state.attached_at_64));
  l.release=true;l.log.clear();
  check(ae3::originalMonkeyUpdateLifecycle_571904(state,l));
- check(l.log==Log({"310890","571e10","316174","20af68","virtual1","30fc4c","41a3b0"}));
- check(!state.primary_at_60&&!state.attached_at_64);
+ check(l.log==Log({"310890","571e10","316174","virtual1","30fc4c","41a3b0"}));
+ check(!state.primary_at_60&&!state.attached_at_64&&state.source_state_at_4c==2);
+ check(!ae3::originalMonkeyTransitionToMode2_20af68(state));
+ EventSingletonFactory fc;ae3::OriginalGameEventSingleton stored{};
+ check(ae3::originalGameEventGet_29157c(stored)==nullptr);
+ ae3::originalGameEventCreate_291588(stored,fc);
+ check(ae3::originalGameEventGet_29157c(stored)==(void*)0x100);
+ check(fc.log==Log({"alloc18","291560"}));
+ ae3::originalGameEventDestroy_2915c0(stored,fc);
+ check(ae3::originalGameEventGet_29157c(stored)==nullptr);
+ check(fc.log==Log({"alloc18","291560","free"}));
+ fc.fail=true;bool allocFailure=false;
+ try{ae3::originalGameEventCreate_291588(stored,fc);}catch(const std::runtime_error&){allocFailure=true;}
+ check(allocFailure);
  Player p;ae3::originalPlayerForward_349fe4((void*)0x80,p);
  ae3::originalPlayerForward_349ffc((void*)0x80,p);
  check(p.log==Log({"33f240","33f26c"}));
@@ -89,8 +105,15 @@ int main(){
  Small sm;auto obj=ae3::originalSmallMonkeyFactory_3126e8((void*)0x200,(void*)0x230,sm);
  check(obj.parent==(void*)0x200&&obj.original_vtable_va==0x6b1240);
  check(sm.log==Log({"2762bc","277118"}));
- Chips ch;ae3::originalChipSideEffect_33fd90((void*)0x649910,ch);
- check(ch.log==Log({"26fa1c","29157c","29164c"}));
+ Chips ch;ae3::PlayerProgress progress{};progress.player_left=98;
+ ae3::OriginalGameEventSingleton singleton{(void*)0x70};
+ ae3::originalChipSideEffect_33fd90(progress,singleton,ch);
+ check(progress.player_left==99&&ch.log==Log({"29164c"}));
+ ch.log.clear();ae3::originalChipSideEffect_33fd90(progress,singleton,ch);
+ check(progress.player_left==99&&ch.log==Log({"29164c"}));
+ check(ae3::originalAddPlayerLives_26fa1c(progress,-1000)==0);
+ progress.player_left=std::numeric_limits<std::int32_t>::max();
+ check(ae3::originalAddPlayerLives_26fa1c(progress,1)==0);
  ch.log.clear();ae3::originalChipSideEffect_349b2c(ch);
  check(ch.log==Log({"35ab88","362178"}));
  ch.log.clear();check(!ae3::originalChipNotification_2915ec(nullptr,ch)&&ch.log.empty());

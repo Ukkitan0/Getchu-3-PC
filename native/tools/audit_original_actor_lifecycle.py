@@ -19,6 +19,8 @@ ROUTES={
 0x33fd90:[(0x33fda0,3,0x26fa1c),(0x33fda8,3,0x29157c),(0x33fdbc,2,0x29164c)],
 0x349b2c:[(0x349b34,3,0x35ab88),(0x349b3c,3,0x362178)],
 0x2915ec:[(0x291608,2,0x2acc6c)],
+0x291588:[(0x291594,3,0x41b800),(0x2915a0,3,0x291560)],
+0x2915c0:[(0x2915d0,3,0x41a3b0)],
 0x3126e8:[(0x312700,3,0x41b800),(0x312724,3,0x2762bc),(0x31273c,3,0x277118)],
 0x571904:[(0x571918,3,0x310890),(0x571928,3,0x571e10),
           (0x571934,3,0x316174),(0x571944,3,0x3108d4),
@@ -34,7 +36,8 @@ OTHERS=[0x20daa4,0x20d70c,0x20d514,0x34a70c,0x5b0258,0x315a0c,
         0x5714b0,0x3126e8,0x312760,0x310730,0x3168d0,0x30fda0,
         0x33fd90,0x349b2c,0x2915ec,0x33f240,0x33f26c,
         0x33fce4,0x26fb24,0x29157c,0x29164c,
-        0x34310c,0x3511d4,0x2762bc,0x277118,0x41b800]
+        0x34310c,0x3511d4,0x2762bc,0x277118,0x41b800,
+        0x26fa1c,0x20af68,0x291588,0x2915c0,0x291560]
 class OriginalElf:
     def __init__(self,path):
         self.bytes=path.read_bytes()
@@ -59,7 +62,14 @@ def target(pc,w):return ((pc+4)&0xf0000000)|((w&0x3ffffff)<<2)
 def analyze(elf):
     if elf.words(0x6b3918,11)!=PLAYER or elf.words(0x6b1498,11)!=MONKEY or elf.words(0x6b14d0,9)!=AUX:
         raise ValueError("Original Player/Monkey virtual tables differ")
-    for pc,expected in [(0x707100,0x3e4ccccd),(0x312704,0x24040008),
+    for pc,expected in [
+                        (0x26fa1c,0x8c8f0004),(0x26fa24,0x24020063),
+                        (0x26fa28,0x01e57821),(0x26fa2c,0x71ee78c8),
+                        (0x26fa34,0x71e210e8),(0x26fa40,0xac820004),
+                        (0x20af7c,0x8c8f004c),(0x20af8c,0x8def0010),
+                        (0x20af98,0xae11004c),(0x291584,0x8de21fe8),
+                        (0x2915b0,0xadf01fe8),(0x2915d8,0xae001fe8),
+                        (0x707100,0x3e4ccccd),(0x312704,0x24040008),
                         (0x312710,0x25ef1240),(0x312714,0xac510004),
                         (0x312718,0xac4f0000),(0x571774,0x8e040060),
                         (0x5717dc,0x8e040060),(0x571750,0x8def0064),
@@ -94,7 +104,7 @@ def analyze(elf):
     return {
         "format":"ae3/original-engine-callgraph-and-lifecycle/v1",
         "retail_elf_sha256":PIN,
-        "source_methods_checked":len(ROUTES),
+        "source_methods_checked":len(ROUTES)+3,
         "exact_original_branches_verified":sum(len(v) for v in ROUTES.values()),
         "sampled_entry_count":len(roots),
         "semantics":"Source-level host C++ call ordering reconstructed for original routines; original callees remain to be ported.",

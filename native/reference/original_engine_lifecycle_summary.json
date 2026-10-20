@@ -1,11 +1,11 @@
 {
   "format": "ae3/original-engine-callgraph-and-lifecycle-summary/v1",
   "original_elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
-  "verified_source_method_entries": 13,
-  "exact_machine_code_calls_or_jumps": 25,
-  "original_engine_roots_examined": 54,
-  "sampled_outgoing_direct_edges": 135,
-  "potential_direct_incoming_references": 4843,
+  "verified_source_method_entries": 18,
+  "exact_machine_code_calls_or_jumps": 28,
+  "original_engine_roots_examined": 59,
+  "sampled_outgoing_direct_edges": 146,
+  "potential_direct_incoming_references": 4991,
   "most_referenced_targets": [
     {
       "original_va": "0x41b800",
@@ -28,6 +28,6 @@
       "potential_direct_refs": 52
     }
   ],
-  "native_status": "Control flow translated with abstract unresolved callees. Native local C++20 release test passed. Actual game/window runtime not yet validated.",
-  "notes": "Potential inbound sites can contain false positives and indirect references are not resolved. 54 entrypoints are not 54 fully decompiled functions. All counts exclude commercial binary bytes."
+  "native_status": "18 original routines or control-flow translations including real life counter Data+4, Monkey mode 2, event singleton and child lifecycle. Local C++20 release tests passed; Windows runtime not verified.",
+  "notes": "The 18 are NOT all complete original subsystem implementations; some are small routines or call chains with unresolved native callees. Incoming refs may include false positives. No commercial bytes."
 }

@@ -1,5 +1,7 @@
 #include "ae3/original_retail_call_chains.hpp"
 #include <array>
+#include <algorithm>
+#include <bit>
 #include <stdexcept>
 namespace ae3 {
 void originalMonkeyReplaceAttachment_57173c(OriginalMonkeyOwnedObjects& o,OriginalMonkeyNativeCalls& b){
@@ -20,6 +22,11 @@ void originalMonkeyRunAttachment_5718cc(const OriginalMonkeyOwnedObjects& o,Orig
 }
 void originalMonkeyForward_571668(void* transform,OriginalMonkeyNativeCalls& b){b.call_3168d0(transform);}
 void originalMonkeyForward_5716a8(const OriginalMonkeyOwnedObjects& o,OriginalMonkeyNativeCalls& b){b.call_30fda0(o.primary_at_60);}
+bool originalMonkeyTransitionToMode2_20af68(OriginalMonkeyOwnedObjects& o) noexcept{
+  // Original 0x20AF68/0x20AF98; Monkey original virtual[4]=0x442028 no-op.
+  if(o.source_state_at_4c==2)return false;
+  o.source_state_at_4c=2;return true;
+}
 bool originalMonkeyUpdateLifecycle_571904(OriginalMonkeyOwnedObjects& o,OriginalMonkeyLifecycleCalls& b){
   // Original Monkey virtual 0x571904: 0x310890, 0x571E10, 0x316174.
   alignas(16)std::array<std::uint8_t,0x30> scratch{};
@@ -31,7 +38,7 @@ bool originalMonkeyUpdateLifecycle_571904(OriginalMonkeyOwnedObjects& o,Original
     b.call_3108d4(o.primary_at_60);
     return false;
   }
-  b.call_20af68();
+  originalMonkeyTransitionToMode2_20af68(o);
   if(o.attached_at_64)b.call_attached_virtual_1(o.attached_at_64);
   if(o.primary_at_60){b.call_30fc4c(o.primary_at_60);b.call_41a3b0(o.primary_at_60);}
   o.primary_at_60=nullptr;o.attached_at_64=nullptr;
@@ -51,9 +58,31 @@ OriginalSmallMonkeyAttachment originalSmallMonkeyFactory_3126e8(void* parent,voi
   b.call_277118(field14,0,0.2f); // actual 0x707100 0x3E4CCCCD
   return obj;
 }
-void originalChipSideEffect_33fd90(void* data,OriginalChipSideEffectCalls& b){
-  b.call_26fa1c(data,1);
-  void* event=b.call_29157c();
+std::int32_t originalAddPlayerLives_26fa1c(PlayerProgress& state,std::int32_t amount) noexcept {
+  // Original R5900 ADDU (32-bit wrap), PMAXW against 0, PMINW against 99.
+  // Data+0x04 is actual PlayerProgress.player_left.
+  static_assert(offsetof(PlayerProgress,player_left)==4);
+  const auto sum=std::bit_cast<std::int32_t>(std::uint32_t(state.player_left)+std::uint32_t(amount));
+  state.player_left=std::clamp(sum,std::int32_t(0),std::int32_t(99));
+  return state.player_left;
+}
+void* originalGameEventGet_29157c(const OriginalGameEventSingleton& g) noexcept {return g.instance;}
+void originalGameEventCreate_291588(OriginalGameEventSingleton& g,OriginalGameEventFactoryCalls& b){
+  // Source calls 0x41B800(0x18), 0x291560(new), stores global 0x691FE8.
+  void* resource=b.call_41b800(0x18);
+  if(!resource)throw std::runtime_error("Original event singleton allocation failed");
+  b.call_291560(resource);
+  g.instance=resource;
+}
+void originalGameEventDestroy_2915c0(OriginalGameEventSingleton& g,OriginalGameEventFactoryCalls& b){
+  // Source calls original free 0x41A3B0 and stores zero to global.
+  b.call_41a3b0(g.instance);
+  g.instance=nullptr;
+}
+void originalChipSideEffect_33fd90(PlayerProgress& data,const OriginalGameEventSingleton& g,
+                                    OriginalChipSideEffectCalls& b){
+  originalAddPlayerLives_26fa1c(data,1);
+  void* event=originalGameEventGet_29157c(g);
   b.call_29164c(event,1);
 }
 void originalChipSideEffect_349b2c(OriginalChipSideEffectCalls& b){

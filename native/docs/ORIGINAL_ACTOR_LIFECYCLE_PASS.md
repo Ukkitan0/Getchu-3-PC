@@ -4,7 +4,7 @@
 
 ## What was actually recovered
 
-The original PS2 executable's **13 method/call-chain entry points and 25 direct JAL/J edges** have been checked against the machine instructions. Their source-level control flow is now in `native/src/original_retail_call_chains.cpp`, with explicit abstract interfaces for engine functions not yet recovered.
+The original PS2 executable's **18 original routine/control-flow translations and 28 direct JAL/J edges** have been checked against the machine instructions. Their source-level control flow is now in `native/src/original_retail_call_chains.cpp`, with explicit abstract interfaces for engine functions not yet recovered.
 
 | Original VA | Authentically reconstructed source-level behavior |
 |---|---|
@@ -41,10 +41,10 @@ The audit at `native/tools/audit_original_actor_lifecycle.py`:
 1. Requires the **exact** original USA ELF SHA-256.
 2. Validates original Player and Monkey virtual tables, selected object field loads/writes, allocation size and float constant.
 3. Validates **25** original branch/call sites across **13** method entries.
-4. Samples 128 bytes of direct calls for **54** class, factory, helper and event entry points.
+4. Samples 128 bytes of direct calls for **59** class, factory, helper and event entry points.
 5. Finds potential direct incoming J/JAL references throughout original executable sections, without assuming that these are all valid instructions or complete function bodies.
 
-Local private run: **4,843 potential incoming references** across 54 entry points, and 135 sampled outbound direct edges. These are *research leads*, not 4,843 translated functions. The frequently referenced allocator `0x41B800` dominates the count.
+Local private run: **4,991 potential incoming references** across 59 entry points, and 146 sampled outbound direct edges. These are *research leads*, not 4,843 translated functions. The frequently referenced allocator `0x41B800` dominates the count.
 
 To reproduce (metadata only):
 
@@ -56,4 +56,39 @@ python native/tools/audit_original_actor_lifecycle.py "C:\path\to\SCUS_975.01" -
 
 The C++ call chains and both outcomes of `0x571904` passed a local native C++20 optimized build test using `g++ -O2 -Wall -Wextra -Wpedantic -Werror`. The repo also includes CMake/CTest registration. The **Windows** build and complete retail game execution have **not** been verified and GitHub Actions has **not** been dispatched.
 
-Most important remaining source-code targets include `0x310890`, `0x571E10`, `0x316174`, `0x3108D4`, `0x20AF68`, `0x30FC4C`, the Monkey and Player update callers, and the original rendering/game loop. The callback interfaces intentionally have **no fake implementations**.
+Most important remaining source-code targets include `0x310890`, `0x571E10`, `0x316174`, `0x3108D4`, `0x20AF68`, `0x30FC4C`, the Monkey and Player update callers, and the original rendering/game loop. The remaining callback interfaces intentionally have **no fake implementations**.
+
+## Additional original routines translated in the same pass
+
+Five more executable functions are reconstructed and integrated in the
+same native C++ module, rather than left as dummy callbacks.
+
+| Original VA | Source-grounded operation |
+|---|---|
+| `0x26FA1C` | Add a 32-bit wrapping delta to **Data+0x04** (real `PlayerProgress.player_left`), clamp with original **PMAXW** and **PMINW** to **0–99**, store result in Data+0x04 |
+| `0x29157C` | Read the original game-event singleton pointer stored at global `0x691FE8` |
+| `0x291588` | Allocate **0x18 bytes**, call original initializer `0x291560`, store allocated pointer to global `0x691FE8` |
+| `0x2915C0` | Call the original deallocator `0x41A3B0` on singleton and reset `0x691FE8` to zero |
+| `0x20AF68` | Original actor-state transition: if field **+0x4C** is already 2, return; otherwise invoke virtual slot 4 then write 2. For **Monkey** the actual slot 4 resolves to the verified no-op `0x442028`, so the native Monkey path writes 2 with no invented effects |
+
+The earlier chip/reward helper `0x33FD90` now **actually increments the
+native reconstructed saved life counter by one**, reads the native original
+event singleton, and delegates only the remaining original event method
+`0x29164C`. The life counter and global event getter no longer require
+fake test-side game callbacks.
+
+The original event constructor still depends on the real initializer
+`0x291560` and allocator; their callbacks must be implemented from the
+game before it can create a working native event instance. A null
+allocation fails visibly.
+
+Local tests now cover original life saturation (0, 99), wrapping
+signed 32-bit arithmetic, singleton create/get/destroy/failure, and
+the verified Monkey actor state transition. This source-level pass
+does not imply original game initialization, visuals or input is working.
+
+Updated retail ELF audit: **18** method/control-flow translations,
+**28** exact direct J/JAL targets verified, **59** sampled entries,
+**146** outbound edges in fixed-length windows, and **4,991**
+potential direct incoming references. Those last two quantities
+are metadata, not translated gameplay function counts.

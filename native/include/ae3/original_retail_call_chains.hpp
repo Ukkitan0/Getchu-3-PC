@@ -1,7 +1,12 @@
 #pragma once
 #include <cstdint>
+#include "ae3/player_state.hpp"
 namespace ae3 {
-struct OriginalMonkeyOwnedObjects { void* primary_at_60=nullptr; void* attached_at_64=nullptr; };
+struct OriginalMonkeyOwnedObjects {
+  void* primary_at_60=nullptr;
+  void* attached_at_64=nullptr;
+  std::uint32_t source_state_at_4c=0;
+};
 class OriginalMonkeyNativeCalls {
 public:
   virtual ~OriginalMonkeyNativeCalls()=default;
@@ -28,7 +33,6 @@ public:
   virtual void call_571e10(void*,std::uint32_t,std::uint32_t)=0;
   virtual bool call_316174(void*,std::uint32_t)=0;
   virtual void call_3108d4(void*)=0;
-  virtual void call_20af68()=0;
   virtual void call_attached_virtual_1(void*)=0;
   virtual void call_30fc4c(void*)=0;
   virtual void call_41a3b0(void*)=0;
@@ -36,6 +40,9 @@ public:
 // True = original branch released primary and attached objects;
 // false = original normal processing path. No PS2 CPU/memory is emulated.
 bool originalMonkeyUpdateLifecycle_571904(OriginalMonkeyOwnedObjects&,OriginalMonkeyLifecycleCalls&);
+// Original 0x20AF68: state +0x4C becomes 2. Monkey virtual slot 4
+// is verified real no-op 0x442028; no fabricated game behavior.
+bool originalMonkeyTransitionToMode2_20af68(OriginalMonkeyOwnedObjects&) noexcept;
 
 class OriginalPlayerNativeCalls {
 public:
@@ -67,17 +74,31 @@ public:
 };
 OriginalSmallMonkeyAttachment originalSmallMonkeyFactory_3126e8(void*,void*,OriginalSmallFactoryCalls&);
 
+// Original 0x26FA1C: Data+0x04 32-bit ADDU, PMAXW 0, PMINW 99.
+std::int32_t originalAddPlayerLives_26fa1c(PlayerProgress&,std::int32_t) noexcept;
+// Original event global 0x691FE8: getter 0x29157C, allocator/initializer
+// 0x291588, and deallocator/clearer 0x2915C0.
+struct OriginalGameEventSingleton {void* instance=nullptr;};
+void* originalGameEventGet_29157c(const OriginalGameEventSingleton&) noexcept;
+class OriginalGameEventFactoryCalls {
+public:
+  virtual ~OriginalGameEventFactoryCalls()=default;
+  virtual void* call_41b800(std::uint32_t original_size)=0;
+  virtual void call_291560(void* original_new_object)=0;
+  virtual void call_41a3b0(void* original_object)=0;
+};
+void originalGameEventCreate_291588(OriginalGameEventSingleton&,OriginalGameEventFactoryCalls&);
+void originalGameEventDestroy_2915c0(OriginalGameEventSingleton&,OriginalGameEventFactoryCalls&);
+
 class OriginalChipSideEffectCalls {
 public:
   virtual ~OriginalChipSideEffectCalls()=default;
-  virtual void call_26fa1c(void*,std::uint32_t)=0;
-  virtual void* call_29157c()=0;
   virtual void call_29164c(void*,std::uint32_t)=0;
   virtual void call_35ab88(void*)=0;
   virtual void call_362178(void*)=0;
   virtual void call_2acc6c(void*)=0;
 };
-void originalChipSideEffect_33fd90(void*,OriginalChipSideEffectCalls&);
+void originalChipSideEffect_33fd90(PlayerProgress&,const OriginalGameEventSingleton&,OriginalChipSideEffectCalls&);
 void originalChipSideEffect_349b2c(OriginalChipSideEffectCalls&);
 bool originalChipNotification_2915ec(void*,OriginalChipSideEffectCalls&);
 } // namespace ae3
