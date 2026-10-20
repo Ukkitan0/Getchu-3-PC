@@ -113,7 +113,7 @@ void testRetailBytecodeExecution(){
         "script_description='original_lua_retail_test'\n"
         "function setupArea(opts)\n"
         " new_ent('Player',{name='keiyumi',pos={1.5,2,3}})\n"
-        " new_ent('Monkey',{name='ape_01',tag_name='mark_a'})\n"
+        " if not get_capture_flag(29) then new_ent('Monkey',{name='ape_01',tag_name='mark_a'}) end\n"
         "end\n";
     const int load=luaL_loadbuffer(compiler,source,sizeof(source)-1,"@area.lua");
     if(load){
@@ -141,7 +141,8 @@ void testRetailBytecodeExecution(){
     check(report.prototypes>=2 && report.instructions>10,
           "Lua50 function/opcode structure was not retained during retarget");
     ae3::NativeStageWorld game;
-    ae3::LuaStage lua(game);
+    ae3::PlayerProgress actualNewGameProgress{};
+    ae3::LuaStage lua(game,&actualNewGameProgress);
     lua.executeSource(std::string_view(
         reinterpret_cast<const char*>(originalFormat.data()),
         originalFormat.size()),"@REAL_original_area.luc");
@@ -151,6 +152,18 @@ void testRetailBytecodeExecution(){
     check(game.entities()[0].entityClass=="Player" &&
           game.entities()[1].entityClass=="Monkey",
           "original Lua native script types were lost");
+    // The same original-format retail Lua bytecode MUST take the opposite
+    // branch when this specific original save field becomes captured.
+    actualNewGameProgress.capture_flag[29]=1;
+    ae3::NativeStageWorld capturedWorld;
+    ae3::LuaStage captured(capturedWorld,&actualNewGameProgress);
+    captured.executeSource(std::string_view(
+        reinterpret_cast<const char*>(originalFormat.data()),
+        originalFormat.size()),"@REAL_original_area.luc");
+    captured.callSetupArea("spawn_default");
+    check(capturedWorld.entities().size()==1 &&
+          capturedWorld.entities()[0].entityClass=="Player",
+          "original AE3 retail Lua did not evaluate real Data capture flags");
     const auto* pos=game.entities()[0].fields.member("pos");
     check(pos && pos->array.size()==3 &&
           std::abs(pos->array[0].number-1.5)<1e-7,
