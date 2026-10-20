@@ -1,3 +1,40 @@
+## October 19, 2026 — Real original I3D_I3C collision (current milestone)
+
+**The original AE3 collision DATA now loads directly into the native C++20
+Windows game engine.** The on-disk I3D_I3C BVH and indexed float4 vertices are
+decoded to host-native collision triangles. The decoder reads true original
+material/group labels, validates all offsets and format versions, and accepts
+either .i3d or .i3c files by signature. No PS2 machine instructions, IOP,
+VU, GS, DMA, console physics interpreter or firmware are run.
+
+The existing F5 native movement test now supports original I3C floor and
+wall collision, including a small native capsule radius, wall blocking,
+sliding, smaller movement steps and explicit spawn locations. After loading
+matching GLB level art, click **Use original I3C collision** and select the
+corresponding original collision file, then press **F5** to walk/jump or
+**F7** to visualize the original collision surfaces as green wireframe.
+The wireframe is a sample diagnostic overlay; the physics uses all
+imported collision triangles.
+
+The native Windows CI checks **14 C++ regression tests**, including a
+synthetic original-format I3C cube with a full original BVH and collision
+materials, genuine floor sampling, wall blocking/sliding and jumping.
+It also generates a legally redistributable original-format collision
+fixture; no original game assets enter public CI artifacts.
+
+MIT ae3-sdk's conservative animation-to-skeleton matching is also
+available during owner-local GLB preparation with the **-Animate**
+PowerShell flag. Animation playback in Direct3D11, original player
+controller/AI, gadgets/capture, full collision responses, stage loading
+and an authentic retail game boot remain to be implemented.
+
+**This is not yet a playable Ape Escape 3 level.** The user's provided
+Woods C background PCK did not include original I3C collision; actual
+retail collision and visual alignment still require owner-local
+verification. See [native/ORIGINAL_I3C_COLLISION.md](native/ORIGINAL_I3C_COLLISION.md).
+
+---
+
 ## October 19, 2026 — User-provided exporter format integration and native walking test
 
 The uploaded **Exporter.zip** supplied reverse-engineering research for
