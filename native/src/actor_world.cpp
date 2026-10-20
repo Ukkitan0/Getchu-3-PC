@@ -1,4 +1,5 @@
 #include "ae3/actor_world.hpp"
+#include "ae3/level_scene.hpp"
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -34,6 +35,11 @@ bool within(const fs::path& path,const fs::path& root){
     return true;
 }
 bool validPosition(float n){return std::isfinite(n)&&std::abs(n)<1e7f;}
+bool hasExplicitPosition(const StageEntity& e){
+    for(const char* name:{"pos","position","xyz","x","y","z"})
+        if(e.fields.member(name))return true;
+    return false;
+}
 std::array<float,3> positionFrom(const StageEntity& e){
     const ScriptValue* point=nullptr;
     for(const char* name:{"pos","position","xyz"}){
@@ -171,6 +177,16 @@ void NativeActorWorld::bind(const NativeStageWorld& stage,
     const auto canonical=fs::canonical(privateGlbDirectory);
     const auto index=indexModels(canonical);
     const auto overrides=readBindings(optionalBindingFile);
+    // Recover original script tag_name -> exact original level-object
+    // placement only when the tag is present in the local PLC file. The
+    // original retail Lua example gives monkey/player tag_name, not XYZ.
+    std::map<std::string,std::vector<std::array<float,3>>> originalTags;
+    const fs::path originalPlc=canonical/"placeholder.plc";
+    if(fs::is_regular_file(originalPlc)){
+        const auto plc=parsePlacements(originalPlc);
+        for(const auto& entry:plc.entries)
+            originalTags[lowered(entry.name)].push_back(entry.xyz);
+    }
     actors_.clear();
     report_={};
     report_.stageEntities=stage.entities().size();
@@ -198,7 +214,28 @@ void NativeActorWorld::bind(const NativeStageWorld& stage,
                 continue;
             }
             actor.modelName=modelPath.filename().string();
+            actor.tagName=entity.tagName;
             actor.position=positionFrom(entity);
+            actor.positionSource=hasExplicitPosition(entity)?
+                "explicit_lua_coordinates":"unresolved_original_position";
+            if(!hasExplicitPosition(entity)&&!entity.tagName.empty()){
+                const auto tag=originalTags.find(lowered(entity.tagName));
+                if(tag!=originalTags.end()&&tag->second.size()==1){
+                    const auto& xyz=tag->second.front();
+                    actor.position={xyz[0],xyz[1],-xyz[2]};
+                    actor.positionSource="original_plc_exact_tag";
+                    ++report_.matchedOriginalPlcTags;
+                }else if(tag!=originalTags.end()){
+                    warn(report_,"Ambiguous original level PLC tag "+entity.tagName+
+                         "; actor stays at unresolved origin");
+                }
+            }
+            if(actor.positionSource=="unresolved_original_position"){
+                ++report_.unresolvedSpawnPositions;
+                warn(report_,"Lua "+entity.entityClass+" "+actor.name+
+                     " has no explicit coordinates or exact original PLC tag; "
+                     "origin is NOT a verified spawn position");
+            }
             actor.yaw=actorYaw(entity);
             actor.model=std::make_unique<NativeSkinnedGlb>(modelPath);
             actor.hasAnimation=actor.model->clipCount()>0 &&
