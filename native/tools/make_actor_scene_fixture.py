@@ -79,8 +79,10 @@ def build(path: Path) -> None:
     (path/"native_dummy_monkey.glb").write_bytes(make_character("monkey"))
     plc=bytearray(0xc0+0x80)
     struct.pack_into("<I",plc,0,1)
-    label=b"unused_stage_marker"
+    label=b"monkey_spawn_02"
     plc[0xc0:0xc0+len(label)]=label
+    # Original I3D_I3C/PLC tag record stores authored RH XYZ position.
+    struct.pack_into("<3f",plc,0xc0+0x40,-2.5,0.0,2.5)
     (path/"placeholder.plc").write_bytes(plc)
     (path/"actor_bindings.txt").write_text(
         "# Optional local mapping: never guesses whether models are correct\n"
@@ -92,7 +94,7 @@ def build(path: Path) -> None:
         "function setupArea(opts)\n"
         " new_ent('Player',{name='player',pos={0,0,0}})\n"
         " new_ent('Monkey',{name='ape_test_01',pos={2.5,0,2.5}})\n"
-        " new_ent('Monkey',{name='ape_test_02',pos={-2.5,0,2.5}})\n"
+        " new_ent('Monkey',{name='ape_test_02',tag_name='monkey_spawn_02'})\n"
         " lua_param({namespace='native_actor_fixture'})\n"
         "end\n",encoding="utf-8")
     (path/"README.txt").write_text(
@@ -101,7 +103,8 @@ def build(path: Path) -> None:
         "2. Choose 'Open GLB level folder' -> this folder.\n"
         "3. Choose 'Run original Lua 5.0 stage' -> area.lua in this folder.\n"
         "4. 3 independent native actor models should render over arena: 1 player, "
-        "2 monkeys.\n"
+        "2 monkeys (second monkey uses its ORIGINAL-STYLE Lua tag_name "
+        "resolved against placeholder.plc).\n"
         "5. F5 to toggle native walking; the spawned player model follows the "
         "walk-state position. The other two actors remain separate.\n\n"
         "This is a game-free stand-in to prove the engine plumbing, not an "
