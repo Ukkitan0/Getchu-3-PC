@@ -122,9 +122,17 @@ if ($LaunchOriginalStage) {
     # Launch ONLY with original retail stage data. No mock level, no
     # hand-authored substitute scripts, and no PlayStation runtime.
     $NativeExe = Join-Path $BuildDir 'Release\Getchu3Native.exe'
-    & cmake --build $BuildDir --config Release --target Getchu3Native --parallel
+    $RetailAudit = Join-Path $BuildDir 'Release\Getchu3RetailStageAudit.exe'
+    & cmake --build $BuildDir --config Release --target Getchu3Native Getchu3RetailStageAudit --parallel
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $NativeExe -PathType Leaf)) {
         throw 'Native original-game Windows C++ renderer did not build.'
+    }
+    # Execute the REAL original game script through native Lua 5.0 before
+    # attempting scene startup. Any missing native game binding is a hard
+    # blocker, not a pretend successful original level boot.
+    & $RetailAudit $Game $LaunchOriginalStage $OriginalSpawn
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Original retail area.luc did not execute successfully in native Lua 5.0. Restore its missing game-engine bindings before launching the original level.'
     }
     $LaunchTool = Join-Path $Native 'tools\launch_owned_retail_stage.py'
     $LaunchArgs = @('-3', $LaunchTool, '--iso', $Game,
