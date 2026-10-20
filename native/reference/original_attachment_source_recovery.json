@@ -1,0 +1,38 @@
+{
+  "format": "ae3/native-source-reconstruction-batch-2026-10-20",
+  "retail_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "area": "Original monkey attachments and native virtual-method dispatch",
+  "original_constructors": [
+    "0x312760",
+    "0x3127d8",
+    "0x312854",
+    "0x571e44"
+  ],
+  "original_cleanup": [
+    "0x315c08",
+    "0x315c40",
+    "0x572524"
+  ],
+  "original_stateful_dispatch": [
+    "0x3161b8"
+  ],
+  "original_simple_vmethods": [
+    "0x56af0c",
+    "0x56af14",
+    "0x56af1c",
+    "0x56af24",
+    "0x56af2c",
+    "0x56af34",
+    "0x56af3c",
+    "0x5725d0",
+    "0x5725d8",
+    "0x572800",
+    "0x572808",
+    "0x5725e0",
+    "0x572810",
+    "0x315bac"
+  ],
+  "audit": "original retail ELF SHA-256; four virtual tables and direct R5900 instructions",
+  "tests": "locally compiled C++20 optimized test passed; Windows unverified",
+  "caveat": "Only source-level routines, unknown engine dependencies explicit; not playable game"
+}
