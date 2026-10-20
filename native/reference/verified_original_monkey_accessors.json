@@ -12,5 +12,14 @@
   "angle_factor_ieee754_hex": "0x3c8efa34",
   "angle_factor_value": 0.01745329052209854,
   "confidence": "Exact instructions and vtable verified against original retail ELF",
-  "unknowns": "Original subobject ownership, remaining method bodies and full gameplay lifecycle"
+  "unknowns": "Monkey slot-index fragment ported; original event side effects, object ownership, remaining methods and full gameplay lifecycle still require reconstruction.",
+  "original_slot_method": "0x571aa4",
+  "slot_field_offset": "0x2f0",
+  "original_slot_increment_sites": [
+    "0x571b88",
+    "0x571ba0",
+    "0x571ba8",
+    "0x571bac",
+    "0x571bb4"
+  ]
 }

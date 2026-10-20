@@ -51,6 +51,16 @@ def validate(path:Path)->dict:
             raise ValueError('Original ELF code changed at '+hex(address))
     if [word(0x6B14D0+4*i) for i in range(9)]!=AUX:
         raise ValueError('Original Monkey secondary vtable was not recovered correctly')
+    # The original Monkey main virtual slot 6 (0x571AA4) includes the
+    # exact 8-entry index advance at +0x2f0. This is a method fragment,
+    # not the full game event or animation handler.
+    if word(0x6B1498+6*4)!=0x571AA4:
+        raise ValueError('Monkey main vtable entry 6 differs')
+    for address,opcode in {0x571B88:0x8e2d02f0,0x571BA0:0x39af0007,
+                           0x571BA8:0x25ad0001,0x571BAC:0x000f680a,
+                           0x571BB4:0xae2d02f0}.items():
+        if word(address)!=opcode:
+            raise ValueError('Original Monkey slot cursor code differs at '+hex(address))
     if word(0x708278)!=0x3C8EFA34:
         raise ValueError('Original Monkey angle conversion constant differs')
     return {
@@ -62,6 +72,9 @@ def validate(path:Path)->dict:
         'original_set_flag50':'0x5716c4',
         'original_angle_method':'0x571688',
         'original_angle_callee':'0x316928',
+        'original_slot_method':'0x571aa4',
+        'slot_field_offset':'0x2f0',
+        'original_slot_increment_sites':['0x571b88','0x571ba0','0x571ba8','0x571bac','0x571bb4'],
         'angle_source_float_offset':'0x37c',
         'angle_factor_global':'0x708278',
         'angle_factor_ieee754_hex':'0x3c8efa34',

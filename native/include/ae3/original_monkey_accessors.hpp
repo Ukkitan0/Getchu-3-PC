@@ -37,4 +37,14 @@ void originalMonkeySetFlag50(OriginalMonkeySecondaryFields&) noexcept;          
 // +0x20 -> +0x00 -> +0x00 pointer chain, reads float +0x37C and
 // multiplies by float constant at 0x708278 (0x3C8EFA34, pi / 180).
 float originalMonkeyAngleToRadians(const OriginalMonkeyAngleFields&) noexcept;
+// Original Monkey main vtable method 0x571AA4 uses an 8-entry cyclic slot.
+// Its store at 0x571BB4 updates the original object word at +0x2F0.
+// Keep the actual original operation: increment one, except exactly 7 -> 0.
+// Do not substitute modulo-8 for corrupt/out-of-range original values.
+struct OriginalMonkeySlotFields {
+    std::array<std::uint8_t,0x2f0> unknown_000{};
+    std::uint32_t slot_index_2f0 = 0;
+};
+static_assert(offsetof(OriginalMonkeySlotFields,slot_index_2f0)==0x2f0);
+void originalMonkeyAdvanceSlotIndex(OriginalMonkeySlotFields&) noexcept;
 } // namespace ae3

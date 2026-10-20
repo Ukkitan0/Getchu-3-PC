@@ -40,3 +40,31 @@ monkey gameplay has been verified.
 Remaining Monkey virtual methods `0x571668`, `0x5716A8`,
 `0x5716D8`, `0x57173C`, `0x57178C` have deeper game
 dependencies. Their behavior must be recovered rather than replaced.
+
+## Original Monkey main gameplay method — recovered 8-slot cursor
+
+Disassembled original Monkey **main virtual method** `0x571AA4`.
+After its existing game conditional checks and original calls, a branch
+updates the **32-bit word at Monkey object offset `0x2F0`**.
+
+The exact original machine instructions at `0x571B88` through
+`0x571BB4` load this field, compare it to `7`, increment once,
+conditionally reset the value to `0` **only when the old value was 7**,
+and store it back:
+
+```cpp
+const uint32_t previous = monkey.slot_index_2f0;
+monkey.slot_index_2f0 = previous == 7 ? 0 : previous + uint32_t{1};
+```
+
+This deliberately does not substitute a guessed `(value+1)%8` for
+out-of-range values. The original 32-bit wrap semantics are preserved.
+Ported to `originalMonkeyAdvanceSlotIndex`, with the actual object's
+field offset statically verified and regression tests for normal,
+wrap-at-seven, out-of-range, and uint32 overflow cases.
+
+**Limitation:** Only the proven slot update within `0x571AA4` has been
+ported. Its surrounding effects, animation/AI calls and conditions
+are not translated; callers must only invoke it when the original
+conditions are reconstructed. The retail ELF verification tool
+additionally checks the exact instruction words for this sequence.

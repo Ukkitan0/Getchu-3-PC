@@ -28,6 +28,21 @@ int main(){
               std::bit_cast<std::uint32_t>(angle*originalFactor),
               "original 0x316928 floating-point multiplication differs");
     }
+    ae3::OriginalMonkeySlotFields slot{};
+    for(std::uint32_t i=0;i<7;i++){
+        slot.slot_index_2f0=i;
+        ae3::originalMonkeyAdvanceSlotIndex(slot);
+        check(slot.slot_index_2f0==i+1,"original Monkey +0x2f0 increment diverged");
+    }
+    slot.slot_index_2f0=7;
+    ae3::originalMonkeyAdvanceSlotIndex(slot);
+    check(slot.slot_index_2f0==0,"original Monkey +0x2f0 must reset at 7");
+    slot.slot_index_2f0=8;
+    ae3::originalMonkeyAdvanceSlotIndex(slot);
+    check(slot.slot_index_2f0==9,"unexpected modulo-8 behavior (not in ELF)");
+    slot.slot_index_2f0=std::numeric_limits<std::uint32_t>::max();
+    ae3::originalMonkeyAdvanceSlotIndex(slot);
+    check(slot.slot_index_2f0==0,"original 32-bit addiu wrap diverged");
     pose.angle_degrees_37c=std::numeric_limits<float>::infinity();
     check(ae3::originalMonkeyAngleToRadians(pose)==std::numeric_limits<float>::infinity(),
           "original float input infinity must be preserved");
