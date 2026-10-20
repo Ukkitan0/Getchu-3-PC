@@ -1,0 +1,33 @@
+{
+  "format": "ae3/original-engine-callgraph-and-lifecycle-summary/v1",
+  "original_elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "verified_source_method_entries": 13,
+  "exact_machine_code_calls_or_jumps": 25,
+  "original_engine_roots_examined": 54,
+  "sampled_outgoing_direct_edges": 135,
+  "potential_direct_incoming_references": 4843,
+  "most_referenced_targets": [
+    {
+      "original_va": "0x41b800",
+      "potential_direct_refs": 4328
+    },
+    {
+      "original_va": "0x20d70c",
+      "potential_direct_refs": 250
+    },
+    {
+      "original_va": "0x277118",
+      "potential_direct_refs": 73
+    },
+    {
+      "original_va": "0x349b2c",
+      "potential_direct_refs": 57
+    },
+    {
+      "original_va": "0x29157c",
+      "potential_direct_refs": 52
+    }
+  ],
+  "native_status": "Control flow translated with abstract unresolved callees. Native local C++20 release test passed. Actual game/window runtime not yet validated.",
+  "notes": "Potential inbound sites can contain false positives and indirect references are not resolved. 54 entrypoints are not 54 fully decompiled functions. All counts exclude commercial binary bytes."
+}

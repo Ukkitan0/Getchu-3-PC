@@ -1,0 +1,67 @@
+#include "ae3/original_retail_call_chains.hpp"
+#include <array>
+#include <stdexcept>
+namespace ae3 {
+void originalMonkeyReplaceAttachment_57173c(OriginalMonkeyOwnedObjects& o,OriginalMonkeyNativeCalls& b){
+  // 0x571750..0x571778: optional old virtual[1], then 0x3126E8.
+  if(o.attached_at_64)b.call_child_virtual_1(o.attached_at_64);
+  o.attached_at_64=b.call_3126e8(o.primary_at_60);
+}
+void originalMonkeyReplaceAttachment_57178c(OriginalMonkeyOwnedObjects& o,std::uint32_t a,std::uint32_t c,OriginalMonkeyNativeCalls& b){
+  // 0x5717B0..0x5717E0: optional old virtual[1], then 0x312760.
+  if(o.attached_at_64)b.call_child_virtual_1(o.attached_at_64);
+  o.attached_at_64=b.call_312760(o.primary_at_60,a,c);
+}
+void originalMonkeyRunAttachment_5718cc(const OriginalMonkeyOwnedObjects& o,OriginalMonkeyNativeCalls& b){
+  // Original dereferences +0x64 unconditionally. Reject missing original object.
+  if(!o.attached_at_64)throw std::runtime_error("Original Monkey 0x5718CC requires real attached object");
+  b.call_child_virtual_3(o.attached_at_64);
+  b.call_310730(o.primary_at_60);
+}
+void originalMonkeyForward_571668(void* transform,OriginalMonkeyNativeCalls& b){b.call_3168d0(transform);}
+void originalMonkeyForward_5716a8(const OriginalMonkeyOwnedObjects& o,OriginalMonkeyNativeCalls& b){b.call_30fda0(o.primary_at_60);}
+bool originalMonkeyUpdateLifecycle_571904(OriginalMonkeyOwnedObjects& o,OriginalMonkeyLifecycleCalls& b){
+  // Original Monkey virtual 0x571904: 0x310890, 0x571E10, 0x316174.
+  alignas(16)std::array<std::uint8_t,0x30> scratch{};
+  b.call_310890(o.primary_at_60);
+  b.call_571e10(scratch.data(),0,0);
+  const std::uint32_t word=std::uint32_t(scratch[0])|(std::uint32_t(scratch[1])<<8)|
+                           (std::uint32_t(scratch[2])<<16)|(std::uint32_t(scratch[3])<<24);
+  if(!b.call_316174(o.attached_at_64,word)){
+    b.call_3108d4(o.primary_at_60);
+    return false;
+  }
+  b.call_20af68();
+  if(o.attached_at_64)b.call_attached_virtual_1(o.attached_at_64);
+  if(o.primary_at_60){b.call_30fc4c(o.primary_at_60);b.call_41a3b0(o.primary_at_60);}
+  o.primary_at_60=nullptr;o.attached_at_64=nullptr;
+  return true;
+}
+void originalPlayerForward_349fe4(void* internal,OriginalPlayerNativeCalls& b){b.call_33f240(internal);}
+void originalPlayerForward_349ffc(void* internal,OriginalPlayerNativeCalls& b){b.call_33f26c(internal);}
+void originalPlayerCleanup_33f240(void* a,void* c,OriginalPlayerCleanupCalls& b){
+  // Source calls 0x34310C(internal+0x40), then tail 0x3511D4(internal+0x44).
+  b.call_34310c(a);b.call_3511d4(c);
+}
+OriginalSmallMonkeyAttachment originalSmallMonkeyFactory_3126e8(void* parent,void* field14,OriginalSmallFactoryCalls& b){
+  // Original ctor: alloc 8, vptr 0x6B1240, parent +4,
+  // call 0x2762BC(parent+0x14,13), call 0x277118(parent+0x14,0,0.2f).
+  OriginalSmallMonkeyAttachment obj{parent};
+  b.call_2762bc(field14,13);
+  b.call_277118(field14,0,0.2f); // actual 0x707100 0x3E4CCCCD
+  return obj;
+}
+void originalChipSideEffect_33fd90(void* data,OriginalChipSideEffectCalls& b){
+  b.call_26fa1c(data,1);
+  void* event=b.call_29157c();
+  b.call_29164c(event,1);
+}
+void originalChipSideEffect_349b2c(OriginalChipSideEffectCalls& b){
+  alignas(16)std::array<std::uint8_t,0x30> scratch{};
+  b.call_35ab88(scratch.data());b.call_362178(scratch.data());
+}
+bool originalChipNotification_2915ec(void* global,OriginalChipSideEffectCalls& b){
+  if(!global)return false;
+  b.call_2acc6c(global);return true;
+}
+} // namespace ae3
