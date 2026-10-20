@@ -739,8 +739,11 @@ void openRecoveredStage(){
             <<gNativeWorld->entities().size()<<L" entities, "
             <<gNativeWorld->parameters().size()<<L" Lua params, "
             <<gControllerTimelines.size()<<L" running native controller timelines. "
-            <<L"ENGINE DESCRIPTORS ONLY: gameplay, collision and real level rendering still incomplete.";
+            <<L"Native Lua actors can render with exact owner-local GLB assets; "
+            <<L"full AI, gadget capture and original progression still missing.";
         status(info.str());
+        if(!gPrivateGlbFolder.empty())bindNativeStageActors();
+        else status(info.str()+L" Open GLB level folder to instantiate original Lua actors.");
     }catch(const std::exception& e){
         status(L"Native Lua 5.0 stage failed: "+wide(e.what()));
     }
@@ -892,9 +895,19 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
                 status(L"Native I3M/glTF skeleton animation clip: "+
                        wide(gAnimatedModel->clipNames()[gActiveClip]));
             }
+            if(f8&&!gF8HeldLastFrame&&gStageActors){
+                for(const auto& actor:gStageActors->actors()){
+                    if(!actor.hasAnimation)continue;
+                    const std::size_t next=(actor.activeClip+1)%actor.model->clipCount();
+                    if(gStageActors->setActorClip(actor.name,next))
+                        status(L"Lua actor "+wide(actor.name)+L" now playing original clip "+
+                               wide(actor.model->clipNames()[next]));
+                    break;
+                }
+            }
             gF8HeldLastFrame=f8;
             const bool f9=held(VK_F9);
-            if(f9&&!gF9HeldLastFrame&&gAnimatedModel){
+            if(f9&&!gF9HeldLastFrame&&(gAnimatedModel||gStageActors)){
                 gAnimationPaused=!gAnimationPaused;
                 status(gAnimationPaused?L"Native skinned animation paused (F9 resumes).":
                                         L"Native skeletal animation playing.");
@@ -925,6 +938,14 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
                                       static_cast<float>(dt),input);
                     const auto& pawn=gNativeWalker.state();
                     gX=pawn.x;gHeight=pawn.y+1.65f;gZ=pawn.z;
+                    if(gStageActors){
+                        for(const auto& actor:gStageActors->actors()){
+                            if(actor.entityClass!="Player")continue;
+                            const auto& pawn=gNativeWalker.state();
+                            gStageActors->moveActor(actor.name,pawn.x,pawn.y,pawn.z,gYaw);
+                            break;
+                        }
+                    }
                 }catch(const std::exception& e){
                     status(L"Native walking test stopped: "+wide(e.what()));
                     gNativeWalkMode=false;
@@ -962,6 +983,16 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
                 }catch(const std::exception& e){
                     status(L"Lua controller runtime stopped: "+wide(e.what()));
                     gControllerTimelines.clear();
+                }
+            }
+            if(gStageActors){
+                try{
+                    gStageActors->tick(gAnimationPaused?0:dt);
+                    if(!gRenderer.updateAnimation(gStageActors->scene()))
+                        throw std::runtime_error("Direct3D11 Lua actor world vertex upload failed");
+                }catch(const std::exception& e){
+                    status(L"Native multi-actor animation halted: "+wide(e.what()));
+                    gStageActors.reset();
                 }
             }
             gRenderer.render();
