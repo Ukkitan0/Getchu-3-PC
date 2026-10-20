@@ -91,6 +91,16 @@ jobs:
           & native/build/Release/Getchu3ActorWorldProbe.exe native/build/native_lua_actor_stage
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Write-Host 'Original-style Lua new_ent -> 3 independent native C++ GLB player/monkey instances'
+          # Separate proof: BOTH Lua monkey actors use their own identical
+          # animated skeletal GLB resource but retain independent runtimes.
+          Copy-Item -LiteralPath native/build/native_lua_actor_stage -Destination native/build/native_lua_animated_stage -Recurse -Force
+          Copy-Item -LiteralPath native/build/native_bone_animation_test.glb -Destination native/build/native_lua_animated_stage/native_dummy_monkey.glb -Force
+          $report = & native/build/Release/Getchu3ActorWorldProbe.exe native/build/native_lua_animated_stage
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $report | ForEach-Object { Write-Host $_ }
+          if (($report -join "`n") -notmatch 'Independent skeleton animators: 2') {
+            throw 'Expected two independent Lua-created skinned monkey actors'
+          }
       - name: Confirm compiled EXEs and native Win32 dependencies
         shell: pwsh
         run: |
