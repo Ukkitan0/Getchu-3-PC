@@ -16,8 +16,8 @@ MAX_FILES=10000
 MAX_SOURCE_BYTES=1024*1024*1024
 REQUIRED=("original_iso_recovery_manifest.json",
           "original_lua_engine_api_audit.json",
-          "original_elf_lua_registrations.json",
           "SCUS_975.01")
+OPTIONAL=("original_elf_lua_registrations.json",)
 
 
 def package(root:Path,target:Path,stage:str|None=None)->dict:
@@ -38,6 +38,7 @@ def package(root:Path,target:Path,stage:str|None=None)->dict:
     if not tree.is_dir():
         raise FileNotFoundError("Original retail VFI extraction was not recovered")
     selected=[root/name for name in REQUIRED]
+    selected.extend(root/name for name in OPTIONAL if (root/name).is_file())
     selected.extend(sorted(p for p in tree.rglob("*")
                            if p.is_file() and not p.is_symlink()
                            and p.suffix.casefold() in (".luc",".lua")))
