@@ -8,17 +8,17 @@
 
 int main(int argc,char** argv){
     if(argc<2 || argc>3){
-        std::cerr<<"Usage: Getchu3LuaStageRunner <recovered-original-area.lua> [spawn_tag]\n"
+        std::cerr<<"Usage: Getchu3LuaStageRunner <original-area.luc|recovered-area.lua> [spawn_tag]\n"
                  <<"Runs Lua 5.0 stage setupArea through native C++ bindings. "
                    "Does not run the PS2 game and is not yet playable.\n";
         return 2;
     }
     try {
         const std::filesystem::path path=std::filesystem::u8path(argv[1]);
-        if(path.extension()!=".lua")
-            throw std::runtime_error("only recovered Lua 5.0 source (.lua) is accepted; no PS2 bytecode");
+        if(path.extension()!=".lua" && path.extension()!=".luc")
+            throw std::runtime_error("expected original owned area.luc or recovered .lua file");
         std::ifstream stream(path,std::ios::binary);
-        if(!stream)throw std::runtime_error("could not open local recovered Lua source");
+        if(!stream)throw std::runtime_error("could not open local original AE3 stage script");
         std::string code((std::istreambuf_iterator<char>(stream)),
                           std::istreambuf_iterator<char>());
         ae3::NativeStageWorld world;
@@ -28,7 +28,7 @@ int main(int argc,char** argv){
         std::cout<<"NATIVE_LUA50_STAGE_EXECUTED source="<<path.filename().string()<<"\n"
                  <<"Native entities declared: "<<world.entities().size()<<"\n"
                  <<"Lua parameter declarations: "<<world.parameters().size()<<"\n"
-                 <<"Original source executed on host CPU, NO PS2 hardware.\n";
+                 <<"Original retail Lua 5.0 code executed on native host CPU, NO PS2 hardware.\n";
         for(const auto& entity:world.entities()){
             std::cout<<entity.entityClass<<"\t"<<entity.name<<"\t"<<entity.tagName<<"\n";
         }
