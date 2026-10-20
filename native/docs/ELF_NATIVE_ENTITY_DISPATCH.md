@@ -49,3 +49,36 @@ the original executable is never checked into Git.
 Further references:
 `native/reference/verified_original_retail_direct_bindings.json` and
 `native/reference/verified_original_retail_callbacks.json`.
+
+## Original Player and Monkey dispatch: first code-level trace
+
+At original `new_ent` branch `0x214FD0`, the compiler compares the
+requested class name against the original string **Player**
+(`0x6E2178`). On equality, the original code passes the Lua state and
+parsed entity arguments to the real game function **`0x20DAA4`**
+through MIPS JAL at **`0x214FEC`**. On return, it branches to the
+common original `new_ent` epilogue at `0x214A98`.
+
+At comparison **`0x21508C`** the original class name **Monkey** is
+matched. The Monkey branch is distinctly more involved than Player:
+it calls the original argument structure parser **`0x20D70C`** at
+`0x2150B0`, then game logic function **`0x20D514`** at
+`0x2150C0`, and continues parsing more game-owned parameters.
+Do not describe either target as a fully identified constructor until
+their own subfunctions have been decompiled.
+
+Original controller dispatcher `c_ctrl` enters at `0x219810` and
+uses MIPS `jal 0x42C44C` string comparisons. All 20 recovered strings
+in the inspected dispatch body:
+
+`anim_replay`, `anim_roller_play`, `trig_access`,
+`trig_wait`, `weapon_spawn`, `monkey_cap_wait`, `wait`,
+`se`, `se_stop`, `add_entity_se`, `kick_entity_effect`,
+`kick_entity_se`, `message`, `message_b`,
+`mgs_signal_alert`, `message_wait`, `path_replay`,
+`value`, `onDamage`, `print`.
+
+**Why this matters:** these are actual code routes to the original
+game's object and event behavior. The prior native implementation merely
+captured Lua data; following these functions and reconstructing their
+real side effects is now the main development direction.
