@@ -1,3 +1,43 @@
+## October 19, 2026 — ORIGINAL Lua stage actors are now native 3D instances
+
+**The native engine now connects Lua `setupArea/new_ent` to multiple
+independent Direct3D11 actor models while retaining the original 3D
+stage.** A Player and multiple Monkey entities each own a separate
+host-native model/animation instance. Their original Lua identity,
+model binding, and spawn placement are preserved where supported.
+The experimental F5 player movement updates the visible Player
+model and a host-native third-person follow camera; F8/F9 control
+native per-actor skeletal animation testing.
+
+The original Ape Escape 3 Lua examples give characters `tag_name`
+rather than XYZ. We now match those tags **exactly and uniquely**
+against owner-local original `placeholder.plc` records when
+available, never fabricating ambiguous/missing spawn coordinates.
+Owner-local `actor_bindings.txt` maps class or entity names to
+private converted GLBs; unknown model names stay unbound, with
+diagnostics.
+
+A **single-click, original-free Windows test** is provided:
+
+    TEST_NATIVE_LUA_ACTORS_WINDOWS.bat
+
+It generates one original-free arena and three distinct actor
+instances (a synthetic Player and two synthetic monkey models)
+using real Lua 5.0 script execution, native geometry and actor
+state. This proof of concept is not actual retail monkey AI,
+gadget/capture gameplay or a complete playable Ape Escape 3 level.
+The Windows workflow runs 16 native C++ regressions, tests original
+Lua/PLC spawn placement and verifies two separate skinned actors
+in a second original-free integration case. No PlayStation hardware
+runtime or EE/IOP/GS simulation is linked.
+
+See [native/NATIVE_LUA_ACTORS.md](native/NATIVE_LUA_ACTORS.md).
+Authentic Lua entity behavior, original model identity, complete
+stage/camera spawn mapping, AI, gadget attacks and capture,
+menus/audio, gameplay loop and level progression remain unfinished.
+
+---
+
 ## October 19–20, 2026 — Native original I3M skeletal animation playback
 
 **Ape Escape 3's I3M-derived skeletal animation can now DRIVE REAL MOVING
