@@ -777,9 +777,9 @@ void openRecoveredStage(){
     OPENFILENAMEW dialog{};
     dialog.lStructSize=sizeof(dialog);
     dialog.hwndOwner=gMain;dialog.lpstrFile=path;dialog.nMaxFile=32768;
-    dialog.lpstrFilter=L"Recovered Lua 5.0 source (*.lua)\0*.lua\0All files (*.*)\0*.*\0";
+    dialog.lpstrFilter=L"Original AE3 Lua (*.luc;*.lua)\0*.luc;*.lua\0All files (*.*)\0*.*\0";
     dialog.Flags=OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST|OFN_EXPLORER;
-    dialog.lpstrTitle=L"Open recovered AE3 area.lua (original scripts remain Lua)";
+    dialog.lpstrTitle=L"Open original AE3 area.luc directly (native Lua 5.0)";
     if(GetOpenFileNameW(&dialog))loadRecoveredStageFile(fs::path(path));
 
 }
@@ -1098,7 +1098,7 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
         }
         if(argc>=3){
             const fs::path stage=fs::path(argv[2]);
-            if(stage.extension()==L".lua")loadRecoveredStageFile(stage);
+            if(stage.extension()==L".lua"||stage.extension()==L".luc")loadRecoveredStageFile(stage);
         }
         LocalFree(argv);
     }
