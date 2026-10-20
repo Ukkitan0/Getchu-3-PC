@@ -45,7 +45,10 @@ int main(int argc,char** argv){
                  <<"Original game Lua constants: "<<stats.constants<<"\n"
                  <<"No PS2 console CPU, BIOS, IOP or graphics simulation used.\n";
         ae3::NativeStageWorld world;
-        ae3::LuaStage game(world);
+        // Original game's save Data layout, blank new-game inventory/capture
+        // state only. This is not a decoded user save game.
+        ae3::PlayerProgress newGame{};
+        ae3::LuaStage game(world,&newGame);
         game.executeSource(original,entry);
         std::cout<<"ORIGINAL_GAME_LUA_CHUNK_EXECUTED: true\n";
         const std::string spawn=argc==4?argv[3]:"spawn_default";
