@@ -11,9 +11,10 @@ import argparse
 import json
 from pathlib import Path
 import sys
+from launch_owned_retail_stage import original_pck_collision
 
 MAX_FILES=150000
-TYPES={".luc",".lua",".i3d",".i3c",".plc",".glb",".i3m",".tm2",".png"}
+TYPES={".luc",".lua",".i3d",".i3c",".plc",".glb",".i3m",".tm2",".png",".pck"}
 MAGIC={
     "original_model":b"I3D_BIN\x00",
     "original_collision":b"I3D_I3C\x00",
@@ -48,6 +49,12 @@ def audit(extracted:Path, glb:Path|None=None, lua:Path|None=None)->dict:
             by_type["retail_area_lua"].append(relative)
         elif suffix==".plc" and file.name.casefold()=="placeholder.plc":
             by_type["original_plc"].append(relative)
+        elif suffix==".pck":
+            if original_pck_collision(file):
+                # This original archive contains authentic I3D_I3C source.
+                # The native collision loader decodes each member in memory.
+                by_type["original_collision"].append(relative+"::PCK")
+                counts["original_collision"]+=1
         elif suffix in (".i3c",".i3d",".i3m"):
             if file.stat().st_size>512*1024*1024:continue
             with file.open("rb") as f:signature=f.read(8)
