@@ -76,11 +76,18 @@ jobs:
           & native/build/Release/Getchu3I3cProbe.exe native/build/native_collision_cube.i3c
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Write-Host 'Genuine I3D_I3C structure parsed into native collision triangles, no PS2 hardware'
+      - name: Verify native glTF animated skeleton and save legal skinned fixture
+        shell: pwsh
+        run: |
+          & native/build/Release/Getchu3NativeSkinningTests.exe native/build/native_bone_animation_test.glb
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & native/build/Release/Getchu3SkinningProbe.exe native/build/native_bone_animation_test.glb
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Confirm compiled EXEs and native Win32 dependencies
         shell: pwsh
         run: |
           $p = "native/build/Release"
-          foreach ($name in @("Getchu3Native.exe", "Getchu3AssetProbe.exe", "Getchu3StageProbe.exe", "Getchu3LuaStageRunner.exe", "Getchu3GlbSceneProbe.exe", "Getchu3LevelSceneProbe.exe", "Getchu3PckProbe.exe", "Getchu3I3mProbe.exe", "Getchu3I3cProbe.exe")) {
+          foreach ($name in @("Getchu3Native.exe", "Getchu3AssetProbe.exe", "Getchu3StageProbe.exe", "Getchu3LuaStageRunner.exe", "Getchu3GlbSceneProbe.exe", "Getchu3LevelSceneProbe.exe", "Getchu3PckProbe.exe", "Getchu3I3mProbe.exe", "Getchu3I3cProbe.exe", "Getchu3SkinningProbe.exe")) {
             if (-not (Test-Path -LiteralPath "$p/$name")) { throw "Missing native EXE $name" }
           }
           # Search executable CMake statements, not comments documenting
@@ -105,6 +112,8 @@ jobs:
             native/build/Release/Getchu3PckProbe.exe
             native/build/Release/Getchu3I3mProbe.exe
             native/build/Release/Getchu3I3cProbe.exe
+            native/build/Release/Getchu3SkinningProbe.exe
+            native/build/native_bone_animation_test.glb
             native/build/native_collision_cube.i3c
             native/build/native_synthetic_level/
             native/build/native_arena_test.glb
