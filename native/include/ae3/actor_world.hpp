@@ -15,7 +15,8 @@ namespace ae3 {
 // owner-extracted GLB filenames or local private binding table, never
 // guessing names, inventing Sony assets or interpreting PS2 instructions.
 struct NativeActor {
-    std::string entityClass, name, modelName;
+    std::string entityClass, name, modelName, tagName;
+    std::string positionSource; // explicit Lua, exact original PLC tag, unresolved origin
     std::array<float,3> position{0,0,0}; // host-native LH world coordinates
     float yaw=0; // radians
     std::size_t firstVertex=0,vertexCount=0;
@@ -27,6 +28,7 @@ struct NativeActor {
 struct ActorBindingReport {
     std::size_t stageEntities=0,actorsCreated=0,animatedActors=0;
     std::size_t unboundEntities=0,modelsRejected=0;
+    std::size_t matchedOriginalPlcTags=0,unresolvedSpawnPositions=0;
     std::vector<std::string> diagnostics;
 };
 // One combined D3D11 buffer: stationary stage geometry plus actor geometry.
