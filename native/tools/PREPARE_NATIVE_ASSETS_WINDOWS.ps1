@@ -18,7 +18,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 if ($Animate) { $Gltf = $true }
-if ($LaunchOriginalStage) { $Gltf = $true; $Animate = $true; $StrictOriginalStage = $true }
+if ($LaunchOriginalStage) { $Gltf = $true; $Animate = $true }
+# Actual retail Lua runs directly from the ISO; unluac/recovered .lua is NOT a prerequisite.
 $Project = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $Native = Join-Path $Project 'native'
 $Private = Join-Path $Native 'private'
