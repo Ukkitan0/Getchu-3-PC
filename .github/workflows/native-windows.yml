@@ -1,12 +1,6 @@
 name: TRUE native Windows C++ and Direct3D11 port
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - "native/**"
-      - "BUILD_NATIVE_WINDOWS.bat"
-      - "TEST_APE_ESCAPE_3_WINDOWS.bat"
-      - ".github/workflows/native-windows.yml"
 jobs:
   native-win64:
     runs-on: windows-2022
