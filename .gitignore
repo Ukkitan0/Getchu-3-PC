@@ -5,9 +5,20 @@ SCUS_975.01
 *.chd
 *.p2s
 *.gs.zst
+*.luc
+*.vfi
+*.pck
+*.i3d
+*.i3m
+*.i3c
+*.tm2
+*.plc
+*.sz
+*PRIVATE*.zip
 assets/
 game/
 original/
+mods/
 ae3_scalar_leaves.c
 ae3_scalar_leaves.h
 ae3_control_leaves.c
@@ -33,20 +44,14 @@ build/
 ae3_stack_leaves.c
 ae3_stack_leaves.h
 
-# Guest integration test binaries and their Windows objects
-ae3_guest_execution_test
-ae3_elf_image_test
-
-# Word-by-word retail binary inventory and reconstructed game machine code
+# Inactive original PS2 recompilation analysis preserved only in archive/.
 analysis/
 ee_text_word_inventory.tsv.gz
 vu_microcode_packet_inventory.tsv.gz
 direct_jal_targets.tsv
 *_test
-# Local PS2 AOT workspace: may contain owner-derived translated game code and assets
-/fastlane/private/
 
-# Original AE3 game data and derived assets MUST remain on the owner PC.
+# Private game data, tools' outputs and owner-specific mods are never published.
 /native/private/
 /native/owned_assets/
 /AE3_PRIVATE_*/
