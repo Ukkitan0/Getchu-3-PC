@@ -173,7 +173,8 @@ NativeActorWorld::NativeActorWorld(StaticScene backdrop)
     :backdrop_(std::move(backdrop)),combined_(backdrop_){}
 void NativeActorWorld::bind(const NativeStageWorld& stage,
                              const std::filesystem::path& privateGlbDirectory,
-                             const std::filesystem::path& optionalBindingFile){
+                             const std::filesystem::path& optionalBindingFile,
+                             const std::filesystem::path& originalPlacementFile){
     const auto canonical=fs::canonical(privateGlbDirectory);
     const auto index=indexModels(canonical);
     const auto overrides=readBindings(optionalBindingFile);
@@ -186,7 +187,8 @@ void NativeActorWorld::bind(const NativeStageWorld& stage,
     // Unsupported original collision-placement revisions may still render
     // models: a failed PLC probe must not block all native actors.
     std::map<std::string,std::vector<std::array<float,3>>> originalTags;
-    const fs::path originalPlc=canonical/"placeholder.plc";
+    const fs::path originalPlc=originalPlacementFile.empty()?
+        canonical/"placeholder.plc":originalPlacementFile;
     if(fs::is_regular_file(originalPlc)){
         try{
             const auto plc=parsePlacements(originalPlc);
