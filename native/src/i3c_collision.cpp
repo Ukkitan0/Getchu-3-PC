@@ -1,4 +1,5 @@
 #include "ae3/i3c_collision.hpp"
+#include "ae3/pck_archive.hpp"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -216,6 +217,7 @@ OriginalCollision loadOriginalI3cDirectory(const std::filesystem::path& folder,
     if(!fs::is_directory(folder)||!maxFiles||maxFiles>1000)
         throw std::runtime_error("invalid I3C collision directory or scan budget");
     std::vector<fs::path> files;
+    std::vector<fs::path> packs;
     for(auto it=fs::recursive_directory_iterator(
          folder,fs::directory_options::skip_permission_denied);
         it!=fs::recursive_directory_iterator();++it){
@@ -223,23 +225,44 @@ OriginalCollision loadOriginalI3cDirectory(const std::filesystem::path& folder,
         auto extension=it->path().extension().string();
         std::transform(extension.begin(),extension.end(),extension.begin(),
                        [](unsigned char c){return static_cast<char>(std::tolower(c));});
+        if(extension==".pck"){
+            packs.push_back(it->path());
+            if(packs.size()+files.size()>maxFiles)
+                throw std::runtime_error("too many original collision source files");
+            continue;
+        }
         if(extension!=".i3d"&&extension!=".i3c")continue;
         std::ifstream stream(it->path(),std::ios::binary);
         char magic[8]{};
-        if(stream.read(magic,sizeof(magic)) && std::memcmp(magic,"I3D_I3C\0",8)==0){
+        if(stream.read(magic,sizeof(magic)) && std::memcmp(magic,"I3D_I3C\\0",8)==0){
             files.push_back(it->path());
-            if(files.size()>maxFiles)
-                throw std::runtime_error("too many original I3C source files");
+            if(packs.size()+files.size()>maxFiles)
+                throw std::runtime_error("too many original collision source files");
         }
     }
     std::sort(files.begin(),files.end());
-    if(files.empty())
-        throw std::runtime_error("no original I3D_I3C collision assets found");
+    std::sort(packs.begin(),packs.end());
     OriginalCollision output;
+    std::size_t decoded=0;
     for(const auto& file:files){
-        const auto one=parseOriginalI3c(file);
-        appendScene(output,one);
+        appendScene(output,parseOriginalI3c(file));
+        ++decoded;
     }
+    // Authentic game collision may be INSIDE bg.pck rather than alongside
+    // the extracted stage's .i3d files. Decode PCK members in memory,
+    // preserving user-owned asset bytes on disk and requiring real I3C magic.
+    for(const auto& file:packs){
+        const PckArchive archive(file);
+        for(const auto& item:archive.entries()){
+            if(item.kind!=PckAssetKind::collision)continue;
+            if(decoded>=maxFiles)
+                throw std::runtime_error("too many original I3C collision members");
+            appendScene(output,parseOriginalI3c(archive.read(item)));
+            ++decoded;
+        }
+    }
+    if(!decoded)
+        throw std::runtime_error("no original I3D_I3C collision assets found in stage files or PCK");
     bounds(output.geometry);
     return output;
 }
