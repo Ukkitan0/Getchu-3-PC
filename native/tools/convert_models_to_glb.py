@@ -52,10 +52,14 @@ def export_models(extracted: Path, output: Path, ae3: str = "ae3",
         destination=output/relative.parent
         destination.mkdir(parents=True,exist_ok=True)
         expected=destination/(source.stem+".glb")
-        # Do not overwrite an existing binary from a previous conversion.
-        if expected.exists():
+        # Static conversions may be reused, but upgrading to original
+        # I3M skeletal clips MUST regenerate a prior static GLB. Otherwise
+        # -Animate appears to succeed without ever creating animations.
+        # Only derived GLBs are regenerated; source I3D/I3M/TIM2 is untouched.
+        if expected.exists() and not animations:
             counts["already_converted"]+=1
             continue
+        upgrading=expected.exists()
         command=[ae3,"gltf",str(source),"--out",str(destination),
                  "--textures",str(extracted)]
         if animations:
@@ -69,6 +73,7 @@ def export_models(extracted: Path, output: Path, ae3: str = "ae3",
                 failed.append(relative.as_posix())
                 counts["failed"]+=1
             else:
+                counts["upgraded_to_original_animation"]+=1 if upgrading else 0
                 counts["converted"]+=1
         except (OSError,subprocess.TimeoutExpired):
             failed.append(relative.as_posix())
