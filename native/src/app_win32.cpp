@@ -7,6 +7,7 @@
 #include "ae3/native_walking.hpp"
 #include "ae3/i3c_collision.hpp"
 #include "ae3/native_skinning.hpp"
+#include "ae3/actor_world.hpp"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -56,6 +57,9 @@ bool gF7HeldLastFrame=false;
 bool gF8HeldLastFrame=false;
 bool gF9HeldLastFrame=false;
 std::unique_ptr<ae3::NativeSkinnedGlb> gAnimatedModel;
+std::unique_ptr<ae3::NativeActorWorld> gStageActors;
+ae3::StaticScene gStaticLevelGeometry;
+fs::path gPrivateGlbFolder;
 std::size_t gActiveClip=0;
 double gAnimationSeconds=0;
 bool gAnimationPaused=false;
@@ -472,6 +476,9 @@ void loadArchive(const fs::path& path){
         gRenderer.clearTexture();
         gRenderer.clearScene();
         gAnimatedModel.reset();
+        gStageActors.reset();
+        gStaticLevelGeometry={};
+        gPrivateGlbFolder.clear();
         gWalkCollisionScene={};
         gOriginalI3cActive=false;
         gNativeWalkMode=false;
@@ -492,6 +499,45 @@ void openFile(){
     dialog.lpstrTitle=L"Choose YOUR Ape Escape 3 USA ISO or extracted DATA.BIN";
     if(GetOpenFileNameW(&dialog))loadArchive(name);
 }
+void bindNativeStageActors(){
+    if(!gNativeWorld||gPrivateGlbFolder.empty())return;
+    try{
+        auto actors=std::make_unique<ae3::NativeActorWorld>(gStaticLevelGeometry);
+        auto file=gPrivateGlbFolder/"actor_bindings.txt";
+        if(!fs::is_regular_file(file))file.clear();
+        actors->bind(*gNativeWorld,gPrivateGlbFolder,file);
+        const auto report=actors->report();
+        if(report.actorsCreated==0){
+            gStageActors.reset();
+            std::wstringstream msg;
+            msg<<L"Lua entities parsed: "<<report.stageEntities
+               <<L"; 0 actors have an exact matching GLB. Put private "
+               <<L"actor_bindings.txt in the GLB folder to bind names to models. "
+               <<L"Unbound="<<report.unboundEntities
+               <<L", rejected="<<report.modelsRejected;
+            status(msg.str());
+            return;
+        }
+        if(!gRenderer.displayScene(actors->scene(),true))
+            throw std::runtime_error("native D3D11 Lua actor vertex buffer upload failed");
+        if(gOriginalI3cActive)
+            gRenderer.setCollisionOverlay(gWalkCollisionScene);
+        gAnimatedModel.reset();
+        gStageActors=std::move(actors);
+        gAnimationPaused=false;
+        gActiveClip=0;
+        std::wstringstream msg;
+        msg<<L"NATIVE LUA WORLD: "<<report.actorsCreated
+           <<L" instantiated mesh actors ("
+           <<report.animatedActors<<L" skinned/animated), "
+           <<report.unboundEntities<<L" script-only entities, "
+           <<report.modelsRejected<<L" unresolved/rejected models. "
+           <<L"F5 walks and moves Lua Player actor, F8 cycles first actor animation, F9 pauses.";
+        status(msg.str());
+    }catch(const std::exception& e){
+        status(L"Native Lua actor/world binding failed: "+wide(e.what()));
+    }
+}
 void loadNativeGlb(const fs::path& path){
     try{
         auto motion=std::make_unique<ae3::NativeSkinnedGlb>(path);
@@ -499,6 +545,9 @@ void loadNativeGlb(const fs::path& path){
         const bool animated=motion->clipCount()>0 && motion->skinnedVertexCount()>0;
         if(!gRenderer.displayScene(scene,animated))
             throw std::runtime_error("Direct3D11 vertex buffer upload failed");
+        gStageActors.reset();
+        gPrivateGlbFolder.clear();
+        gStaticLevelGeometry=scene;
         gAnimatedModel=animated?std::move(motion):nullptr;
         gAnimationSeconds=0;
         gActiveClip=0;
@@ -550,6 +599,9 @@ void loadNativeLevel(const fs::path& folder) {
         if(!gRenderer.displayScene(level.scene))
             throw std::runtime_error("Direct3D11 native level vertex upload failed");
         gAnimatedModel.reset();
+        gStageActors.reset();
+        gStaticLevelGeometry=level.scene;
+        gPrivateGlbFolder=folder;
         gWalkCollisionScene=level.scene;
         gOriginalI3cActive=false;
         gNativeWalkMode=false;
@@ -569,6 +621,7 @@ void loadNativeLevel(const fs::path& folder) {
             <<L"F5 activates basic native WASD/Space walk/jump test. "
             <<L"Original I3C collision and player behavior NOT YET RECOVERED.";
         status(info.str());
+        if(gNativeWorld)bindNativeStageActors();
         gRenderer.render();
     }catch(const std::exception& e){
         status(L"Native original-level geometry load failed: "+wide(e.what()));
@@ -670,6 +723,7 @@ void openRecoveredStage(){
         gNativeWorld=std::move(world);
         gNativeStage=std::move(stage);
         gArchive.reset();
+        gStageActors.reset();
         gRenderer.clearTexture();
         // Keep an already loaded original-model GLB visible when setting
         // up Lua stage entities: world art and Lua scripts share one window.
