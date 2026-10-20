@@ -44,7 +44,7 @@ FetchContent_GetProperties(GetchuCgltf)
 if(NOT getchucgltf_POPULATED)
   FetchContent_Populate(GetchuCgltf)
 endif()
-add_library(Getchu3Assets STATIC src/archive.cpp src/tim2.cpp src/stage_scripts.cpp src/player_state.cpp src/lua_stage.cpp src/controller_timeline.cpp src/gltf_scene.cpp src/pck_archive.cpp src/level_scene.cpp src/i3m_animation.cpp src/native_walking.cpp src/i3c_collision.cpp src/native_skinning.cpp src/actor_world.cpp)
+add_library(Getchu3Assets STATIC src/archive.cpp src/tim2.cpp src/stage_scripts.cpp src/player_state.cpp src/lua_stage.cpp src/controller_timeline.cpp src/gltf_scene.cpp src/pck_archive.cpp src/level_scene.cpp src/i3m_animation.cpp src/native_walking.cpp src/i3c_collision.cpp src/native_skinning.cpp src/actor_world.cpp src/retail_lua50.cpp)
 target_include_directories(Getchu3Assets PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_include_directories(Getchu3Assets PRIVATE "${getchucgltf_SOURCE_DIR}")
 target_link_libraries(Getchu3Assets PUBLIC Getchu3Lua50)
@@ -149,3 +149,7 @@ add_test(NAME NativeOriginalLuaEntitiesToAnimatedSceneActors COMMAND Getchu3Acto
 
 add_executable(Getchu3ActorWorldProbe src/actor_world_probe.cpp)
 target_link_libraries(Getchu3ActorWorldProbe PRIVATE Getchu3Assets)
+
+add_executable(Getchu3RetailLua50Tests tests/retail_lua50_test.cpp)
+target_link_libraries(Getchu3RetailLua50Tests PRIVATE Getchu3Assets)
+add_test(NAME NativeActualRetailLua50FormatRetarget COMMAND Getchu3RetailLua50Tests)
