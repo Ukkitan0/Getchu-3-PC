@@ -85,6 +85,17 @@ class ConvertModels(unittest.TestCase):
         self.assertTrue(all(command[-1]=="--anims" for command in self.calls))
         self.assertEqual(len(self.calls),2)
 
+    def test_animate_rebuilds_existing_static_glbs_in_place(self):
+        # Critical for Windows users who previously generated static
+        # GLBs: enabling -Animate must actually create skeletal channels.
+        export_models(self.extracted,self.output,str(self.tool),runner=self.fake_run)
+        self.calls.clear()
+        report=export_models(self.extracted,self.output,str(self.tool),
+                             animations=True,runner=self.fake_run)
+        self.assertEqual(len(self.calls),2)
+        self.assertEqual(report["results"]["upgraded_to_original_animation"],2)
+        self.assertTrue(all(x[-1]=="--anims" for x in self.calls))
+
     def test_too_many_models_refused(self):
         with self.assertRaisesRegex(ValueError,"many"):
             export_models(self.extracted,self.output,str(self.tool),
