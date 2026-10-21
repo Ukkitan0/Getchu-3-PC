@@ -1,0 +1,47 @@
+{
+  "format": "ae3/original-stage-to-spatial-registry/v1",
+  "retail_elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "original_source_functions": [
+    "0x21d46c",
+    "0x21b254"
+  ],
+  "related_original_calls": [
+    "0x36edac",
+    "0x21b0b0",
+    "0x21b240",
+    "0x41b800"
+  ],
+  "verified_machine_words": 232,
+  "verified_regions": 3,
+  "verified_independent_opcodes": 32,
+  "verified_call_destinations": 6,
+  "original_data_structures": {
+    "source_record_count": "0x24",
+    "source_relative_offsets": "0x38..0x4c",
+    "polygon_descriptor_stride": 30,
+    "polygon_vertex_count": "descriptor+0x16",
+    "polygon_vertex_index": "descriptor+0x18+2*i",
+    "vertex_table_offset_field": "source+0x40",
+    "original_vertex_stride": 16,
+    "original_record_stride": 112,
+    "original_record_header_pointer": "0x30",
+    "original_record_vertex_start": "0x40"
+  },
+  "native_functions": [
+    "originalStageReadSpatialOffsets_21d46c",
+    "originalStageBuildSourceSpatial_21d46c",
+    "originalStageNearestGrid_21d898",
+    "originalStageNearestAll_21da2c"
+  ],
+  "source_game_loaded_stage_data_tested": false,
+  "optimized_native_Cpp20_tests_passed": true,
+  "undefined_behavior_sanitizer_passed": true,
+  "remaining": [
+    "original source-stage asset stream and owned runtime allocations",
+    "0x36edac real spatial/grid allocator",
+    "source action types 1/2 original owner constructors",
+    "Player Monkey runtime update loops",
+    "stage rendering"
+  ],
+  "native_windows_playable": false
+}
