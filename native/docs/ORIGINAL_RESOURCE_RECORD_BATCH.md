@@ -30,9 +30,15 @@ concrete upstream producer:
 - Four original initializers invoke this batch insertion routine:
   `0x1BB5F8`, `0x1BB6DC`, `0x1BB7BC`, and `0x1BB89C`.
 
-This is a **verified original record-pool producer**, but it has NOT
-been proven to be a live navrange stage allocation. It should not
-be confused with the separate `.nav` asset type.
+**Corrected classification (retail literal audit):** This source chain is
+part of the original AUDIO configuration descriptor system. The parser
+at `0x1BB9A8` uses the original keys `name`, `midi`, `reverb`,
+`vb`, `vh`, and `volume_scale` with audio defaults including
+`M01.mid`, `M01.bd`, and `M01.hd`. It must NOT be classified as
+the confirmed `navrange` stage allocation producer.
+Its generic 128-bucket insertion code remains source-derived and
+reusable, but the connection to navigation resources is unproven.
+See `ORIGINAL_AUDIO_DESCRIPTOR_SOURCE.md`.
 
 ## Native recovery
 
