@@ -1,0 +1,35 @@
+{
+  "format": "ae3/original-navrange-resource-map/v1",
+  "original_USA_SHA256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "source_engine_routines": [
+    "0x4e4060",
+    "0x36d6f4",
+    "0x36d610",
+    "0x21f604",
+    "0x21f5a4",
+    "0x4e3fec",
+    "0x21f6d4"
+  ],
+  "resource_identifier": "navrange",
+  "resource_compare_effective_bytes": 8,
+  "source_signed_count_offset": 84,
+  "source_group_pointer_offset": 92,
+  "original_source_key_stride": 32,
+  "exact_original_machine_windows": 6,
+  "original_instruction_words": 288,
+  "exact_opcode_anchors": 32,
+  "original_call_edges": 20,
+  "local_native_optimized_pass": true,
+  "local_ubsan_pass": true,
+  "local_asan_ubsan_pass": true,
+  "private_usa_iso_SZ_files_scanned": 1706,
+  "private_SZ_files_containing_navrange_literal": 0,
+  "actual_retail_navrange_source_fixture_tested": false,
+  "outstanding_original_dependencies": [
+    "0x21EF3C real VU0 eligibility",
+    "source navrange group allocation and owner binding",
+    "live Actor route movement",
+    "stage/renderer/gameplay startup"
+  ],
+  "playable_native_windows_build": false
+}
