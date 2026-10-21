@@ -65,6 +65,27 @@ and volume getter using source offsets. Local GCC Release, Clang,
 UBSan and ASan+UBSan passed against the actual original tree/attribute
 code already recovered.
 
+## Completed original trailer field recovery
+
+Original 0x2BA9F8 reads the penultimate preprocessed line at
+end-8 bytes and 0x2BAAC4 reads the last line at end-4 bytes.
+Both are split on ':' and converted from field 1 through
+0x428C48. The penultimate value is written to owner+0x24 at
+0x2BAA98. The last value is added to the original owner's
++0x00 base word and stored as owner+0x04 at 0x2BAB60,
+using original 32-bit wrapping ADDU semantics.
+
+`original_attribute_record_trailer.hpp` implements these fields
+independently from child records. It requires two distinct trailer
+lines, checks bounds, preserves negative input and uint32 wraparound,
+and provides `originalAttributeStructuredFields_2ba584` to
+combine header, child and trailer recovery. The original
+0x2BA9F8..0x2BAB7C **97-instruction window** and 15 exact
+opcode sites/10 direct calls are SHA-verified against the retail
+ELF; the native test passes Release, Clang, ASan and UBSan.
+These 97 source words are within the 406 verified above,
+not an additional disjoint region.
+
 ## Unfinished original behavior
 
 Upstream 0x2BA3AC line filtering and original source-file allocation,
