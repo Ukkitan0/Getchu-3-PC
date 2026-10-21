@@ -1,0 +1,29 @@
+{
+  "format": "ae3/original-spatial-support-source/v1",
+  "elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "original_routines": [
+    "0x4e3c14",
+    "0x21b788",
+    "0x21b468",
+    "0x21b178",
+    "0x21b180",
+    "0x21b194",
+    "0x21b14c",
+    "0x21b384",
+    "0x21afb0"
+  ],
+  "verified_source_instruction_words": 236,
+  "verified_hash_pinned_code_regions": 8,
+  "verified_direct_calls": 8,
+  "verified_semantic_anchors": 28,
+  "source_file": "native/src/original_spatial_support.cpp",
+  "testing": "local g++ C++20 optimized and UBSan tests passed; Windows build and real game boot not tested",
+  "dependencies": [
+    "original packed grid coordinates",
+    "VU0 per-plane values",
+    "VU0 centroid accumulator",
+    "VU0 sqrt distance",
+    "original runtime allocator"
+  ],
+  "game_is_playable": false
+}
