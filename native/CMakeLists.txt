@@ -219,10 +219,13 @@ add_test(NAME OriginalRetailAttributeLFScannerStopMarkersAndFullDecodedTextChain
 add_executable(Getchu3OriginalAttributeRecordIndexTests tests/original_attribute_record_index_test.cpp)
 target_link_libraries(Getchu3OriginalAttributeRecordIndexTests PRIVATE Getchu3Assets)
 add_test(NAME OriginalRetailAttributeIndexCountStrideAndHostBoundedRecordAccess COMMAND Getchu3OriginalAttributeRecordIndexTests)
+add_executable(Getchu3OriginalResourceEntryVectorTests tests/original_resource_entry_vector_test.cpp)
+target_link_libraries(Getchu3OriginalResourceEntryVectorTests PRIVATE Getchu3Assets)
 add_executable(Getchu3OriginalExdbRetailFixtureTests tests/original_exdb_retail_fixture_test.cpp)
 target_link_libraries(Getchu3OriginalExdbRetailFixtureTests PRIVATE Getchu3Assets)
 set(AE3_RETAIL_WOODS_C_EXDB_PCK "" CACHE FILEPATH "Optional path to owner-provided original woods_c/exdb.pck; file is never bundled")
 if(AE3_RETAIL_WOODS_C_EXDB_PCK AND EXISTS "${AE3_RETAIL_WOODS_C_EXDB_PCK}")
+    add_test(NAME OriginalRetailPckResourceSelection COMMAND Getchu3OriginalResourceEntryVectorTests "${AE3_RETAIL_WOODS_C_EXDB_PCK}")
     add_test(NAME OriginalRetailWoodsCExdbFullAssetRoundtrip
              COMMAND Getchu3OriginalExdbRetailFixtureTests "${AE3_RETAIL_WOODS_C_EXDB_PCK}")
 endif()
