@@ -44,7 +44,7 @@ FetchContent_GetProperties(GetchuCgltf)
 if(NOT getchucgltf_POPULATED)
   FetchContent_Populate(GetchuCgltf)
 endif()
-add_library(Getchu3Assets STATIC src/archive.cpp src/tim2.cpp src/stage_scripts.cpp src/player_state.cpp src/lua_stage.cpp src/controller_timeline.cpp src/gltf_scene.cpp src/pck_archive.cpp src/level_scene.cpp src/i3m_animation.cpp src/native_walking.cpp src/i3c_collision.cpp src/native_skinning.cpp src/actor_world.cpp src/retail_lua50.cpp src/original_player_mode.cpp src/original_monkey_accessors.cpp src/original_retail_call_chains.cpp src/original_attachment_engine.cpp src/original_attachment_followup.cpp src/original_action_runtime.cpp src/original_player_factory.cpp src/original_manager_child.cpp src/original_spatial_index.cpp src/original_spatial_support.cpp src/original_vu0_geometry.cpp src/original_spatial_raw_bridge.cpp src/original_stage_spatial_loader.cpp src/original_navgraph_loader.cpp src/original_navgraph_topology.cpp src/original_nav_route_search.cpp src/original_nav_route_admission.cpp src/original_nav_route_dispatch.cpp src/original_actor_nav_route.cpp src/original_actor_nav_controller.cpp src/original_actor_type2_target.cpp src/original_actor_route_follower.cpp src/original_nav_linked_owner.cpp src/original_nav_group_registry.cpp src/original_navrange_group_binding.cpp)
+add_library(Getchu3Assets STATIC src/archive.cpp src/tim2.cpp src/stage_scripts.cpp src/player_state.cpp src/lua_stage.cpp src/controller_timeline.cpp src/gltf_scene.cpp src/pck_archive.cpp src/level_scene.cpp src/i3m_animation.cpp src/native_walking.cpp src/i3c_collision.cpp src/native_skinning.cpp src/actor_world.cpp src/retail_lua50.cpp src/original_player_mode.cpp src/original_monkey_accessors.cpp src/original_retail_call_chains.cpp src/original_attachment_engine.cpp src/original_attachment_followup.cpp src/original_action_runtime.cpp src/original_player_factory.cpp src/original_manager_child.cpp src/original_spatial_index.cpp src/original_spatial_support.cpp src/original_vu0_geometry.cpp src/original_spatial_raw_bridge.cpp src/original_stage_spatial_loader.cpp src/original_navgraph_loader.cpp src/original_navgraph_topology.cpp src/original_nav_route_search.cpp src/original_nav_route_admission.cpp src/original_nav_route_dispatch.cpp src/original_actor_nav_route.cpp src/original_actor_nav_controller.cpp src/original_actor_type2_target.cpp src/original_actor_route_follower.cpp src/original_actor_target_dispatch.cpp src/original_nav_linked_owner.cpp src/original_nav_group_registry.cpp src/original_navrange_group_binding.cpp)
 target_include_directories(Getchu3Assets PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_include_directories(Getchu3Assets PRIVATE "${getchucgltf_SOURCE_DIR}")
 # SZ compression uses raw DEFLATE (zlib inflateInit2 with -MAX_WBITS).
@@ -221,6 +221,10 @@ target_link_libraries(Getchu3OriginalAttributeRecordIndexTests PRIVATE Getchu3As
 add_test(NAME OriginalRetailAttributeIndexCountStrideAndHostBoundedRecordAccess COMMAND Getchu3OriginalAttributeRecordIndexTests)
 add_executable(Getchu3OriginalResourceEntryVectorTests tests/original_resource_entry_vector_test.cpp)
 target_link_libraries(Getchu3OriginalResourceEntryVectorTests PRIVATE Getchu3Assets)
+add_executable(Getchu3OriginalActorTargetDispatchTests tests/original_actor_target_dispatch_test.cpp)
+target_link_libraries(Getchu3OriginalActorTargetDispatchTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalActorTargetVectorOriginalVariantAndVertexDispatch
+         COMMAND Getchu3OriginalActorTargetDispatchTests)
 add_executable(Getchu3OriginalActorRouteFollowerTests tests/original_actor_route_follower_test.cpp)
 target_link_libraries(Getchu3OriginalActorRouteFollowerTests PRIVATE Getchu3Assets)
 add_test(NAME OriginalActorRouteFollowerOriginalTraversalAndTargetProgression
@@ -266,6 +270,8 @@ target_link_libraries(Getchu3OriginalNavRetailPckTests PRIVATE Getchu3Assets)
 set(AE3_RETAIL_WOODS_C_NAVIGATION_PCK "" CACHE FILEPATH "Path to owned woods_c/navigation.pck")
 if(AE3_RETAIL_WOODS_C_NAVIGATION_PCK)
   add_test(NAME OriginalRetailNavPck COMMAND Getchu3OriginalNavRetailPckTests "${AE3_RETAIL_WOODS_C_NAVIGATION_PCK}")
+  add_test(NAME OriginalRetailActorTargetVectorAllPolygons
+           COMMAND Getchu3OriginalActorTargetDispatchTests "${AE3_RETAIL_WOODS_C_NAVIGATION_PCK}")
   add_test(NAME OriginalRetailActorRouteFollowerAllGraphEdges
            COMMAND Getchu3OriginalActorRouteFollowerTests "${AE3_RETAIL_WOODS_C_NAVIGATION_PCK}")
   add_test(NAME OriginalRetailActorType2RouteTargetsAndVectors
