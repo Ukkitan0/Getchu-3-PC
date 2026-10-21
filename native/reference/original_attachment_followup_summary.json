@@ -1,0 +1,29 @@
+{
+  "format": "ae3/original-monkey-attachment-followup-summary/v1",
+  "original_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "native_methods_or_bounded_fragments": [
+    "0x56b3b4",
+    "0x56b3e4",
+    "0x56b3ec",
+    "0x56ba98",
+    "0x56baa0",
+    "0x56baa8",
+    "0x56b9a8",
+    "0x56b28c",
+    "0x56af44",
+    "0x56b000",
+    "0x56b07c",
+    "0x56b9d0",
+    "0x56ba00",
+    "0x56bfe8",
+    "0x56c020",
+    "0x56c054",
+    "0x315db0"
+  ],
+  "audited_vtable_count": 4,
+  "audited_instruction_sites": 55,
+  "complex_method_calls": 21,
+  "unique_original_dependent_callees": 16,
+  "test_state": "Locally built and passed optimized C++20 unit test and UBSan test; Windows and retail gameplay not tested",
+  "limitations": "Parts of 0x56AF44 only. Its vector and animation math, original subfunctions, object lifecycle and game loop are not yet translated."
+}
