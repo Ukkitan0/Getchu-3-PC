@@ -7,15 +7,10 @@ using namespace ae3;
 static void require(bool b){if(!b)throw std::runtime_error("Original retail action runtime diverged");}
 struct Calls final:OriginalActionRuntimeCalls {
   std::vector<std::string> calls;
-  bool firstPresent=false,secondPresent=false,giveCandidate=true,acceptCandidate=true;
-  void* call_factory_virtual2(void* factory,OriginalManagerSlot& slot)override{
-    require(factory==this);calls.emplace_back("factory_v2");
-    if(slot.key00==1)return firstPresent?this:nullptr;
-    if(slot.key00==2)return secondPresent?this:nullptr;
-    return giveCandidate?this:nullptr;
-  }
-  bool call_candidate_virtual11(void* p,OriginalManagerSlot&)override{
-    require(p==this);calls.emplace_back("candidate_v11");return acceptCandidate;
+  bool firstAccept=false,secondAccept=false,acceptCandidate=false;
+  bool call_candidate_virtual11(void* p,OriginalManagerSlot& slot)override{
+    require(p==this);calls.emplace_back("candidate_v11");
+    return slot.key00==1?firstAccept:slot.key00==2?secondAccept:acceptCandidate;
   }
   void* call_21d898()override{calls.emplace_back("21d898");return this;}
   void call_5638f4(void* parent,std::uint32_t arg,std::uint32_t value)override{
@@ -29,9 +24,11 @@ struct Calls final:OriginalActionRuntimeCalls {
 int main(){
   OriginalActionFields a{};OriginalActionChildFields child{};OriginalActionManagers managers{};Calls c;
   require(originalFactoryGet_221644(managers.factory_647bd0)==nullptr);
-  originalFactorySet_221650(managers.factory_647bd0,&c);
-  require(originalFactoryGet_221644(managers.factory_647bd0)==&c);
-  require(originalFactoryIs_221668(managers.factory_647bd0,&c));
+  OriginalPlayerResources player{};
+  player.main_player_at_60=&c;
+  originalFactorySet_221650(managers.factory_647bd0,&player);
+  require(originalFactoryGet_221644(managers.factory_647bd0)==&player);
+  require(originalFactoryIs_221668(managers.factory_647bd0,&player));
   require(!originalFactoryIs_221668(managers.factory_647bd0,nullptr));
   child.status45=0xf5;child.value48=0xaabbccdd;
   require(originalActionReadStatus_3168ac(child)==0xf5);
@@ -49,18 +46,18 @@ int main(){
   child.status45=1;
   managers.at_696ca0.key00=1;managers.at_696cd0.key00=2;
   require(!originalActionReady_3102f0(a,child,managers,c));
-  require(c.calls==std::vector<std::string>({"factory_v2","factory_v2"}));
+  require(c.calls==std::vector<std::string>({"candidate_v11","candidate_v11"}));
   require(managers.at_696ca0.initialized05&&managers.at_696cd0.initialized05);
-  c.calls.clear();c.secondPresent=true;
+  c.calls.clear();c.secondAccept=true;
   // These are one-time original managers. No invented automatic reinitialization.
   require(!originalActionReady_3102f0(a,child,managers,c)&&c.calls.empty());
   managers.at_696cd0.initialized05=0;
   require(originalActionReady_3102f0(a,child,managers,c));
-  require(c.calls==std::vector<std::string>({"factory_v2","candidate_v11","21d898"}));
-  c.calls.clear();c.firstPresent=true;
+  require(c.calls==std::vector<std::string>({"candidate_v11","21d898"}));
+  c.calls.clear();c.firstAccept=true;
   managers.at_696ca0.initialized05=0;
   require(originalActionManagerReady_316fd0(managers,c));
-  require(c.calls==std::vector<std::string>({"factory_v2","candidate_v11","21d898"}));
+  require(c.calls==std::vector<std::string>({"candidate_v11","21d898"}));
   c.calls.clear();
   OriginalManagerSlot disabled{};disabled.disabled04=1;disabled.instanceAt08=&c;
   originalManagerInitialize_57ba00(disabled,managers.factory_647bd0,c);
@@ -71,7 +68,7 @@ int main(){
   c.acceptCandidate=false;OriginalManagerSlot denied{};
   originalManagerInitialize_57ba00(denied,managers.factory_647bd0,c);
   require(!denied.instanceAt08&&denied.initialized05);
-  require(c.calls==std::vector<std::string>({"factory_v2","candidate_v11"}));
+  require(c.calls==std::vector<std::string>({"candidate_v11"}));
   c.calls.clear();c.acceptCandidate=true;
   OriginalFactoryGlobal missing{};OriginalManagerSlot pending{};
   bool missingRaised=false;
@@ -80,7 +77,14 @@ int main(){
   require(missingRaised);
   originalFactorySet_221650(managers.factory_647bd0,nullptr);
   require(originalFactoryGet_221644(managers.factory_647bd0)==nullptr);
-  originalFactorySet_221650(managers.factory_647bd0,&c);
+  originalFactorySet_221650(managers.factory_647bd0,&player);
+  OriginalPlayerResources notReady{};
+  OriginalFactoryGlobal originalRegistered{};
+  originalFactorySet_221650(originalRegistered,&notReady);
+  OriginalManagerSlot empty{};
+  const auto beforeCalls=c.calls.size();
+  originalManagerInitialize_57ba00(empty,originalRegistered,c);
+  require(empty.initialized05&&!empty.instanceAt08&&c.calls.size()==beforeCalls);
   require(!originalActionThreeFlags_310358(a));
   a.word34=1;a.word30=1;
   require(originalActionThreeFlags_310358(a));

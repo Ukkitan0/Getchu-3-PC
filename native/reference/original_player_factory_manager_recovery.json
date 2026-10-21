@@ -1,0 +1,28 @@
+{
+  "format": "ae3/original-player-factory-and-controller-recovery/v1",
+  "source_elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "original_resource_names": 10,
+  "original_methods_and_original_control_paths": [
+    "0x34a014",
+    "0x37d348",
+    "0x37d354",
+    "0x37d360",
+    "0x57ba00",
+    "0x57ba98",
+    "0x57baf8",
+    "0x317538",
+    "0x31759c",
+    "0x57bb60",
+    "0x57bbb4",
+    "0x57bc0c",
+    "0x57bc54",
+    "0x57bc88"
+  ],
+  "audit": {
+    "machine_opcodes": 93,
+    "original_direct_branches": 16,
+    "original_vtables": 2
+  },
+  "unit_tests": "Three native optimized C++20 and three UBSan executables passed locally; full Windows engine/game unverified",
+  "warnings": "Original 0x57BCB8 and 0x21D898 dependencies not ported, 0x57C620 complex method pending, no playable retail game."
+}

@@ -1,6 +1,7 @@
 #pragma once
 #include <cstddef>
 #include <cstdint>
+#include "ae3/original_player_factory.hpp"
 
 namespace ae3 {
 // Names are original ELF object-field offsets, not guessed gameplay terms.
@@ -30,12 +31,13 @@ struct OriginalManagerSlot {
   // Game fields at +0x10 and +0x20 are still being reconstructed.
 };
 // Original compiled engine global pointer 0x647BD0.
-struct OriginalFactoryGlobal {void* factoryAt_647bd0=nullptr;};
-void* originalFactoryGet_221644(const OriginalFactoryGlobal&) noexcept;
-void originalFactorySet_221650(OriginalFactoryGlobal&,void*) noexcept;
-bool originalFactoryIs_221668(const OriginalFactoryGlobal&,const void*) noexcept;
+struct OriginalFactoryGlobal {OriginalPlayerResources* factoryAt_647bd0=nullptr;};
+OriginalPlayerResources* originalFactoryGet_221644(const OriginalFactoryGlobal&) noexcept;
+void originalFactorySet_221650(OriginalFactoryGlobal&,OriginalPlayerResources*) noexcept;
+bool originalFactoryIs_221668(const OriginalFactoryGlobal&,const OriginalPlayerResources*) noexcept;
 struct OriginalActionManagers {
   OriginalFactoryGlobal factory_647bd0{};
+  OriginalSecondaryFactoryGlobal factory_6a99bc{};
   OriginalManagerSlot at_696ca0{};
   OriginalManagerSlot at_696cd0{};
 };
@@ -43,7 +45,6 @@ class OriginalActionRuntimeCalls {
 public:
   virtual ~OriginalActionRuntimeCalls()=default;
   // Actual original callees and virtual slots, not fake success values.
-  virtual void* call_factory_virtual2(void* factory,OriginalManagerSlot&)=0;
   virtual bool call_candidate_virtual11(void* candidate,OriginalManagerSlot&)=0;
   virtual void* call_21d898()=0;
   virtual void call_5638f4(void* originalParent,std::uint32_t parameter14,std::uint32_t newValue)=0;
