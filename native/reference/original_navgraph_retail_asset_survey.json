@@ -32,12 +32,16 @@
     "independent_opcode_sites": 16,
     "original_direct_calls": 5
   },
-  "native_test": "Local strict optimized C++20 host test decompressed and parsed actual first retail navigation PCK; full Windows game and new CTest not yet run.",
+  "native_test": "Local strict optimized C++20 host test decompressed and parsed actual first retail navigation PCK; full Windows game and new CTest not yet run. All 19,377 original navigation polygon descriptor counts were checked separately against the real VFI/PCK bytes.",
   "limitations": [
     "original runtime pointer allocation/lifetime",
     "original navigation path-following entities",
     "other original engine subsystems",
     "full Windows gameplay boot"
   ],
-  "real_game_playable_native_windows": false
+  "real_game_playable_native_windows": false,
+  "original_polygon_vertex_count_distribution": {
+    "3": 19377
+  },
+  "original_polygon_headers_with_other_counts": 0
 }

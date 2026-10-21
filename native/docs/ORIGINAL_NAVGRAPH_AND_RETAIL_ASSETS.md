@@ -45,7 +45,7 @@ zlib-wrapped DEFLATE), and parsed as original PCK.
 Actual results: **168/168 successful packages**, containing
 **168 `nav_monkey.nav`** members and
 **122 `nav_enemy.nav`** members, a total of **290 navigation files** and
-**19,377 source navigation-record headers**. The first package holds
+**19,377 source navigation-record headers**. A full descriptor survey found exactly **three original vertices for all 19,377 navigation polygons** in these 290 files, consistent with the recovered original 0x70-byte record layout. The first package holds
 8,720 bytes of `nav_monkey.nav` with 174 records and 2,048 bytes
 of `nav_enemy.nav` with 30 records. Its extracted original
 source files were examined privately, not added to GitHub.
