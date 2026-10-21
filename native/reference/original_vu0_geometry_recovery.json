@@ -1,0 +1,36 @@
+{
+  "format": "ae3/original-vu0-geometry-source-recovery/v1",
+  "source_elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "original_source_methods_or_chains": [
+    "0x21b468",
+    "0x21b788",
+    "0x21b194",
+    "0x21b210",
+    "0x21b234",
+    "0x21d950",
+    "0x21d9fc",
+    "0x21da98",
+    "0x21d898",
+    "0x21da2c"
+  ],
+  "code_sha_regions": 6,
+  "covered_original_instructions": 169,
+  "original_direct_call_sites": 7,
+  "native_paths": [
+    "mean_four_lanes",
+    "packed_MMI_VOP_cross_plane_test",
+    "VU0_XYZ_distance",
+    "consecutive_polyline_distance",
+    "grid_hit_nearest",
+    "full_registry_nearest"
+  ],
+  "original_game_data_produced_by_native_engine": false,
+  "local_validation": "Optimized C++20 unit test and UBSan passed against actual spatial selector source; 169 original source MIPS instruction audit passed.",
+  "known_limitations": [
+    "PS2 bit-level float behavior not fully modeled",
+    "zero-count original DIV.S not reconstructed",
+    "original live polygon ownership/query-vector source not integrated",
+    "render/engine loop not reconstructed",
+    "native Windows game not bootable"
+  ]
+}
