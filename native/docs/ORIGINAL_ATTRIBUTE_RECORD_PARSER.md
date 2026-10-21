@@ -86,6 +86,15 @@ ELF; the native test passes Release, Clang, ASan and UBSan.
 These 97 source words are within the 406 verified above,
 not an additional disjoint region.
 
+## Original +0x20 count and +0x24 stride accessors
+
+The original 0x2BB0D0 getter reads owner+0x20 as the count, while
+0x2BB0F4 reads owner+0x24 as the record stride and +0x04 as the
+rebased source pointer. The original 32-bit MULT and ADDU return
+`base + index * stride`, modulo 2^32. See
+`ORIGINAL_ATTRIBUTE_RECORD_INDEX.md` for its verified native
+mathematical recovery, bounded host accessor and tests.
+
 ## Unfinished original behavior
 
 Upstream 0x2BA3AC line filtering and original source-file allocation,
