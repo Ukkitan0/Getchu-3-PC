@@ -3,6 +3,7 @@
 #include "ae3/original_stage_spatial_loader.hpp"
 #include "ae3/original_nav_type1_route.hpp"
 #include "ae3/original_nav_graph_search.hpp"
+#include "ae3/original_nav_query_selection.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <span>
