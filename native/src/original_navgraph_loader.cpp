@@ -1,4 +1,5 @@
 #include "ae3/original_navgraph_loader.hpp"
+#include "ae3/original_nav_source_refs.hpp"
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
@@ -98,7 +99,12 @@ OriginalStageSpatialLoaded originalNavLoadGraph_4f0a5c(
     // 0x21D46C is source-translated by original_stage_spatial_loader.cpp.
     std::span<const std::uint8_t> bytes(src.originalNavBytes);
     const auto raw=std::as_bytes(bytes);
-    return originalStageBuildSourceSpatial_21d46c(
-        {originalVA,raw,ownerVA});
+    OriginalStageSpatialSource originalSource{originalVA,raw,ownerVA};
+    auto originalGraph=originalStageBuildSourceSpatial_21d46c(originalSource);
+    // Original 0x21D6DC resolves type-2 source table pointers directly
+    // into record+0x10+4*actionIndex. Type-1 child allocations remain
+    // unported and are retained in pendingOriginalActions.
+    (void)originalNavResolveType2_21d6dc(originalSource,originalGraph);
+    return originalGraph;
 }
 } // namespace ae3
