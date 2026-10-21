@@ -1,7 +1,7 @@
 {
   "format": "ae3/original-action-runtime-recovery-2026-10-20",
   "original_elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
-  "verified_exact_MIPS_instructions": 71,
+  "verified_exact_MIPS_instructions": 85,
   "verified_original_J_and_JAL_calls": 11,
   "original_function_entries_reconstructed": [
     "0x3168ac",
@@ -16,11 +16,13 @@
     "0x3103f0",
     "0x276274",
     "0x2762bc",
-    "0x276580"
+    "0x276580",
+    "0x221644",
+    "0x221650",
+    "0x221668"
   ],
   "related_original_dependency_windows": 16,
   "original_routines_requiring_native_callees": [
-    "0x221644",
     "0x21d898",
     "0x5638f4",
     "0x165220",
@@ -30,5 +32,5 @@
     "factory virtual[2]",
     "candidate virtual[11]"
   ],
-  "status": "Native control-flow C++ and tests passed locally with optimized and UBSan; original data/runtime and Windows gameplay unverified; no Actions triggered"
+  "status": "16 source-level routines/decision paths translated; 85 exact retail opcodes verified; optimized C++20 and UBSan local tests passed. Original game not booted; CI not triggered."
 }

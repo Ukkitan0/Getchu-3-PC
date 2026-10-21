@@ -62,3 +62,25 @@ guard/call order. Synthetic objects exist **only in unit tests**.
 calls; real animation math, Player and Monkey main update loops,
 asset/render game initialization, or actual Windows gameplay.
 Windows CI was not triggered.
+
+## Completed original global factory functions
+
+This pass also translated **three complete original functions**
+which manage the game's original singleton pointer at `0x647BD0`:
+
+- `0x221644`: return the saved original factory pointer
+- `0x221650`: assign the pointer, including null (the ELF branches to a
+  distinct null store)
+- `0x221668`: compare the pointer against the original global and
+  return exact identity equality
+
+The native `0x57BA00` manager now retrieves this actual reconstructed
+singleton; it does not ask a mock callback to fabricate one. If the
+original factory is uninitialized, it **fails visibly**, rather than
+inventing a success or dereferencing null.
+
+Regression tests cover get/set/clear/identity, the missing original
+factory failure, and the previously recovered manager branches. The
+original retail ELF audit now pins **85 exact instructions**.
+The factory's virtual methods and its original initialization sequence
+remain the next dependency.

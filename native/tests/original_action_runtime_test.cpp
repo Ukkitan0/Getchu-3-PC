@@ -8,7 +8,6 @@ static void require(bool b){if(!b)throw std::runtime_error("Original retail acti
 struct Calls final:OriginalActionRuntimeCalls {
   std::vector<std::string> calls;
   bool firstPresent=false,secondPresent=false,giveCandidate=true,acceptCandidate=true;
-  void* call_221644()override{calls.emplace_back("221644");return this;}
   void* call_factory_virtual2(void* factory,OriginalManagerSlot& slot)override{
     require(factory==this);calls.emplace_back("factory_v2");
     if(slot.key00==1)return firstPresent?this:nullptr;
@@ -29,6 +28,11 @@ struct Calls final:OriginalActionRuntimeCalls {
 };
 int main(){
   OriginalActionFields a{};OriginalActionChildFields child{};OriginalActionManagers managers{};Calls c;
+  require(originalFactoryGet_221644(managers.factory_647bd0)==nullptr);
+  originalFactorySet_221650(managers.factory_647bd0,&c);
+  require(originalFactoryGet_221644(managers.factory_647bd0)==&c);
+  require(originalFactoryIs_221668(managers.factory_647bd0,&c));
+  require(!originalFactoryIs_221668(managers.factory_647bd0,nullptr));
   child.status45=0xf5;child.value48=0xaabbccdd;
   require(originalActionReadStatus_3168ac(child)==0xf5);
   require(originalActionReadValue_3168b8(child)==0xaabbccdd);
@@ -45,30 +49,38 @@ int main(){
   child.status45=1;
   managers.at_696ca0.key00=1;managers.at_696cd0.key00=2;
   require(!originalActionReady_3102f0(a,child,managers,c));
-  require(c.calls==std::vector<std::string>({"221644","factory_v2","221644","factory_v2"}));
+  require(c.calls==std::vector<std::string>({"factory_v2","factory_v2"}));
   require(managers.at_696ca0.initialized05&&managers.at_696cd0.initialized05);
   c.calls.clear();c.secondPresent=true;
   // These are one-time original managers. No invented automatic reinitialization.
   require(!originalActionReady_3102f0(a,child,managers,c)&&c.calls.empty());
   managers.at_696cd0.initialized05=0;
   require(originalActionReady_3102f0(a,child,managers,c));
-  require(c.calls==std::vector<std::string>({"221644","factory_v2","candidate_v11","21d898"}));
+  require(c.calls==std::vector<std::string>({"factory_v2","candidate_v11","21d898"}));
   c.calls.clear();c.firstPresent=true;
   managers.at_696ca0.initialized05=0;
   require(originalActionManagerReady_316fd0(managers,c));
-  require(c.calls==std::vector<std::string>({"221644","factory_v2","candidate_v11","21d898"}));
+  require(c.calls==std::vector<std::string>({"factory_v2","candidate_v11","21d898"}));
   c.calls.clear();
   OriginalManagerSlot disabled{};disabled.disabled04=1;disabled.instanceAt08=&c;
-  originalManagerInitialize_57ba00(disabled,c);
+  originalManagerInitialize_57ba00(disabled,managers.factory_647bd0,c);
   require(disabled.initialized05&&!disabled.instanceAt08&&c.calls.empty());
   disabled.instanceAt08=&c;
-  originalManagerInitialize_57ba00(disabled,c);
+  originalManagerInitialize_57ba00(disabled,managers.factory_647bd0,c);
   require(disabled.instanceAt08==&c&&c.calls.empty());
   c.acceptCandidate=false;OriginalManagerSlot denied{};
-  originalManagerInitialize_57ba00(denied,c);
+  originalManagerInitialize_57ba00(denied,managers.factory_647bd0,c);
   require(!denied.instanceAt08&&denied.initialized05);
-  require(c.calls==std::vector<std::string>({"221644","factory_v2","candidate_v11"}));
+  require(c.calls==std::vector<std::string>({"factory_v2","candidate_v11"}));
   c.calls.clear();c.acceptCandidate=true;
+  OriginalFactoryGlobal missing{};OriginalManagerSlot pending{};
+  bool missingRaised=false;
+  try{originalManagerInitialize_57ba00(pending,missing,c);}
+  catch(const std::runtime_error&){missingRaised=true;}
+  require(missingRaised);
+  originalFactorySet_221650(managers.factory_647bd0,nullptr);
+  require(originalFactoryGet_221644(managers.factory_647bd0)==nullptr);
+  originalFactorySet_221650(managers.factory_647bd0,&c);
   require(!originalActionThreeFlags_310358(a));
   a.word34=1;a.word30=1;
   require(originalActionThreeFlags_310358(a));

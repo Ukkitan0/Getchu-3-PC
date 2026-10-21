@@ -1,6 +1,7 @@
 #include "ae3/original_action_runtime.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 
 namespace ae3 {
 std::uint8_t originalActionReadStatus_3168ac(const OriginalActionChildFields& o) noexcept {
@@ -15,7 +16,12 @@ void originalActionWriteWord_3168c4(OriginalActionChildFields& o,std::uint32_t w
   // 3168C4 LW parent+0; 3168CC SW arg to owned +0x0C.
   o.word0c=word;
 }
-void originalManagerInitialize_57ba00(OriginalManagerSlot& slot,OriginalActionRuntimeCalls& b){
+void* originalFactoryGet_221644(const OriginalFactoryGlobal& g) noexcept{return g.factoryAt_647bd0;}
+void originalFactorySet_221650(OriginalFactoryGlobal& g,void* ptr) noexcept{g.factoryAt_647bd0=ptr;}
+bool originalFactoryIs_221668(const OriginalFactoryGlobal& g,const void* ptr) noexcept{
+  return g.factoryAt_647bd0==ptr;
+}
+void originalManagerInitialize_57ba00(OriginalManagerSlot& slot,const OriginalFactoryGlobal& global,OriginalActionRuntimeCalls& b){
   // 57BA0C: flag+5 is one-time initialization guard.
   if(slot.initialized05)return;
   // 57BA1C clears slot+8 before checking disabled+4.
@@ -24,7 +30,8 @@ void originalManagerInitialize_57ba00(OriginalManagerSlot& slot,OriginalActionRu
   if(slot.disabled04)return;
   // Original factory acquisition, virtual slot 2 and candidate virtual
   // slot 11: their real engine dependencies must be reconstructed.
-  void* factory=b.call_221644();
+  void* factory=originalFactoryGet_221644(global);
+  if(!factory)throw std::runtime_error("Original 0x57BA00 requires the real factory-global state 0x647BD0");
   void* candidate=b.call_factory_virtual2(factory,slot);
   if(!candidate)return;
   if(!b.call_candidate_virtual11(candidate,slot))return;
@@ -32,10 +39,10 @@ void originalManagerInitialize_57ba00(OriginalManagerSlot& slot,OriginalActionRu
 }
 bool originalActionManagerReady_316fd0(OriginalActionManagers& managers,OriginalActionRuntimeCalls& b){
   // 316FEC initializes first original manager and reads slot+8.
-  originalManagerInitialize_57ba00(managers.at_696ca0,b);
+  originalManagerInitialize_57ba00(managers.at_696ca0,managers.factory_647bd0,b);
   if(managers.at_696ca0.instanceAt08)return true;
   // 317008 initializes the second manager ONLY if the first is absent.
-  originalManagerInitialize_57ba00(managers.at_696cd0,b);
+  originalManagerInitialize_57ba00(managers.at_696cd0,managers.factory_647bd0,b);
   return managers.at_696cd0.instanceAt08!=nullptr;
 }
 bool originalActionReady_3102f0(const OriginalActionFields& o,const OriginalActionChildFields& child,

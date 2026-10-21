@@ -29,7 +29,13 @@ struct OriginalManagerSlot {
   void* instanceAt08=nullptr;
   // Game fields at +0x10 and +0x20 are still being reconstructed.
 };
+// Original compiled engine global pointer 0x647BD0.
+struct OriginalFactoryGlobal {void* factoryAt_647bd0=nullptr;};
+void* originalFactoryGet_221644(const OriginalFactoryGlobal&) noexcept;
+void originalFactorySet_221650(OriginalFactoryGlobal&,void*) noexcept;
+bool originalFactoryIs_221668(const OriginalFactoryGlobal&,const void*) noexcept;
 struct OriginalActionManagers {
+  OriginalFactoryGlobal factory_647bd0{};
   OriginalManagerSlot at_696ca0{};
   OriginalManagerSlot at_696cd0{};
 };
@@ -37,7 +43,6 @@ class OriginalActionRuntimeCalls {
 public:
   virtual ~OriginalActionRuntimeCalls()=default;
   // Actual original callees and virtual slots, not fake success values.
-  virtual void* call_221644()=0;
   virtual void* call_factory_virtual2(void* factory,OriginalManagerSlot&)=0;
   virtual bool call_candidate_virtual11(void* candidate,OriginalManagerSlot&)=0;
   virtual void* call_21d898()=0;
@@ -51,7 +56,7 @@ public:
 std::uint8_t originalActionReadStatus_3168ac(const OriginalActionChildFields&) noexcept;
 std::uint32_t originalActionReadValue_3168b8(const OriginalActionChildFields&) noexcept;
 void originalActionWriteWord_3168c4(OriginalActionChildFields&,std::uint32_t) noexcept;
-void originalManagerInitialize_57ba00(OriginalManagerSlot&,OriginalActionRuntimeCalls&);
+void originalManagerInitialize_57ba00(OriginalManagerSlot&,const OriginalFactoryGlobal&,OriginalActionRuntimeCalls&);
 bool originalActionManagerReady_316fd0(OriginalActionManagers&,OriginalActionRuntimeCalls&);
 bool originalActionReady_3102f0(const OriginalActionFields&,const OriginalActionChildFields&,OriginalActionManagers&,OriginalActionRuntimeCalls&);
 bool originalActionThreeFlags_310358(const OriginalActionFields&) noexcept;
