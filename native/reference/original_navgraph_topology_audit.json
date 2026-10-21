@@ -1,0 +1,36 @@
+{
+  "format": "ae3/original-navgraph-adjacency-and-traversal/v1",
+  "original_elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "source_code": "native/src/original_navgraph_topology.cpp",
+  "retail_survey": {
+    "original_nav_files": 290,
+    "original_records": 19377,
+    "valid_neighbor_edges": 43639,
+    "invalid_neighbor_edges": 0,
+    "records_zero_degree": 37,
+    "degree_distribution": {
+      "0": 37,
+      "1": 1442,
+      "2": 11497,
+      "3": 6401
+    }
+  },
+  "verified_original_routines": [
+    "0x21b3f8",
+    "0x21b404",
+    "0x21e648",
+    "0x4f0fbc"
+  ],
+  "original_game_stage_nav_group": "navigation",
+  "verified_original_source_regions": 3,
+  "verified_machine_word_coverage": 100,
+  "independent_exact_opcode_anchors": 24,
+  "verified_original_call_edges": 7,
+  "native_tests": "Strict optimized C++20 -Wall -Wextra -Wpedantic -Werror test passed, UBSan test passed, native full retail 290-file original topology audit passed.",
+  "explicit_unrecovered_calls": [
+    "0x21db64 vector/route processing",
+    "live source navigation resource ownership",
+    "Player/Monkey movement and AI"
+  ],
+  "full_native_windows_game_playable": false
+}

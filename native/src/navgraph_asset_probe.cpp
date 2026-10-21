@@ -1,5 +1,7 @@
 #include "ae3/archive.hpp"
 #include "ae3/original_navgraph_loader.hpp"
+#include "ae3/original_navgraph_topology.hpp"
+#include <span>
 #include <cstdint>
 #include <exception>
 #include <filesystem>
@@ -14,7 +16,7 @@ int main(int argc,char** argv) {
     try{
         ae3::Archive game(std::filesystem::u8path(argv[1]));
         const std::string filter=argc>2 ? argv[2] : "";
-        std::uint64_t members=0,records=0;
+        std::uint64_t members=0,records=0,links=0,unlinked=0;
         std::size_t packageCount=0;
         for(const auto& item:game.entries()){
             const std::string_view path(item.path);
@@ -30,17 +32,31 @@ int main(int argc,char** argv) {
                     (std::uint32_t(b[0x25])<<8)|
                     (std::uint32_t(b[0x26])<<16)|
                     (std::uint32_t(b[0x27])<<24);
+                const ae3::OriginalNavGraphTopology graph(
+                    std::as_bytes(std::span(b)));
+                if(graph.size()!=count)
+                    throw std::runtime_error("Original nav adjacency count diverged");
+                std::uint64_t memberLinks=0;
+                for(std::size_t index=0;index<graph.size();index++){
+                    const auto adjacent=graph.links(index);
+                    memberLinks+=adjacent.size();
+                    if(adjacent.empty())++unlinked;
+                }
                 ++members;
                 records+=count;
+                links+=memberLinks;
                 if(!filter.empty())
                     std::cout<<item.path<<"/"<<nav.originalFilename
                              <<" original_slot="<<nav.originalSlot
-                             <<" original_records="<<count<<"\n";
+                             <<" original_records="<<count
+                             <<" source_neighbor_links="<<memberLinks<<"\n";
             }
         }
         std::cout<<"Original retail navigation packages: "<<packageCount<<"\n"
                  <<"Original retail .nav members: "<<members<<"\n"
                  <<"Original navigation record headers: "<<records<<"\n"
+                 <<"Validated original neighbor indices: "<<links<<"\n"
+                 <<"Zero-link original records: "<<unlinked<<"\n"
                  <<"Native archive parsing only; gameplay not booted.\n";
         return packageCount?0:1;
     }catch(const std::exception& err){
