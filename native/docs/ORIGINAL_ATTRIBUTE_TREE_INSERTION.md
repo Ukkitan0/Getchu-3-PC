@@ -68,6 +68,30 @@ ASan+UBSan passed in local isolated builds with the actual committed
 attribute lookup/string header APIs. The full repository CMake build,
 Windows game build and retail runtime differential were not run.
 
+## Recovered upstream attribute binding at 0x2BA9C0
+
+Tracing into the original attribute parser at 0x2BA8D0..0x2BA9CC
+identified the first concrete source key/value insertion site.
+The caller checks its key against the source tree at 0x2BA8F0 and
+only inserts the key through 0x5415E4 if it is absent. However,
+**0x2BA9C0 unconditionally writes the parsed value word to node+0x14**
+on both existing-key and new-key paths. This matters: the regular
+original 0x541DAC unique insert leaves the original keyed word alone,
+while a later parsed attribute **overwrites** that value in the map.
+
+`originalBindParsed_2ba9c0` now reproduces that distinct source
+operation using the same native red/black tree. Regression tests
+verify duplicate values are overwritten without creating extra nodes
+and that the new offset affects the original audio descriptor's
+`volume_scale` immediately.
+
+`verify_original_attribute_tree_population.py` pins the private
+original 63-instruction parser window and checks 19 exact opcode
+anchors, seven call edges, the source branch targets, the original
+source-node value write, and the always-executed assignment. It passed
+against the original ELF. The serialized input format and memory
+ownership further upstream of this routine remain unported.
+
 ## Still incomplete
 
 What is recovered: the native original tree's construction and lookup

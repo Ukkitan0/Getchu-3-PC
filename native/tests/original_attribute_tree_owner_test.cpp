@@ -41,6 +41,12 @@ int main() {
     ck(owner.originalFind_5419ec("b")==nullptr);
     ck(owner.originalInsertOrFind_541dac("m",1234)==m);
     ck(m->sourceValueOffset==20 && owner.size()==3);
+    ck(owner.originalBindParsed_2ba9c0("m",88)==m);
+    ck(m->sourceValueOffset==88 && owner.size()==3);
+    ck(owner.originalBindParsed_2ba9c0("brand_new",12345)->sourceValueOffset==12345);
+    ck(owner.originalFind_5419ec("brand_new")->sourceValueOffset==12345);
+    ck(owner.originalInvariantsHold() && owner.size()==4);
+
     owner.clear();
     ck(owner.originalInvariantsHold());
     for(const auto* key : {"a", "z", "m", "y", "b", "c", "x", "j", "l", "k"}){
@@ -80,7 +86,7 @@ int main() {
     auto create=[&](std::string_view key,std::uint32_t offset){
         owner.originalInsertOrFind_541dac(key,offset);
     };
-    create("volume_scale",64);
+    owner.originalBindParsed_2ba9c0("volume_scale",64);
     create("midi",128);
     create("name",256);
     create("vh",360);
@@ -92,6 +98,7 @@ int main() {
     putString(memory,360,"M88.hd");
     putString(memory,448,"EmptyStrings32");
     putString(memory,576,"M88.bd");
+    owner.originalBindParsed_2ba9c0("volume_scale",64); // duplicate original key
     auto desc=originalAudioDescriptorFromDecodedAttributes_1bb9a8(memory,owner.decodedRoot());
     ck(owner.originalInvariantsHold());
     ck(desc.sourceStrings[0]=="level_audio");
@@ -100,6 +107,11 @@ int main() {
     ck(desc.sourceStrings[3]=="M88.bd");
     ck(desc.sourceStrings[4]=="M88.hd");
     ck(desc.volumeScale==0.75f);
+    put32(memory,68,std::bit_cast<std::uint32_t>(2.25f));
+    owner.originalBindParsed_2ba9c0("volume_scale",68); // source overwrites node +0x14
+    desc=originalAudioDescriptorFromDecodedAttributes_1bb9a8(memory,owner.decodedRoot());
+    ck(desc.volumeScale==2.25f);
+
     owner.clear();
     desc=originalAudioDescriptorFromDecodedAttributes_1bb9a8(memory,owner.decodedRoot());
     ck(desc.sourceStrings[0]=="noname" && desc.volumeScale==1.f);

@@ -53,6 +53,24 @@ public:
         originalRebalance_49c26c(inserted);
         return &inserted->decoded;
     }
+    // Original parsed-attribute producer at 0x2BA8F0 searches for an
+    // existing key; 0x2BA994 inserts only if absent. Source 0x2BA9C0
+    // ALWAYS assigns the parsed value word to node+0x14, even when
+    // that key was already present. This differs from plain map insert.
+    const OriginalAttributeKeyNode* originalBindParsed_2ba9c0(
+        std::string_view originalKey,std::uint32_t originalWord) {
+        (void)originalInsertOrFind_541dac(originalKey,originalWord);
+        Node* node=root_;
+        while(node) {
+            const int cmp=originalKey.compare(node->key);
+            if(cmp==0) {
+                node->decoded.sourceValueOffset=originalWord;
+                return &node->decoded;
+            }
+            node=(cmp<0)?node->left:node->right;
+        }
+        throw std::logic_error("Inserted original attribute key could not be found");
+    }
     const OriginalAttributeKeyNode* originalFind_5419ec(std::string_view key) const noexcept {
         return originalAttributeFind_5419ec(decodedRoot(),key);
     }
