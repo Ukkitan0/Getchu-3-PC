@@ -22,7 +22,7 @@ public:
     void originalTeardownRequest_36d844(std::uint32_t va) override {
         ck(va==OriginalNavrangeTeardownTableVA);++teardowns;
     }
-    void originalFinalCleanup_4e3d9c(std::uint32_t va) override {
+    void originalResetDescriptorVtable_4e3d9c(std::uint32_t va) override {
         ck(va==OriginalNavrangeFinalCleanupTableVA);++finalCleanups;
     }
 };

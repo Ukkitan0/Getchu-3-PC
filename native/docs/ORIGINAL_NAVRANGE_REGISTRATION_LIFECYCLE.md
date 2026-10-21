@@ -31,7 +31,7 @@ During shutdown, original 0x21F940:
 2. Checks the original 0x647B90 global and, when non-null,
    invokes 0x36D5A8 to destroy the map and 0x41A3B0 to free it.
 3. Clears 0x647B90.
-4. Invokes 0x4E3D9C with final descriptor **0x6AE278**.
+4. Invokes 0x4E3D9C with final descriptor **0x6AE278**. This function **only resets the descriptor object's vtable to 0x6AE290**; it does not free that descriptor. The map is destroyed separately.
 
 The shutdown descriptors also contain original function addresses.
 They are identifiers/data, not valid pointers to call in the native host.
@@ -44,11 +44,11 @@ the already implemented keyed navigation registry, invokes the
 existing source-derived original `F20` polygon eligibility when a
 resource is delivered, and clears the group owners during teardown.
 It keeps the source ordering: owner created before callback installation,
-dispatcher teardown request before map deletion, and final cleanup
+dispatcher teardown request before map deletion, and descriptor vtable reset
 after the owner global is logically cleared.
 
-The two as-yet-unrecovered generic registration operations and final
-cleanup are **required event hooks**, supplied by a future
+The two as-yet-unrecovered generic registration operations and descriptor
+vtable reset are **required event hooks**, supplied by a future
 original stage/asset manager implementation. The class does not
 pretend that the game resource loader is implemented or invent a
 replacement. The source method descriptors are constants and

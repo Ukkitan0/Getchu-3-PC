@@ -35,7 +35,8 @@ public:
         std::uint32_t originalDescriptorVA)=0;
     virtual void originalTeardownRequest_36d844(
         std::uint32_t originalDescriptorVA)=0;
-    virtual void originalFinalCleanup_4e3d9c(
+    // Original 0x4E3D9C resets a vtable; storage release is elsewhere.
+    virtual void originalResetDescriptorVtable_4e3d9c(
         std::uint32_t originalDescriptorVA)=0;
 };
 
@@ -66,7 +67,7 @@ public:
         owner_.originalClear_4e3fec();
         active_=false;
         // 0x21F998 executes after the original global was cleared.
-        events.originalFinalCleanup_4e3d9c(OriginalNavrangeFinalCleanupTableVA);
+        events.originalResetDescriptorVtable_4e3d9c(OriginalNavrangeFinalCleanupTableVA);
     }
     bool active() const noexcept {return active_;}
     OriginalNavGroupRegistry& originalRegistry() noexcept {return owner_;}
