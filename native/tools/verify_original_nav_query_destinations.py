@@ -8,6 +8,9 @@ WINDOWS={(0x220924,0x220994):'ae89128db77bbec8a18ff7b581e65b46e47e8cd880d1448376
  (0x220f60,0x221030):'ce1ecf130e36912ca0b8318dd39477c90f406a1988c86adf4a6c1839b9f7a63a',
  (0x221030,0x221104):'026285e6343cbeec99f543d4bdf61800b9a9ff6c806b337569c933780fef675e'}
 ANCHORS={
+0x220800:0x700694a9,0x220810:0x7008a4a9,
+0x220818:0x0120b02d,0x2208b8:0x70142ca9,
+0x220934:0x70142ca9,
 0x220924:0x0c0883d8,0x220938:0x0c08840c,
 0x220f7c:0x8c8f000c,0x220f80:0x19e00023,
 0x220f90:0xc5f447ec,0x220fa0:0x240f0038,
@@ -65,7 +68,7 @@ def audit(elf,nav):
   'opcodes':len(ANCHORS),'JAL_edges':len(CALLS),'branches':len(BRANCHES),
   'source_nearest':'0x220F60 first minimum XYZ distance',
   'source_farthest':'0x221030 first maximum XYZ distance',
-  'mode_0':'farthest','mode_1':'nearest','other_mode':'provided search index',
+  'mode_0':'farthest','mode_1':'nearest','other_mode':'separate original $8 search index (or -1)',
   'retail_nav_polygons':count,'playable_windows_game':False}
 if __name__=='__main__':
  p=argparse.ArgumentParser(description=__doc__)

@@ -48,17 +48,25 @@ int main(){
  check(near.selectedEndpoint==0&&near.forwardPath.size()==1,"Original nearest mode");
  query.routeMode=2;
  const auto none=originalNavRouteDispatch_2207d0(records,nav,query);
- check(none.selectedEndpoint==-1&&none.forwardPath.empty(),"Original unsupported mode must pass -1");
+ check(none.selectedEndpoint==-1&&none.forwardPath.empty(),"Original unset $8 must pass -1");
+ query.explicitDestinationSearchIndex=2;
+ const auto explicitRoute=originalNavRouteDispatch_2207d0(records,nav,query);
+ check(explicitRoute.selectedEndpoint==2&&explicitRoute.forwardPath.size()==3&&
+       explicitRoute.forwardPath.back()==&records[2],"Original independent $8 index");
+ query.explicitDestinationSearchIndex=99;
+ bool badDestination=false;
+ try{(void)originalNavRouteDispatch_2207d0(records,nav,query);}
+ catch(const std::out_of_range&){badDestination=true;}
+ check(badDestination,"Original explicit index bounds");
+ query.explicitDestinationSearchIndex=-1;
  const std::array<const OriginalSpatialRecord70*,1> filter{{&records[0]}};
- const std::array<const OriginalSpatialRecord70*,2> fallback{{&records[3],&records[2]}};
  query.sourceMembershipListExists=true;
  query.orderedOriginalMembershipList=filter;
- query.orderedOriginalFallbackList=fallback;
- query.originalMembershipCandidate=&records[0];
  query.routeMode=0;
  const auto kept=originalNavRouteDispatch_2207d0(records,nav,query);
  check(!kept.fallbackUsed&&kept.originalAdmittedRecordIndices.size()==1,"Original membership filter");
- query.originalMembershipCandidate=&records[4];
+ const std::array<const OriginalSpatialRecord70*,2> fallbackMembers{{&records[3],&records[2]}};
+ query.orderedOriginalMembershipList=fallbackMembers; // original seed 0 is not in list
  const auto alternate=originalNavRouteDispatch_2207d0(records,nav,query);
  check(alternate.fallbackUsed&&alternate.fallbackPolygon==&records[2],"Original fallback list nearest");
  check(alternate.selectedEndpoint==2&&alternate.forwardPath.size()==3,"Original fallback nearest endpoint");
@@ -67,7 +75,7 @@ int main(){
  check(originalNavListNearest_4e3dec(records,nav,ties,{5,0,0,0})==&records[2],
        "Original linked-list strict tie must keep first");
  check(originalNavListNearest_4e3dec(records,nav,{},{0,0,0,0})==nullptr,"Original empty list");
- query.orderedOriginalFallbackList={};
+ query.orderedOriginalMembershipList={};
  bool caught=false;
  try{(void)originalNavRouteDispatch_2207d0(records,nav,query);}
  catch(const std::runtime_error&){caught=true;}

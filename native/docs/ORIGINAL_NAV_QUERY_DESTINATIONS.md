@@ -30,15 +30,15 @@ initializes the best to `-FLT_MAX` (original `NEG.S` at
 returns the *farthest* selected search-node index, again keeping the
 first node for ties.
 
-Original caller `0x2208A8` selects its output behavior:
+Original caller `0x2208A8` selects output behavior using mode $9 and a separate index $8:
 
 | Source output mode | Source function | Result |
 |---|---|---|
 | 0 | `0x221030` | Farthest polygon centroid |
 | 1 | `0x220F60` | Nearest polygon centroid |
-| Other | direct index | Supplied search-node index |
+| Other | direct index | Separate original $8 search-node index; -1 means no route |
 
-The resulting index is processed by the original `0x220994` path
+Unlike modes 0 and 1, every other mode forwards independent $8 to `0x220994`; the numeric mode itself is never used as an index. The resulting index is processed by the original `0x220994` path
 backtracker, recovered in the preceding pass.
 
 ## Native integration
@@ -86,8 +86,7 @@ source test uses the user-provided original file at the
 ## Remaining original game code
 
 The NavGraph query can now choose and reconstruct a route natively,
-but does not move a real game character. Live engine-side
-`0x21F89C` spatial eligibility, game object / actor ownership,
+but does not move a real game character. Live owner-list binding for recovered `0x21F89C` membership eligibility, game object / actor ownership,
 original actor AI/movement consumers, stage renderer, Lua scripts,
 and native Windows game boot are not yet reconstructed.
 

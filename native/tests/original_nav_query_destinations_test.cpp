@@ -40,13 +40,19 @@ int main(int argc,char**argv){
  ck(originalNavFarthestQueryNode_221030(sample,origin)==1);
  ck(originalNavDestinationForMode_2208a8(sample,origin,0)==1);
  ck(originalNavDestinationForMode_2208a8(sample,origin,1)==0);
- ck(originalNavDestinationForMode_2208a8(sample,origin,3)==3);
+ ck(originalNavDestinationForMode_2208a8(sample,origin,3)==-1);
+ ck(originalNavDestinationForMode_2208a8(sample,origin,2,3)==3);
+ ck(originalNavDestinationForMode_2208a8(sample,origin,99,1)==1);
  ck(originalNavDestinationPath_2208a8(sample,origin,0)==std::vector<std::uint32_t>({0,1}));
  ck(originalNavDestinationPath_2208a8(sample,origin,1)==std::vector<std::uint32_t>({0}));
+ ck(originalNavDestinationPath_2208a8(sample,origin,2).empty());
+ ck(originalNavDestinationPath_2208a8(sample,origin,2,3)==std::vector<std::uint32_t>({0,3}));
  ck(originalNavNearestQueryNode_220f60({},origin)==-1);
  ck(originalNavFarthestQueryNode_221030({},origin)==-1);
  ck(originalNavDestinationPath_2208a8({},origin,1).empty());
- bool failed=false;try{(void)originalNavDestinationForMode_2208a8(sample,origin,99);}catch(const std::out_of_range&){failed=true;}
+ bool failed=false;try{(void)originalNavDestinationForMode_2208a8(sample,origin,99,99);}catch(const std::out_of_range&){failed=true;}
+ ck(failed);
+ failed=false;try{(void)originalNavDestinationForMode_2208a8(sample,origin,2,-2);}catch(const std::out_of_range&){failed=true;}
  ck(failed);
  if(argc==2){
   std::ifstream file(argv[1],std::ios::binary);ck(bool(file));

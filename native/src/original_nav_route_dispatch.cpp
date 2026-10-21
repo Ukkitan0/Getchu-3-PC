@@ -53,18 +53,19 @@ OriginalNavDispatchResult originalNavRouteDispatch_2207d0(
  OriginalNavRouteSplineCalls* spline){
  if(req.sourceSeedIndex>=records.size())
   throw std::out_of_range("Original route seed outside source graph");
- // Original 0x220860 null source $7 bypasses 0x21F89C.
- const bool normal=!req.originalMembershipCandidate||
-  originalNavMembership_4e3dac(req.originalMembershipCandidate,
+ // Original $7 is owner, not candidate. 0x220870 passes seed ($5)
+ // to 0x21F89C, which reads owner+4 and calls 0x4E3DAC.
+ const bool normal=!req.sourceMembershipListExists||
+  originalNavMembership_4e3dac(&records[req.sourceSeedIndex],
                                 req.orderedOriginalMembershipList);
  OriginalNavDispatchResult result;
  result.fallbackUsed=!normal;
  OriginalVU0Vec4 reference=req.originalReference;
  if(!normal){
-  // 0x21F8B8 reads graph+8 owner's separate circular list;
+  // 0x21F8B8 reads graph+8: the SAME $7 owner stored at 0x22085C;
   // 0x4E3DEC chooses first strict-nearest polygon.
   result.fallbackPolygon=originalNavListNearest_4e3dec(
-   records,nav,req.orderedOriginalFallbackList,req.originalReference);
+   records,nav,req.orderedOriginalMembershipList,req.originalReference);
   if(!result.fallbackPolygon)
    throw std::runtime_error("Original route fallback linked list is unresolved/empty");
   reference=centroid(records,nav,result.fallbackPolygon);
@@ -75,7 +76,7 @@ OriginalNavDispatchResult originalNavRouteDispatch_2207d0(
  admission.maximumDistance=req.maximumDistance;
  // 0x220888 a3=1 normal, 0x220960 a3=0 fallback;
  // original 0x220B00 also requires the $7 pointer at work+8.
- admission.filterEnabled=normal && req.originalMembershipCandidate!=nullptr;
+ admission.filterEnabled=normal && req.sourceMembershipListExists;
  admission.originalFilterListExists=req.sourceMembershipListExists;
  admission.originalFilterList=req.orderedOriginalMembershipList;
  OriginalNavEpochState epoch;
@@ -90,6 +91,14 @@ OriginalNavDispatchResult originalNavRouteDispatch_2207d0(
    result.selectedEndpoint=originalNavRouteNearest_220f60(workspace,reference);
   else if(req.routeMode==0)
    result.selectedEndpoint=originalNavRouteFarthest_221030(workspace,reference);
+  else {
+   // 0x2208B8: independent $8 search index, -1 is no-route.
+   if(req.explicitDestinationSearchIndex < -1 ||
+      (req.explicitDestinationSearchIndex >= 0 &&
+       std::size_t(req.explicitDestinationSearchIndex)>=workspace.nodes.size()))
+    throw std::out_of_range("Original explicit route search index out of range");
+   result.selectedEndpoint=req.explicitDestinationSearchIndex;
+  }
   result.forwardPath=originalNavRouteExtract_220994(workspace,result.selectedEndpoint);
  }
  return result;

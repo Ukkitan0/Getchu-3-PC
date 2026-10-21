@@ -108,14 +108,12 @@ std::size_t originalNavPopulateList_21f6d4(
 OriginalNavDispatchResult originalNavRouteDispatchOwned_2207d0(
     std::span<const OriginalSpatialRecord70> records,std::span<const std::byte> nav,
     OriginalNavDispatchRequest request,const OriginalNavListOwner& member,
-    const OriginalNavListOwner& fallback,OriginalNavRouteSplineCalls* spline){
-    if(!member.originalList()||!fallback.originalList())
+    OriginalNavRouteSplineCalls* spline){
+    if(!member.originalList())
         throw std::logic_error("Original NavGraph ownership not initialized");
     const auto orderedMembers=member.originalList()->originalOrderedValues();
-    const auto orderedFallback=fallback.originalList()->originalOrderedValues();
     request.sourceMembershipListExists=true;
     request.orderedOriginalMembershipList=orderedMembers;
-    request.orderedOriginalFallbackList=orderedFallback;
     return originalNavRouteDispatch_2207d0(records,nav,request,spline);
 }
 } // namespace ae3

@@ -54,12 +54,11 @@ int main(){
     ck(fallback.originalList()->originalInsertUnique_21f82c(&records[3]),"fallback insertion");
     ck(fallback.originalList()->originalInsertUnique_21f82c(&records[2]),"fallback prepend");
     OriginalNavDispatchRequest query{};
-    query.sourceSeedIndex=0;query.maximumDistance=10;query.routeMode=0;
-    query.originalMembershipCandidate=&records[1];
+    query.sourceSeedIndex=1;query.maximumDistance=10;query.routeMode=0;
     query.originalReference={1.5f,0,0,0};
-    const auto result=originalNavRouteDispatchOwned_2207d0(records,data,query,membership,fallback);
+    const auto result=originalNavRouteDispatchOwned_2207d0(records,data,query,membership);
     ck(result.fallbackUsed,"original owner list membership fallback not detected");
-    ck(result.fallbackPolygon==&records[2],"original owner fallback nearest based on source order");
+    ck(result.fallbackPolygon==&records[2],"original same-owner fallback nearest based on source order");
     ck(result.selectedEndpoint>=0,"original owner dispatcher produced no endpoint");
     membership.originalDispose_21f64c();
     ck(!membership.originalList(),"original 0x21F64C owner retained destroyed sentinel");

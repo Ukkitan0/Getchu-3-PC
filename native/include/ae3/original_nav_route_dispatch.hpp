@@ -12,18 +12,19 @@ const OriginalSpatialRecord70* originalNavListNearest_4e3dec(
  std::span<const std::byte> originalNavBytes,
  std::span<const OriginalSpatialRecord70* const> orderedOriginalList,
  const OriginalVU0Vec4& reference);
-// Original 0x2207D0: null $7 goes directly to normal processing;
-// a non-member $7 triggers 0x21F8B8 -> 0x4E3DEC fallback.
+// Original 0x2207D0: $7 is the optional list owner, $5 the seed
+// polygon, $8 the explicit search index, and $9 the route mode.
+// Seed outside $7's list invokes 0x21F8B8 / 0x4E3DEC fallback.
+// Original context+8 stores that same owner.
 struct OriginalNavDispatchRequest {
  std::uint32_t sourceSeedIndex=0; // original $5 remains the seed in fallback
  OriginalVU0Vec4 originalReference{};
  float maximumDistance=0;       // original F12
- std::uint32_t routeMode=1;     // 0 farthest, 1 nearest, else no endpoint
- const OriginalSpatialRecord70* originalMembershipCandidate=nullptr;
- bool sourceMembershipListExists=false;
+ std::uint32_t routeMode=1;     // original $9: 0 farthest, 1 nearest, else $8
+ std::int32_t explicitDestinationSearchIndex=-1; // original $8
+ bool sourceMembershipListExists=false; // original $7 owner non-null
  std::span<const OriginalSpatialRecord70* const> orderedOriginalMembershipList;
- // Original fallback comes from graph+8, not necessarily the $7 list.
- std::span<const OriginalSpatialRecord70* const> orderedOriginalFallbackList;
+ // 0x22085C writes $7 into context+8; fallback reads that same owner.
 };
 struct OriginalNavDispatchResult {
  bool fallbackUsed=false;

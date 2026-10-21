@@ -36,20 +36,24 @@ inline std::int32_t originalNavFarthestQueryNode_221030(
 }
 // The original 0x2208A8 and 0x2208B4 switch on output mode:
 //   0 -> 0x221030 farthest; 1 -> 0x220F60 nearest;
-//   other -> caller-provided search index to original 0x220994.
+//   other -> separate caller-provided original $8 search index to 0x220994.
 inline std::int32_t originalNavDestinationForMode_2208a8(
     std::span<const OriginalNavSearchNode_220c00> nodes,
-    const OriginalVU0Vec4& point,std::int32_t originalMode) {
+    const OriginalVU0Vec4& point,std::int32_t originalMode,
+    std::int32_t explicitSearchIndex=-1) {
     if(originalMode==0)return originalNavFarthestQueryNode_221030(nodes,point);
     if(originalMode==1)return originalNavNearestQueryNode_220f60(nodes,point);
-    if(originalMode<0 || std::size_t(originalMode)>=nodes.size())
-        throw std::out_of_range("Original navigation output search index invalid");
-    return originalMode;
+    // Source 0x2208B8 passes independent $8, not mode $9.
+    if(explicitSearchIndex==-1)return -1;
+    if(explicitSearchIndex<0 || std::size_t(explicitSearchIndex)>=nodes.size())
+        throw std::out_of_range("Original navigation explicit search index invalid");
+    return explicitSearchIndex;
 }
 inline std::vector<std::uint32_t> originalNavDestinationPath_2208a8(
     std::span<const OriginalNavSearchNode_220c00> nodes,
-    const OriginalVU0Vec4& point,std::int32_t outputMode) {
+    const OriginalVU0Vec4& point,std::int32_t outputMode,
+    std::int32_t explicitSearchIndex=-1) {
     return originalNavExtractPath_220994(nodes,
-        originalNavDestinationForMode_2208a8(nodes,point,outputMode));
+        originalNavDestinationForMode_2208a8(nodes,point,outputMode,explicitSearchIndex));
 }
 } // namespace ae3

@@ -72,6 +72,5 @@ OriginalNavDispatchResult originalNavRouteDispatchOwned_2207d0(
     std::span<const std::byte> originalNavigationFile,
     OriginalNavDispatchRequest request,
     const OriginalNavListOwner& originalMembershipOwner,
-    const OriginalNavListOwner& originalFallbackOwner,
     OriginalNavRouteSplineCalls* unresolvedSpline=nullptr);
 } // namespace ae3

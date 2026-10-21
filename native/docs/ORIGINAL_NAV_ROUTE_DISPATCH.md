@@ -8,21 +8,23 @@ C++20; it does not emulate a PS2 or invent replacement gameplay.
 
 ## 0x2207D0 route modes
 
-Original source calls 0x21F89C membership check when argument $7 is
-nonnull; null $7 proceeds directly to normal route processing.
+Original source $7 is an optional linked-list owner, NOT a polygon.
+`0x22086C` forwards owner $7 and seed polygon $5 into `0x21F89C`,
+which reads owner+4 and calls `0x4E3DAC` for exact pointer membership.
+Null $7 proceeds directly to normal route processing.
 
 Normal route request behavior after original 0x220AA4 selection,
 0x220C00 workspace construction and 0x220D5C cost relaxation:
 - Mode 0 invokes 0x221030 and chooses the farthest admitted node.
 - Mode 1 invokes 0x220F60 and chooses the nearest admitted node.
-- Other modes forward original -1 to 0x220994 path extraction,
-  rather than inventing a route destination.
+- Other modes pass independent original $8 search index to 0x220994
+  (-1 means no route). The mode value is held separately in $9.
 
 Fallback behavior when the original membership candidate is absent
 from its filter list:
-- Original 0x220948 loads graph+0x8 as a **separate linked-list
-  owner**. Wrapper 0x21F8B8 reads that owner's list and tailcalls
-  0x4E3DEC.
+- Original 0x22085C stores incoming $7 owner into context+0x8,
+  and 0x220948 reads **the same owner**. Wrapper 0x21F8B8 then
+  reads its list and tailcalls 0x4E3DEC.
 - 0x4E3DEC traverses actual ordered members and computes their
   polygon centroid via original 0x21B468, then chooses the first
   strictly nearest member to the source query point, with source
@@ -47,10 +49,10 @@ New source:
 The top-level dispatcher is originalNavRouteDispatch_2207d0.
 The native source-linked-list selector is originalNavListNearest_4e3dec.
 
-Three distinct source pointer/list concepts are deliberately preserved:
-the original membership candidate ($7), the membership filter
-list used in 0x220AA4, and the separately owned fallback source
-list reached from graph+0x8. The original 256-node workspace
+Correct source roles: $5 is the seed polygon, $7 is its optional
+membership-list owner, and context+8 retains the **same $7 owner**
+for fallback. Prior native code incorrectly interpreted $7 as a
+polygon and invented a separately owned fallback membership list. The original 256-node workspace
 bound, strict comparisons and native source polygon identity are
 preserved by previously recovered methods.
 
