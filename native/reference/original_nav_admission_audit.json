@@ -1,0 +1,40 @@
+{
+  "format": "ae3/original-nav-admission-20261020/v1",
+  "retail_elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "native_source": "native/src/original_nav_route_admission.cpp",
+  "original_source_functions": [
+    "0x2207d0",
+    "0x220aa4",
+    "0x21afb8",
+    "0x21b014",
+    "0x21b038",
+    "0x4e3dac",
+    "0x220c00"
+  ],
+  "verified_original_instructions": 250,
+  "verified_original_code_regions": 4,
+  "independent_opcodes": 47,
+  "original_direct_calls": 21,
+  "source_route_node_stride": 56,
+  "original_search_allocation_bytes": 14336,
+  "original_search_max_nodes": 256,
+  "retail_test": {
+    "original_nav_files": 290,
+    "real_polygons": 19377,
+    "empty_source_graphs": 1,
+    "radius_units": 10,
+    "admitted_nodes": 325,
+    "visited_candidates": 779,
+    "over_capacity_graphs": 0,
+    "malformed_graphs": 0
+  },
+  "local_tests": "Strict optimized C++20 and UBSan tests passed; 290 private original .nav route-admission survey passed.",
+  "remaining": [
+    "0x2207d0 fallback via 0x21f8b8",
+    "original full endpoint mode dispatch",
+    "live game filter-list owner binding",
+    "retail Player/Monkey movement updates",
+    "original stage/renderer startup"
+  ],
+  "native_windows_game_playable": false
+}
