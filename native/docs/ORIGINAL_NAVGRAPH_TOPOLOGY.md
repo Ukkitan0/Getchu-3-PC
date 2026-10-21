@@ -84,15 +84,9 @@ data privately, and those two types of evidence are not confused.
 
 ## Essential remaining dependencies
 
-The **`0x21DB64`** function invoked for the selected polygon and
-each neighbor is still an unreconstructed engine routine involving
-additional vector operations and calls. It is represented by an
-explicit `OriginalNavGraphWalkCalls` interface; fake navigation AI,
-synthetic monkey movement and invented pathfinding are not supplied.
+**Corrected after tracing actual original call targets:** 0x21DB64 repeatedly submits navigation vertices to original drawing procedures. The 0x21E648 neighbor traversal is part of this navigation-geometry visualization path, not completed pathfinding or Monkey AI. Actual original shortest-cost route search resides in 0x220C00, 0x220D5C and 0x220994. These source-derived native algorithms are now implemented in original_nav_route_search.cpp, but the game's original 0x220AA4 search-node filtering and the live actor movement/update integration remain incomplete.
 
-Further work needs to recover `0x21DB64`, subsequent navigation route
-decisions, the original stage resource/graph ownership lifecycle,
-Player/Monkey actor updates and genuine rendering/game start.
+Original 0x21DB64 drawing, resource/graph ownership, actor updates and genuine rendering startup still need recovery.
 
 **No playable native Windows retail game build has been established.
 No GitHub Actions or CI workflows were started.**

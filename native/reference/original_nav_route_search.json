@@ -1,0 +1,34 @@
+{
+  "format": "ae3/original-navgraph-route-search-2026-10-20/v1",
+  "original_elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "original_methods": [
+    "0x220994",
+    "0x220c00",
+    "0x220d14",
+    "0x220d5c",
+    "0x220f60",
+    "0x221030"
+  ],
+  "original_search_record_stride": 56,
+  "original_opcode_windows": 6,
+  "original_machine_words": 366,
+  "source_instruction_anchors": 41,
+  "original_direct_call_checks": 11,
+  "retail_nav_files_tested": 290,
+  "retail_nav_records": 19377,
+  "retail_link_entries": 43639,
+  "source_link_type_counts": {
+    "0": 42346,
+    "2": 1293
+  },
+  "unknown_original_source_link_types": 0,
+  "verification": "Local strict optimized C++20, UBSan and full retail 290-file route-search test passed; complete Windows build unverified",
+  "remaining": [
+    "0x220aa4 recursive original route workspace admission",
+    "original type-1 spline owner/accessor",
+    "Player/Monkey original movement update",
+    "stage loading/actor/rendering startup"
+  ],
+  "correction": "0x21DB64 and 0x21E648 relate to navigation geometry drawing; real relaxation method is 0x220D5C",
+  "native_windows_game_playable": false
+}

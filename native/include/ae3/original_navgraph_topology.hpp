@@ -38,11 +38,13 @@ OriginalNavGraphOwned originalNavGraphConstruct_4f0b14(
 class OriginalNavGraphWalkCalls {
 public:
     virtual ~OriginalNavGraphWalkCalls()=default;
-    // This genuine downstream original routine is NOT decompiled yet.
+    // Original 0x21DB64 draws navigation polygon/edge geometry.
+    // It is NOT the original route-search algorithm at 0x220D5C.
     virtual void call_original_21db64(
         const OriginalSpatialRecord70& originalCurrentRecord)=0;
 };
 
+// Original 0x21E648 is navigation drawing/inspection, not actor route AI.
 // Original 0x21E648: attempt grid nearest 0x21D898; if not found,
 // fall back to entire-registry nearest 0x21DA2C. For the result,
 // 0x21DB64 is called once for the selected polygon and once per link,
