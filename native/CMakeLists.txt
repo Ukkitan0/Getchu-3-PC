@@ -221,6 +221,10 @@ target_link_libraries(Getchu3OriginalAttributeRecordIndexTests PRIVATE Getchu3As
 add_test(NAME OriginalRetailAttributeIndexCountStrideAndHostBoundedRecordAccess COMMAND Getchu3OriginalAttributeRecordIndexTests)
 add_executable(Getchu3OriginalResourceEntryVectorTests tests/original_resource_entry_vector_test.cpp)
 target_link_libraries(Getchu3OriginalResourceEntryVectorTests PRIVATE Getchu3Assets)
+add_executable(Getchu3OriginalNavQueryDestinationTests tests/original_nav_query_destinations_test.cpp)
+target_link_libraries(Getchu3OriginalNavQueryDestinationTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalNavQueryDestinationModeSynthetic
+         COMMAND Getchu3OriginalNavQueryDestinationTests)
 add_executable(Getchu3OriginalNavQuerySelectionTests tests/original_nav_query_selection_test.cpp)
 target_link_libraries(Getchu3OriginalNavQuerySelectionTests PRIVATE Getchu3Assets)
 add_test(NAME OriginalNavQuerySelectionRadiusAndForwardRoute
@@ -246,6 +250,8 @@ target_link_libraries(Getchu3OriginalNavRetailPckTests PRIVATE Getchu3Assets)
 set(AE3_RETAIL_WOODS_C_NAVIGATION_PCK "" CACHE FILEPATH "Path to owned woods_c/navigation.pck")
 if(AE3_RETAIL_WOODS_C_NAVIGATION_PCK)
   add_test(NAME OriginalRetailNavPck COMMAND Getchu3OriginalNavRetailPckTests "${AE3_RETAIL_WOODS_C_NAVIGATION_PCK}")
+  add_test(NAME OriginalRetailNavQueryNearestFarthestRoutes
+           COMMAND Getchu3OriginalNavQueryDestinationTests "${AE3_RETAIL_WOODS_C_NAVIGATION_PCK}")
   add_test(NAME OriginalRetailNavQueryAllPathsAndRadius
            COMMAND Getchu3OriginalNavQuerySelectionTests "${AE3_RETAIL_WOODS_C_NAVIGATION_PCK}")
   add_test(NAME OriginalRetailWoodsCAllGraphShortestPaths
