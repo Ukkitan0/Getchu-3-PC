@@ -29,12 +29,45 @@ inline std::vector<std::string> originalSplitDelimited_1f28c4(
     return output;
 }
 
-// 0x2BA3AC scans original input with source LF (0x0A) as its line
-// delimiter. This returns lexical segments WITHOUT inventing the
-// source's later structural filters or descriptor attributes.
+// Original 0x2BA3AC reads exactly source+0x08 bytes from source+0x00.
+// Only LF (0x0A) commits the current string to the original vector.
+// The original 0x627C68 find helper checks literal "sizest" at
+// 0x6F8E08 and then, on a later non-"sizest" line, "b:" at
+// 0x6F8E10; finding the latter terminates source line scanning.
+// A final source fragment lacking LF is *not* emitted by 0x2BA3AC.
+struct OriginalAttributeLineScan_2ba3ac {
+    std::vector<std::string> committedLines;
+    bool sourceSawSizeMarker=false;
+    bool terminatedAtBColon=false;
+    std::size_t consumedSourceBytes=0;
+};
+inline OriginalAttributeLineScan_2ba3ac originalAttributeScanLines_2ba3ac(
+        std::string_view originalSource) {
+    OriginalAttributeLineScan_2ba3ac result;
+    std::string currentLine;
+    for(std::size_t i=0;i<originalSource.size();++i) {
+        if(originalSource[i]!='\n') {
+            currentLine.push_back(originalSource[i]);
+            continue;
+        }
+        result.committedLines.push_back(std::move(currentLine));
+        currentLine.clear();
+        const auto& last=result.committedLines.back();
+        if(last.find("sizest")!=std::string::npos) {
+            result.sourceSawSizeMarker=true;
+        } else if(result.sourceSawSizeMarker &&
+                  last.find("b:")!=std::string::npos) {
+            result.terminatedAtBColon=true;
+            result.consumedSourceBytes=i+1;
+            return result;
+        }
+    }
+    result.consumedSourceBytes=originalSource.size();
+    return result;
+}
 inline std::vector<std::string> originalAttributePhysicalLineSegments_2ba3ac(
         std::string_view originalSource) {
-    return originalSplitDelimited_1f28c4(originalSource,'\n');
+    return originalAttributeScanLines_2ba3ac(originalSource).committedLines;
 }
 
 struct OriginalAttributeTokenizedLine {

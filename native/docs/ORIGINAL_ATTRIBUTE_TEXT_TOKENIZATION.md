@@ -102,6 +102,22 @@ NDEBUG Release, UBSan and ASan+UBSan passed locally, and all
 three uploaded blobs match the corresponding locally tested
 files byte-for-byte by Git blob hash.
 
+## Correction: original newline preprocessing is not generic splitting
+
+Further ELF recovery has replaced the earlier generic LF splitter
+with the original 0x2BA3AC byte scanner. It inserts a source line
+only when a LF byte is encountered, never emits an incomplete
+trailing line, and contains the original two-stage `sizest` then
+`b:` substring termination logic. These markers and the state
+branches were verified at original 0x6F8E08/0x6F8E10 and in
+0x2BA488/0x2BA50C/0x2BA53C.
+
+See `ORIGINAL_ATTRIBUTE_LINE_SCANNER.md` for the full
+source-backed scanner, verified instruction addresses, and native
+text-to-original-attribute-tree integration. The earlier generic
+`originalSplitDelimited_1f28c4` remains valid for colon
+tokenization; it is not used as a stand-in for the LF scanner.
+
 ## Next source dependencies
 
 The deeper `0x2BA584` source field schema, source-object
