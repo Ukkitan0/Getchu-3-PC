@@ -16,9 +16,9 @@ void originalActionWriteWord_3168c4(OriginalActionChildFields& o,std::uint32_t w
   // 3168C4 LW parent+0; 3168CC SW arg to owned +0x0C.
   o.word0c=word;
 }
-OriginalPlayerResources* originalFactoryGet_221644(const OriginalFactoryGlobal& g) noexcept{return g.factoryAt_647bd0;}
-void originalFactorySet_221650(OriginalFactoryGlobal& g,OriginalPlayerResources* ptr) noexcept{g.factoryAt_647bd0=ptr;}
-bool originalFactoryIs_221668(const OriginalFactoryGlobal& g,const OriginalPlayerResources* ptr) noexcept{
+void* originalFactoryGet_221644(const OriginalFactoryGlobal& g) noexcept{return g.factoryAt_647bd0;}
+void originalFactorySet_221650(OriginalFactoryGlobal& g,void* ptr) noexcept{g.factoryAt_647bd0=ptr;}
+bool originalFactoryIs_221668(const OriginalFactoryGlobal& g,const void* ptr) noexcept{
   return g.factoryAt_647bd0==ptr;
 }
 void originalManagerInitialize_57ba00(OriginalManagerSlot& slot,const OriginalFactoryGlobal& global,OriginalActionRuntimeCalls& b){
@@ -28,12 +28,11 @@ void originalManagerInitialize_57ba00(OriginalManagerSlot& slot,const OriginalFa
   slot.instanceAt08=nullptr;
   slot.initialized05=1;
   if(slot.disabled04)return;
-  // Original factory global 0x647BD0 is the Player object; its
-  // virtual[2] is 0x34A014. Original fixed key at 0x708940 is main_player.
-  const auto* factory=originalFactoryGet_221644(global);
-  if(!factory)throw std::runtime_error("Original 0x57BA00 requires registered Player at 0x647BD0");
-  void* candidate=originalPlayerResourceLookup_34a014(
-      *factory,originalResourceName16("main_player"),OriginalSecondaryFactoryGlobal{});
+  // Original factory acquisition, virtual slot 2 and candidate virtual
+  // slot 11: their real engine dependencies must be reconstructed.
+  void* factory=originalFactoryGet_221644(global);
+  if(!factory)throw std::runtime_error("Original 0x57BA00 requires the real factory-global state 0x647BD0");
+  void* candidate=b.call_factory_virtual2(factory,slot);
   if(!candidate)return;
   if(!b.call_candidate_virtual11(candidate,slot))return;
   slot.instanceAt08=b.call_21d898();

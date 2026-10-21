@@ -1,0 +1,35 @@
+{
+  "format": "ae3/retail-original-spatial-engine/v1",
+  "original_elf": "SCUS_975.01 (USA)",
+  "original_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "native_source": "native/src/original_spatial_index.cpp",
+  "original_entrypoints": [
+    "0x21d898",
+    "0x21da2c",
+    "0x21d7d8",
+    "0x21d884",
+    "0x21b404",
+    "0x21b444",
+    "0x21b458",
+    "0x21b4e0",
+    "0x21b4f0",
+    "0x21b500"
+  ],
+  "record_stride_bytes": 112,
+  "initial_squared_or_distance_bound_bits": "0x7f7fffff",
+  "audit": {
+    "exact_source_opcode_sites": 115,
+    "original_branch_target_sites": 11,
+    "all_passed_against_original_elf": true
+  },
+  "native_tests": "Local Linux C++20 optimized unit test and UBSan passed; Windows game not tested",
+  "remaining_original_calls": [
+    "0x4e3c14",
+    "0x21b788",
+    "0x21b468",
+    "VU0 float sqrt/distance",
+    "0x21b384",
+    "0x36ede8"
+  ],
+  "limitation": "Native outer control flow and record lifecycle only, not actual original game execution"
+}
