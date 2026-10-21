@@ -1,0 +1,49 @@
+{
+  "format": "ae3/native-original-navgraph-owned-linked-lists/v1",
+  "source_elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "original_methods": [
+    "0x21f604",
+    "0x21f64c",
+    "0x21f690",
+    "0x21f6d4",
+    "0x21f804",
+    "0x21f82c",
+    "0x4e3d10",
+    "0x4e3dac",
+    "0x4e3eb4",
+    "0x4e3f40",
+    "0x4e4154"
+  ],
+  "original_intrusive_node_bytes": 12,
+  "original_next_offset": 0,
+  "original_prev_offset": 4,
+  "original_payload_offset": 8,
+  "new_entries_are_prepended": true,
+  "original_population_rule": "float return of 0x21EF3C must equal exactly 0.0f; otherwise skip",
+  "original_populate_predicate_21ef3c_recovered": false,
+  "verification": {
+    "original_machine_windows": 10,
+    "instruction_words": 279,
+    "independent_opcode_sites": 50,
+    "original_direct_J_JAL_calls": 20
+  },
+  "tests": {
+    "cpp20_optimized": "passed",
+    "ubsan": "passed",
+    "asan_ubsan": "passed",
+    "original_retail_navigation_files": 290,
+    "original_retail_records": 19377,
+    "test_predicate": "forced 0.0f/include-all, NOT original 0x21EF3C output",
+    "source_retail_inserted": 19377,
+    "source_retail_cleared": 19377
+  },
+  "source_file": "native/src/original_nav_linked_owner.cpp",
+  "source_header": "native/include/ae3/original_nav_linked_owner.hpp",
+  "unrecovered": [
+    "0x21EF3C original predicate",
+    "live source game linked-list owner contents",
+    "original actor route consumption and movement",
+    "game engine runtime and rendering"
+  ],
+  "playable_native_windows_game": false
+}
