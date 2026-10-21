@@ -5,6 +5,7 @@
 #include "ae3/original_nav_graph_search.hpp"
 #include "ae3/original_nav_query_selection.hpp"
 #include "ae3/original_nav_query_destinations.hpp"
+#include "ae3/original_actor_nav_route.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <span>
