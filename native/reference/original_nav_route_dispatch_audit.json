@@ -1,0 +1,38 @@
+{
+  "format": "ae3/retail-original-top-level-route-dispatch/v1",
+  "source_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "original_functions": [
+    "0x2207d0",
+    "0x21f89c",
+    "0x21f8b8",
+    "0x4e3dec",
+    "0x220a4c",
+    "0x220a78"
+  ],
+  "original_code_windows": 4,
+  "original_source_instruction_words": 198,
+  "independent_opcode_sites": 34,
+  "verified_original_call_targets": 19,
+  "normal_modes": {
+    "mode0": "farthest 0x221030",
+    "mode1": "nearest 0x220f60",
+    "other": "no endpoint -1"
+  },
+  "fallback": "separate graph+8 linked list 0x21f8b8 -> 0x4e3dec -> centroid -> forced nearest",
+  "retail_local_test": {
+    "original_nav_files": 290,
+    "nonempty": 289,
+    "source_records": 19377,
+    "modes_0_1_2_each": 289,
+    "fallback_exercised": 259,
+    "query_radius": 10,
+    "admitted_nodes_in_mode0": 75
+  },
+  "native_unit_test": "Local optimized C++20 -Wall -Wextra -Wpedantic -Werror passed; UBSan passed",
+  "unrecovered": [
+    "game-linked-list owner and lifetime",
+    "live Actor VU position/query source",
+    "original game input/render update and movement application"
+  ],
+  "playable_windows_game": false
+}
