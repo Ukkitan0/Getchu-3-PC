@@ -30,6 +30,19 @@ int main(){
     ck(tokens.sourceLines[1].sourceLine.empty());
     ck(tokens.sourceLines[1].colonFields.empty());
     ck(tokens.sourceLines[2].colonFields==std::vector<std::string>({"q","","57"}));
+    ck(originalAttributeFourthInteger_2ba6f0(attrs)==1024);
+    ck(!originalAttributeFourthInteger_2ba6f0(
+        originalAttributeSplitColon_2ba5f4("short:only:3")));
+    ck(originalAttributeFourthInteger_2ba6f0(
+        originalAttributeSplitColon_2ba5f4("x:y:z:-137"))==-137);
+    ck(originalAttributeFourthInteger_2ba6f0(
+        originalAttributeSplitColon_2ba5f4("x:y:z:  +42suffix"))==42);
+    ck(originalAttributeFourthInteger_2ba6f0(
+        originalAttributeSplitColon_2ba5f4("x:y:z:invalid"))==0);
+    ck(originalAttributeFourthInteger_2ba6f0(
+        originalAttributeSplitColon_2ba5f4("x:y:z:2147483647"))==2147483647);
+    ck(originalAttributeFourthInteger_2ba6f0(
+        originalAttributeSplitColon_2ba5f4("x:y:z:-2147483648"))==(-2147483647-1));
     std::mt19937 rng(0x198e4c3u);
     for(int k=0;k<25000;++k){
         const int len=int(rng()%128);

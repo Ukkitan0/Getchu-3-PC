@@ -1,5 +1,9 @@
 #pragma once
 #include <cstddef>
+#include <cstdint>
+#include <cstdlib>
+#include <optional>
+#include <bit>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -44,6 +48,21 @@ inline OriginalAttributeTokenizedLine originalAttributeSplitColon_2ba5f4(
         std::string_view sourceLine) {
     return {std::string(sourceLine),originalSplitDelimited_1f28c4(sourceLine,':')};
 }
+// Original 0x2BA6BC requires at least 4 colon-separated fields.
+// Its 0x2BA6F0 call to 0x428C48 reads field index 3 (sp+0x0C)
+// and stores the signed low 32 bits at allocated record+0x20.
+// 0x428C48 delegates to the original base-10 strtol implementation.
+// This is equivalent for ordinary in-range decimal input; overflow
+// and locale-sensitive behavior have not been differentially tested.
+inline std::optional<std::int32_t> originalAttributeFourthInteger_2ba6f0(
+        const OriginalAttributeTokenizedLine& input) {
+    if(input.colonFields.size()<4)return std::nullopt;
+    const std::string& bytes=input.colonFields[3];
+    const long long sourceNumber=std::strtoll(bytes.c_str(),nullptr,10);
+    // Original 0x428C48 truncates the low word then sign-extends.
+    return std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(sourceNumber));
+}
+
 struct OriginalAttributeTokenization {
     std::vector<OriginalAttributeTokenizedLine> sourceLines;
     std::size_t physicalSegmentCount=0;

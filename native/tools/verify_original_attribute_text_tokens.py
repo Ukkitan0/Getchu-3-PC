@@ -15,6 +15,8 @@ REGIONS = {
  (0x2ba3ac,0x2ba584):'547d795b26d79e730c3fff92ac0a8da326183ee40a76a89ac5bf361097d86a8f',
  (0x2ba584,0x2ba8d0):'9c6d2f1f86971441ff69c8cf1f8d6680489912ab86a20ce2be7943238bb71d00',
  (0x2bb03c,0x2bb084):'e4e87983feecf0691f5cc5ba6a953b72aaf0939f71719c03b94c1bd05d370594',
+ (0x428c48,0x428c70):'352235abea323dd364efb70672707bc915684d8e36d4ce2982d6b87093247c66',
+ (0x2ba6b0,0x2ba700):'5a460cafe40bba8cbff9459b89fa16973a51ca7e3d3afe532b2d1010a4c090f6',
 }
 ANCHORS = {
  0x1f28c8:0xac800000,0x1f28f8:0xac800004,0x1f2908:0xac800008,
@@ -26,11 +28,14 @@ ANCHORS = {
  0x2ba5f4:0x2406003a,0x2ba660:0x8fae0004,0x2ba6bc:0x240f0003,
  0x2ba700:0x11e000bd,0x2ba7fc:0x8deffffc,
  0x2ba788:0x27a40030,0x2ba8b8:0x8e8f0030,
+ 0x2ba6c0:0x01ee782b,0x2ba6f4:0x8da4000c,0x2ba6f8:0xae020020,
+ 0x428c58:0x2406000a,0x428c5c:0x0002103c,
  0x2bb048:0xade406a8,
 }
 CALLS = {
  0x1f296c:0x4c5a28,0x1f2a10:0x626d78,0x1f2a48:0x627a78,
  0x2ba4c0:0x2ba3a4,0x2ba5fc:0x1f28c4,0x2ba78c:0x1f28c4,
+ 0x428c54:0x42e970,0x2ba6f0:0x428c48,
  0x2bb058:0x2ba218,0x2bb060:0x2ba3ac,0x2bb068:0x2ba584,
 }
 def verify(path):
@@ -77,6 +82,8 @@ def verify(path):
         original_instruction_words=sum((b-a)//4 for a,b in REGIONS),
         exact_opcode_anchors=len(ANCHORS), original_JAL_edges=len(CALLS),
         delimiter_colon=0x3a,delimiter_line_feed=0x0a,
+        parsed_fourth_integer_source_call='0x2ba6f0 -> 0x428c48 -> 0x42e970',
+        integer_destination_offset=0x20,
         source_pipeline=['0x2bb03c','0x2ba218','0x2ba3ac','0x2ba584','0x1f28c4'],
         original_tree_entry_deserialization_complete=False,
         playable_native_windows=False)

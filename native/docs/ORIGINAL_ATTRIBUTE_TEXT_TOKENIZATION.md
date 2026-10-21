@@ -74,6 +74,34 @@ and ASan+UBSan passed locally. The local test file and all three
 committed source/tool blobs were matched by Git SHA-1 to the
 tested local file bytes.
 
+## Source-derived fourth-field numeric conversion
+
+The original parser at `0x2BA6BC` checks for at least **four**
+colon-separated fields. At `0x2BA6F0` it calls original
+`0x428C48`, with the fourth token pointer loaded from stack +0x0C
+in the delay slot. That wrapper invokes original base-10
+`0x42E970` and sign-extends its low 32-bit result. The caller
+stores the integer at original allocated record offset `+0x20`
+(`0x2BA6F8`).
+
+`originalAttributeFourthInteger_2ba6f0` now provides a
+source-derived native conversion for ordinary in-range decimal
+inputs and returns no value when the parsed row has fewer than
+four fields. It uses the host C decimal conversion routine and
+preserves the original low-word sign interpretation. Numerical
+overflow, locale differences and unusual ASCII inputs are not
+yet established to be exact retail equivalents.
+
+The verifier was extended with the complete 10-instruction
+`0x428C48` wrapper and 20 instructions around its caller:
+**six pinned source regions / 478 instruction words, 28 exact
+opcode anchors and 11 call edges**. Additional native cases
+cover signed negative values, prefix conversion, absent fourth
+fields and the full signed 32-bit endpoints. Optimized C++20,
+NDEBUG Release, UBSan and ASan+UBSan passed locally, and all
+three uploaded blobs match the corresponding locally tested
+files byte-for-byte by Git blob hash.
+
 ## Next source dependencies
 
 The deeper `0x2BA584` source field schema, source-object
