@@ -19,7 +19,7 @@ word at +0x14. It links the node using these 32-bit fields:
 | +0x08 | left child |
 | +0x0C | right child |
 | +0x10 | original string-key object |
-| +0x14 | associated 32-bit source value offset |
+| +0x14 | pointer to original allocated 0x34-byte child record (source 0x2BA9C0) |
 
 The original 0x49C26C routine fixes tree colors and performs red/black
 rotations through the original 0x49C3B0 (right) and 0x49C3FC (left)
@@ -34,8 +34,10 @@ They are reimplemented in native C++, not interpreted as guest code.
 
 `native/include/ae3/original_attribute_tree_owner.hpp` provides a
 native owner that performs unique source-key insertion with source-style
-red/black recoloring and rotations. The original word values are kept
-as 32-bit source offsets. Keys are copied into host-owned native
+red/black recoloring and rotations. The native decoded model keeps flattened 32-bit source data offsets.
+The actual original node +0x14 is a *child record pointer*, not directly
+that offset; the original numeric/string readers dereference the child
+record +0x08 to obtain the source data offset. Keys are copied into host-owned native
 strings, and the existing `OriginalAttributeKeyNode` view is updated
 after each rotation. `decodedRoot()` can be given directly to:
 
@@ -74,10 +76,13 @@ Tracing into the original attribute parser at 0x2BA8D0..0x2BA9CC
 identified the first concrete source key/value insertion site.
 The caller checks its key against the source tree at 0x2BA8F0 and
 only inserts the key through 0x5415E4 if it is absent. However,
-**0x2BA9C0 unconditionally writes the parsed value word to node+0x14**
+**0x2BA9C0 unconditionally writes the allocated child record pointer to node+0x14**
 on both existing-key and new-key paths. This matters: the regular
 original 0x541DAC unique insert leaves the original keyed word alone,
-while a later parsed attribute **overwrites** that value in the map.
+while a later parsed attribute **overwrites** that child pointer in the map.
+The existing host `originalBindParsed_2ba9c0` collapses the child-pointer
+indirection and retains only child+0x08's source offset. This shortcut
+must not be mistaken for the original binary pointer layout.
 
 `originalBindParsed_2ba9c0` now reproduces that distinct source
 operation using the same native red/black tree. Regression tests
