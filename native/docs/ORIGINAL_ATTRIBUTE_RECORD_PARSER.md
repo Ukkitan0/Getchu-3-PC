@@ -8,7 +8,7 @@ No original executable or copyrighted game assets are committed.
 
 The source 0x2BA584 parser takes an already preprocessed array of line
 strings from 0x2BA3AC. It loads element 1 at 0x2BA5E8, tokenizes it
-with ':' via 0x1F28C4, then reads token 0 using 0x428C48 at 0x2BA6A4
+with ':' via 0x1F28C4, then reads token 2 using 0x428C48 at 0x2BA6A4
 and writes the integer to original parser owner +0x1C (0x2BA6C8).
 It reads token 3 through 0x428C48 at 0x2BA6F0 and stores that
 integer at owner +0x20 (0x2BA6F8). The child count is read from
@@ -94,6 +94,18 @@ rebased source pointer. The original 32-bit MULT and ADDU return
 `base + index * stride`, modulo 2^32. See
 `ORIGINAL_ATTRIBUTE_RECORD_INDEX.md` for its verified native
 mathematical recovery, bounded host accessor and tests.
+
+## Retail test correction: header integer comes from field 2
+
+The original source opcode at 0x2BA6A8 is `LW A0, 0x08(T4)`,
+selecting **colon field 2**, not field 0. The initial mock-only
+implementation mistakenly read `stn` as decimal zero; real source
+`stn:MainCameraParam:18:1` proves the correct header is 18
+child attributes and one record. The native implementation, all
+affected synthetic tests and this documentation were corrected.
+The source code was then tested on the exact user-provided original
+`woods_c/exdb.pck`, successfully decoding real MainCameraParam
+and MonkeyProfile data. See `ORIGINAL_RETAIL_EXDB_ASSET_ROUNDTRIP.md`.
 
 ## Unfinished original behavior
 

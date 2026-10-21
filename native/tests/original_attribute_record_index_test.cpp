@@ -34,7 +34,7 @@ int main(){
     // End-to-end: original raw input -> parser owner fields -> index.
     OriginalAttributeTreeOwner decoded;
     const auto parsed=originalAttributeBindLoadedText_2bb03c(
-        decoded,"meta\n1:A:B:2\nS:0:name\nstride:176\nbase:-8\n",0x1008u);
+        decoded,"meta\nstn:A:1:2\nS:0:name\nstride:176\nbase:-8\n",0x1008u);
     const auto layout=originalAttributeRecordIndexFromParser_2bb0f4(parsed.parsed);
     ck(layout.sourceCountAt20==2&&layout.sourceStrideAt24==176);
     ck(layout.sourceRecordBaseAt04==0x1000u);

@@ -20,9 +20,9 @@ static void storeString(std::span<std::byte> b,std::size_t off,std::string_view 
     b[off+s.size()]=std::byte{0};
 }
 int main(){
-    const auto h=originalAttributeHeaderFields_2ba6a4_2ba6f0(line("3:A:B:512"));
+    const auto h=originalAttributeHeaderFields_2ba6a4_2ba6f0(line("stn:A:3:512"));
     ck(h.sourceChildCountAt1c==3 && h.sourceFourthWordAt20==512);
-    ck(originalAttributeHeaderFields_2ba6a4_2ba6f0(line("0:one:two:-17")).sourceFourthWordAt20==-17);
+    ck(originalAttributeHeaderFields_2ba6a4_2ba6f0(line("stn:one:0:-17")).sourceFourthWordAt20==-17);
     bool threw=false;
     try{(void)originalAttributeHeaderFields_2ba6a4_2ba6f0(line("1:2:3"));}
     catch(const std::invalid_argument&){threw=true;}
@@ -36,7 +36,7 @@ int main(){
     catch(const std::invalid_argument&){threw=true;}
     ck(threw);
     OriginalAttributeTokenization tokens;
-    tokens.sourceLines={line("preface"),line("3:unused:unused:4096"),
+    tokens.sourceLines={line("preface"),line("stn:unused:3:4096"),
         line("C:100:midi"),line("C:200:name"),line("N:300:volume_scale"),line("trailer:1")};
     const auto body=originalAttributeRecordsFromTokens_2ba584(tokens);
     ck(body.sourceHeader.sourceFourthWordAt20==4096&&body.sourceChildren.size()==3);
@@ -60,19 +60,19 @@ int main(){
     originalAttributeBindDecodedChildren_2ba9c0(owner,duplicate);
     ck(owner.size()==3&&owner.originalInvariantsHold());
     ck(originalAudioDescriptorFromDecodedAttributes_1bb9a8(source,owner.decodedRoot()).sourceStrings[1]=="SECOND.mid");
-    tokens.sourceLines[1]=line("0:unused:unused:0");
+    tokens.sourceLines[1]=line("stn:unused:0:0");
     ck(originalAttributeRecordsFromTokens_2ba584(tokens).sourceChildren.empty());
-    tokens.sourceLines[1]=line("-1:unused:unused:0");
+    tokens.sourceLines[1]=line("stn:unused:-1:0");
     threw=false;
     try{(void)originalAttributeRecordsFromTokens_2ba584(tokens);}
     catch(const std::invalid_argument&){threw=true;}
     ck(threw);
-    tokens.sourceLines[1]=line("9:unused:unused:5");
+    tokens.sourceLines[1]=line("stn:unused:9:5");
     threw=false;
     try{(void)originalAttributeRecordsFromTokens_2ba584(tokens);}
     catch(const std::out_of_range&){threw=true;}
     ck(threw);
-    tokens.sourceLines[1]=line("1:unused:unused:3");
+    tokens.sourceLines[1]=line("stn:unused:1:3");
     tokens.sourceLines[2]=line("R:0:n");
     for(int i=0;i<2000;++i){
         tokens.sourceLines[2]=line((std::string("R:")+std::to_string(i)+":k").c_str());

@@ -45,7 +45,7 @@ int main(){
     // original attribute keyed lookup; this is NOT a retail file fixture.
     OriginalAttributeTreeOwner owner;
     auto parsed=originalAttributeBindLoadedText_2bb03c(owner,
-        "meta\n3:a:b:512\nS:64:name\nS:96:midi\nF:128:volume_scale\nbytes:100\nbase:-8\n",0x1000u);
+        "meta\nstn:a:3:512\nS:64:name\nS:96:midi\nF:128:volume_scale\nbytes:100\nbase:-8\n",0x1000u);
     ck(parsed.committedPhysicalLines==7);
     ck(parsed.parsed.body.sourceChildren.size()==3);
     ck(parsed.parsed.trailer.sourcePenultimateWordAt24==100);

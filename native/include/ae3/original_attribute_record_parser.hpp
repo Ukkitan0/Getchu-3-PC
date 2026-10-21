@@ -26,7 +26,7 @@ inline OriginalAttributeRecordHeader_2ba584 originalAttributeHeaderFields_2ba6a4
         temp.colonFields={"", "", "", sourceHeader.colonFields[n]};
         return *originalAttributeFourthInteger_2ba6f0(temp);
     };
-    return {read(0),read(3)};
+    return {read(2),read(3)};
 }
 
 // Each source 0x2BA714 allocation requests 0x34 bytes. The original

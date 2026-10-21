@@ -11,7 +11,7 @@ static void ck(bool b){if(!b)throw std::runtime_error("original attribute traile
 static OriginalAttributeTokenizedLine line(const char* s){return originalAttributeSplitColon_2ba5f4(s);}
 int main(){
     OriginalAttributeTokenization source;
-    source.sourceLines={line("first"),line("2:A:B:1234"),line("S:64:name"),
+    source.sourceLines={line("first"),line("stn:A:2:1234"),line("S:64:name"),
         line("V:128:volume_scale"),line("len:35"),line("base:-40")};
     auto fields=originalAttributeStructuredFields_2ba584(source,0x00102000u);
     ck(fields.body.sourceHeader.sourceChildCountAt1c==2);
@@ -40,7 +40,7 @@ int main(){
     catch(const std::out_of_range&){threw=true;}
     ck(threw);
     source.sourceLines.push_back(line("base:0"));
-    source.sourceLines[1]=line("0:A:B:0");
+    source.sourceLines[1]=line("stn:A:0:0");
     ck(originalAttributeStructuredFields_2ba584(source,0)
         .body.sourceChildren.empty());
     for(int i=1;i<=2000;++i){
