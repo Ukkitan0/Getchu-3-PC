@@ -1,5 +1,6 @@
 #include "ae3/original_navgraph_loader.hpp"
 #include "ae3/original_nav_source_refs.hpp"
+#include "ae3/original_nav_type1_children.hpp"
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
@@ -105,6 +106,10 @@ OriginalStageSpatialLoaded originalNavLoadGraph_4f0a5c(
     // into record+0x10+4*actionIndex. Type-1 child allocations remain
     // unported and are retained in pendingOriginalActions.
     (void)originalNavResolveType2_21d6dc(originalSource,originalGraph);
+    // The type-1 branch 0x21D70C uses source count/index lists to
+    // allocate 16-byte vector arrays via 0x21B0B0 and 0x21B240.
+    // Keep those objects host-owned without writing fake EE child VAs.
+    (void)originalNavMaterializeType1_21d70c(originalSource,originalGraph);
     return originalGraph;
 }
 } // namespace ae3

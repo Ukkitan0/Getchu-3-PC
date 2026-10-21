@@ -27,16 +27,26 @@ struct OriginalStageSpatialAction {
     std::uint16_t type=0;
     std::uint16_t argument=0;
 };
+// Original 0x21B0B0 / 0x21B240 type-1 child storage: a packed
+// array of sixteen-byte source vectors. Host RAII owns the vectors
+// until the graph is destroyed, without inventing guest pointer VAs.
+struct OriginalNavType1Child_21b0b0 {
+    std::uint32_t sourceRecordIndex=0;
+    std::uint16_t sourceActionIndex=0;
+    std::uint16_t sourceTableSelector=0;
+    std::vector<std::array<std::byte,16>> originalVectors;
+};
 struct OriginalStageSpatialLoaded {
     OriginalStageSpatialOffsets sourceHeader{};
     std::vector<OriginalSpatialRecord70> records;
     std::vector<OriginalSpatialHeaderBinding> polygonHeaders;
     std::vector<OriginalStageSpatialAction> pendingOriginalActions;
+    std::vector<OriginalNavType1Child_21b0b0> originalType1Children;
 };
 
 // Real 0x21D46C stage source pointers and source record creation.
 // 0x36EDAC game-owned spatial allocator, original object constructor
-// 0x21B254 and action types 1/2 still need further game-side recovery;
+// 0x21B254 and child/actor guest allocations still need further game-side recovery;
 // no engine object or script callback is fabricated for those actions.
 OriginalStageSpatialOffsets originalStageReadSpatialOffsets_21d46c(
     const OriginalStageSpatialSource&);
