@@ -1,0 +1,43 @@
+{
+  "format": "ae3/original-navgraph-retail-loader/v1",
+  "original_USA_ELF_SHA256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "original_NavGraph_load": "0x4f0a5c",
+  "original_NavGraph_name_classifier": "0x4f0fbc",
+  "original_NavGraph_source_constructor": "0x21d46c",
+  "original_global_graph_pointer_table": "0x647b80",
+  "nav_graph_types": [
+    "nav_monkey.nav",
+    "nav_enemy.nav",
+    "nav_extra0.nav"
+  ],
+  "source_asset_type": "VFI(DATA.BIN) -> raw-DEFLATE SZ -> PCK -> .nav",
+  "retail_usa_vfi_file_count": 3994,
+  "retail_navigation_pck_sz_packages": 168,
+  "retail_navigation_packages_decoded": 168,
+  "retail_nav_monkey_members": 168,
+  "retail_nav_enemy_members": 122,
+  "retail_nav_total_members": 290,
+  "original_navigation_record_headers_identified": 19377,
+  "first_retail_navigation_package": {
+    "index": 1916,
+    "pck_decoded_size": 10864,
+    "monkey_bytes": 8720,
+    "monkey_records": 174,
+    "enemy_bytes": 2048,
+    "enemy_records": 30
+  },
+  "verifier": {
+    "original_elf_machine_code_regions": 2,
+    "original_instructions_in_regions": 79,
+    "independent_opcode_sites": 16,
+    "original_direct_calls": 5
+  },
+  "native_test": "Local strict optimized C++20 host test decompressed and parsed actual first retail navigation PCK; full Windows game and new CTest not yet run.",
+  "limitations": [
+    "original runtime pointer allocation/lifetime",
+    "original navigation path-following entities",
+    "other original engine subsystems",
+    "full Windows gameplay boot"
+  ],
+  "real_game_playable_native_windows": false
+}
