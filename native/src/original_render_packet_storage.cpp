@@ -37,16 +37,20 @@ void originalBindPacketGraphicsOwner(std::span<std::uint8_t> header,
 }
 OriginalNativeRenderPacketStorage::OriginalNativeRenderPacketStorage(std::uint32_t capacity)
   : bytes_(capacity),cursors_(originalRenderArenaAtCapacity(capacity)) {}
+std::size_t OriginalNativeRenderPacketStorage::reservePacketHeader(){
+    const auto offset=originalReserveRenderPacketFromBack3b3ce0(cursors_,4);
+    allocatedHeaders_.push_back(offset);
+    return offset;
+}
 std::size_t OriginalNativeRenderPacketStorage::allocatePacketHeader(
     std::uint32_t graphics,std::span<const std::uint8_t> descriptor){
     if(descriptor.size()<16)
         throw std::invalid_argument("invalid original packet descriptor for arena allocation");
-    const auto offset=originalReserveRenderPacketFromBack3b3ce0(cursors_,4);
-    auto header=std::span<std::uint8_t>(bytes_).subspan(offset,originalRetailPacketHeaderBytes);
+    const auto offset=reservePacketHeader();
+    auto header=packetHeader(offset);
     originalResetPacket3af8b8(header);
     originalBindPacketGraphicsOwner(header,graphics);
     originalSetupPacket3af8a8(header,descriptor);
-    allocatedHeaders_.push_back(offset);
     return offset;
 }
 std::span<std::uint8_t> OriginalNativeRenderPacketStorage::packetHeader(std::size_t offset){
