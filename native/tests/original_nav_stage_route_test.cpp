@@ -111,11 +111,12 @@ int main(int argc,char**argv){
         const OriginalSpatialRecord70* actor=nullptr;
         const OriginalSpatialRecord70* target=nullptr;
         unsigned projected=0,applied=0;
+        const OriginalSpatialRecord70* projectedValue=nullptr;
         const OriginalSpatialRecord70* call_original_4c1b3c_project(
             const OriginalSpatialRecord70* incoming) override {
             check(incoming==actor,"Original source actor route projection identity");
             ++projected;
-            return nullptr; // mock VU0/physics result, not a gameplay substitute
+            return projectedValue; // injected VU0/physics test result, not gameplay
         }
         void call_original_57c8ec_update_target(
             const OriginalSpatialRecord70* incoming) override {
@@ -127,9 +128,28 @@ int main(int argc,char**argv){
     const OriginalSpatialRecord70* current=nullptr;
     const auto moved=originalNavStageAdvanceRoute_57c7cc(
         owners,route,0,current,callbacks);
-    check(current==&sourceRecords[1]&&callbacks.target==&sourceRecords[2] &&
+    check(current==&sourceRecords[1]&&callbacks.target==&sourceRecords[3] &&
           moved.sourceTargetsApplied==2 && moved.sourceProjectionsPerformed==1,
           "Original actor follower route advancement did not preserve call ordering");
+    callbacks.projectedValue=&sourceRecords[1];
+    const auto appliedBefore=callbacks.applied;
+    const auto early=originalNavStageAdvanceRoute_57c7cc(
+        owners,route,0,current,callbacks);
+    check(early.returnedEarlyBecauseCurrentTargetMatched &&
+          early.sourceTargetsApplied==0 && callbacks.applied==appliedBefore &&
+          current==&sourceRecords[1],
+          "Original actor active-target match must not select another route polygon");
+    // Direct borrowed source filter must reject foreign pointers as
+    // rigorously as a registered original navrange list owner.
+    OriginalNavDispatchRequest foreignReq=q;
+    foreignReq.sourceMembershipListExists=true;
+    const auto& external=owners.originalAt(1).decodedGraph->records;
+    const std::array<const OriginalSpatialRecord70*,1> foreignItems{{&external[0]}};
+    foreignReq.orderedOriginalMembershipList=foreignItems;
+    bool foreignRejected=false;
+    try{(void)originalNavStageDispatch_2207d0(owners,0,foreignReq);}
+    catch(const std::invalid_argument&){foreignRejected=true;}
+    check(foreignRejected,"Direct original source filter accepted foreign stage pointers");
     // Detect a group belonging to a different stage before passing its
     // member pointers through the original source membership tests.
     OriginalNavListOwner foreign;foreign.originalCreate_21f604();

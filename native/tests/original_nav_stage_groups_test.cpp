@@ -92,7 +92,7 @@ int main(){
        std::vector<std::uint32_t>({0,1,3}),"Ungrouped retail branch changed");
     ck(first.originalRegisterRange_4e4060(resource).sourcePolygonsInserted==0,
        "Original group duplicate insertion must be ignored");
-    q.sourceSeedIndex=3;
+    q.sourceSeedIndex=3;q.originalReference={3,0,0,1};
     const auto fallback=first.originalRouteByKey_2207d0(keys[0],q);
     ck(fallback.originalFallbackUsed &&
        fallback.originalFallbackSourcePolygon==2 &&
@@ -109,7 +109,7 @@ int main(){
     const auto type2=originalNavStageDispatch_2207d0(owners,0,q);
     ck(type2.originalForwardSourcePolygons.size()==1,
        "Isolated source polygon route length");
-    q.sourceSeedIndex=2;
+    q.sourceSeedIndex=2;q.originalReference={0,0,0,1};
     const auto kind2=originalNavStageDispatch_2207d0(owners,0,q);
     auto type2Target=originalNavStageType2Target_57bdb8(owners,kind2);
     ck(type2Target && type2Target->targetPolygonAt50==

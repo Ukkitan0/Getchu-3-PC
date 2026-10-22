@@ -1,66 +1,103 @@
 # Original Navigation & Pathfinding — specialist handoff
 
-**Exclusive branch:** `parallel/navigation`  
-**Integration branch (unchanged):** `native/original-elf-engine-recovery-20261020`  
+**Branch:** `parallel/navigation` (sole write target)  
 **Base:** `d483436416c14927851853f01c6ad66fe4cfbbf2`  
-**First implementation commit:** `b77a5fd741ab0c1359fa73fc91b5998380dc7e0f`  
-**Status:** Stage-bound source route integration implemented. Focused test added but **not executed** in this environment; no claim of native Windows gameplay boot.
+**Integration target, unchanged:** `native/original-elf-engine-recovery-20261020`  
 
-## Recovered source addresses and scope
+## Commits and implementation
 
-Existing original-code audit utilities in this repo pin USA `SCUS_975.01` SHA-256 `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`. Source addresses below come from those existing audits; the private ELF was **not available** in this working container for fresh independent verification.
+- `b77a5fd741ab0c1359fa73fc91b5998380dc7e0f`: connect original stage graph owner, type-1 route costs, original path dispatcher, native stable polygon index route snapshots, actor route/follower adapters.
+- `cbd03b0af81725a421aebf4612e57870d5896295`: strengthen stage-instance/revision checks, expand synthetic and optional original-PCK tests, initial integration recipe.
+- `8040c9fa40d22c7d222cec8213c03ea6d60dafc4`: add keyed navrange-to-live-graph group binding; connect original class-2 destination vectors and in-place actor route advancement.
+- This handoff/test correction commit: fix type-2 and original-follower test expectations based on actual source-route ordering; broaden foreign-filter and early-return checks.
 
-- `0x21ED30` / `0x21ED94`: initialize/teardown three graph owners (source owner size `0x28`); `0x21D7D8` releases an individual graph.
-- `0x4F0A5C` / `0x21D46C`: import a genuine .nav source into the owner and decode `0x70` polygon records.
-- `0x21D70C` -> `0x21B0B0` / `0x21B240`: materialize type-1 child vectors from original source data. Existing `originalNavType1ActionDistance_220f28` computes `0x21B194` VU0 polyline cost. New adapter connects those original children to `0x220F20` (`0x21B4E0`) and `0x220F28` (`0x21B194`) route-search calls.
-- `0x2207D0` / `0x220AA4` / `0x220C00` / `0x220D5C` / `0x220994`: dispatch, original graph admission, node creation, lowest-score relaxation, predecessor backtrace. These **existing** functions were reused without inserting an A* replacement.
-- `0x21B444`, `0x221104`, `0x57BD88`: preserve type-0, type-1 and type-2 adjacency slot/actor decision. `0x57BA98` / `0x57BAF8` set the controller +0x1C multi-polygon flag; `0x57C7CC` advances actor route followers.
-- `0x21F82C` / `0x4E3DEC`: existing linked membership owner insertion and first-strict-nearest fallback are reused, with a native cross-owner identity check.
+### Native files
 
-## Delivered source and tests
+| File | Change |
+|---|---|
+| `native/include/ae3/original_nav_stage_owners.hpp` | Host-only stage-instance token and per-slot graph revision; invalidate stale routes after original release and rebind |
+| `native/include/ae3/original_nav_stage_route.hpp` | Public source-backed route snapshot, `0x57BD88` original edge decision, optional original `0x57BDB8` type-2 target, `0x57C7CC` original follower state/advance |
+| `native/src/original_nav_stage_route.cpp` | Original stage route/type-1-cost/actor decision dispatch, pointer-to-source-index conversion, foreign borrowed list validation |
+| `native/include/ae3/original_nav_stage_groups.hpp` | Keyed `navrange` group binding, stage revision validation and explicit register/rebind/invalidation API |
+| `native/src/original_nav_stage_groups.cpp` | Connect active owner polygon storage and real source navrange resources to already recovered eligibility and original route selection |
+| `native/tests/original_nav_stage_route_test.cpp` | Synthetic original-format source, optional owner-private per-stage PCK verification, actor follower action ordering, alternative paths, type-1/2 edges and graph invalidation |
+| `native/tests/original_nav_stage_groups_test.cpp` | Multi-key navrange score/list registration, membership, fallback, source route selection, same-key dedup, type-2 target extraction, slot teardown/rebinding |
 
-1. `native/include/ae3/original_nav_stage_owners.hpp`: a **native-only** unique stage-owner token and per-slot monotonically changing revision for route invalidation on release, reattachment, teardown and reinitialization. Neither field is attributed to the guest `0x28` structure.
-2. `native/include/ae3/original_nav_stage_route.hpp` and `native/src/original_nav_stage_route.cpp`: a stage-bound adapter that takes the actual decoded original graph, calculates original type-1 costs through retained source vectors, calls the original recovered dispatcher, converts route pointer identities to source indices, and provides valid source-polygon/edge/follower interfaces for `0x57BD88` and `0x57C7CC`. Rejects cross-stage linked lists and stale route snapshots. Does not introduce a new route search.
-3. `native/tests/original_nav_stage_route_test.cpp`: self-contained synthetic source fixture with 4 polygons exercising type-1 child route preference, competing type-0 route, type-2 action recognition, original DFS admission order, explicit `$8` index, nearest-list fallback, actor follower inputs, two simultaneous source-owner slots, foreign-owner rejection, slot release/rebinding, stage teardown/reinitialization, and stage-instance identity.
-4. The same executable optionally consumes one or more **owner-private** original `navigation.pck` files and checks every discovered source graph without storing or publishing source asset bytes.
+All source changes remain inside navigation ownership. No VU0/physics source or global CMake was edited.
 
-## Tests and provenance
+## Source addresses and provenance
 
-- Repository structure and integration API reviewed through linked GitHub source as of starting commit `d483436`.
-- **Not run:** C++ compilation, native CTest and Windows game boot. GitHub connector access did not mount a local native checkout; container had no original private ELF or PCK. No GitHub Actions were triggered. Added synthetic tests are regression specifications until the integration owner compiles and runs them.
-- Existing historical test source documents `woods_c/navigation.pck` with 39 + 20 polygon records, 15 type-2 links, and 0 type-1 links. This is historical repository evidence, **not a new private-asset validation**. Other genuine stage files are needed to exercise actual type-1 child paths.
+Address claims below derive from the **preexisting** pinned original USA ELF verifiers in `native/tools/`; no original binary bytes were directly available for re-disassembly this pass. Original owner-private `SCUS_975.01` SHA-256 must equal `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`.
 
-## Windows/runtime integration recipe — integrator owns these edits
+- `0x21ED30` / `0x21ED94` / `0x21D7D8`: allocate three `0x28` owners, teardown owners and release records. Native revision tokens are safety metadata and **not claimed as original EE fields**.
+- `0x4F0A5C` / `0x21D46C`: source `.nav` load and construction of original `0x70` spatial records.
+- `0x21D70C` / `0x21B0B0` / `0x21B240` / `0x21B194`: original type-1 vector-array materialization and VU0 polyline path cost. New type-1 adapter provides `0x21B4E0` lookup used at original search `0x220F20`.
+- `0x21D6DC`: type-2 original source-table pointer resolution; `0x57BD88` / `0x57BDB8`: original class-2 actor branch, select route[1], fetch its three original vertex vectors. **Subsequent VU0 motion remains untranslated**.
+- `0x2207D0` / `0x220AA4` / `0x220C00` / `0x220D5C` / `0x220994`: source graph query, admission DFS, graph nodes, original strict route cost update, predecessor-chain extraction. Existing code reused: **no alternative A* pathfinder**.
+- `0x21EF3C`: existing mathematical recovery of original navrange membership score. **Not bit-exact** for all PS2 VU0 precision/NaN behavior, not claimed fully recovered.
+- `0x4E4060` / `0x21F6D4` / `0x21F82C` / `0x4E3DEC`: original resource-key registration, polygon eligibility callback, front-of-list insertion and strict-first nearest fallback.
+- `0x57BA98` / `0x57BAF8` / `0x57C7CC` / `0x57C8EC`: actor-route count byte and original route advancement/target updates, with missing VU0 geometry kept in explicit callbacks.
 
-- Append `src/original_nav_stage_route.cpp` to the `Getchu3Assets` source list in `native/CMakeLists.txt`; keep existing `original_nav_route_dispatch.cpp`, `original_nav_route_search.cpp`, `original_nav_route_admission.cpp`, `original_nav_linked_owner.cpp`, `original_actor_nav_route.cpp` and `original_actor_route_follower.cpp`.
-- Add:
+## Compilation, verification and evidence
+
+**GitHub connector evidence:** source and rule files read on the exact navigation branch. Branch heads/commits were verified through GitHub API after each write.
+
+**Native C++ tests: not executed.** Direct clone/download from this isolated container failed because public GitHub DNS/network access is disabled. GitHub connector permits source edits and commits but provides no C++ execution. The owner-private USA ELF or original PCK were not present in mounted data/Library search; therefore the retail verifier scripts, PCK regressions, native CTest and actual Windows game boot were **not run**. New tests are committed but require integration-team build to confirm. No GitHub Actions were dispatched. No private executable or game-resource bytes were published.
+
+Historical existing tests cite `woods_c/navigation.pck` with 39+20 polygons and 15 source type-2 links; that is **repository test evidence**, not a new measurement.
+
+## Required integration (Windows/runtime owner only)
+
+Keep all existing native navigation sources. Add the two new translation units to existing `Getchu3Assets` in `native/CMakeLists.txt`:
+
+```cmake
+src/original_nav_stage_route.cpp
+src/original_nav_stage_groups.cpp
+```
+
+Register two new focused native tests:
+
 ```cmake
 add_executable(Getchu3OriginalNavStageRouteTests tests/original_nav_stage_route_test.cpp)
 target_link_libraries(Getchu3OriginalNavStageRouteTests PRIVATE Getchu3Assets)
 add_test(NAME OriginalNavStageRouteOwnerType1Type2
          COMMAND Getchu3OriginalNavStageRouteTests)
+
+add_executable(Getchu3OriginalNavStageGroupsTests tests/original_nav_stage_groups_test.cpp)
+target_link_libraries(Getchu3OriginalNavStageGroupsTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalNavStageRangeAndRouteBindings
+         COMMAND Getchu3OriginalNavStageGroupsTests)
+
 if(AE3_RETAIL_WOODS_C_NAVIGATION_PCK)
   add_test(NAME OriginalNavStageRouteRetailWoodsC
-           COMMAND Getchu3OriginalNavStageRouteTests "${AE3_RETAIL_WOODS_C_NAVIGATION_PCK}")
+      COMMAND Getchu3OriginalNavStageRouteTests "${AE3_RETAIL_WOODS_C_NAVIGATION_PCK}")
 endif()
 ```
-- After `OriginalNavStageOwners_21ed30::originalAttach_4f0a5c` succeeds, call:
+
+Actual API call flow once original stage owners are initialized and resources are attached:
+
 ```cpp
-auto route = ae3::originalNavStageDispatch_2207d0(
-    owners, sourceOwnerSlot, originalDispatchRequest, optionalListOwner);
-auto follower = ae3::originalNavStageFollowerState_57c7cc(
-    owners, route, actorSourcePolygonIndex, currentControllerTarget);
-auto decision = ae3::originalNavStageRouteEdge_57bd88(owners, route, routeStep);
+ae3::OriginalNavStageGroupSession groups(owners, graphSlot);
+groups.originalRegisterRange_4e4060(originalNavrangeSource);
+auto route=groups.originalRouteByKey_2207d0(originalGroupKey,originalRouteQuery);
+if(ae3::originalNavStageRouteCurrent(owners, route)) {
+    auto edge=ae3::originalNavStageRouteEdge_57bd88(owners,route,0);
+    auto originalClass2=ae3::originalNavStageType2Target_57bdb8(owners,route);
+    auto follower=ae3::originalNavStageFollowerState_57c7cc(
+        owners,route,actorPolygon,currentControllerTarget);
+    // The physics-owned callbacks implement original 0x4C1B3C
+    // projection and 0x57C8EC target update. No substitute motion.
+    auto moved=ae3::originalNavStageAdvanceRoute_57c7cc(
+        owners,route,actorPolygon,currentControllerTarget,physicsCalls);
+}
 ```
-- Hold each snapshot only while `originalNavStageRouteCurrent(owners, route)` is true, and replace/clear an actor route on stage transition. Borrowed spans from follower inputs cannot outlive a snapshot or its owner. **Integration owner must wire these into the actual actor pipeline; this patch does not alter another team's files.**
 
-## Important unresolved original behavior
+`OriginalNavStageGroupSession` is a native **single-owner-slot** borrowing view and must not outlive `owners`. Call `originalClear_4e3fec()` before dropping the owner or `originalRebindSourceGraph()` after its generation changes, and re-register the original group source. The keyed session deliberately rejects unknown keys instead of inventing default eligibility or graph choice. If the genuine original runtime shares one group key across multiple source-owner slots, the integrator must audit source owner routing before expanding this contract; do not force mixed graphs into one slot.
 
-- Genuine retail source audit of `0x57BCB8` actor controller post-constructor, actor action state machine, `0x21EF3C` navrange eligibility, and source class-2 action runtime dispatch remain incomplete and require the genuine private ELF/stage assets.
-- Graph population is still conditional on original `0x21EF3C` eligibility; this patch does not manufacture list membership, actor polygons or targets.
-- Pending game-owned type-2 action objects cannot be emulated by simply treating the original source table pointer as a host pointer; this patch preserves the recovered decision flag and source slot only.
-- The CMake linkage and Windows runtime consumption have not yet been executed or validated.
+## Remaining original blockers
 
-## Next substantial work
-
-Use owner's SHA-pinned USA ELF and at least two stages with type-1 action links to audit the `0x57BCB8` original controller state-transition logic, `0x21EF3C` membership filtering and route invalidation callers. Then integrate these exact source decisions into the pending actor-route ownership pipeline without touching the VU0 team's implementation.
+1. Decompile source `0x57BCB8` original controller post-constructor and subsequent real actor movement/state transitions using original executable input.
+2. Complete original `0x21EF3C` COP2/MMI precision behavior and validate native navrange membership against genuine stage data.
+3. Recover downstream type-2 actor motion beyond vertex reads (`0x57BDFC` onward) and stage-transition actor route replacement.
+4. Validate real stage group ownership across nav_monkey/nav_enemy and multi-key resources; avoid assuming the one-slot native adapter is the retail global registry.
+5. CMake + CTest and native Windows game boot are **integrator-only**; this branch is not independently verified playable.
