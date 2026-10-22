@@ -86,6 +86,26 @@ class RetailLua50AuditTests(unittest.TestCase):
         self.assertEqual(parsed['global_reads'], ['first', 'second', 'third'])
         self.assertEqual(parsed['instructions'], 3)
 
+    def test_closure_opcode_35_with_nested_stage_callback(self):
+        # Original Lua 5.0.3 defines OP_CLOSURE=35. Stage scripts define
+        # setupArea as a nested function, so this opcode is not optional.
+        nested = function(['new_ent'], [], calls=['new_ent'])
+        original = function([], ['setupArea'], nested=[nested])
+        source = chunk(original)
+        # Replace first function's final SETGLOBAL with CLOSURE R(0), proto 0
+        # and append SETGLOBAL to preserve both emitted instructions.
+        instruction = u32(35) + u32((0 << 24) | (0 << 6) | 7)
+        orig_inst = u32(7)
+        self.assertTrue(source.endswith(orig_inst))
+        modified = source[:-8] + u32(2) + instruction
+        report = audit.inspect(modified)
+        self.assertEqual(report['prototypes'], 2)
+        self.assertEqual(report['direct_global_calls'], ['new_ent'])
+        self.assertEqual(report['global_writes'], ['setupArea'])
+        invalid = modified[:-8] + u32(63) + modified[-4:]
+        with self.assertRaises(audit.InvalidChunk):
+            audit.inspect(invalid)
+
     def test_private_report_separates_known_bindings_and_script_definitions(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
