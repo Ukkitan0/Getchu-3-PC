@@ -17,12 +17,15 @@ std::uintptr_t originalAssemblePacket3af8f0(
     if(!gfx)throw std::invalid_argument("original retail graphics object not bound");
     if(desc.size()<0x38)
         throw std::invalid_argument("retail render descriptor too short for five packet segments");
-    if(!d.allocate3b3ce0||!d.reset3af8b8||!d.setup3af8a8||!d.appendOriginal)
+    if(!d.allocate3b3ce0||!d.reset3af8b8||!d.bindGraphicsOwner3af920||
+       !d.setup3af8a8||!d.appendOriginal)
         throw std::runtime_error("original packet allocator/setup or segment writers unavailable");
     // Retail 0x3AF90C: allocation count4; 0x3AF918: initialize.
     const auto packet=d.allocate3b3ce0(gfx,4);
     if(!packet)throw std::runtime_error("original graphics packet allocation returned null");
     d.reset3af8b8(packet);
+    // Retail 0x3AF920 stores the original graphics owner at +0x38.
+    d.bindGraphicsOwner3af920(packet,gfx);
     // Retail 0x3AF928 calls 0x3AF8A8(packet,descriptor).
     d.setup3af8a8(packet,desc);
     // Original beqzl on each count skips the corresponding handler.
