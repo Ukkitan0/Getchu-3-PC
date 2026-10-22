@@ -145,22 +145,35 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
     folder = Path(tempfile.mkdtemp(prefix=source.digest[:16] + "-", dir=saved))
     report_file = saved / "Getchu3ImportStatus.json"
     outcome: dict[str, Any] = {"schema": "ae3-unreal-owner-import/v1", "disc_sha256": source.digest,
-                               "status": "running", "gameplay_ready": False, "workspace": str(folder)}
+                               "status": "running", "phase": "extract_source",
+                               "gameplay_ready": False, "workspace": str(folder),
+                               "animation_parity_verified": False,
+                               "original_collision_imported": False,
+                               "original_lua_bound_to_runtime": False,
+                               "sound_engine_verified": False}
     report_file.write_text(json.dumps(outcome, indent=2), encoding="utf-8")
     try:
         extracted = folder / "original"
         recovery = recover_original(source.path, extracted, repo)
         outcome["original_files"] = recovery["original_vfi_files_extracted"]
         outcome["original_lua_scripts"] = recovery["original_lua_scripts"]
+        outcome["phase"] = "decode_tim2"
+        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         converted = folder / "converted"
         from getchu3_media import convert_textures, convert_stream_audio
         textures = convert_textures(extracted / "vfi", converted / "textures", ae3_cli)
         outcome["textures_converted"] = textures["converted_png_files"]
+        outcome["phase"] = "decode_models"
+        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         models = convert_original_models(extracted / "vfi", converted / "models",
                                          repo, ae3_cli, textures=converted / "textures")
         outcome["models_detected"] = models["original_i3d_bin_files"]
+        outcome["phase"] = "decode_streams"
+        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         streams = convert_stream_audio(extracted / "vfi", converted / "audio", ae3_cli)
         outcome["streams_decoded"] = streams["source_exst"]
+        outcome["phase"] = "unreal_editor_asset_import"
+        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         base = "/Game/ApeEscape3/Original"
         assets = import_glbs_in_editor(converted / "models", ue,
                                        destination=base + "/Models")
@@ -173,6 +186,7 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         outcome["unreal_stream_audio_assets"] = wavs
         outcome["original_collision_imported"] = False
         outcome["original_lua_bound_to_runtime"] = False
+        outcome["phase"] = "asset_import_finished"
         outcome["status"] = "original_models_textures_streams_imported_gameplay_not_implemented"
         outcome["remaining"] = [
             "original actor and Lua callback runtime", "player and monkey simulation",
