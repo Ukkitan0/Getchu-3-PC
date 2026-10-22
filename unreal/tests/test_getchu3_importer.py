@@ -12,6 +12,8 @@ FILE = (Path(__file__).resolve().parents[1] / 'Plugins/Getchu3Importer/Content/P
 spec = importlib.util.spec_from_file_location('getchu3_importer', FILE)
 import sys
 module = importlib.util.module_from_spec(spec)
+sys.path.insert(0, str(FILE.parent))
+import getchu3_media
 sys.modules[spec.name] = module
 spec.loader.exec_module(module)
 
@@ -51,7 +53,7 @@ class ImporterTests(unittest.TestCase):
             (base/'debug/us/stage').mkdir(parents=True)
             (base/'debug/us/stage/Hero One.glb').write_bytes(b'glb test')
             self.assertEqual(module.import_glbs_in_editor(base, FakeUE()),
-                             ['/Game/ApeEscape3/Original/debug/us/stage/SourceMesh'])
+                             ['/Game/ApeEscape3/Original/Models/debug/us/stage/SourceMesh'])
     def test_no_glb_fails(self):
         with tempfile.TemporaryDirectory() as d:
             with self.assertRaisesRegex(RuntimeError, 'No converted'):
@@ -60,7 +62,9 @@ class ImporterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             base=Path(d)
             disk=base/'retail.iso'; disk.write_bytes(b'test')
+            from getchu3_media import convert_textures
             with patch.object(module,'verify_disc',return_value=module.VerifiedDisc(disk,'a'*64)), \
+                 patch('getchu3_media.convert_textures',return_value={"converted_png_files":2}), \
                  patch.object(module,'recover_original',return_value={"original_vfi_files_extracted":3994, "original_lua_scripts":168}), \
                  patch.object(module,'convert_original_models',side_effect=RuntimeError('conversion unavailable')):
                 with self.assertRaisesRegex(RuntimeError,'conversion unavailable'):
@@ -72,6 +76,8 @@ class ImporterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             base=Path(d); disk=base/'retail.iso';disk.write_bytes(b'test')
             with patch.object(module,'verify_disc',return_value=module.VerifiedDisc(disk,'b'*64)), \
+                 patch('getchu3_media.convert_textures',return_value={"converted_png_files":2}), \
+                 patch('getchu3_media.convert_stream_audio',return_value={"source_exst":0,"wav_files":[]}), \
                  patch.object(module,'recover_original',return_value={"original_vfi_files_extracted":3994,"original_lua_scripts":168}), \
                  patch.object(module,'convert_original_models',return_value={"original_i3d_bin_files":12}), \
                  patch.object(module,'import_glbs_in_editor',return_value=['/Game/Original/Mesh']):
