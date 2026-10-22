@@ -35,7 +35,7 @@ typedef struct Ae3LuaRuntime Ae3LuaRuntime;
  * successfully accepts the operation. Zero rejects the operation and makes
  * original Lua stop with a genuine binding error.
  *
- * Entity class/name/tag are also supplied as exact original byte hex.
+ * Entity class/name/tag and flag scope/key are supplied as exact byte hex.
  * Lua field JSON uses a LOSSLESS typed representation:
  *  nil: {"kind":"nil"}
  *  boolean: {"kind":"boolean","value":true}
@@ -56,9 +56,9 @@ typedef struct Ae3LuaManagerV1 {
                          const char* original_fields_json,
                          const char* original_controllers_json);
     int (*submit_parameters)(void*, const char* original_parameters_json);
-    int (*write_flag)(void*, const char* scope, const char* key, int value);
+    int (*write_flag)(void*, const char* scope_hex, const char* key_hex, int value);
     /* 1 means known, 0 means original manager data unavailable. */
-    int (*read_flag)(void*, const char* scope, const char* key, int* value);
+    int (*read_flag)(void*, const char* scope_hex, const char* key_hex, int* value);
     int (*read_stage_int)(void*, const char* typed_args_json, int* value);
     int (*read_survival)(void*, int* value);
     int (*select_weapon)(void*, int original_selection);
