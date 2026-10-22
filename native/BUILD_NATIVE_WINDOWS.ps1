@@ -6,7 +6,7 @@ param(
     [ValidateSet('Debug','Release','RelWithDebInfo')]
     [string]$Configuration = 'Release',
     [string]$BuildDirectory = '',
-    [switch]$RunTests,
+    [switch]$SkipTests,
     [switch]$RunRetail,
     [string]$OriginalIso = '',
     [string]$Stage = '',
@@ -52,12 +52,12 @@ try {
     & $cmake.Source --build $BuildDirectory --config $Configuration --parallel
     Assert-Success 'CMake build'
 
-    if ($RunTests) {
+    if (-not $SkipTests) {
         Write-Host '[3/3] Run native component CTest suite (NOT gameplay verification)'
         & ctest.exe --test-dir $BuildDirectory -C $Configuration --output-on-failure
         Assert-Success 'CTest'
     } else {
-        Write-Host '[3/3] CTest skipped; use -RunTests to enable all registered native checks.'
+        Write-Host '[3/3] CTest explicitly skipped with -SkipTests.'
     }
 
     $candidates = @(
