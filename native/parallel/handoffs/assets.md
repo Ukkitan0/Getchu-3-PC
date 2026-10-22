@@ -402,3 +402,25 @@ Integrate header-only original_resource_record_registration.hpp / original_resou
 Recover 0x25182C's actual directory-tree owner traversal through 0x509C10/0x49C150, allocation ownership, wrapper and original stage transitions. Resolve when compressed .sz filenames are converted to source resource logical names, and hook genuine resource records to original stage consumers 0x272294, 0x4F0A5C, 0x30C798 and 0x25BFE0. Do not infer original traversal order from VFI entries or substitute gameplay/graphics routines. All these remain real blockers.
 
 No global CMake or other workstream files modified. No GitHub Actions dispatched. No copyrighted game files committed.
+
+### Follow-up in same session: recovered DirInfo ordered-tree traversal
+
+The original directory owner previously marked as fully unknown can now be narrowed using newly inspected private SCUS_975.01 source. Original 0x251928 JAL 0x509C10 locates the ordered directory key, and original 0x251A6C JAL 0x49C150 advances its red-black-tree iterator. Source comparator 0x627E60 is bytewise and breaks ties by string length; original 0x509C50 and 0x509C8C both call that comparator. This establishes the order of source directory KEYS: in-order under the original string comparator, rather than arbitrary VFI enumeration. The original DirInfo object allocation, stage directory selection policy and stage-transition lifetimes are still incomplete.
+
+Three **additional SHA-pinned original executable windows**, independently checked against the private game executable:
+- 0x509C10..0x509CC8 = 46 original words, SHA256 c463623742c0eb132a357a7c1cf962c2aeb407512ea79e3a0613ea3e5b24ec4d
+- 0x49C150..0x49C1E4 = 37 words, SHA256 62c9bb3452dbba43fe960a06cf7db796556c3074cfaf097326bc7d948bd051f6
+- 0x627E60..0x627EB0 = 20 words, SHA256 663aa53699355ffdb17cd9f61fde1b9882cad56c43a6d06b3ec3ad5bf6663e70
+
+New source:
+- 683e4787851f8a02c68ab2a43218e102d02a42b9: original_resource_directory_order.hpp. Host-native source-key comparator and direct-child file directory view sorted in recovered original map order, retaining exactly indexed VFI filenames/offsets. Requires explicit stage and relative folder; does not reconstruct original DirInfo pointer ownership.
+- c914d16e72d634d62c84dee0fd06d04c2658f931: original_resource_directory_order_test.cpp. Synthetic unsorted stage archive fixtures verify case-sensitive original key order, direct-child vs nested source directory, no guessed missing directory, genuine VFI index preservation.
+- bf0797beb4c8792ab95181a881f8ff1d19d21581 and b9c07514650a8d4e7a956ab8146302fd022af7bc: expand the owner-only original ELF verifier to three additional code windows, four additional direct source call sites and four opcode anchors. The first draft of this followup mistook 0x251930 for a JAL; original disassembly corrected it to **0x251928** before local validation.
+- 2517a73929b97e057afbb29d759105bb61683ac9: original_resource_stage_directory_registration.hpp connects original-key ordered direct children of a *real source VFI directory* through stage-owned VFI/SZ/PCK data and the recovered record-type/name registration. Caller still supplies the original stage and relative directory.
+- d0dfa9c27f8829f01f2afe312088ee78693f08e5: extends stage-scope test. Synthetic source deliberately enumerates area/navigation/exdb out of lexical order; connected directory view resolves original area/exdb/navigation order and feeds through original name lookup and source-type filtering.
+- bcd221a316e759fa04b003af5d7dc60ed2437a13: updated metadata-only original_stage_initialization_resource_chain.json. **646 unique original machine instruction words across ten pinned windows, 24 direct source calls/jumps.** Do NOT add the overlapping per-subsystem verifiers' counts again.
+
+**Actually executed focused verification:** locally mirrored directory-order header and integrated VFI/SZ/PCK/source registry passed GCC 14.2 and Clang 17 optimized strict C++20 flags, and GCC ASan+UBSan with leak checks. Full source verifier with 6 windows / **502 original words, 14 exact opcode sites, 11 direct JAL edges** passed using private original executable and nine SHA-pinned woods_c original files. The 502-word verifier overlaps the cumulative 646-word metadata ledger. This pass did not run the exact Github checkout's full CMake/CTest/Windows boot, so compile/playability status remains UNVERIFIED.
+
+**Integrator needs:** include original_resource_stage_directory_registration.hpp to compose stage root or chosen directory (the correct directory is a still-unknown original lifecycle decision), and register original_resource_directory_order_test.cpp alongside other requested assets tests. Test complete native Windows linkage and original ISO after cherry-picking; original assets remain privately held and were not committed. Original data bytes never embedded in source fixtures. This does not implement actor creation, renderer or Lua playback.
+
