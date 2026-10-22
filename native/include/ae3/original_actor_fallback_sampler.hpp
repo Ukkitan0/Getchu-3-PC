@@ -12,8 +12,8 @@ namespace ae3 {
 inline constexpr std::size_t kOriginalFallbackCandidates_57ca68=6;
 
 struct OriginalActorFallbackCandidate_57ca68 {
-    // The original candidate VU0 code is not yet decoded. Its
-    // actual source vectors feed original 0x4748AC dot evaluation.
+    // The recovered native VU0 candidate vectors feed the original
+    // 0x4748AC XYZ dot evaluation, with source register ordering.
     OriginalVU0Vec4 originalScoreVectorA{};
     OriginalVU0Vec4 originalScoreVectorB{};
     std::uint64_t originalPackedTargetLow64=0;
@@ -45,7 +45,8 @@ struct OriginalActorFallbackSelection_57ca68 {
 // Source 0x57CBC4 and 0x57CCBC invoke the FULLY recovered original
 // XYZ dot; original C.OLT.S replaces best only for strictly larger.
 // Source VU transforms at 0x57CB4C..0x57CBB8 and 0x57CC48..0x57CCB0
-// remain explicit original-specific dependencies, not guesses.
+// are native translations in original_actor_fallback_vu0_native.cpp.
+// The interface remains injectable for original-vector regression tests.
 OriginalActorFallbackSelection_57ca68 originalActorFallbackSelect_57ca68(
     const OriginalSpatialRecord70& originalPolygon,
     const std::array<std::byte,16>& originalInputA1OwnerVector,

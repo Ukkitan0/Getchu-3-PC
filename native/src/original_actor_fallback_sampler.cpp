@@ -17,17 +17,15 @@ OriginalActorFallbackSelection_57ca68 originalActorFallbackSelect_57ca68(
         // Source first candidate 0x57CADC/0x57CB00, then five more
         // repetitions from original 0x57CBD8/0x57CBFC.
         const auto originalWeights=originalActorTriangleWeights_57c98c(sourceRNG);
-        // A callback here is the actual *unrecovered* 0x57CA68 VU0
-        // candidate transform. The algorithm cannot claim native
-        // completion until that source routine is ported.
+        // Virtual source interface dispatches the production native
+        // 0x57CB4C/0x57CC48 implementation (or focused test verifier).
         const auto candidate=originalVU0.call_original_57ca68_candidate_VU0(
             originalVertices,originalInputA1OwnerVector,
             originalInputA2Controller20,originalVU0QBits,
             originalWeights,sample);
         // Original source emits two VU0 VRINIT(VF0.w) / VRXOR(VF0.x)
         // pairs per candidate, distinct from the two EE game RNG draws.
-        // Their final state is observable after the candidate transform;
-        // the transform itself still needs a faithful native translation.
+        // Their final state is observable through caller-bound VU0 R state.
         if(originalVu0R)
             originalFallbackVu0RandomCandidate_57ca68(*originalVu0R);
         // Source 0x57CBC4/0x57CCBC: actual 0x4748AC result.

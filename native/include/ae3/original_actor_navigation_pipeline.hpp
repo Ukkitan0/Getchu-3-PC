@@ -14,8 +14,9 @@
 #include <vector>
 
 namespace ae3 {
-// Three genuine VU0 dependencies are not yet recovered. No synthesized
-// collision, projection or steering is substituted for the retail code.
+// Legacy callback retains strictly unresolved/injection-only source paths.
+// The genuine 0x57CA68 math is now translated natively whenever the
+// original caller supplies its shared RNG, owner vector and Q bits.
 class OriginalActorUntranslatedMath_57c7cc {
 public:
     virtual ~OriginalActorUntranslatedMath_57c7cc()=default;
@@ -62,6 +63,12 @@ public:
     // VU0 Q is caller-owned COP2 state. This original routine invokes
     // VMULq four times in two source blocks but never writes Q itself.
     void setOriginalFallbackQBits_57ca68(std::uint32_t rawOriginalQ);
+    // Optional binding to original VU0 R state. VRINIT/VRXOR run twice per
+    // candidate, independent from the original EE MT19937 draw stream.
+    // Borrowed caller-owned state must outlive each actor advance().
+    void setOriginalFallbackRState_57ca68(OriginalActorFallbackVu0R_57ca68* state) noexcept {
+        originalFallbackR_=state;
+    }
 
     OriginalActorRouteFollowResult_57c7cc advance(
         OriginalActorRouteFollowerState_57c7cc& originalActorRoute);
@@ -99,6 +106,7 @@ private:
     std::span<const OriginalPolygonLinks_21bd3c> originalSourceAdjacency_;
     std::optional<std::array<std::byte,16>> originalOwner14Vector40_;
     std::optional<std::uint32_t> originalFallbackQBits_;
+    OriginalActorFallbackVu0R_57ca68* originalFallbackR_=nullptr;
     std::optional<OriginalVU0Vec4> originalIncomingRayA1_;
     std::optional<OriginalVU0Vec4> originalController40_;
     std::optional<OriginalVU0Vec4> latestTargetRayA2_;

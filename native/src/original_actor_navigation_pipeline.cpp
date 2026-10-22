@@ -67,7 +67,8 @@ std::uint64_t OriginalActorNavigationPipeline_57c7cc::call_original_57ca68_geome
             *originalFallbackTransform_:nativeFallbackTransform_;
         const auto selected=originalActorFallbackSelect_57ca68(
             target,*originalOwner14Vector40_,controllerVector20_,
-            *originalFallbackQBits_,*originalSharedRandom_,sourceTransform);
+            *originalFallbackQBits_,*originalSharedRandom_,sourceTransform,
+            originalFallbackR_);
         latestFallbackHigh64_=selected.originalWinningPackedTargetHigh64;
         return selected.originalWinningPackedTargetLow64;
     }
@@ -116,8 +117,9 @@ void OriginalActorNavigationPipeline_57c7cc::call_original_57c8ec_update_target(
     const auto bits=output.originalVectorLow64;
     packed.x=std::bit_cast<float>(std::uint32_t(bits));
     packed.y=std::bit_cast<float>(std::uint32_t(bits>>32));
-    packed.z=std::bit_cast<float>(std::uint32_t(output.originalVectorHigh64));
-    packed.w=std::bit_cast<float>(std::uint32_t(output.originalVectorHigh64>>32));
+    // 0x57C988 DMTC2 consumes only the low 64 bits of the original GPR.
+    // Do not reinterpret the returned PCPYUD upper half as target z/w.
+    // 0x57C894 also zero-extends the original $v0 low doubleword to $a2.
     latestTargetRayA2_=packed;
 }
 OriginalActorRouteFollowResult_57c7cc OriginalActorNavigationPipeline_57c7cc::advance(

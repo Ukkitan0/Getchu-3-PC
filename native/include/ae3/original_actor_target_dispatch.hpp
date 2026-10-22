@@ -16,7 +16,9 @@ enum class OriginalActorTargetBranch_57c8ec {
 struct OriginalActorTargetResult_57c8ec {
     OriginalActorTargetBranch_57c8ec branch;
     std::uint64_t originalVectorLow64 = 0;
-    // Native 0x57CA68 PCPYUD also carries the scored target in [127:64].
+    // Full source fallback 0x57CCE0 PCPYUD also carries chosen VF data
+    // in GPR[127:64], retained for provenance; 0x57C988 DMTC2 only
+    // consumes GPR[63:0], not this upper half.
     std::uint64_t originalVectorHigh64 = 0;
 };
 

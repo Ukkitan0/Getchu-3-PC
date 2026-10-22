@@ -100,6 +100,8 @@ static void runPolygon(const OriginalSpatialRecord70& original,
         records,geometry,veryFarOutside,true,missing,&genuineRandom);
     originalNative.setOriginalFallbackOwnerVector_57ca68(ownerVector);
     originalNative.setOriginalFallbackQBits_57ca68(0x3fc90fdau);
+    OriginalActorFallbackVu0R_57ca68 originalR{0xdeadbeefu};
+    originalNative.setOriginalFallbackRState_57ca68(&originalR);
     OriginalActorRouteFollowerState_57c7cc nativeState{
         records,route,&records[0],nullptr,true};
     const auto nativeResult=originalNative.advance(nativeState);
@@ -113,6 +115,10 @@ static void runPolygon(const OriginalSpatialRecord70& original,
             "Original PCPYUD winner high-half target lost in movement pipeline");
     require(genuineRandom.originalCursor()==11,
             "Native VU0 six-candidate path must consume 12 genuine RNG draws");
+    require(originalR.rawR==0x3f800000u &&
+            originalR.sourceVRINITCalls==12 &&
+            originalR.sourceVRXORCalls==12,
+            "Connected native VU0 R source effects lost during actor advance");
 }
 static unsigned u16(std::span<const std::byte> b,std::size_t at){
     require(at+2<=b.size(),"Original source u16 bounds");
