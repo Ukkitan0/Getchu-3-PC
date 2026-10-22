@@ -20,6 +20,11 @@ THIRD_CTOR_LITERAL_SHA = "409f7ce3cbaeb6670123aa8e26359e36f118ec8d784f405ac78f06
 FOURTH_CTOR_SHA = "769e555620bccceda273b52b0b90d2a24e8872ecaae788a126566f26d703c0fd"
 FOURTH_ENTRY_SHA = "20552c8eb949f74f127d90eaef73b7f76e9878f3c332efc605a97d443fa9a341"
 FOURTH_LITERAL_SHA = "d355cd4bb05ebf17c914cfb28d4cd2cdb2e2bb10a6959869af5cd051d1abc0f0"
+FIFTH_WRAPPER_SHA = "60f74f34bd5b454ca0933867b130b26308d06094067024ecaad34bfc83a8ad46"
+FIFTH_CALL_SHA = "22f7ce43f757ec3635a967cdffc7f06c715a3fb8f773654b7fd2a7283f633b20"
+SIXTH_WRAPPER_SHA = "ac1a87f54e8c6a62b046f07c871394582e8670565030e3cc391f7f3dec1b5a48"
+SIXTH_CLEAR_SHA = "147ec31a450535311c9f83fe65361ec99ac3359a1cf6eeb6c4aa963c50966be4"
+SIXTH_RESET_SHA = "70fe2f3808fc889ce02fee60156d9357c9df5f9a525fd1a71bc1a72c78e22b50"
 NUMERIC_CTOR_SHA = "035a60ed83dc1ceb0893ae3d0ab2949656327f914812efeafe76a7dec6fefd4e"
 NUMERIC_INIT_SHA = "ad45d81525c06e107fa271f6b8f51e678f64e81c25dc267dcad5451e4abbb800"
 MATH_SQRT_WRAPPER_SHA = "d448df6f0659e171eabf325fdd8d52171a72e1fe13dbea6e14971dc99952d961"
@@ -104,6 +109,27 @@ def verify(path):
     fourth=[elf.word(pc) for pc in range(0x39fa10,0x39fc78,4)]
     if sum(op>>26==30 for op in fourth)!=42 or sum(op>>26==31 for op in fourth)!=41:
         raise ValueError('Original fourth constructor source quadword load/store count changed')
+    for va, length, digest in (
+        (0x391600, 0x1c, FIFTH_WRAPPER_SHA),
+        (0x391148, 0x3c, FIFTH_CALL_SHA),
+        (0x38abfc, 0x1c, SIXTH_WRAPPER_SHA),
+        (0x38aba0, 0x5c, SIXTH_CLEAR_SHA),
+        (0x38aa64, 0x14, SIXTH_RESET_SHA),
+    ):
+        if sha(va,length)!=digest:
+            raise ValueError(f'Original fifth/sixth source instruction mismatch at {va:#x}')
+    for site,target,kind in (
+        (0x391614,0x391148,2),
+        (0x391168,0x39117c,3),
+        (0x38ac10,0x38aba0,2),
+        (0x38abd4,0x38aa64,3),
+    ):
+        op=elf.word(site)
+        dst=((site+4)&0xf0000000)|((op&0x3ffffff)<<2)
+        if op>>26!=kind or dst!=target:
+            raise ValueError(f'Original fifth/sixth call/jump changed at {site:#x}')
+    if elf.word(0x39117c)!=0x03e00008 or elf.word(0x391180)!=0:
+        raise ValueError('Original fifth constructor callee is no longer no-op')
     if elf.word(0x62e660)!=0xffffffff or elf.word(0x62e8a0)!=0:
         raise ValueError('Original constructor table sentinel/boundary mismatch')
     functions=[elf.word(0x62e89c-i*4) for i in range(143)]
@@ -139,7 +165,10 @@ def verify(path):
             'third_constructor_source_data_required':True,
             'fourth_constructor_source_data_required':True,
             'fourth_constructor_native_qwords':38,
-            'next_unrecovered_original_constructor':"0x391600",
+            'original_fifth_native_noop':"0x391600",
+            'original_sixth_native_reset_records':2,
+            'original_sixth_preserved_padding_offsets':[5,6,7],
+            'next_unrecovered_original_constructor':"0x38aa18",
             'original_callbacks_not_implemented':True,
             'original_windows_gameplay_booted':False}
 
