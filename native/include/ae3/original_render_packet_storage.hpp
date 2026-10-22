@@ -15,6 +15,8 @@ void originalBindPacketGraphicsOwner(std::span<std::uint8_t> header,
 class OriginalNativeRenderPacketStorage {
 public:
     explicit OriginalNativeRenderPacketStorage(std::uint32_t byteCapacity);
+    // Reserve original 0x3B3CE0 rear header before retail reset/bind/setup.
+    std::size_t reservePacketHeader();
     std::size_t allocatePacketHeader(std::uint32_t originalGraphicsToken,
                                      std::span<const std::uint8_t> originalDescriptor);
     std::span<std::uint8_t> packetHeader(std::size_t offset);
