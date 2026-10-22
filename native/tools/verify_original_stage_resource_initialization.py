@@ -19,6 +19,8 @@ ORIGINAL_WINDOWS = {
     (0x24DC84, 0x24DCB4): "e534af352ecfee6d28373bfa9cef6759a8c53f0961ed91ca1c18aa9d6c36bd4a",
     (0x24D4F0, 0x24D5FC): "7ec60322e5ae08a2e117a0b4c120837a4a7ac1d3c16fda83a2e6930afe6b20ad",
     (0x26DF38, 0x26DF50): "1f7d4a0f338b0a7d04366122d34d6c429ce01828b2cf08441b021fc4a4f2c400",
+    (0x252BC4, 0x252BE0): "98aaf670fb9b5e6c962826cd08d323020e2f3793296c19445a0e28b629c29dfa",
+    (0x25182C, 0x251BE8): "2a4161e0a137a893b4322492fb004cf44b95e7af1c2f018b618c5d639e5da857",
 }
 # Ordered retail stage-init resource-key lookups. These are original
 # lookup NAMES, not fabricated source filenames or file extensions.
@@ -99,14 +101,32 @@ def original_elf(elf_path: Path) -> dict:
     jump(0x22D938, 0x24DC9C, 3)
     jump(0x24DC94, 0x24D4F0, 2)
     jump(0x26DF48, 0x26D24C, 2)
+    # The original stage resource container is populated BEFORE its
+    # four named queries: '*' at 0x6E7380 is A3 of 0x22D7F8,
+    # wrapper 0x252BC4 calls registration worker 0x25182C.
+    check(view(0x6E7380, 2) == b"*\\x00", "stage source wildcard literal mismatch")
+    jump(0x22D7F8, 0x252BC4, 3)
+    jump(0x252BCC, 0x25182C, 3)
+    check(le32(view(0x2519D8, 4), 0) == 0x240F002A,
+          "0x25182C wildcard ASCII '*' opcode differs")
+    check(le32(view(0x2519DC, 4), 0) == 0x82CE0000,
+          "0x25182C selector first-byte opcode differs")
+    check(le32(view(0x2519E0, 4), 0) == 0x11CF000A,
+          "0x25182C wildcard bypass branch differs")
+    jump(0x2519FC, 0x42C44C, 3)
+
     # Source lookup at 0x22D928 is followed by a second original
     # lookup at 0x22D938; this is not the same flow as the first three.
     return {
         "retail_ELF_sha256": USA_ELF_SHA256,
         "whole_source_windows": len(ORIGINAL_WINDOWS),
         "verified_instruction_words": sum((hi - lo) // 4 for lo, hi in ORIGINAL_WINDOWS),
-        "verified_direct_jumps": 11,
+        "verified_direct_jumps": 14,
         "original_stage_init": "0x22d7b4",
+        "wildcard_registration_call": "0x22d7f8",
+        "registration_wrapper": "0x252bc4",
+        "registration_worker": "0x25182c",
+        "registration_selector_literal_va": "0x6e7380",
         "lookup_wrapper": "0x24dc84",
         "lookup_core": "0x24d4f0",
         "typed_resource_selector": "0x26d24c",
