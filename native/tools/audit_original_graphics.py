@@ -132,7 +132,35 @@ def verify_and_audit(elf: bytes) -> dict:
         owner_evidence.append({"va_start":f"0x{first:08x}",
                                "va_end_exclusive":f"0x{end:08x}",
                                "sha256":actual})
+    # Additional retail instruction fingerprints: decoded renderer-context
+    # pointer slots, +0x110 resource lifecycle/flag accessors, source-timed
+    # actor render entry, and the 0x2804F4 material packet dependency chain.
+    # These prove source bytes only, NOT end-to-end native GPU drawing.
+    recovered_graphics_ranges = [
+        (0x3B76D0, 0x3B7740, "ac883e9b102c531ce8061c48a8161f27e2bf8a8909e408a55b3771ff4aa34a93"),
+        (0x26A4C4, 0x26A55C, "7a15cd6dc48d8dac29d2e55b34ca37d9fc522de7c5f60726c315aa3958856e33"),
+        (0x26A854, 0x26A8A4, "6da75758cde672462a2460741043bba9ebd7fa63c353fc7ff8dd14018eeea262"),
+        (0x26A8AC, 0x26A8F4, "f6abab67768fdc1431cd7fc1c0e6ace3f72d08d0fc083c406bf10d63ee840717"),
+        (0x26A938, 0x26A980, "6a5231aba8fe0365f8456d8e194fe574ad9bb7e75370bcb8d711d70b55972011"),
+        (0x26831C, 0x268424, "4ed314ac49d5c0a81d11cfa20d14de81e50a5d4738a13ab9152ce2c4b1bf5c69"),
+        (0x2802D4, 0x280328, "e55bff41b6a4c185107783132caf36163e8290aa0bd70ce146fbe242bea4a7b7"),
+        (0x280328, 0x280364, "908308ffee03d34f74f18d64639dd39b25fdd97d2879a47c1ea9db0781d3d121"),
+        (0x2803B4, 0x2804F4, "45115d2c0466c8299d83b2a716785192c90cc7a7111c4e5c64ed442182f372a2"),
+        (0x2804F4, 0x280544, "056a50d5e7eacea38c602f34fa2933391b4a3dd185ef0e838cf9f41815bc3a37"),
+    ]
+    recovered_graphics_evidence = []
+    for first, end, expected in recovered_graphics_ranges:
+        data = elf[first - TEXT_VA + TEXT_FILE:end - TEXT_VA + TEXT_FILE]
+        computed = hashlib.sha256(data).hexdigest()
+        if computed != expected:
+            raise ValueError(f"original renderer data mismatch at {first:#x}")
+        recovered_graphics_evidence.append({
+            "start_va": f"0x{first:08x}",
+            "end_va_exclusive": f"0x{end:08x}",
+            "source_sha256": computed,
+        })
     report = {
+        "source_verified_render_context_and_actor_entry": recovered_graphics_evidence,
         "source_verified_render_owner": owner_evidence,
         "source_verified_draw_traversal": render_evidence,
         "retail_selector_instruction_ranges": selector_evidence,
