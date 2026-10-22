@@ -130,3 +130,6 @@ On the new source-derived static constructor path, **first missing original cons
 ### Final locally executed source-equivalent CMake/CTest validation
 - Executed a **new isolated** host CMake 3.31.6 Release build comprising the real-source-equivalent `original_windows_bootstrap.cpp` logic (actual 143 original addresses extracted from the SHA-pinned private ELF), first-constructor/exit-registry regression, and SHA-pinned ELF startup auditor. `cmake -S ... -B ... -DCMAKE_BUILD_TYPE=Release`, `cmake --build ... --parallel 4` and `ctest --test-dir ... --output-on-failure` completed with **2/2 PASS**. Actual source-equivalent GCC 14.2.0 optimized and ASan+UBSan test runs also passed.
 - This isolated CMake test is **not** a full checkout or Windows native engine build. The committed GitHub test/source text was not recompiled by MSVC in this pass. Need Windows owner/integration branch run to verify full linking and game initialization.
+
+## Continuation: next original initializer
+The second native constructor (0x417C58) is now implemented using source-derived IEEE-754 constants. The next constructor is 0x3A6CD0. Its data-copy semantics were audited locally against the private original executable, but its implementation is not yet integrated into the runtime application.
