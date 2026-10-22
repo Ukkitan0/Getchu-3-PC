@@ -19,6 +19,8 @@ struct OriginalPacketAssemblyDependencies {
     std::function<std::uintptr_t(std::uintptr_t,std::uint32_t)> allocate3b3ce0;
     // 0x3AF8B8(packet) reset original packet storage.
     std::function<void(std::uintptr_t)> reset3af8b8;
+    // Retail 0x3AF920 writes original graphics owner U32 to packet+0x38.
+    std::function<void(std::uintptr_t,std::uintptr_t)> bindGraphicsOwner3af920;
     // 0x3AF8A8(packet, descriptor) descriptor initialization.
     std::function<void(std::uintptr_t,std::span<const std::uint8_t>)> setup3af8a8;
     // Original 0x3AF478/0x3AF680/0x3AF6F8/0x3AF530/0x3AF600
