@@ -168,14 +168,14 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
 
     // The real managers must provide atomic stage setup. Failed Lua bindings
     // must never leave a partially constructed Player/Monkey world behind.
+    Manager = SourceManager; // Retain through callbacks and partial-start rollback.
+    bOriginalSetupOpen = true;
     if (!SourceManager->BeginOriginalStageSetup(
             OriginalLuaFilePath, OriginalSpawnTag)) {
         LastError = TEXT("Original actor/parameter manager does not support source-backed atomic stage setup");
-        StopOriginalStage();
+        StopOriginalStage(); // Abort even if Begin failed after allocating resources.
         return false;
     }
-    Manager = SourceManager; // Strong UPROPERTY retained through native callbacks.
-    bOriginalSetupOpen = true;
     Ae3LuaManagerV2 Bindings{};
     Bindings.api_version = AE3_LUA_BRIDGE_API_VERSION;
     Bindings.struct_size = sizeof(Bindings);
