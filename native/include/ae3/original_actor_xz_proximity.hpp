@@ -23,4 +23,4 @@ OriginalActorXZProximity_57c080 originalActorXZProximity_57c080(
 // The result of 0x21B854 is required; it is not synthesized here.
 std::array<std::byte,16> originalActorPack21B854Return_57c07c(
     const std::array<std::byte,16>& originalOriginalResultV0) noexcept;
-} 
+}
