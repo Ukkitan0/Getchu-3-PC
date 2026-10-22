@@ -143,6 +143,29 @@ void integration(){
         require(world.report().actorsCreated==0 &&
                 world.report().modelsRejected==1,
                 "private actor override could escape model-root security scope");
+        // An unresolved original actor position is not a valid game spawn.
+        // Never put a retail actor at (0,0,0) simply because its true
+        // original engine/PLC placement has not been recovered.
+        world.bind(second,root,root/"actor_bindings.txt");
+        require(world.report().actorsCreated==0 &&
+                world.report().unresolvedSpawnPositions==1 &&
+                world.report().unboundEntities==1 &&
+                world.actor("ape_01")==nullptr,
+                "unresolved retail actor accidentally instantiated at invented origin");
+        ae3::NativeStageWorld unknownTag;
+        ae3::LuaStage unknownVm(unknownTag);
+        unknownVm.executeSource(R"LUA(
+            function setupArea(opts)
+              new_ent("Monkey",{name="ape_missing",tag_name="missing_original_plc_tag"})
+            end
+        )LUA");
+        unknownVm.callSetupArea("start");
+        world.bind(unknownTag,root,root/"actor_bindings.txt");
+        require(world.report().actorsCreated==0 &&
+                world.report().unresolvedSpawnPositions==1 &&
+                world.report().matchedOriginalPlcTags==0 &&
+                world.actor("ape_missing")==nullptr,
+                "absent original PLC tag must not create an unverified monkey");
         // Native Lua model_name must resolve the actual original model
         // basename despite PCK's collision-safe numbered extraction name.
         fs::create_directories(root/"pck_assets"/"bg");

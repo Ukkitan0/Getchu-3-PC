@@ -245,14 +245,16 @@ void NativeActorWorld::bind(const NativeStageWorld& stage,
                     ++report_.matchedOriginalPlcTags;
                 }else if(tag!=originalTags.end()){
                     warn(report_,"Ambiguous original level PLC tag "+entity.tagName+
-                         "; actor stays at unresolved origin");
+                         "; no original spawn transform is recoverable");
                 }
             }
             if(actor.positionSource=="unresolved_original_position"){
                 ++report_.unresolvedSpawnPositions;
+                ++report_.unboundEntities;
                 warn(report_,"Lua "+entity.entityClass+" "+actor.name+
                      " has no explicit coordinates or exact original PLC tag; "
-                     "origin is NOT a verified spawn position");
+                     "actor NOT instantiated (the origin is not a verified spawn)");
+                continue;
             }
             actor.yaw=actorYaw(entity);
             actor.model=std::make_unique<NativeSkinnedGlb>(modelPath);
