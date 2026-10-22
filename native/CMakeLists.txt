@@ -488,6 +488,24 @@ if(AE3_RETAIL_USA_ELF)
               "${AE3_RETAIL_USA_ELF}")
 endif()
 
+# 0x3A6CD0 native source-literal setup. No original executable bytes
+# or user-owned PCK/ISO data are part of the build.
+target_sources(Getchu3Assets PRIVATE src/original_windows_static_resources.cpp)
+add_executable(Getchu3OriginalStaticResourceTests tests/original_windows_static_resources_test.cpp)
+target_link_libraries(Getchu3OriginalStaticResourceTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailStaticResourceRejectUnverifiedSource
+         COMMAND Getchu3OriginalStaticResourceTests)
+set(AE3_RETAIL_ORIGINAL_STATIC_3A6CD0 "" CACHE FILEPATH
+    "PRIVATE 208-byte original USA SCUS literal region; never distributed")
+if(AE3_RETAIL_ORIGINAL_STATIC_3A6CD0)
+  if(NOT EXISTS "${AE3_RETAIL_ORIGINAL_STATIC_3A6CD0}")
+    message(FATAL_ERROR "Missing private authentic third-constructor literal sample")
+  endif()
+  add_test(NAME OriginalRetailStaticResourceAuthenticatedData
+      COMMAND Getchu3OriginalStaticResourceTests
+              "${AE3_RETAIL_ORIGINAL_STATIC_3A6CD0}")
+endif()
+
 # Host-native startup checkpoint test; successful Lua setup does not imply a game boot.
 add_executable(Getchu3WindowsBootStatusTests tests/windows_runtime_boot_status_test.cpp)
 target_include_directories(Getchu3WindowsBootStatusTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
