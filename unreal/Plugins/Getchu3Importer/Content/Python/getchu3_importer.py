@@ -5,6 +5,7 @@ No commercial files are stored in the source repository or embedded in the plugi
 """
 from __future__ import annotations
 
+from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 import hashlib
@@ -94,34 +95,42 @@ def import_assets_in_editor(folder: Path, ue: Any, suffix: str,
     imported: list[str] = []
     destinations: set[str] = set()
     manager = ue.AssetToolsHelpers.get_asset_tools()
-    for file in files:
-        relative = file.relative_to(folder)
-        # Unreal package segments are restricted; mapping is stable and case-preserving.
-        parts = ["".join(c if c.isascii() and (c.isalnum() or c == "_") else "_"
-                         for c in part) for part in relative.parent.parts if part not in (".", "")]
-        target = destination + ("/" + "/".join(parts) if parts else "")
-        clean_stem = "".join(c if c.isascii() and (c.isalnum() or c == "_") else "_"
-                             for c in file.stem)
-        key = (target + "/" + clean_stem).casefold()
-        if key in destinations:
-            raise RuntimeError(f"Different original source models map to the same Unreal asset: {relative}")
-        destinations.add(key)
-        task = ue.AssetImportTask()
-        task.filename = str(file)
-        task.destination_path = target
-        task.automated = True
-        task.async_ = False
-        task.replace_existing = True
-        task.save = True
-        manager.import_asset_tasks([task])
-        objects = list(task.get_objects())
-        if not objects:
-            raise RuntimeError(f"Unreal failed to import original {suffix} {relative}")
-        paths = [str(obj.get_path_name()) for obj in objects]
-        imported.extend(paths)
-        if source_records is not None:
-            source_records.append({"source_relative": relative.as_posix(),
-                                   "unreal_object_paths": paths})
+    progress = ue.ScopedSlowTask(len(files), "Importing original Ape Escape 3 assets") if hasattr(ue, "ScopedSlowTask") and files else None
+    with (progress if progress is not None else nullcontext()):
+        if progress is not None:
+            progress.make_dialog(True)
+        for file in files:
+            if progress is not None:
+                if progress.should_cancel():
+                    raise InterruptedError("Original assets import cancelled; prior imported assets may remain")
+                progress.enter_progress_frame(1, f"Importing assets: {file.relative_to(folder)}")
+            relative = file.relative_to(folder)
+            # Unreal package segments are restricted; mapping is stable and case-preserving.
+            parts = ["".join(c if c.isascii() and (c.isalnum() or c == "_") else "_"
+                             for c in part) for part in relative.parent.parts if part not in (".", "")]
+            target = destination + ("/" + "/".join(parts) if parts else "")
+            clean_stem = "".join(c if c.isascii() and (c.isalnum() or c == "_") else "_"
+                                 for c in file.stem)
+            key = (target + "/" + clean_stem).casefold()
+            if key in destinations:
+                raise RuntimeError(f"Different original source models map to the same Unreal asset: {relative}")
+            destinations.add(key)
+            task = ue.AssetImportTask()
+            task.filename = str(file)
+            task.destination_path = target
+            task.automated = True
+            task.async_ = False
+            task.replace_existing = True
+            task.save = True
+            manager.import_asset_tasks([task])
+            objects = list(task.get_objects())
+            if not objects:
+                raise RuntimeError(f"Unreal failed to import original {suffix} {relative}")
+            paths = [str(obj.get_path_name()) for obj in objects]
+            imported.extend(paths)
+            if source_records is not None:
+                source_records.append({"source_relative": relative.as_posix(),
+                                       "unreal_object_paths": paths})
     return imported
 
 
