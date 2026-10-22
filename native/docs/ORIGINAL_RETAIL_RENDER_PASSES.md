@@ -40,7 +40,7 @@ order from `0x280810–0x280968`, plus the separate flag-33 false source branch
 
 1. Object+0x20 AND owner+0x58, both **64-bit**; skip when zero.
 2. Object bytes +0x30 and +0x35 must both be set.
-3. When object+0x32 is set, call `0x26C9B8` and skip when it rejects.
+3. When object+0x32 is set, call `0x26C9B8` and skip when its result is **zero** (original `beqzl $v0`).
 4. Actor+0x110 resource wrapper `0x26B550` optionally enables original selector `0x26B57C`. When selected: call `0x2802D4` and `0x3B76F8(resource,savedSlot)`.
 5. Object byte +0x33 true calls `0x2803B4`; false calls `0x3B76E8(resource,savedState)`.
 6. Query `0x26B3D0` (actor resource+0x08 via `0x26A974`); if true call `0x2804F4`.
@@ -56,7 +56,7 @@ the provided accessor each time, rather than caching a potentially stale flag.
 
 Separate loop `0x280E20–0x280EB8` tests object+0x30 and +0x35 but
 **not** the 64-bit group mask and **not** +0x32. It unconditionally calls
-`0x26C9B8` for eligible objects. For an accepted object, +0x33 true calls
+`0x26C9B8` for eligible objects and skips the object when the result is **zero**. For an accepted object, +0x33 true calls
 `0x2803B4`; false calls `0x3B76E8(resource,savedSlot)`. It then calls
 `0x26831C(object,resource,mode=0)`. This is not interchangeable with the
 primary pass, even when the same original actor occurs in both.
@@ -74,9 +74,10 @@ missing actor IDs are explicit errors.
 
 This is an integration seam for real game models, **not the original draw
 microcode or complete original shader/matrix/effects pipeline**.
-The source `0x2803B4`, `0x26831C`, `0x3B76F8`, `0x3B76E8`,
-`0x2804F4` and bounding call `0x26C9B8` still need native GPU/VU
-recovery and GPU binding; the trace identifies exactly where each belongs.
+The source `0x2803B4`, downstream body of `0x26831C`,
+`0x2804F4` converter/packet bodies and bounding call `0x26C9B8` still need native GPU/VU
+recovery and GPU binding. Source context setters `0x3B76F8/0x3B76E8` are now implemented;
+ the trace identifies exactly where each belongs.
 
 Illustrative integrator-side flow (must be placed only in Windows-owned code):
 
@@ -121,3 +122,5 @@ The user-owned ELF is private and is never shipped. Future work must
 recover `0x26C4B0` VU0 spatial rejection, genuine actor+0x110 resource
 binding, stage bucket ownership, original matrices/camera, render materials,
 effect dispatch, and authentic asset+animation mappings before visual claims.
+
+> **Recovery pass 3:** Corrected original `0x26C9B8` acceptance polarity and added source-backed native context setters, actor +0x110 resource lifecycle, `0x26831C` entry clock/gate, and `0x2804F4` effect pipeline. See [render-context recovery](ORIGINAL_RETAIL_RENDER_CONTEXT_AND_ACTOR_ENTRY.md). Neither tracing nor recovered pointer-slot writes are a substitute for the unrecovered native drawing routines.
