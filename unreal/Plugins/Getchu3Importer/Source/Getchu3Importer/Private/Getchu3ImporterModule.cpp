@@ -192,8 +192,8 @@ private:
             FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Json), Report) && Report.IsValid())
         {
             const FString Result = Report->GetStringField(TEXT("status"));
-            if (Result == TEXT("original_assets_imported_gameplay_not_implemented") && bOkay)
-                Status = TEXT("Original Unreal assets imported. Original game runtime, AI, gadgets, audio and progression are NOT complete.");
+            if (Result == TEXT("converted_models_imported_gameplay_not_implemented") && bOkay)
+                Status = TEXT("Converted models imported to Unreal. Original level setup, collision, Lua gameplay, AI, gadgets, audio and progression are NOT complete.");
             else
             {
                 if (!bOkay && Result != TEXT("blocked"))
