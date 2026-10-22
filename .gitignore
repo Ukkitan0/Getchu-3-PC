@@ -50,3 +50,6 @@ direct_jal_targets.tsv
 /native/private/
 /native/owned_assets/
 /AE3_PRIVATE_*/
+
+.getchu3/
+native/build-unreal-lua/
