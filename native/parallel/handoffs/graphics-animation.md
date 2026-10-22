@@ -304,3 +304,77 @@ Use previously handed-off graphics modules/tests as well. `OriginalRetailDrawPro
 **Next graphics-owned batch:** recover original `0x26841C` actor geometry draw path and `0x2803B4` transformation state production, then `0x269F7C` material descriptor conversion and `0x3AE900` packet values to native renderer-facing data. Ask VU0/Physics for real `0x26C4B0` visibility math; never replace it with a generic frustum. Integrate real I3D mesh data, I3M animation, material ordering and original camera before visual-validation claims.
 
 No original copyrighted models/ELF/PCK/ISO bytes committed, no emulation, no changed shared build/launch/gameplay files, no GitHub Actions dispatched.
+
+
+---
+
+## Graphics specialist continuation — original model packets and genuine material groups (pass 4)
+
+**Working branch:** `parallel/graphics-animation`, inherited source originally based on `d483436416c14927851853f01c6ad66fe4cfbbf2`. All work is graphics-owned; no shared app, CMake or other team's source changed.
+
+### Original executable evidence
+
+Reopened the owner's private USA `SCUS_975.01` from its previously supplied encrypted-free ZIP; SHA-256 matches reference `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`. Used local `llvm-objdump` on private bytes to inspect original render packet routines. This session's original byte comparisons yielded source-region hashes for:
+
+- `0x280328–0x280364` original graphics packet wrapper; existing audit hash retained.
+- `0x280364–0x2803B4` original descriptor initializer, model conversion and graphics bind.
+- `0x2803B4–0x2804F4` original actor/special-model packet path; existing audit hash retained.
+- `0x3AF8F0–0x3AF9C4` original **five material packet groups**, including each count gate and original function VA.
+- `0x3AF8B8–0x3AF8F0` original packet reset/setup dependencies.
+- `0x3AF478–0x3AF530` complex original group zero.
+- `0x3AF600–0x3AF680` **original fixed 48-byte group copy**.
+- `0x3AF680–0x3AF6F8` **original fixed 32-byte group copy**.
+- `0x42B16C–0x42B224` retail general-purpose memory-copy routine.
+
+New SHA fingerprints appended to `native/tools/audit_original_graphics.py`; actual evidence, semantics and exact fingerprints in `native/docs/ORIGINAL_RETAIL_MODEL_DRAW_AND_PACKET_ASSEMBLY.md`.
+
+### New native interfaces, source paths and commits
+
+- `985b80e` (header), `a996221` (C++), `9b31421` (test): `native/include/ae3/original_render_draw_packet.hpp`, `native/src/original_render_draw_packet.cpp`, `native/tests/original_render_draw_packet_test.cpp`. Typed native `OriginalDrawScratch` of size **0x390** with descriptor at `+0x330`; the actual retail **0x280364 -> 0x51C9B0 -> 0x2802F8/0x27C614 -> 0x280328 -> 0x3AF8F0 -> 0x3B76E8** chain for static model packets; original actor path from **0x2803B4 -> 0x280310/0x27C520 -> optional 0x26A854/0x26A8F4 -> 0x280328**, preserving byte+0x00 owner flag and actor+0x118 scratch source word. Unknown VU and original converter blocks are **required callbacks**, never guessed. Packet returned by `0x3AF8F0` updates original renderer context slot **+0x82C** through the already recovered setter.
+- `4d2b111` (header), `16182be` (C++), `8bc1aa1` (test): `native/include/ae3/original_render_packet_assembly.hpp`, `native/src/original_render_packet_assembly.cpp`, `native/tests/original_render_packet_assembly_test.cpp`. Recovered original **0x3AF8F0** five-group assembler control flow. Preserves required original packet allocate `0x3B3CE0(gfx,4)`, reset `0x3AF8B8`, setup `0x3AF8A8`, and conditionally dispatches source groups at descriptor pair offsets **0x10/14, 0x18/1C, 0x20/24, 0x28/2C, 0x30/34**. Original handlers are **0x3AF478, 0x3AF680, 0x3AF6F8, 0x3AF530, 0x3AF600**. No guessed contents for the original packet attachment handlers.
+- `770c878` (header), `e24dd7d` (C++), `790eb74` (test): `native/include/ae3/original_render_packet_copies.hpp`, `native/src/original_render_packet_copies.cpp`, `native/tests/original_render_packet_copies_test.cpp`. Directly recovered and portable original data copying for packet group 1 `0x3AF680` (**32 bytes per original record, 2 allocation units of 16 bytes**) and group 4 `0x3AF600` (**48 bytes/record, 3 units**). Produces owned native source bytes unchanged, fails on bad counts/truncation and rejects other source groups whose transforms remain unported.
+- `7247d65`, `25b67cf`: SHA-gated original USA ELF audit updated with group-constructor and copy instruction fingerprints.
+- `a3d4bab`: `native/docs/ORIGINAL_RETAIL_MODEL_DRAW_AND_PACKET_ASSEMBLY.md` with original game source provenance, ordered data dependencies, test commands and exact Windows integration recipe.
+
+### Local verification (no game assets in Git)
+
+Three new C++20 focused tests, all compiled and executed twice from the graphics-only test tree under `/mnt/data/graphics_work`.
+
+**GCC (release):** `g++ -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -Inative/include`.
+**Clang (sanitized):** `clang++ -std=c++20 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Werror -Inative/include`.
+
+| Test | GCC | Clang ASan + UBSan |
+| --- | --- | --- |
+| Original static/actor descriptor and packet bind chains | PASS | PASS |
+| Five original material packet groups + D3D context binding | PASS | PASS |
+| Authentic binary packet copy lengths and budget limits | PASS | PASS |
+
+**6/6 additional test executions pass**, no sanitizer warnings. All checks are **synthetic unit-test data**, not user's original graphics resources; no original level or actor animation was rendered on Windows, and full-project CMake/CTest was not run. The local tests used source-equivalent precommit copies; GitHub's committed files were independently reviewed but a newly cloned GitHub checkout was not built because outbound network access to GitHub was unavailable in the local compiler sandbox.
+
+### Windows Runtime integration recipe (integrator only)
+
+Add the following C++ source files and tests to the existing `Getchu3Assets` CMake target (do not modify CMake in specialist branch):
+
+```cmake
+target_sources(Getchu3Assets PRIVATE
+  src/original_render_draw_packet.cpp
+  src/original_render_packet_assembly.cpp
+  src/original_render_packet_copies.cpp)
+add_executable(Getchu3OriginalRenderDrawPacketTests tests/original_render_draw_packet_test.cpp)
+target_link_libraries(Getchu3OriginalRenderDrawPacketTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailModelToPacket COMMAND Getchu3OriginalRenderDrawPacketTests)
+add_executable(Getchu3OriginalRenderPacketAssemblyTests tests/original_render_packet_assembly_test.cpp)
+target_link_libraries(Getchu3OriginalRenderPacketAssemblyTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailFiveMaterialGroupAssembly COMMAND Getchu3OriginalRenderPacketAssemblyTests)
+add_executable(Getchu3OriginalRenderPacketCopiesTests tests/original_render_packet_copies_test.cpp)
+target_link_libraries(Getchu3OriginalRenderPacketCopiesTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailPacketRecordCopies COMMAND Getchu3OriginalRenderPacketCopiesTests)
+```
+
+All three modules are C++20 with no external dependencies beyond other graphics-owned headers already included in previous handoff commits. To connect to original actors, pass actual model source pointers at **original model owner +0x28**, resource flags at **actor +0x110**, exact original descriptor data and actual original game resource tokens. Source group 1/4 can now produce native owned byte arrays directly using bytes resolved by Assets team. **Original global graphics context, original packet allocation, original packet setup, original 0x27C614/0x27C520 converters and original 0x51C9B0/VU block are not fabricated**: integration must provide source-equivalent implementations. The existing Windows D3D11 renderer has not been modified.
+
+### Remaining blockers and next connected pass
+
+The highest-value original graphics recovery is now translating the **three remaining material packet transforms** (`0x3AF478` group 0, `0x3AF6F8` group 2, `0x3AF530` group 3), their source VU/packed math and allocation semantics, plus the model conversion routines `0x27C614/0x27C520` and the actor VU block `0x28040C–0x2804C8`. The Assets team must expose original mesh and material buffers; VU0/Physics supplies math where ownership applies; the Windows Runtime integrator owns CMake and actual GPU integration. Do not call rendering/playability complete until real retail models and levels appear correctly in the native application.
+
+**No original copyrighted ELF/models/textures checked in, no PS2 emulation, no app entry point/CMake/cross-team edits and no manual GitHub Actions.**
