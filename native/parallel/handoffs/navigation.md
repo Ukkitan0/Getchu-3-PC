@@ -235,7 +235,7 @@ clang++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsanitize=address,undefined 
 /mnt/data/nav_integrity_validation/check_clang
 ```
 
-Both reported `PASS 20000 randomized C++20 source-path validator cases; rejected=16004`. This **does not** mean that the new repository integration CTest was built or run: no full checkout is mountable, direct github.com DNS is blocked in the container, and original private `SCUS_975.01` and original stage PCK were not accessible. The isolated sanitizer run covers the header's behavior only. No Actions triggered.
+Both reported `PASS 20000 randomized C++20 source-path validator cases; rejected=16004`. Additionally, the new standalone `original_nav_path_integrity_test.cpp` source was reproduced locally as `/mnt/data/nav_integrity_validation/test_repo.cpp` and independently **compiled and passed** with both `g++` and `clang++` using the same `-std=c++20 -Wall -Wextra -Werror -pedantic -fsanitize=address,undefined -fno-omit-frame-pointer` flags. No full-project CMake/CTest is claimed. This **does not** mean that the full repository integration CTest was built or run: no full checkout is mountable, direct github.com DNS is blocked in the container, and original private `SCUS_975.01` and original stage PCK were not accessible. The isolated sanitizer run covers the header's behavior only. No Actions triggered.
 
 **CMake request (integration owner only):** the header adds no translation unit to Getchu3Assets. Register:
 
