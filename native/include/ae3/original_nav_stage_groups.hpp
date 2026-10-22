@@ -54,6 +54,8 @@ public:
     // Source graph reattachment/release invalidates prior group list
     // pointers. Native rebinding MUST erase the registry first.
     bool originalCurrentSourceGraph() const noexcept;
+    // Native-only fail-closed guard after interrupted resource registration.
+    bool originalRegistrationNeedsReset() const noexcept {return registrationFailed_;}
     void originalClear_4e3fec() noexcept;
     void originalRebindSourceGraph();
     std::size_t originalRegisteredGroupCount() const noexcept {
@@ -80,6 +82,7 @@ private:
     const std::uint64_t groupSessionToken_=
         nextSessionToken_.fetch_add(1,std::memory_order_relaxed);
     std::uint64_t groupRevision_=1;
+    bool registrationFailed_=false;
     std::shared_ptr<const std::uint8_t> lifetime_=
         std::make_shared<const std::uint8_t>(0);
     OriginalNavGroupRegistry registry_{};

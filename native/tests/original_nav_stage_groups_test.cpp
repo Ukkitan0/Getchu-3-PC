@@ -167,6 +167,28 @@ int main(){
     ck(caught,"Stale navrange key silently recreated after graph change");
     ck(first.originalRegisterRange_4e4060(resource).sourcePolygonsInserted==6,
        "Navrange group rebuilding on reattached graph failed");
+    // A bad original source group table can leave earlier source list
+    // inserts present: do not route through that partial registry.
+    auto malformedRangeHeader=makeRangeHeader();
+    set32(malformedRangeHeader,0x5c,0x660000);
+    bool badRegistration=false;
+    try{(void)first.originalRegisterRange_4e4060(
+        {malformedRangeHeader,alloc});}
+    catch(const std::out_of_range&){badRegistration=true;}
+    ck(badRegistration&&first.originalRegistrationNeedsReset(),
+       "Malformed original range must poison partially updated registry");
+    bool blocked=false;
+    try{(void)first.originalRouteByKey_2207d0(keys[0],q);}
+    catch(const std::logic_error&){blocked=true;}
+    ck(blocked,"Original group route accepted incomplete registration");
+    blocked=false;
+    try{(void)first.originalRegisterRange_4e4060(resource);}
+    catch(const std::logic_error&){blocked=true;}
+    ck(blocked,"Original group registration was reused without reset");
+    first.originalClear_4e3fec();
+    ck(!first.originalRegistrationNeedsReset() &&
+       first.originalRegisterRange_4e4060(resource).sourcePolygonsInserted==6,
+       "Original group failed to recover following explicit reset");
     owners.originalTeardown_21ed94();
     ck(!first.originalCurrentSourceGraph()&&!other.originalCurrentSourceGraph(),
        "Stage teardown retained source group generations");

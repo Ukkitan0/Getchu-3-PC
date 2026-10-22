@@ -24,6 +24,7 @@ bool OriginalNavStageGroupSession::originalCurrentSourceGraph() const noexcept {
 }
 void OriginalNavStageGroupSession::originalClear_4e3fec() noexcept {
     registry_.originalClear_4e3fec();
+    registrationFailed_=false;
     advanceGroupRevision();
 }
 void OriginalNavStageGroupSession::originalRebindSourceGraph() {
@@ -42,6 +43,8 @@ OriginalNavGroupBuildResult OriginalNavStageGroupSession::originalRegisterRange_
     const OriginalNavGroupSource& range) {
     if(!originalCurrentSourceGraph())
         throw std::logic_error("Stale stage graph: rebind navrange before registration");
+    if(registrationFailed_)
+        throw std::logic_error("Original navrange registration must be cleared after failure");
     const auto& live=owners_.originalAt(slot_);
     if(!live.active())
         throw std::logic_error("Original navrange source graph released");
@@ -53,6 +56,10 @@ OriginalNavGroupBuildResult OriginalNavStageGroupSession::originalRegisterRange_
         result=originalNavBuildGroupsRecovered_4e4060(
             registry_,range,live.decodedGraph->records,originalNavBytes(live));
     } catch(...) {
+        // The source registry may already contain a prefix of the
+        // original front-inserted polygon nodes. Native callers must
+        // clear/rebind before accepting any further grouped route.
+        registrationFailed_=true;
         advanceGroupRevision();
         throw;
     }
@@ -64,6 +71,8 @@ OriginalNavStageRouteSnapshot OriginalNavStageGroupSession::originalRouteByKey_2
     const OriginalNavGroupKey20& key,OriginalNavDispatchRequest request) const {
     if(!originalCurrentSourceGraph())
         throw std::logic_error("Stale stage graph: original navrange route invalidated");
+    if(registrationFailed_)
+        throw std::logic_error("Original navrange route blocked after partial registration");
     const auto& live=owners_.originalAt(slot_);
     if(!live.active())
         throw std::logic_error("Original navrange source graph released");
@@ -85,7 +94,7 @@ OriginalNavStageGroupedRoute OriginalNavStageGroupSession::originalBoundRouteByK
 }
 bool OriginalNavStageGroupSession::originalGroupedRouteCurrent(
     const OriginalNavStageGroupedRoute& route) const noexcept {
-    return originalCurrentSourceGraph() &&
+    return originalCurrentSourceGraph() && !registrationFailed_ &&
            route.hostGroupSessionToken==groupSessionToken_ &&
            route.hostGroupRevision==groupRevision_ &&
            route.hostGroupRevision!=0 &&

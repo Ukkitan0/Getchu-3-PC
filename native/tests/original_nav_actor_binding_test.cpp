@@ -238,6 +238,16 @@ int main() {
     } catch(const std::out_of_range&) {badSource=true;}
     ck(badSource&&!actor.originalRouteCurrent(),
        "Failed navrange registration did not conservatively invalidate routes");
+    ck(group.originalRegistrationNeedsReset(),
+       "Malformed navrange should require explicit clear");
+    bool blockedRoute=false;
+    try{(void)group.originalBoundRouteByKey_2207d0(key,query);}
+    catch(const std::logic_error&){blockedRoute=true;}
+    ck(blockedRoute,"Original actor could reacquire a partially registered group");
+    group.originalClear_4e3fec();
+    ck(!group.originalRegistrationNeedsReset() &&
+       group.originalRegisterRange_4e4060(navrangeResource).sourcePolygonsInserted==3,
+       "Explicit navrange group reset failed");
     actor.originalUseStageRoute_2207d0(plain);
     stage.originalReleaseSlot_21d7d8(0);
     ck(!actor.originalRouteCurrent()&&actor.originalCurrentTargetAt50()==nullptr,

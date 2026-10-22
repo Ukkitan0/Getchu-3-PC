@@ -210,6 +210,14 @@ The extended `original_nav_actor_binding_test.cpp` covers nearest/farthest targe
 
 **Execution evidence:** In addition to the earlier C++20 ASan/UBSan boundary smoke harness, a local isolated `g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsanitize=address,undefined` retarget smoke check compiled and ran against dependency stubs; the focused full-repository tests and Windows game were **not** compiled/booted in this environment.
 
+## Fail-closed navrange registration after source errors
+
+The navigation-owned `OriginalNavStageGroupSession` now tracks a **native-only** `registrationFailed_` state for the case where existing recovered `0x4E4060` group registration throws on a malformed source allocation or after a subset of `0x21F82C` source polygon front-insertions has occurred. A failure invalidates existing group route generations and blocks all subsequent grouped route dispatch and registration until `originalClear_4e3fec()` or a successful source-graph `originalRebindSourceGraph()`. Exposed `originalRegistrationNeedsReset()` is only a host integration diagnostic, not a reconstructed retail EE member.
+
+This specifically prevents an actor from accepting a new route through a partially populated original group registry. Existing successful registration, idempotent duplicate filtering, ordered list links, source per-polygon eligibility, and 0x2207D0 DFS/route ordering remain untouched.
+
+The extended `original_nav_stage_groups_test.cpp` and `original_nav_actor_binding_test.cpp` exercise a bad group key allocation, rejected new routes and repeated registrations, explicit reset, subsequent recovery, and actor route invalidation. Tests are committed but **not run against a full native build** here.
+
 ## Remaining original blockers
 
 1. Decompile source `0x57BCB8` original controller post-constructor and subsequent real actor movement/state transitions using original executable input.
