@@ -1,4 +1,6 @@
 #include "ae3/original_resource_stage_scope.hpp"
+#include "ae3/original_resource_stage_registration.hpp"
+#include <array>
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
@@ -103,6 +105,33 @@ static void exercise(const fs::path& source) {
  const auto* navOwner=&stage.package("navigation.pck.sz");
  check(navOwner==&stage.package("navigation.pck.sz"),"Package source owner must remain stable");
  check(stage.file("area.luc").data()==ptr,"Stage allocations stay stable when PCKs are loaded");
+ const std::array<std::string_view,3> sourceOrder{{
+     "area.luc","navigation.pck.sz","exdb.pck"
+ }};
+ OriginalStageScopedRegistration_25182c registration(stage,sourceOrder,"*");
+ check(registration.records().size()==3,
+       "Source registration must traverse exact three source VFI entries");
+ check(registration.originalFind_24d4f0("area")->borrowedOriginalPayload[0]==std::byte{0x1b},
+       "Source registration preserves original Lua source identity");
+ check(registration.originalFind_24d4f0("navigation")->borrowedOriginalPayload[0]==std::byte{'P'},
+       "Source registration passes real decompressed nav PCK bytes");
+ check(registration.records()[1].originalTypeAt04=="pck.sz",
+       "Source filename parser must retain literal indexed VFI suffix");
+ check(registration.originalFind_24d4f0("exdb")->borrowedOriginalPayload[0]==std::byte{'P'},
+       "Stage EXDB PCK registration");
+ check(stage.file("area.luc").data()==ptr,
+       "Original source lifetime must survive registry/vector allocation");
+ OriginalStageScopedRegistration_25182c onlyPck(stage,sourceOrder,"pck");
+ check(onlyPck.records().size()==1 &&
+       onlyPck.originalFind_24d4f0("exdb")!=nullptr &&
+       onlyPck.originalFind_24d4f0("navigation")==nullptr,
+       "Original 0x2519FC filter compares literal source TYPE suffix");
+ bool registrationRejected=false;
+ const std::array<std::string_view,1> missingSource{{"not_real.plc"}};
+ try{OriginalStageScopedRegistration_25182c bad(stage,missingSource,"*");}
+ catch(const std::out_of_range&){registrationRejected=true;}
+ check(registrationRejected,"Stage registration invented absent VFI resource");
+
  bool rejected=false;
  try{stage.file("not_a_real_original_asset.pck");}catch(const std::out_of_range&){rejected=true;}
  check(rejected,"Missing original source file was fabricated");
