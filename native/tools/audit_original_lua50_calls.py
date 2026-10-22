@@ -124,7 +124,9 @@ class Reader:
                 if c == 0:
                     registers = {k:v for k,v in registers.items() if k < a}
                 else:
-                    for i in range(a, a + c - 1):
+                    # The return region begins at A; even a call
+                    # expecting zero results may mutate the call register.
+                    for i in range(a, a + max(1, c - 1)):
                         registers.pop(i, None)
                 if op == OP_TAILCALL:
                     registers.clear()
