@@ -10,6 +10,7 @@
 #include "ae3/actor_world.hpp"
 #include "windows_runtime_boot_status.hpp"
 #include "ae3/original_windows_bootstrap.hpp"
+#include "ae3/original_windows_static_resources.hpp"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -31,6 +32,7 @@
 #include <filesystem>
 #include <fstream>
 #include <memory>
+#include <optional>
 #include <limits>
 #include <sstream>
 #include <string>
@@ -48,6 +50,7 @@ ae3::runtime::BootJournal gBootJournal;
 // It must remain alive after the 0x428AB8 constructor dispatcher returns.
 ae3::runtime::OriginalAllocatorGlobals_41a390 gOriginalAllocatorGlobals;
 ae3::runtime::OriginalNumericGlobals_417c58 gOriginalNumericGlobals;
+ae3::runtime::OriginalStaticResourceGlobals_3a6cd0 gOriginalStaticGlobals;
 bool gBootActive=false;
 bool gDeviceReady=false;
 constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104, kSignalTrigger=105, kOpenGlb=106, kOpenLevel=107, kOriginalCollision=108;
@@ -1268,9 +1271,25 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
                     retailLaunchFailed=true;
                 }
                 if(!retailLaunchFailed){
+                // Owner's original ELF is optional so the boot reports the
+                // first real unresolved dependency even when not supplied.
+                // No copyrighted literal bytes are ever compiled into exe.
+                std::optional<std::array<std::byte,
+                    ae3::runtime::kStaticLiteralSourceBytes_3a6cd0>> sourceLiterals;
+                std::string originalLiteralError="original USA SCUS_975.01 not supplied";
+                if(argc>=4){
+                    try{
+                        sourceLiterals=ae3::runtime::originalReadStaticSourceFromElf_3a6cd0(
+                            fs::path(argv[3]));
+                        originalLiteralError.clear();
+                    }catch(const std::exception& e){
+                        originalLiteralError=e.what();
+                    }
+                }
                 class SourceVerifiedNativeConstructorCalls final:
                     public ae3::runtime::OriginalNativeConstructorCalls {
                 public:
+                    std::span<const std::byte> originalLiterals{};
                     bool callRecoveredConstructor(std::uint32_t va) override {
                         if(va==0x41a390){
                             // Real original 0x41A390->0x41A088 updates twelve
@@ -1283,11 +1302,16 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
                             return ae3::runtime::originalNumericCtor_417c58(
                                 gOriginalNumericGlobals);
                         }
+                        if(va==0x3a6cd0){
+                            return ae3::runtime::originalStaticCtor_3a6cd0(
+                                originalLiterals,gOriginalStaticGlobals);
+                        }
                         // Remaining constructor methods must be ported from
                         // their actual original instruction sequences.
                         return false;
                     }
                 } callbacks;
+                if(sourceLiterals)callbacks.originalLiterals=*sourceLiterals;
                 const auto outcome=
                     ae3::runtime::originalRunConstructors_428ab8(callbacks);
                 if(!outcome.complete){
@@ -1296,6 +1320,8 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
                             <<std::hex<<std::uppercase<<outcome.firstUnrecovered
                             <<"; "<<std::dec<<outcome.executed
                             <<" of 143 original constructors executed";
+                    if(outcome.firstUnrecovered==0x3a6cd0 && !sourceLiterals)
+                        location<<"; missing original ELF source: "<<originalLiteralError;
                     bootCheckpoint(BootCheckpoint::original_static_constructors,
                                    BootResult::blocked,location.str());
                     originalBootFailure=wide(location.str());
