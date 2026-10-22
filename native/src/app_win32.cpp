@@ -44,6 +44,9 @@ namespace {
 using ae3::runtime::BootCheckpoint;
 using ae3::runtime::BootResult;
 ae3::runtime::BootJournal gBootJournal;
+// Original allocator global BSS state is PROCESS-owned, never stack-local.
+// It must remain alive after the 0x428AB8 constructor dispatcher returns.
+ae3::runtime::OriginalAllocatorGlobals_41a390 gOriginalAllocatorGlobals;
 bool gBootActive=false;
 bool gDeviceReady=false;
 constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104, kSignalTrigger=105, kOpenGlb=106, kOpenLevel=107, kOriginalCollision=108;
@@ -1267,13 +1270,12 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
                 class SourceVerifiedNativeConstructorCalls final:
                     public ae3::runtime::OriginalNativeConstructorCalls {
                 public:
-                    ae3::runtime::OriginalAllocatorGlobals_41a390 allocatorGlobals;
                     bool callRecoveredConstructor(std::uint32_t va) override {
                         if(va==0x41a390){
                             // Real original 0x41A390->0x41A088 updates twelve
                             // native global counters. Source 0x4173B0 no-op.
                             ae3::runtime::originalAllocatorCtor_41a390(
-                                allocatorGlobals);
+                                gOriginalAllocatorGlobals);
                             return true;
                         }
                         // Remaining constructor methods must be ported from
