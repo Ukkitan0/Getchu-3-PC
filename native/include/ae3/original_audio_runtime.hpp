@@ -19,6 +19,19 @@ struct OriginalSoundRoute {
 };
 std::optional<OriginalSoundRoute> originalSoundRoute(std::string_view opcode) noexcept;
 
+// Retail "se" parser @ 0x2191D4 accepts these table keys; missing fields
+// are NOT synthesized. Opaque/raw parameters remain in OriginalSoundEvent.
+struct OriginalSeLuaFields {
+    std::optional<std::string> name;
+    std::optional<std::string> targetName;
+    float volume=1.0f; // original literal @ 0x6E2DF4
+    bool volumeSupplied=false;
+};
+// Numeric Lua conversion is direct; original 0x3E5BD0 string coercion
+// remains an open dependency, so raw event parameters are also kept.
+std::optional<OriginalSeLuaFields> originalSeLuaFields_2191d4(
+    const NativeControllerEvent& event) noexcept;
+
 struct OriginalSoundEvent {
     // Original Lua c_ctrl event is kept intact: name, target, timing,
     // volume and other fields are NOT inferred, renamed or dropped.

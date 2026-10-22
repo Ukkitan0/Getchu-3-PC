@@ -99,7 +99,9 @@ std::vector<NativeControllerEvent> NativeControllerTimeline::advance(double seco
         }else{
             ++pc_;
             if(action.opcode=="wait"){
-                const double delay=numberFieldOr(action.args,"time",0);
+                // Retail 0x21937C loads the default 1.0f from 0x6E2E00
+                // before the optional Lua "time" field (0x6E2DF8).
+                const double delay=numberFieldOr(action.args,"time",1.0);
                 if(!std::isfinite(delay)||delay<0||delay>3600)
                     throw std::runtime_error("invalid Lua wait duration");
                 wait_=delay;

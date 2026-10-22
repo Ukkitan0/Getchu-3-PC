@@ -67,6 +67,31 @@ void originalGadgetScriptSelection(){
     expect(g.seen.size()==1 && g.seen[0].gameFrame==11 &&
            g.seen[0].originalSelection==2,"gadget event lost actual script selection");
 }
+void originalSeParameters(){
+    ae3::NativeControllerEvent event;
+    event.opcode="se";
+    event.parameters.kind=ae3::ScriptValue::Kind::object;
+    auto parsed=ae3::originalSeLuaFields_2191d4(event);
+    expect(parsed && !parsed->name && !parsed->targetName &&
+           parsed->volume==1.0f && !parsed->volumeSupplied,
+           "retail se default volume or absent string fields changed");
+    event.parameters.object["name"]=fieldString("original.se.id");
+    event.parameters.object["target_name"]=fieldString("stage_actor");
+    ae3::ScriptValue v;v.kind=ae3::ScriptValue::Kind::number;v.number=0.25;
+    event.parameters.object["vol"]=v;
+    parsed=ae3::originalSeLuaFields_2191d4(event);
+    expect(parsed && parsed->name=="original.se.id" &&
+           parsed->targetName=="stage_actor" &&
+           parsed->volumeSupplied && parsed->volume==0.25f,
+           "retail se name/target_name/vol mapping wrong");
+    event.parameters.object["vol"]=fieldString("not a numeric Lua value");
+    parsed=ae3::originalSeLuaFields_2191d4(event);
+    expect(parsed && parsed->volume==1.f && !parsed->volumeSupplied,
+           "non-numeric field should not fabricate numeric se volume");
+    event.opcode="se_stop";
+    expect(!ae3::originalSeLuaFields_2191d4(event),
+           "se_stop incorrectly decoded as se");
+}
 void sourceSoundRoutesAndBackpressure(){
     const struct {const char* op;std::uint32_t va;} known[]={
         {"se",0x2191d4},{"se_stop",0x2190d8},
@@ -131,6 +156,7 @@ int main(){
     try{
         padFramesAndLoss();
         originalGadgetScriptSelection();
+        originalSeParameters();
         sourceSoundRoutesAndBackpressure();
         portableWin32AdapterNoInput();
         std::cout<<"ORIGINAL_INPUT_AUDIO_BOUNDARY_TEST_PASSED "

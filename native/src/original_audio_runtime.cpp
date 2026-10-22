@@ -13,6 +13,22 @@ std::optional<OriginalSoundRoute> originalSoundRoute(std::string_view opcode) no
     if(opcode=="kick_entity_se")return OriginalSoundRoute{OriginalSoundCommand::kick_entity_se,0x2195d0};
     return std::nullopt;
 }
+std::optional<OriginalSeLuaFields> originalSeLuaFields_2191d4(
+    const NativeControllerEvent& event) noexcept {
+    if(event.opcode!="se")return std::nullopt;
+    OriginalSeLuaFields fields;
+    const auto& args=event.parameters;
+    if(args.kind!=ScriptValue::Kind::object)return fields;
+    if(const auto* name=args.member("name"); name && name->kind==ScriptValue::Kind::text)
+        fields.name=name->text;
+    if(const auto* target=args.member("target_name"); target && target->kind==ScriptValue::Kind::text)
+        fields.targetName=target->text;
+    if(const auto* volume=args.member("vol"); volume && volume->kind==ScriptValue::Kind::number){
+        fields.volume=static_cast<float>(volume->number);
+        fields.volumeSupplied=true;
+    }
+    return fields;
+}
 bool OriginalSoundEventRuntime::enqueue(
     const NativeControllerEvent& stageCommand,std::string originalEntityName,
     std::optional<OriginalAudioDescriptorValues> sourceDescriptor) {

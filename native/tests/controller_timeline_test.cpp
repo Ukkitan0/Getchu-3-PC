@@ -66,6 +66,27 @@ void infiniteLoopAndGuard(){
     try{loop.advance(-1);}catch(const std::runtime_error&){threw=true;}
     check(threw,"negative native delta accepted");
 }
+
+void originalDefaultWaitFromRetail(){
+    ae3::NativeStageWorld world;
+    ae3::LuaStage lua(world);
+    lua.executeSource(R"LUA(
+        function setupArea(opts)
+          new_ent("Controller",{name="retail-default"},
+              c_order(1,c_ctrl("wait",{}),
+                        c_ctrl("se",{name="after_default_wait"})))
+        end
+    )LUA");
+    lua.callSetupArea("a");
+    ae3::NativeControllerTimeline timeline(world.entities()[0].controllers);
+    check(timeline.advance(0).empty(),"default wait should not dispatch at t=0");
+    check(timeline.advance(0.5).empty(),"retail default wait ended at 0.5s");
+    const auto events=timeline.advance(0.5);
+    check(events.size()==1 && events[0].opcode=="se","retail 1s default wait missing");
+    check(std::abs(events[0].gameSeconds-1.0)<1e-6,
+          "retail default wait duration is not exactly one second");
+}
+
 void zeroRepeat(){
     ae3::NativeStageWorld world;
     ae3::LuaStage lua(world);
@@ -85,6 +106,7 @@ int main(){
         scriptsActuallyAdvanceHostTime();
         infiniteLoopAndGuard();
         zeroRepeat();
+        originalDefaultWaitFromRetail();
         std::cout<<"NATIVE_LUA50_CONTROLLER_TIMELINE_PASSED "
                     "nested_orders=1 wait=1 trig_wait=1 repeat_forever=1 dispatch=1\n";
         return 0;
