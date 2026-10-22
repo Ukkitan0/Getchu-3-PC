@@ -20,11 +20,11 @@ int main(int argc,char** argv){
   OriginalStageResourceScope stage(std::filesystem::path(argv[1]),"woods_c");
   ck(stage.loadedPackageCount()==0 && stage.decodedExdbCount()==0,
      "Original stage scope must not allocate packages before first access");
-  const auto& package=stage.package("exdb.pck");
+  const auto& package=stage.package("exdb.pck.sz");
   ck(package.entries().size()==2,"Retail woods_c exdb.pck contains 2 entries");
   ck(stage.loadedPackageCount()==1,"Original package allocation is not reused");
-  const auto& monkey=stage.requireMember("exdb.pck","monkeyprofile.exdb","exdb");
-  const auto& camera=stage.requireMember("exdb.pck","MainCameraParam.exdb","exdb");
+  const auto& monkey=stage.requireMember("exdb.pck.sz","monkeyprofile.exdb","exdb");
+  const auto& camera=stage.requireMember("exdb.pck.sz","MainCameraParam.exdb","exdb");
   ck(monkey.payloadOffset==0x60 && monkey.payload.size()==0x1400,
      "Retail monkey source payload offset/size");
   ck(camera.payloadOffset==0x1460 && camera.payload.size()==0x200,
@@ -32,11 +32,11 @@ int main(int argc,char** argv){
   ck(originalPckPayloadSignature(monkey.payload)==OriginalPckPayloadSignature::exdb &&
      originalPckPayloadSignature(camera.payload)==OriginalPckPayloadSignature::exdb,
      "Original EXDB payload signatures changed after ISO/VFI loading");
-  ck(stage.filterMembers_26d24c("exdb.pck","exdb").size()==2,
+  ck(stage.filterMembers_26d24c("exdb.pck.sz","exdb").size()==2,
      "Retail 0x26D24C type-select source count");
-  const auto& cameraDoc=stage.exdb("exdb.pck","MainCameraParam.exdb");
+  const auto& cameraDoc=stage.exdb("exdb.pck.sz","MainCameraParam.exdb");
   ck(stage.decodedExdbCount()==1,"Original camera EXDB document owner missing");
-  ck(&cameraDoc==&stage.exdb("EXDB.PCK","MainCameraParam.exdb"),
+  ck(&cameraDoc==&stage.exdb("EXDB.PCK.SZ","MainCameraParam.exdb"),
      "Decoded original EXDB owner must be stable and canonically cached");
   const auto cameraIndex=cameraDoc.originalRecordIndex();
   ck(cameraIndex.sourceCountAt20==1 && cameraIndex.sourceStrideAt24==160 &&
@@ -49,7 +49,7 @@ int main(int argc,char** argv){
       "area","missing")=="woods_c","Retail camera source area");
   ck(originalAttributeFloat_2bb1d0(cameraRecord,cameraDoc.decodedAttributeRoot(),
       "lkdown_ang",-1.f)==30.f,"Original camera angle");
-  const auto& monkeyDoc=stage.exdb("exdb.pck","monkeyprofile.exdb");
+  const auto& monkeyDoc=stage.exdb("exdb.pck.sz","monkeyprofile.exdb");
   const auto monkeyIndex=monkeyDoc.originalRecordIndex();
   ck(monkeyIndex.sourceCountAt20==4 && monkeyIndex.sourceStrideAt24==1024 &&
      monkeyIndex.sourceRecordBaseAt04==1024,

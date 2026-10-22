@@ -5,6 +5,7 @@
 #include <cstring>
 #include <fstream>
 #include <iterator>
+#include <iostream>
 #include <limits>
 #include <stdexcept>
 #include <vector>
@@ -29,6 +30,7 @@ struct Missing final:OriginalActorUntranslatedMath_57c7cc {
 struct Candidate:OriginalActorFallbackVU0Transform_57ca68 {
     unsigned calls=0;
     std::array<std::array<std::byte,16>,3> expected{};
+    std::array<std::byte,16> expectedController{};
     OriginalActorFallbackCandidate_57ca68 call_original_57ca68_candidate_VU0(
        const std::array<std::array<std::byte,16>,3>& bytes,
        const std::array<std::byte,16>& originalOwnerA1,
@@ -38,7 +40,7 @@ struct Candidate:OriginalActorFallbackVU0Transform_57ca68 {
         require(originalQ==0x3fc90fdau,"Original VU0 Q not forwarded into fallback candidate");
         require(originalOwnerA1[0]==std::byte(0xab),
             "Original fallback $a1 not actor owner's +0x14->+0x40 vector");
-        require(originalControllerA2[0]==std::byte(0),
+        require(originalControllerA2==expectedController,
             "Original fallback $a2 not controller+0x20 source");
         require(bytes==expected,"Actual original source vertex bytes changed");
         require(index==calls++,"Original six candidate order");
@@ -58,6 +60,7 @@ static void runPolygon(const OriginalSpatialRecord70& original,
     Missing missing;
     OriginalGameRandom_36f3c0 random(5489);
     Candidate candidate;
+    candidate.expectedController=veryFarOutside;
     for(unsigned i=0;i<3;++i)
         candidate.expected[i]=originalSpatialVector_21b458(original,i);
     OriginalActorNavigationPipeline_57c7cc pipeline(
@@ -65,14 +68,19 @@ static void runPolygon(const OriginalSpatialRecord70& original,
     // Distinct source arguments must be explicitly supplied. No fallback
     // may silently substitute controller+0x20 for the actor owner vector.
     bool missingOwnerRejected=false;
-    try{(void)pipeline.advance(state);}
+    // The original route routine writes controller+0x50 BEFORE calling
+    // target geometry. A rejected dependency therefore mutates this state;
+    // each negative case needs an independent original initial state.
+    auto missingOwnerState=state;
+    try{(void)pipeline.advance(missingOwnerState);}
     catch(const std::invalid_argument&){missingOwnerRejected=true;}
     require(missingOwnerRejected,"Missing original owner+0x14->+0x40 vector was silently substituted");
     std::array<std::byte,16> ownerVector{};
     ownerVector[0]=std::byte(0xab);
     pipeline.setOriginalFallbackOwnerVector_57ca68(ownerVector);
     bool missingQRejected=false;
-    try{(void)pipeline.advance(state);}
+    auto missingQState=state;
+    try{(void)pipeline.advance(missingQState);}
     catch(const std::invalid_argument&){missingQRejected=true;}
     require(missingQRejected,"Original VU0 Q was silently guessed or defaulted");
     pipeline.setOriginalFallbackQBits_57ca68(0x3fc90fdau);
@@ -101,6 +109,7 @@ static unsigned u32(std::span<const std::byte> b,std::size_t at){
     return u16(b,at)|(u16(b,at+2)<<16);
 }
 int main(int argc,char**argv){
+    try {
     require(argc==1||argc==2,"Owner original navigation.pck optional");
     OriginalSpatialRecord70 source{};
     const std::array<OriginalVU0Vec4,3> points{{
@@ -145,5 +154,10 @@ int main(int argc,char**argv){
        }
        require(polygons==59&&links==137&&special==15,
              "All 59 original source polygons and 137 original links");
+    }
+    return 0;
+    } catch(const std::exception& error) {
+        std::cerr<<"ORIGINAL_ACTOR_FALLBACK_PIPELINE_FAILED: "<<error.what()<<'\n';
+        return 1;
     }
 }

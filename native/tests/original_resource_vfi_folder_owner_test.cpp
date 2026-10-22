@@ -96,6 +96,7 @@ int main(){
   auto original=sourceVfi();
   auto path=home/"retail_layout.DATA.BIN";
   write(path,original.source);
+  {
   Archive archive(path);
   ck(archive.entries().size()==2,"Original VFI file entries");
   ck(archive.entries()[0].path=="debug/us/stage/woods_c/area.luc",
@@ -109,6 +110,7 @@ int main(){
   ck(pck.entries().size()==1 &&
      stage.requireMember("exdb.pck","MainCameraParam.exdb","exdb").payloadOffset==0x60,
      "Original PCK resource after VFI nested folder owner resolution");
+  } // Close archive and stage streams before Windows removes the fixture.
   auto missing=original;
   w16(missing.source,missing.fileParentField,0xffff);
   auto bad=home/"missing_parent.DATA.BIN";

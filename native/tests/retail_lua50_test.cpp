@@ -143,6 +143,10 @@ void testRetailBytecodeExecution(){
     ae3::NativeStageWorld game;
     ae3::PlayerProgress actualNewGameProgress{};
     ae3::LuaStage lua(game,&actualNewGameProgress);
+    // Synthetic bytecode transport fixture, not an original actor manager.
+    ae3::NativeLuaStageBindings fixtureBindings;
+    fixtureBindings.createEntity=[](const ae3::StageEntity&){};
+    lua.setNativeBindings(fixtureBindings);
     lua.executeSource(std::string_view(
         reinterpret_cast<const char*>(originalFormat.data()),
         originalFormat.size()),"@REAL_original_area.luc");
@@ -157,6 +161,7 @@ void testRetailBytecodeExecution(){
     actualNewGameProgress.capture_flag[29]=1;
     ae3::NativeStageWorld capturedWorld;
     ae3::LuaStage captured(capturedWorld,&actualNewGameProgress);
+    captured.setNativeBindings(fixtureBindings);
     captured.executeSource(std::string_view(
         reinterpret_cast<const char*>(originalFormat.data()),
         originalFormat.size()),"@REAL_original_area.luc");
@@ -178,6 +183,25 @@ void testRetailBytecodeExecution(){
     strictRetail.executeSource(
         "function originalFlagWrite() gw_set_flag('stage_started') end",
         "@additional_stage_callbacks.lua");
+    bool missingActorRejected=false;
+    try{strictRetail.callSetupArea("explicit_fixture_tag");}
+    catch(const std::runtime_error& error){
+        missingActorRejected=std::string(error.what()).find(
+            "requires real actor-manager binding")!=std::string::npos;
+    }
+    check(missingActorRejected && noFlagManagerWorld.entities().empty(),
+          "retail Lua silently fabricated descriptors without an actor manager");
+    strictRetail.executeSource(
+        "function missingParameters() lua_param({}) end\n"
+        "function missingWeapon() set_player_weapon('net') end");
+    for(const char* callback:{"missingParameters","missingWeapon"}){
+        bool rejected=false;
+        try{strictRetail.invokeCallback(callback);}
+        catch(const std::runtime_error&){rejected=true;}
+        check(rejected && noFlagManagerWorld.parameters().empty() &&
+              !noFlagManagerWorld.playerWeaponSelection().has_value(),
+              "retail Lua silently invented parameter or weapon owner state");
+    }
     bool refusedMirror=false;
     try{strictRetail.invokeCallback("originalFlagWrite");}
     catch(const std::runtime_error& error){

@@ -60,7 +60,7 @@ int main(int argc,char**argv){
                     center.z+(a.z-center.z)*.4f,1};
                 const auto ray=originalStagePolygonRaycast_4c1b3c(
                     source,stage,static_cast<std::uint32_t>(i),center,destination);
-                require(ray.originalTraversal.sourceHitPoint,
+                require(ray.originalTraversal.sourceHitPoint.has_value(),
                         "Original 0x21D46C stage -> original raycast did not find interior point");
                 require(ray.originalTraversal.originalLastAcceptedPolygon==&stage.records[i],
                         "Original stage allocated record identity changed");

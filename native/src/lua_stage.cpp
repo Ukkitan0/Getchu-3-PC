@@ -150,12 +150,14 @@ int LuaStage::dispatchOriginal(lua_State* L){
         }
         std::vector<ScriptValue> arguments;
         arguments.reserve(static_cast<std::size_t>(count));
+        std::vector<const void*> argumentTables;
+        std::size_t remainingNodes=16384;
         for(int i=1;i<=count;++i){
             const int kind=lua_type(L,i);
             if(kind!=LUA_TNIL && kind!=LUA_TBOOLEAN && kind!=LUA_TNUMBER &&
                kind!=LUA_TSTRING && kind!=LUA_TTABLE)
                 throw std::runtime_error("unsupported original Lua argument type; no substitute conversion");
-            arguments.push_back(takeValue(L,i));
+            arguments.push_back(takeValue(L,i,0,&argumentTables,&remainingNodes));
         }
         auto results=it->second.callback(arguments);
         if(results.size()>64)throw std::runtime_error("too many original Lua results");
@@ -243,18 +245,18 @@ ScriptValue LuaStage::takeValue(lua_State* L,int index,int depth,
         value.text.assign(lua_tostring(L,index),n);
     }else if(kind==LUA_TTABLE){
         const int absolute=index<0?lua_gettop(L)+index+1:index;
+        if(lua_getmetatable(L,absolute)){
+            lua_pop(L,1);
+            throw std::runtime_error("original Lua metatable requires a raw Lua C API binding");
+        }
         const void* identity=lua_topointer(L,absolute);
         std::vector<const void*> rootActive;
         if(!activeTables)activeTables=&rootActive;
         if(std::find(activeTables->begin(),activeTables->end(),identity)!=activeTables->end())
-            throw std::runtime_error("cyclic original Lua table cannot be copied into ScriptValue");
+            throw std::runtime_error("cyclic or aliased original Lua table requires a raw Lua C API binding");
         activeTables->push_back(identity);
-        // The C++ stack unwinds this guard before the caller reports the
-        // exception to Lua. No stale pointer remains in shared recursion state.
-        struct PopIdentity {
-            std::vector<const void*>& active;
-            ~PopIdentity(){active.pop_back();}
-        } pop{*activeTables};
+        // Retain all identities for the entire argument tree/call: shared
+        // acyclic aliases are just as lossy to copy as recursive cycles.
         value.kind=ScriptValue::Kind::object;
         std::map<int,ScriptValue> numeric;
         lua_pushnil(L);
@@ -363,6 +365,8 @@ int LuaStage::newEntity(lua_State* L){
         if(lua_gettop(L)>=3)entry.controllers=takeValue(L,3);
         // This callback is the injection point for a recovered actor manager.
         // Do not substitute a made-up actor factory when it is unavailable.
+        if(game->retailChunk_ && !game->nativeBindings_.createEntity)
+            throw std::runtime_error("original new_ent requires real actor-manager binding (0x57BCB8 initialization unresolved)");
         if(game->nativeBindings_.createEntity)
             game->nativeBindings_.createEntity(entry);
         game->world_.addEntity(std::move(entry));
@@ -376,6 +380,8 @@ int LuaStage::luaParam(lua_State* L){
     luaL_checktype(L,1,LUA_TTABLE);
     auto* stage=self(L);
     try{
+        if(stage->retailChunk_ && !stage->nativeBindings_.submitParameters)
+            throw std::runtime_error("original lua_param requires real stage parameter-manager binding");
         ScriptValue parameters=takeValue(L,1);
         if(stage->nativeBindings_.submitParameters)
             stage->nativeBindings_.submitParameters(parameters);
@@ -553,6 +559,8 @@ int LuaStage::setPlayerWeapon(lua_State* L){
     // Native temporary state, not a fabricated active gadget or player.
     auto* stage=self(L);
     try{
+        if(stage->retailChunk_ && !stage->nativeBindings_.selectWeapon)
+            throw std::runtime_error("original set_player_weapon requires real Player weapon-manager binding");
         if(stage->nativeBindings_.selectWeapon)
             stage->nativeBindings_.selectWeapon(selection);
         stage->world_.setPlayerWeaponSelection(selection);

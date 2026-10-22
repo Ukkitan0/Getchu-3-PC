@@ -1260,7 +1260,7 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
                 // the host, before attempting native game constructors.
                 // A file merely named .iso must never be considered retail.
                 try {
-                    ae3::Archive retailDisc(fs::path(argv[2]));
+                    ae3::Archive retailDisc{fs::path(argv[2])};
                     if(retailDisc.sourceKind().find("ISO9660")==std::string::npos ||
                        retailDisc.entries().empty())
                         throw std::runtime_error(

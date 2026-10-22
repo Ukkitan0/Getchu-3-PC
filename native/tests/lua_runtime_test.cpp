@@ -343,9 +343,21 @@ void originalRawLuaValuePreservationTests(){
         function typedLargeString()
           __lua_bridge_typed_test(string.rep("a",70000))
         end
+        function typedMetatable()
+          __lua_bridge_typed_test(setmetatable({}, {__index={value=7}}))
+        end
+        function typedShared()
+          local child={value=7}
+          __lua_bridge_typed_test({first=child,second=child})
+        end
+        function typedArgumentAlias()
+          local child={value=7}
+          __lua_bridge_typed_test(child,child)
+        end
     )LUA");
     for(const char* method:{"typedCycle","typedMixed","typedFunction",
-                            "typedLargeString"}){
+                            "typedLargeString","typedMetatable","typedShared",
+                            "typedArgumentAlias"}){
         bool rejected=false;
         try{stage.invokeCallback(method);}
         catch(const std::runtime_error& error){

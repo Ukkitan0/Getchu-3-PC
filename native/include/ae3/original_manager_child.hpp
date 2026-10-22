@@ -25,8 +25,9 @@ public:
     virtual void call_child_virtual3(void*)=0;
     virtual void call_41a3b0(void*)=0;
 };
-// 0x57BCB8 performs original vector/world setup and MUST be ported;
-// it is deliberately an external genuine-engine dependency.
+// 0x57BCB8 is translated in original_manager_initializer.hpp. Bind this
+// callback to genuine actor/stage ownership and that native initializer;
+// its general projection/update dependencies still require real providers.
 void originalManagerChildCtor_57ba98(OriginalManagerChild70&,
     void* parent,void* context,std::int32_t context_word04,
     std::uint8_t mode1d,OriginalManagerChildCalls&);

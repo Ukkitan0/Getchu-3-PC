@@ -117,8 +117,9 @@ void originalPckCollisionDiscovery(){
     std::vector<std::uint8_t> pack(128+embedded.size(),0);
     str(pack,0,"PCK");
     str(pack,16,"collision");
+    str(pack,32,"i3c");
     u32(pack,4,64);u32(pack,8,1);
-    u32(pack,64,0);u32(pack,68,0);
+    u32(pack,64,16);u32(pack,68,32);
     u32(pack,72,128);u32(pack,76,
         static_cast<std::uint32_t>(embedded.size()));
     std::copy(embedded.begin(),embedded.end(),pack.begin()+128);

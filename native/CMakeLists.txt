@@ -544,3 +544,4 @@ if(Python3_Interpreter_FOUND)
             "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ParallelIntegration.cmake"
             --cmake "${CMAKE_COMMAND}")
 endif()
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/ReviewedStageIntegration.cmake")
