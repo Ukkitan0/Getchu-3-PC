@@ -64,6 +64,9 @@ inline const OriginalStageVfiResource& originalStageRequireUniqueCandidate_22d7b
     const OriginalStageLookupCandidates_22d7b4& request) {
     if(request.actualVfiIndices.size()!=1)
         throw std::out_of_range("Original stage resource stem cannot be resolved uniquely from source evidence");
-    return catalog.entries().at(request.actualVfiIndices[0]);
+    const auto index=request.actualVfiIndices[0];
+    if(index>=catalog.entries().size())
+        throw std::out_of_range("Original source evidence index outside resource catalog");
+    return catalog.entries()[index];
 }
 } // namespace ae3
