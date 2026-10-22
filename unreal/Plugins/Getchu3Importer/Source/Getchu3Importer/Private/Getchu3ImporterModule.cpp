@@ -87,7 +87,7 @@ public:
                         + SUniformGridPanel::Slot(1, 1)[MakeTile(TEXT("Animation & audio"))]
                     ]
                     + SVerticalBox::Slot().AutoHeight().HAlign(HAlign_Center).Padding(0, 0, 0, 14)[
-                        SNew(STextBlock).Text(LOCTEXT("Setup", "↓  Automatic Unreal asset and gameplay setup"))
+                        SNew(STextBlock).Text(LOCTEXT("Setup", "↓  Unreal asset conversion and original gameplay integration"))
                     ]
                     + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 14)[
                         SNew(SBorder).BorderBackgroundColor(Panel).Padding(FMargin(20, 28))[
@@ -192,8 +192,8 @@ private:
             FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Json), Report) && Report.IsValid())
         {
             const FString Result = Report->GetStringField(TEXT("status"));
-            if (Result == TEXT("converted_models_imported_gameplay_not_implemented") && bOkay)
-                Status = TEXT("Converted models imported to Unreal. Original level setup, collision, Lua gameplay, AI, gadgets, audio and progression are NOT complete.");
+            if (Result == TEXT("original_models_textures_streams_imported_gameplay_not_implemented") && bOkay)
+                Status = TEXT("Original models, textures and available streams imported. Original stage collision, Lua, actor/gameplay and the live audio system are still incomplete.");
             else
             {
                 if (!bOkay && Result != TEXT("blocked"))
