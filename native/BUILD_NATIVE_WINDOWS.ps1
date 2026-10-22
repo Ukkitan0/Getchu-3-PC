@@ -8,6 +8,7 @@ param(
     [string]$BuildDirectory = '',
     [switch]$SkipTests,
     [switch]$RunRetail,
+    [switch]$RunOriginalBoot,
     [string]$OriginalIso = '',
     [string]$Stage = '',
     [string]$Extracted = '',
@@ -79,6 +80,9 @@ try {
     Write-Host "NATIVE WINDOWS BUILD: $exe"
     Write-Host 'ENGINE STATUS: original Player/Monkey startup and frame dispatch NOT yet integrated.'
 
+    if ($RunRetail -and $RunOriginalBoot) {
+        throw 'Choose either -RunRetail (asset and Lua audit) OR -RunOriginalBoot (genuine original constructor dispatch).'
+    }
     if ($RunRetail) {
         if (-not ($OriginalIso -and $Stage -and $Extracted -and $Glb)) {
             throw 'Real retail-stage attempt requires -OriginalIso -Stage -Extracted -Glb'
@@ -127,6 +131,56 @@ try {
         }
         if ($launchExit -ne 0) {
             throw "Retail original-engine boot blocked (launch code $launchExit). Not playable."
+        }
+    }
+    if ($RunOriginalBoot) {
+        if (-not $OriginalIso -or -not (Test-Path -LiteralPath $OriginalIso -PathType Leaf)) {
+            throw 'Real original startup requires -OriginalIso with a user-owned original USA ISO.'
+        }
+        if ($OriginalElf) {
+            if (-not (Test-Path -LiteralPath $OriginalElf -PathType Leaf)) {
+                throw 'Owner-private original USA SCUS_975.01 was not found'
+            }
+            $expectedSha = '5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63'
+            $actualSha = (Get-FileHash -LiteralPath $OriginalElf -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualSha -ne $expectedSha) {
+                throw "Original SCUS_975.01 SHA-256 mismatch: expected $expectedSha, got $actualSha"
+            }
+            $audit = Join-Path $native 'tools/verify_original_windows_bootstrap.py'
+            $python = Get-Command 'python.exe' -ErrorAction Stop
+            & $python.Source $audit $OriginalElf
+            Assert-Success 'Verified USA executable constructor table and original startup callsites'
+        }
+        $bootLog = Join-Path $BuildDirectory (
+            'original-engine-startup-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fffffff') + '.log')
+        Write-Host 'Attempting genuine retail original constructor dispatch. Missing original methods will STOP boot.'
+        # Start-Process -Wait is required for the native Windows GUI target:
+        # direct PowerShell invocation is not guaranteed to wait for GUI exit.
+        $start = New-Object System.Diagnostics.ProcessStartInfo
+        $start.FileName = $exe
+        $start.Arguments = '--boot-original "' + $OriginalIso + '"'
+        $start.WorkingDirectory = Split-Path -Parent $exe
+        $start.UseShellExecute = $false
+        $start.EnvironmentVariables['AE3_NATIVE_BOOT_LOG'] = $bootLog
+        $proc = [System.Diagnostics.Process]::Start($start)
+        if (-not $proc) { throw 'Could not start native original-engine executable' }
+        try {
+            $proc.WaitForExit()
+            $bootExit = $proc.ExitCode
+        }
+        finally { $proc.Dispose() }
+        if (Test-Path -LiteralPath $bootLog -PathType Leaf) {
+            Write-Host "ORIGINAL ENGINE BOOT CHECKPOINTS: $bootLog"
+            $checks = @(Get-Content -LiteralPath $bootLog)
+            $checks | ForEach-Object { Write-Host $_ }
+            $blocked = $checks | Where-Object { $_ -like '*|BLOCKED|*' } |
+                Select-Object -First 1
+            if ($blocked) { Write-Host "FIRST UNRECOVERED ORIGINAL ENGINE STEP: $blocked" }
+        } else {
+            Write-Host 'No checkpoint log was created; inspect Win32 window/D3D11 startup and process exit.'
+        }
+        if ($bootExit -ne 0) {
+            throw "Original engine startup blocked (native process exit $bootExit). No replacement gameplay launched."
         }
     }
     exit 0
