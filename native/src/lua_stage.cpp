@@ -181,48 +181,96 @@ void LuaStage::registerCallback(const char* name,int (*callback)(lua_State*)){
 LuaStage* LuaStage::self(lua_State* L){
     return static_cast<LuaStage*>(lua_touserdata(L,lua_upvalueindex(1)));
 }
-ScriptValue LuaStage::takeValue(lua_State* L,int index,int depth){
+ScriptValue LuaStage::takeValue(lua_State* L,int index,int depth,
+                                std::vector<const void*>* activeTables,
+                                std::size_t* remainingNodes){
+    // Unlike a descriptor preview, a real engine binding must never
+    // silently drop or rewrite original Lua arguments. Reject any shape
+    // the ScriptValue transport cannot represent losslessly.
+    if(depth>24)
+        throw std::runtime_error("original Lua argument exceeds table nesting limit");
+    std::size_t rootBudget=65536;
+    if(!remainingNodes)remainingNodes=&rootBudget;
+    if(*remainingNodes==0)
+        throw std::runtime_error("original Lua argument exceeds node budget");
+    --*remainingNodes;
     ScriptValue value;
-    if(depth>24)return value;
     const int kind=lua_type(L,index);
-    if(kind==LUA_TBOOLEAN){
+    if(kind==LUA_TNIL){
+        return value;
+    }else if(kind==LUA_TBOOLEAN){
         value.kind=ScriptValue::Kind::boolean;
         value.boolean=lua_toboolean(L,index)!=0;
     }else if(kind==LUA_TNUMBER){
         value.kind=ScriptValue::Kind::number;
         value.number=lua_tonumber(L,index);
+        if(!std::isfinite(value.number))
+            throw std::runtime_error("nonfinite original Lua numeric argument");
     }else if(kind==LUA_TSTRING){
+        const std::size_t n=lua_strlen(L,index);
+        if(n>65536)
+            throw std::runtime_error("original Lua string argument exceeds transport budget");
         value.kind=ScriptValue::Kind::text;
-        size_t n=lua_strlen(L,index);
-        if(n<=65536) value.text.assign(lua_tostring(L,index),n);
+        value.text.assign(lua_tostring(L,index),n);
     }else if(kind==LUA_TTABLE){
-        int absolute=index<0?lua_gettop(L)+index+1:index;
+        const int absolute=index<0?lua_gettop(L)+index+1:index;
+        const void* identity=lua_topointer(L,absolute);
+        std::vector<const void*> rootActive;
+        if(!activeTables)activeTables=&rootActive;
+        if(std::find(activeTables->begin(),activeTables->end(),identity)!=activeTables->end())
+            throw std::runtime_error("cyclic original Lua table cannot be copied into ScriptValue");
+        activeTables->push_back(identity);
+        // The C++ stack unwinds this guard before the caller reports the
+        // exception to Lua. No stale pointer remains in shared recursion state.
+        struct PopIdentity {
+            std::vector<const void*>& active;
+            ~PopIdentity(){active.pop_back();}
+        } pop{*activeTables};
         value.kind=ScriptValue::Kind::object;
         std::map<int,ScriptValue> numeric;
         lua_pushnil(L);
         std::size_t visited=0;
         while(lua_next(L,absolute)!=0){
-            ++visited;
-            if(visited<=4096){
-                if(lua_type(L,-2)==LUA_TSTRING){
-                    const char* key=lua_tostring(L,-2);
-                    if(key && std::strlen(key)<=256)
-                        value.object[key]=takeValue(L,-1,depth+1);
-                }else if(lua_type(L,-2)==LUA_TNUMBER){
-                    const double n=lua_tonumber(L,-2);
-                    if(std::isfinite(n) && n>=1 && n<=4096 && n==std::floor(n))
-                        numeric[int(n)]=takeValue(L,-1,depth+1);
-                }
+            if(++visited>4096)
+                throw std::runtime_error("original Lua table entry limit exceeded");
+            const int keyType=lua_type(L,-2);
+            if(keyType==LUA_TSTRING){
+                const std::size_t n=lua_strlen(L,-2);
+                if(n>256)
+                    throw std::runtime_error("original Lua table key exceeds transport budget");
+                const char* key=lua_tostring(L,-2);
+                value.object[std::string(key,n)]=
+                    takeValue(L,-1,depth+1,activeTables,remainingNodes);
+            }else if(keyType==LUA_TNUMBER){
+                const double n=lua_tonumber(L,-2);
+                if(!std::isfinite(n) || n<1 || n>4096 || n!=std::floor(n))
+                    throw std::runtime_error(
+                        "original Lua numeric table key cannot be represented faithfully");
+                numeric[static_cast<int>(n)]=
+                    takeValue(L,-1,depth+1,activeTables,remainingNodes);
+            }else{
+                throw std::runtime_error(
+                    "unsupported original Lua table key; use a raw Lua C API binding");
             }
-            lua_pop(L,1); // pop value; lua_next retains key
+            lua_pop(L,1);
         }
         if(value.object.empty()&&!numeric.empty()){
             value.kind=ScriptValue::Kind::array;
             value.array.resize(static_cast<std::size_t>(numeric.rbegin()->first));
-            for(auto& [at,entry]:numeric)value.array[std::size_t(at-1)]=std::move(entry);
+            for(auto& [at,entry]:numeric)
+                value.array[static_cast<std::size_t>(at-1)]=std::move(entry);
         }else if(!numeric.empty()){
-            for(auto& [at,entry]:numeric)value.object[std::to_string(at)]=std::move(entry);
+            for(auto& [at,entry]:numeric){
+                const std::string key=std::to_string(at);
+                if(value.object.count(key))
+                    throw std::runtime_error(
+                        "original Lua table has colliding string/integer keys");
+                value.object[key]=std::move(entry);
+            }
         }
+    }else{
+        throw std::runtime_error(
+            "unsupported original Lua value (userdata/function/thread); raw Lua binding required");
     }
     return value;
 }
@@ -268,17 +316,17 @@ int LuaStage::newEntity(lua_State* L){
     auto* game=self(L);
     const char* type=luaL_checkstring(L,1);
     luaL_checktype(L,2,LUA_TTABLE);
-    ScriptValue fields=takeValue(L,2);
-    const ScriptValue* name=fields.member("name");
-    const ScriptValue* tag=fields.member("tag_name");
-    StageEntity entry;
-    entry.entityClass=type;
-    if(name)entry.name=name->stringOr();
-    if(tag)entry.tagName=tag->stringOr();
-    entry.fields=std::move(fields);
-    if(lua_gettop(L)>=3)entry.controllers=takeValue(L,3);
     // Native entity descriptor only; asset loading and AI are separate stages.
     try{
+        ScriptValue fields=takeValue(L,2);
+        const ScriptValue* name=fields.member("name");
+        const ScriptValue* tag=fields.member("tag_name");
+        StageEntity entry;
+        entry.entityClass=type;
+        if(name)entry.name=name->stringOr();
+        if(tag)entry.tagName=tag->stringOr();
+        entry.fields=std::move(fields);
+        if(lua_gettop(L)>=3)entry.controllers=takeValue(L,3);
         // This callback is the injection point for a recovered actor manager.
         // Do not substitute a made-up actor factory when it is unavailable.
         if(game->nativeBindings_.createEntity)
