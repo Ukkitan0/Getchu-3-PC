@@ -75,6 +75,18 @@ class RegistrationScanTests(unittest.TestCase):
              addiu(5, 5, ptr & 0xFFFF)], name='X')
         self.assertEqual(len(r.scan_calls(blob, segs, BASE, 12)), 1)
 
+    def test_published_flag_table_slots_are_raw_source_pointers_only(self):
+        selected = r.FLAG_VTABLES['gw_get_string']
+        pointer_values = (0x6175E8, 0, 0x100004, 0x700000, 0, 0)
+        blob = struct.pack('<6I', *pointer_values)
+        tables = r.flag_vtable_candidates(blob, [(selected, 0, len(blob))])
+        actual = next(x for x in tables if x['name'] == 'gw_get_string')
+        self.assertTrue(actual['available'])
+        self.assertEqual(actual['slots'][0]['pointer'], '0x006175E8')
+        self.assertTrue(actual['slots'][0]['points_into_original_text'])
+        self.assertFalse(actual['slots'][3]['points_into_original_text'])
+        self.assertFalse(next(x for x in tables if x['name'] == 'gw_set_flag')['available'])
+
     def test_strict_private_elf_hash(self):
         with self.assertRaisesRegex(ValueError, 'only verified USA'):
             r.inspect(b'not-the-game')
