@@ -108,11 +108,11 @@ def import_glbs_in_editor(folder: Path, ue: Any, destination: str = "/Game/ApeEs
         task.async_ = False
         task.replace_existing = True
         task.save = True
-        result = manager.import_asset_tasks([task])
-        paths = list(task.imported_object_paths)
-        if not paths:
-            raise RuntimeError(f"Unreal failed to import original GLB {relative}; result={result}")
-        imported.extend(str(path) for path in paths)
+        manager.import_asset_tasks([task])
+        objects = list(task.get_objects())
+        if not objects:
+            raise RuntimeError(f"Unreal failed to import original GLB {relative}")
+        imported.extend(obj.get_path_name() for obj in objects)
     return imported
 
 
