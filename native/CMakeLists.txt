@@ -466,6 +466,14 @@ add_test(NAME NativeActualRetailLua50FormatRetarget COMMAND Getchu3RetailLua50Te
 add_executable(Getchu3RetailStageAudit src/retail_stage_audit.cpp)
 target_link_libraries(Getchu3RetailStageAudit PRIVATE Getchu3Assets)
 
+# Genuine SCUS_975.01 0x428AB8 static constructor order and 0x428B80/
+# 0x428CB8 native termination registry, no PlayStation CPU emulation.
+target_sources(Getchu3Assets PRIVATE src/original_windows_bootstrap.cpp)
+add_executable(Getchu3OriginalWindowsBootstrapTests tests/original_windows_bootstrap_test.cpp)
+target_link_libraries(Getchu3OriginalWindowsBootstrapTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailStaticConstructorsAndTerminationBlocks
+         COMMAND Getchu3OriginalWindowsBootstrapTests)
+
 # Host-native startup checkpoint test; successful Lua setup does not imply a game boot.
 add_executable(Getchu3WindowsBootStatusTests tests/windows_runtime_boot_status_test.cpp)
 target_include_directories(Getchu3WindowsBootStatusTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
