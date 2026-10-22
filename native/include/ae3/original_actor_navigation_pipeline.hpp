@@ -4,6 +4,7 @@
 #include "ae3/original_vu0_geometry.hpp"
 #include "ae3/original_actor_random_triangle.hpp"
 #include "ae3/original_actor_fallback_sampler.hpp"
+#include "ae3/original_actor_fallback_vu0_native.hpp"
 #include "ae3/original_polygon_raycast.hpp"
 #include <optional>
 #include <array>
@@ -77,6 +78,9 @@ private:
         const OriginalSpatialRecord70&,float originalF12) override;
     std::uint64_t call_original_57ca68_geometry(
         const OriginalSpatialRecord70&) override;
+    std::uint64_t call_original_57ca68_geometry_high64() const override {
+        return latestFallbackHigh64_;
+    }
     std::uint64_t call_original_57c98c_three_vertex_transform(
         const OriginalSpatialRecord70&,
         const std::array<std::array<std::byte,16>,3>&) override;
@@ -90,6 +94,8 @@ private:
     OriginalActorUntranslatedMath_57c7cc& math_;
     OriginalGameRandom_36f3c0* originalSharedRandom_=nullptr;
     OriginalActorFallbackVU0Transform_57ca68* originalFallbackTransform_=nullptr;
+    OriginalActorFallbackNativeVU0_57ca68 nativeFallbackTransform_{};
+    std::uint64_t latestFallbackHigh64_=0;
     std::span<const OriginalPolygonLinks_21bd3c> originalSourceAdjacency_;
     std::optional<std::array<std::byte,16>> originalOwner14Vector40_;
     std::optional<std::uint32_t> originalFallbackQBits_;

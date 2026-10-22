@@ -16,6 +16,8 @@ enum class OriginalActorTargetBranch_57c8ec {
 struct OriginalActorTargetResult_57c8ec {
     OriginalActorTargetBranch_57c8ec branch;
     std::uint64_t originalVectorLow64 = 0;
+    // Native 0x57CA68 PCPYUD also carries the scored target in [127:64].
+    std::uint64_t originalVectorHigh64 = 0;
 };
 
 class OriginalActorTargetGeometryCalls_57c8ec {
@@ -27,6 +29,9 @@ public:
     // Original 0x57C97C: geometry fallback after failed 0x21B788.
     virtual std::uint64_t call_original_57ca68_geometry(
         const OriginalSpatialRecord70& target)=0;
+    // Optional upper half of the *same* source result. Default maintains
+    // compatibility with unresolved legacy geometry dependencies.
+    virtual std::uint64_t call_original_57ca68_geometry_high64() const { return 0; }
     // Original 0x57C98C..0x57CA60: three 0x21B458 vectors feed its
     // FPU/VU0 calculations; unresolved transform must remain explicit.
     virtual std::uint64_t call_original_57c98c_three_vertex_transform(

@@ -17,6 +17,9 @@ struct OriginalActorFallbackCandidate_57ca68 {
     OriginalVU0Vec4 originalScoreVectorA{};
     OriginalVU0Vec4 originalScoreVectorB{};
     std::uint64_t originalPackedTargetLow64=0;
+    // 0x57CCE0 PCPYUD returns the chosen VF vector in EE GPR[127:64];
+    // callers must not silently discard these source Z/W bits.
+    std::uint64_t originalPackedTargetHigh64=0;
 };
 class OriginalActorFallbackVU0Transform_57ca68 {
 public:
@@ -34,6 +37,7 @@ struct OriginalActorFallbackSelection_57ca68 {
     std::size_t sourceWinningCandidate=0;
     float originalBestXYZDot=0;
     std::uint64_t originalWinningPackedTargetLow64=0;
+    std::uint64_t originalWinningPackedTargetHigh64=0;
 };
 // Source 0x57CAA8..0x57CACC gets original three polygon vertices.
 // Source 0x57CADC..0x57CB44 / 0x57CBD8..0x57CC40 draws two floats

@@ -22,8 +22,9 @@ OriginalActorTargetResult_57c8ec originalActorTargetVector_57c8ec(
             return {OriginalActorTargetBranch_57c8ec::OriginalVariantVectorPassThrough_57c944,bits};
         }
         // 0x57C970..0x57C988: original 0x57CA68 computes VF1.
+        const auto lower=original.call_original_57ca68_geometry(target);
         return {OriginalActorTargetBranch_57c8ec::OriginalFallbackGeometry_57ca68,
-                original.call_original_57ca68_geometry(target)};
+                lower,original.call_original_57ca68_geometry_high64()};
     }
     // 0x57C98C..0x57C9B8: exactly three original 0x21B458 reads.
     // Source FPU and VU transformations remain external dependencies.

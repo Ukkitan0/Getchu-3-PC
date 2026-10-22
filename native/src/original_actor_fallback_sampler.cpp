@@ -39,6 +39,7 @@ OriginalActorFallbackSelection_57ca68 originalActorFallbackSelect_57ca68(
             result.originalBestXYZDot=sourceScore;
             result.sourceWinningCandidate=sample;
             result.originalWinningPackedTargetLow64=candidate.originalPackedTargetLow64;
+            result.originalWinningPackedTargetHigh64=candidate.originalPackedTargetHigh64;
         }
         ++result.sourceCandidatesEvaluated;
     }

@@ -54,19 +54,22 @@ bool OriginalActorNavigationPipeline_57c7cc::call_original_21b788_eligibility(
 std::uint64_t OriginalActorNavigationPipeline_57c7cc::call_original_57ca68_geometry(
     const OriginalSpatialRecord70& target) {
     sourceIndex(target);
-    // Original 0x57CA68 outer game RNG and best-of-six loop is
-    // now recovered when the caller supplies the original VU0
-    // candidate transform. The latter is still untranslated.
-    if(originalSharedRandom_ && originalFallbackTransform_) {
+    // Native fixed-instruction 0x57CB4C/0x57CC48 transform by default.
+    // The original EE RNG and caller-owned owner/Q are mandatory.
+    latestFallbackHigh64_=0;
+    if(originalSharedRandom_) {
         if(!originalOwner14Vector40_)
             throw std::invalid_argument(
                 "Original 0x57CA68 owner+0x14->+0x40 vector missing; cannot reuse controller+0x20");
         if(!originalFallbackQBits_)
             throw std::invalid_argument("Original VU0 Q input not supplied for VMULq fallback transform");
-        return originalActorFallbackSelect_57ca68(
+        auto& sourceTransform=originalFallbackTransform_?
+            *originalFallbackTransform_:nativeFallbackTransform_;
+        const auto selected=originalActorFallbackSelect_57ca68(
             target,*originalOwner14Vector40_,controllerVector20_,
-            *originalFallbackQBits_,*originalSharedRandom_,*originalFallbackTransform_)
-            .originalWinningPackedTargetLow64;
+            *originalFallbackQBits_,*originalSharedRandom_,sourceTransform);
+        latestFallbackHigh64_=selected.originalWinningPackedTargetHigh64;
+        return selected.originalWinningPackedTargetLow64;
     }
     return math_.call_original_57ca68_fallback(target);
 }
@@ -113,6 +116,8 @@ void OriginalActorNavigationPipeline_57c7cc::call_original_57c8ec_update_target(
     const auto bits=output.originalVectorLow64;
     packed.x=std::bit_cast<float>(std::uint32_t(bits));
     packed.y=std::bit_cast<float>(std::uint32_t(bits>>32));
+    packed.z=std::bit_cast<float>(std::uint32_t(output.originalVectorHigh64));
+    packed.w=std::bit_cast<float>(std::uint32_t(output.originalVectorHigh64>>32));
     latestTargetRayA2_=packed;
 }
 OriginalActorRouteFollowResult_57c7cc OriginalActorNavigationPipeline_57c7cc::advance(
