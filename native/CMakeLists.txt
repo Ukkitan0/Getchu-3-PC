@@ -486,6 +486,8 @@ if(AE3_RETAIL_USA_ELF)
       COMMAND "${Python3_EXECUTABLE}"
               "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_windows_bootstrap.py"
               "${AE3_RETAIL_USA_ELF}")
+  add_test(NAME OriginalRetailThreeNativeConstructorBoundary
+      COMMAND Getchu3OriginalWindowsBootstrapTests "${AE3_RETAIL_USA_ELF}")
 endif()
 
 # 0x3A6CD0 native source-literal setup. No original executable bytes
