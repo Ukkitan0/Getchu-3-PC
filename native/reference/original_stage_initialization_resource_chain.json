@@ -32,10 +32,15 @@
       "lo": "0x25182c",
       "hi": "0x251be8",
       "sha256": "2a4161e0a137a893b4322492fb004cf44b95e7af1c2f018b618c5d639e5da857"
+    },
+    {
+      "lo": "0x24d858",
+      "hi": "0x24d9ec",
+      "sha256": "154dd26d320162b79f7aa75512afa0a6938b580754e5c473847cb2c18a6b3511"
     }
   ],
-  "verified_source_instruction_words": 442,
-  "verified_direct_jump_edges": 14,
+  "verified_source_instruction_words": 543,
+  "verified_direct_jump_edges": 20,
   "original_key_lookup_wrapper_va": "0x24dc84",
   "original_key_lookup_core_va": "0x24d4f0",
   "original_lookup_algorithm": "source vector [begin,end) of 0x10-byte entries; full string equality on entry+0, return entry+8 pointer; first source match wins, no match yields null",
@@ -106,8 +111,8 @@
   },
   "source_provenance": "private owner-supplied USA ELF and extracted woods_c PCK/resources; SHA and structure rechecked 2026-10-21/22; commercial bytes not committed",
   "limitations": [
-    "original key-to-source-filename extension mapping unproven",
-    "upstream stage file registration/allocations not recovered",
+    "Source first-dot filename name/type mapping recovered in 0x24D858; stage archive enumeration order and wrapper directory-object semantics unproven",
+    "Stage source-name/type record construction and filtered append recovered; upstream directory enumeration and allocation/transition lifetime not fully translated",
     "original consumer 0x272294/0x30c798/0x25bfe0 internals not yet fully translated",
     "runtime stage lifetimes/original VA ownership unverified",
     "native Windows game boot not verified"
@@ -123,7 +128,34 @@
     "name_comparison_call_va": "0x2519fc",
     "wildcard_compare_va": "0x2519d8",
     "wildcard_branch_va": "0x2519e0",
-    "source_tested_semantics": "source A3 null or leading ASCII '*' skips name comparator; otherwise exact source string match",
-    "limitations": "Original resource container enumeration/insertion and allocation are not fully reconstructed; only exact selector boundary implemented"
+    "source_tested_semantics": "source A3 null or leading ASCII '*' accepts all; otherwise compare A3 against registered entry +0x04 TYPE SUFFIX, not entry +0x00 name",
+    "limitations": "Original resource container enumeration/insertion and allocation are not fully reconstructed; only exact selector boundary implemented",
+    "recovered_constructor": {
+      "original_va": "0x24d858",
+      "original_call_site": "0x2519ac",
+      "source_first_dot_search_call": "0x24d8dc",
+      "source_substr_calls": [
+        "0x24d950",
+        "0x24d9b0"
+      ],
+      "source_name_at": "0x0",
+      "source_type_suffix_at": "0x4",
+      "source_pointer_at": "0x8",
+      "source_size_at": "0xc",
+      "entry_stride": "0x10",
+      "insertion_call_sites": [
+        "0x251a30",
+        "0x251a84"
+      ],
+      "original_type_filter_call": "0x2519fc",
+      "byte_verifier": "native/tools/verify_original_resource_record_registration.py",
+      "stage_scope_adapter": "native/include/ae3/original_resource_stage_registration.hpp",
+      "original_private_stage_example": {
+        "source_file": "navigation.pck",
+        "name": "navigation",
+        "type_suffix": "pck"
+      },
+      "proof_status": "complete 101-instruction original constructor window and 231-instruction original registration-prefix window SHA verified; source directory traversal not yet fully translated"
+    }
   }
 }
