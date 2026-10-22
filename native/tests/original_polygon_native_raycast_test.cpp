@@ -1,5 +1,7 @@
 #include "ae3/original_polygon_edge_clip.hpp"
 #include <array>
+#include <bit>
+#include <cstdint>
 #include <cmath>
 #include <cstring>
 #include <fstream>
@@ -13,6 +15,47 @@ static unsigned u16(std::span<const std::byte> s,unsigned at){
     return std::to_integer<unsigned>(s[at])|(std::to_integer<unsigned>(s[at+1])<<8);
 }
 static unsigned u32(std::span<const std::byte> s,unsigned at){return u16(s,at)|(u16(s,at+2)<<16);}
+static bool sameF32Bits(float a,float b){
+    return std::bit_cast<std::uint32_t>(a)==std::bit_cast<std::uint32_t>(b);
+}
+static void exactSourceClipFloatBoundaries(){
+    // 0x21EE78..0x21EE88: ABS.S, C.OLT.S 1e-6 threshold.
+    // 0x21EEA8: C.OLE.S parallel position; 0x21EF2C strict C.OLT.S.
+    const OriginalVU0Vec4 from{0,0,0,0},to{0,0,1,0};
+    constexpr float epsilon=std::bit_cast<float>(std::uint32_t{0x358637bdu});
+    check(epsilon>0.0f,"Original 0x6E3EF8 epsilon must be positive");
+    OriginalPolygonRayDistanceBounds_21bd3c bounds{-1,1};
+    check(originalPolygonClipEdge_21ee00(from,to,{0,0,0,0},
+              {epsilon,0,0,0},bounds),"Original +epsilon denominator must pass");
+    check(sameF32Bits(bounds.originalLowerAt20,0.0f) &&
+          sameF32Bits(bounds.originalUpperAt24,1.0f),
+          "Original epsilon boundary takes MAX.S update, not parallel branch");
+    bounds={-1,1};
+    check(originalPolygonClipEdge_21ee00(from,to,{0,0,0,0},
+              {-epsilon,0,0,0},bounds),"Original -epsilon denominator must pass");
+    // IEEE scalar DIV.S +0/-epsilon yields -0, preserved by source MIN.S.
+    check(sameF32Bits(bounds.originalLowerAt20,-1.0f) &&
+          sameF32Bits(bounds.originalUpperAt24,-0.0f),
+          "Native original -epsilon MIN.S loses source signed-zero fraction");
+    bounds={-1,1};
+    check(originalPolygonClipEdge_21ee00(from,to,{0,0,0,0},
+              {epsilon*.5f,0,0,0},bounds),"Original near-parallel path");
+    check(sameF32Bits(bounds.originalLowerAt20,-1.0f) &&
+          sameF32Bits(bounds.originalUpperAt24,1.0f),
+          "Parallel branch must not update the 0x20/0x24 distance packet");
+    bounds={0,1};
+    check(!originalPolygonClipEdge_21ee00(from,to,{-1,0,0,0},
+              {1,0,0,0},bounds),"Original strict lower<upper must reject equality");
+    check(sameF32Bits(bounds.originalLowerAt20,1.0f) &&
+          sameF32Bits(bounds.originalUpperAt24,1.0f),
+          "Source C.OLT.S equal interval must not alter stored bounds");
+    bounds={0,1};
+    check(!originalPolygonClipEdge_21ee00(from,to,{-1,0,0,0},
+              {0,0,1,0},bounds),"Original parallel exterior must reject");
+    bounds={0,1};
+    check(originalPolygonClipEdge_21ee00(from,to,{0,0,0,0},
+              {0,0,1,0},bounds),"Original C.OLE.S admits parallel boundary");
+}
 static void install(OriginalSpatialRecord70& rec,const std::array<OriginalVU0Vec4,3>& vs){
     for(unsigned i=0;i<3;++i)std::memcpy(rec.originalFields.data()+0x40+16*i,&vs[i],16);
 }
@@ -21,6 +64,7 @@ static OriginalVU0Vec4 lerp(const OriginalVU0Vec4& a,const OriginalVU0Vec4& b,fl
 }
 int main(int argc,char**argv){
     check(argc==1||argc==2,"Optional genuine woods_c/navigation.pck required");
+    exactSourceClipFloatBoundaries();
     OriginalPolygonNativeEdgeClip_21ee00 clip{};
     const OriginalVU0Vec4 a{0,0,0,0},b{0,0,2,0};
     OriginalPolygonRayDistanceBounds_21bd3c bounds{0,3};
@@ -118,6 +162,22 @@ int main(int argc,char**argv){
                     const float edgeX=q.x-p.x,edgeZ=q.z-p.z;
                     const float n=std::sqrt(edgeX*edgeX+edgeZ*edgeZ);
                     check(n>0,"Original edge has zero length");
+                    // 0x21EE00 and original 0x4748AC omit W in the
+                    // half-plane XYZ dots; test this for all source edges.
+                    OriginalPolygonRayDistanceBounds_21bd3c originalInterval{-1,1};
+                    OriginalPolygonRayDistanceBounds_21bd3c nonzeroWInterval{-1,1};
+                    const bool sourceAccept=originalPolygonClipEdge_21ee00(
+                        p,q,center,{0,0,0,0},originalInterval);
+                    const bool nonzeroWAccept=originalPolygonClipEdge_21ee00(
+                        {p.x,p.y,p.z,12345.0f},{q.x,q.y,q.z,-999.0f},
+                        {center.x,center.y,center.z,-123456.0f},{0,0,0,98765.0f},
+                        nonzeroWInterval);
+                    check(sourceAccept && nonzeroWAccept &&
+                          sameF32Bits(originalInterval.originalLowerAt20,
+                                      nonzeroWInterval.originalLowerAt20) &&
+                          sameF32Bits(originalInterval.originalUpperAt24,
+                                      nonzeroWInterval.originalUpperAt24),
+                          "Original polygon XYZ half-plane must ignore W lane");
                     const OriginalVU0Vec4 ext{
                         (p.x+q.x)*.5f-edgeZ/n*2,
                         (p.y+q.y)*.5f,
