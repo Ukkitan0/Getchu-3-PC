@@ -260,6 +260,8 @@ extern "C" int ae3_lua_execute_original_chunk(
     Ae3LuaRuntime* runtime, const void* bytes, size_t length,
     const char* original_chunk_path) {
     return callSafely(runtime, [&] {
+        if (!runtime->stage)
+            throw std::runtime_error("original Lua 5.0 VM not initialized after reset");
         if (!bytes || !original_chunk_path || !*original_chunk_path ||
             length < 5 || length > 16 * 1024 * 1024)
             throw std::invalid_argument("invalid original Lua 5.0 stage chunk");
@@ -274,6 +276,8 @@ extern "C" int ae3_lua_execute_original_chunk(
 extern "C" int ae3_lua_setup_area(Ae3LuaRuntime* runtime,
                                    const char* original_spawn_tag) {
     return callSafely(runtime, [&] {
+        if (!runtime->stage)
+            throw std::runtime_error("original Lua 5.0 VM not initialized after reset");
         if (!original_spawn_tag || !*original_spawn_tag)
             throw std::invalid_argument("missing source-backed spawn tag");
         runtime->stage->callSetupArea(original_spawn_tag);
