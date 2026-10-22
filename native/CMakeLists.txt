@@ -490,7 +490,16 @@ endif()
 
 # 0x3A6CD0 native source-literal setup. No original executable bytes
 # or user-owned PCK/ISO data are part of the build.
-target_sources(Getchu3Assets PRIVATE src/original_windows_static_resources.cpp)
+target_sources(Getchu3Assets PRIVATE src/original_windows_static_resources.cpp
+    src/original_windows_elf_source.cpp)
+add_executable(Getchu3OriginalElfSourceTests tests/original_windows_elf_source_test.cpp)
+target_link_libraries(Getchu3OriginalElfSourceTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailElfLiteralSourceRejectMissing
+    COMMAND Getchu3OriginalElfSourceTests)
+if(AE3_RETAIL_USA_ELF)
+    add_test(NAME OriginalRetailElfLiteralSourceAuthenticated
+        COMMAND Getchu3OriginalElfSourceTests "${AE3_RETAIL_USA_ELF}")
+endif()
 add_executable(Getchu3OriginalStaticResourceTests tests/original_windows_static_resources_test.cpp)
 target_link_libraries(Getchu3OriginalStaticResourceTests PRIVATE Getchu3Assets)
 add_test(NAME OriginalRetailStaticResourceRejectUnverifiedSource
