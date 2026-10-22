@@ -1,0 +1,105 @@
+{
+  "format": "ae3/original-retail-stage-init-resource-chain/v1",
+  "retail_elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "original_stage_initialization_va": "0x22d7b4",
+  "verified_code_windows": [
+    {
+      "lo": "0x22d7b4",
+      "hi": "0x22d970",
+      "sha256": "5bfbc7ed490928ae7283efd43c092448e40a5cd7c26be2dedc73c3db580f4b95"
+    },
+    {
+      "lo": "0x24dc84",
+      "hi": "0x24dcb4",
+      "sha256": "e534af352ecfee6d28373bfa9cef6759a8c53f0961ed91ca1c18aa9d6c36bd4a"
+    },
+    {
+      "lo": "0x24d4f0",
+      "hi": "0x24d5fc",
+      "sha256": "7ec60322e5ae08a2e117a0b4c120837a4a7ac1d3c16fda83a2e6930afe6b20ad"
+    },
+    {
+      "lo": "0x26df38",
+      "hi": "0x26df50",
+      "sha256": "1f7d4a0f338b0a7d04366122d34d6c429ce01828b2cf08441b021fc4a4f2c400"
+    }
+  ],
+  "verified_source_instruction_words": 196,
+  "verified_direct_jump_edges": 11,
+  "original_key_lookup_wrapper_va": "0x24dc84",
+  "original_key_lookup_core_va": "0x24d4f0",
+  "original_lookup_algorithm": "source vector [begin,end) of 0x10-byte entries; full string equality on entry+0, return entry+8 pointer; first source match wins, no match yields null",
+  "ordered_stage_initialization_key_lookups": [
+    {
+      "key": "placeholder",
+      "original_literal_va": "0x6e7388",
+      "lookup_call_va": "0x22d828",
+      "consumer_va": "0x272294",
+      "consumer_call_va": "0x22d844"
+    },
+    {
+      "key": "navigation",
+      "original_literal_va": "0x6e7398",
+      "lookup_call_va": "0x22d8c0",
+      "consumer_va": "0x4f0a5c",
+      "consumer_call_va": "0x22d8c8"
+    },
+    {
+      "key": "actionseq",
+      "original_literal_va": "0x6e73a8",
+      "lookup_call_va": "0x22d8e8",
+      "consumer_va": "0x30c798",
+      "consumer_call_va": "0x22d904"
+    },
+    {
+      "key": "monkeydb",
+      "original_literal_va": "0x6e73b8",
+      "lookup_call_va": "0x22d928",
+      "consumer_va": "0x25bfe0",
+      "consumer_call_va": "0x22d95c",
+      "additional_original_lookup_call_va": "0x22d938"
+    }
+  ],
+  "original_woods_c_private_stage": {
+    "verified_pck_files": 5,
+    "verified_pck_items": 160,
+    "retail_navigation_members": [
+      {
+        "name": "nav_monkey.nav",
+        "records": 39,
+        "action_counts": {
+          "1": 3,
+          "2": 16,
+          "3": 20
+        },
+        "polygon_vertex_count_three": 39,
+        "complete_optional_0x20_references": 39
+      },
+      {
+        "name": "nav_enemy.nav",
+        "records": 20,
+        "action_counts": {
+          "1": 3,
+          "2": 12,
+          "3": 5
+        },
+        "polygon_vertex_count_three": 20,
+        "complete_optional_0x20_references": 20
+      }
+    ],
+    "stem_correspondence_candidates": {
+      "placeholder": "placeholder.plc",
+      "navigation": "navigation.pck",
+      "actionseq": "actionseq.asq",
+      "monkeydb": "monkeydb.xml"
+    }
+  },
+  "source_provenance": "private owner-supplied USA ELF and extracted woods_c PCK/resources; SHA and structure rechecked 2026-10-21/22; commercial bytes not committed",
+  "limitations": [
+    "original key-to-source-filename extension mapping unproven",
+    "upstream stage file registration/allocations not recovered",
+    "original consumer 0x272294/0x30c798/0x25bfe0 internals not yet fully translated",
+    "runtime stage lifetimes/original VA ownership unverified",
+    "native Windows game boot not verified"
+  ]
+}
