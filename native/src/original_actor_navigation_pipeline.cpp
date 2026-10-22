@@ -102,11 +102,18 @@ const OriginalSpatialRecord70* OriginalActorNavigationPipeline_57c7cc::call_orig
         // 0x57C814 uses controller+0x40 for the first projection.
         // 0x57C890 instead uses packed result from 0x57C8EC
         // after selecting the next route target.
-        const auto& sourceEnd=latestTargetRayA2_?*latestTargetRayA2_:*originalController40_;
+        const bool later=latestTargetRayA2_.has_value();
+        const auto& sourceEnd=later?*latestTargetRayA2_:*originalController40_;
+        // 0x57C814: first ray passes original a1 in full;
+        // 0x57C88C: later rays PCPYUD a1,zero,s5, where s5
+        // was already derived with PCPYUD from original a1.
+        const auto sourceStart=later?
+            originalActorPackedSubsequentRayStart_57c88c(*originalIncomingRayA1_):
+            *originalIncomingRayA1_;
         const auto ray=originalPolygonRaycast_4c1b3c(
             records_,originalSourceAdjacency_,
             static_cast<std::uint32_t>(sourceIndex(*actorPolygon)),
-            *originalIncomingRayA1_,sourceEnd);
+            sourceStart,sourceEnd);
         return ray.originalTraversal.originalLastAcceptedPolygon;
     }
     return math_.call_original_4c1b3c_projection(*actorPolygon,point_);

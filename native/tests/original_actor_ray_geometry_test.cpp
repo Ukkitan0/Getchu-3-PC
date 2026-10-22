@@ -1,5 +1,6 @@
 #include "ae3/original_actor_ray_geometry.hpp"
 #include <array>
+#include <bit>
 #include <cmath>
 #ifdef NDEBUG
 #undef NDEBUG
@@ -14,6 +15,15 @@ using namespace ae3;
 int main(int argc,char**argv) {
     const OriginalVU0Vec4 a{1,2,3,55},b{4,5,6,-12};
     assert(originalVU0DotXYZ_4748ac(a,b)==32.0f);
+    const auto packedOrigin=originalActorPackedSubsequentRayStart_57c88c(a);
+    assert(std::bit_cast<std::uint32_t>(packedOrigin.x)==0 &&
+           std::bit_cast<std::uint32_t>(packedOrigin.y)==0 &&
+           std::bit_cast<std::uint32_t>(packedOrigin.z)==
+           std::bit_cast<std::uint32_t>(a.z) &&
+           std::bit_cast<std::uint32_t>(packedOrigin.w)==
+           std::bit_cast<std::uint32_t>(a.w));
+    // 0x57C814 initial ray must still retain original a1 X/Y.
+    assert(a.x==1.0f && a.y==2.0f);
     const auto ray=originalActorProjectionRay_4c1b3c(a,b);
     assert(ray.originalDisplacement.x==3 &&
            ray.originalDisplacement.y==3 &&
@@ -51,6 +61,12 @@ int main(int argc,char**argv) {
                 assert(next+16<=base+(file?1104:2128));
                 std::memcpy(&source,data.data()+first,16);
                 std::memcpy(&dest,data.data()+next,16);
+                const auto packed=originalActorPackedSubsequentRayStart_57c88c(source);
+                assert(packed.x==0.0f&&packed.y==0.0f &&
+                       std::bit_cast<std::uint32_t>(packed.z)==
+                       std::bit_cast<std::uint32_t>(source.z) &&
+                       std::bit_cast<std::uint32_t>(packed.w)==
+                       std::bit_cast<std::uint32_t>(source.w));
                 const auto real=originalActorProjectionRay_4c1b3c(source,dest);
                 assert(std::isfinite(real.originalLengthF12));
                 assert(real.originalLengthF12>=0);

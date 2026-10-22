@@ -77,6 +77,13 @@ def verify(path: Path) -> None:
     later=tuple(v for at in range(0x57CC48,0x57CCB4,4) if (v:=macro(at)))
     assert first==INITIAL,(first,INITIAL)
     assert later==REPEATED,(later,REPEATED)
+    # Verify the 0x57C7CC TWO projection phases:
+    # the first JAL 0x4C1B3C at 0x57C814 uses full incoming a1;
+    # subsequent 0x57C890 JAL follows packed 0x57C88C PCPYUD.
+    assert word(0x57C7E4)==0x7005aca9,"Saved incoming a1 upper half differs"
+    assert word(0x57C814)==0x0c1306cf,"Original first ray call changed"
+    assert word(0x57C890)==0x0c1306cf,"Original second ray call changed"
+    assert word(0x57C88C)==0x70152ca9,"Source follow-up A1 mask changed"
     # Verify original source PCPYUD arguments and 128-bit target transfers.
     # 0x57C994/C9A8/C9B8: three source vertex PCPYUDs.
     # 0x57C894: caller projection operand PCPYUD a2,zero,v0.
