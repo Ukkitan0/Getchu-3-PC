@@ -471,3 +471,16 @@ A complete local graphics-focused compile-and-run regression was performed, usin
 **Next dependency requests:** Assets team resolve actual original source model ranges/asset bytes to native span; VU0 team provide original `0x3BDF08` quadword processing and `0x26C4B0` bounds; Graphics continue recovery of original `0x27C614/0x27C520` record transforms, `0x41D3D8/0x41D490` math and original render material/VU operations. Windows Runtime must connect this to the true model/stage owner and native Direct3D draw.
 
 **Status:** Source-backed model/packet preparation has meaningfully advanced. Full genuine original model and level draw, animation, shaders, and playable native executable remain **unverified**. No shared CMake, app, or other specialists' paths modified; no GitHub Actions dispatched.
+
+
+### Graphics source-correctness patch and joined runtime data test
+
+**Corrected original `0x3AF8F0` packet construction:** the source `0x3AF920` writes original graphics owner +0x38 between original reset `0x3AF8B8` and descriptor quadword setup `0x3AF8A8`. Earlier source-backed renderer assembly omitted this explicit call, despite the standalone packet storage having the correct byte store. It is now a **required callback** `OriginalPacketAssemblyDependencies::bindGraphicsOwner3af920(packet,originalGraphics)` in `original_render_packet_assembly.hpp/.cpp`. Missing callback throws instead of leaving a corrupted graphics packet. The five-group assembler unit test verifies the corrected **allocate → reset → owner store → setup → groups** ordering.
+
+`OriginalNativeRenderPacketStorage::reservePacketHeader()` now exposes the source `0x3B3CE0` reservation separate from initialization, allowing original operations to run at their exact retail call boundaries. Existing `allocatePacketHeader()` remains available and now delegates reservation to the typed storage allocator. Header identity and capacity checks remain active.
+
+**New joined regression test:** `native/tests/original_render_model_packet_bridge_test.cpp`, based on the source data structures, drives the 5 original model-source stream counts through a real original packet descriptor, 0x3AF8F0 assembler callbacks, native rear arena, genuine first-quadword header state and groups 2/4 owned byte arrays, and the recovered original draw context +0x82C setter. Its test-only VU/math stubs **must not** be used in runtime. Test passed with GCC 14.2 -O2 and Clang 17 -fsanitize=address,undefined.
+
+**Full graphics regression after the patch:** All **18/18** graphics-owned focused native test suites pass under GCC and all **18/18** under Clang ASan+UBSan; **36/36** successful test executions, no sanitizer findings. Updated `native/docs/ORIGINAL_RETAIL_TRANSFORMED_PACKET_RECOVERY.md` records this interface correction and verification.
+
+**Integrator actions:** update any existing assembler callback structures for the mandatory owner-store, link the graphics-owned packet sources already listed in this handoff, and add `original_render_model_packet_bridge_test.cpp` to the integrator-owned CMake/CTest targets. Full user game boot, correct original geometry, original per-record VU ops, PS2 matrix/animation effects and D3D11 render remain unverified. No shared CMake or other specialist's files modified.
