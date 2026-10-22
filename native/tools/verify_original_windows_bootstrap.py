@@ -15,6 +15,8 @@ CTOR_TABLE_SHA = "a3c5739dcec7d153ee3e72a04b14046ce4e9366d68537258cab6bd168eac99
 FIRST_CTOR_SHA = "75a521c6fd605abeba2de1d1b6880f78ec824dbfe3e4e89a4db567ac669437d9"
 FIRST_CTOR_DEP_SHA = "07cac5712617a817c73f96b849d99560b9bdfefd2b02f23ea94360020694a809"
 SOURCE_NOOP_SHA = "6d64edf91449c1b17746c1ef18afa2eb25c70bdf1322ab3df5a2630993b7e2f1"
+THIRD_CTOR_SOURCE_SHA = "a7ea32a26e18a2f6baf7e5341a5869caf968c5673a8818cd585473555005b68a"
+THIRD_CTOR_LITERAL_SHA = "409f7ce3cbaeb6670123aa8e26359e36f118ec8d784f405ac78f0657ffd4e446"
 NUMERIC_CTOR_SHA = "035a60ed83dc1ceb0893ae3d0ab2949656327f914812efeafe76a7dec6fefd4e"
 NUMERIC_INIT_SHA = "ad45d81525c06e107fa271f6b8f51e678f64e81c25dc267dcad5451e4abbb800"
 MATH_SQRT_WRAPPER_SHA = "d448df6f0659e171eabf325fdd8d52171a72e1fe13dbea6e14971dc99952d961"
@@ -83,6 +85,12 @@ def verify(path):
                      (0x417c10,0x24041009),(0x417c1c,0x24040201)):
         if elf.word(va)!=value:
             raise ValueError(f'Original constructor hardcoded float argument changed at {va:#x}')
+    if sha(0x3a6b34,0x19c)!=THIRD_CTOR_SOURCE_SHA:
+        raise ValueError('Original 0x3A6CD0 static resource writes no longer match verified source')
+    if sha(0x720040,0xd0)!=THIRD_CTOR_LITERAL_SHA:
+        raise ValueError('Original static literal payload for third constructor differs')
+    if elf.word(0x3a6ce4)>>26!=2 or (elf.word(0x3a6ce4)&0x3ffffff)<<2!=0x3a6b34:
+        raise ValueError('Original static resource constructor trampoline mismatch')
     if elf.word(0x62e660)!=0xffffffff or elf.word(0x62e8a0)!=0:
         raise ValueError('Original constructor table sentinel/boundary mismatch')
     functions=[elf.word(0x62e89c-i*4) for i in range(143)]
@@ -113,6 +121,9 @@ def verify(path):
             'native_second_original_constructor':"0x417c58",
             'original_numeric_call_edges':len(numeric_edges)+2,
             'original_numeric_source_inputs':[10,16,8],
+            'third_constructor_source_literals':13,
+            'third_constructor_source_type_words':[1,1,1,2,1,1,4,3,2],
+            'third_constructor_not_integrated':True,
             'next_unrecovered_original_constructor':"0x3a6cd0",
             'original_callbacks_not_implemented':True,
             'original_windows_gameplay_booted':False}
