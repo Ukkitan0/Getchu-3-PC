@@ -91,6 +91,26 @@ static void runPolygon(const OriginalSpatialRecord70& original,
     require(output.branch==OriginalActorTargetBranch_57c8ec::OriginalFallbackGeometry_57ca68 &&
             output.originalVectorLow64==0x1204,
             "Native original fallback winner did not reach actor target");
+
+    // Connected source-instruction fallback, with no test scoring callback.
+    // The retail PCPYUD result occupies the upper GPR half. Passing only
+    // the previous low 64 bits would have silently dropped the target.
+    OriginalGameRandom_36f3c0 genuineRandom(5489);
+    OriginalActorNavigationPipeline_57c7cc originalNative(
+        records,geometry,veryFarOutside,true,missing,&genuineRandom);
+    originalNative.setOriginalFallbackOwnerVector_57ca68(ownerVector);
+    originalNative.setOriginalFallbackQBits_57ca68(0x3fc90fdau);
+    const auto nativeResult=originalNative.advance(state);
+    require(nativeResult.sourceTargetsApplied==1,
+            "Native original fixed-instruction candidate not dispatched");
+    const auto& nativeTarget=originalNative.sourceTargetResults().front();
+    require(nativeTarget.branch==
+                OriginalActorTargetBranch_57c8ec::OriginalFallbackGeometry_57ca68 &&
+            nativeTarget.originalVectorLow64==0 &&
+            nativeTarget.originalVectorHigh64!=0,
+            "Original PCPYUD winner high-half target lost in movement pipeline");
+    require(genuineRandom.originalCursor()==11,
+            "Native VU0 six-candidate path must consume 12 genuine RNG draws");
 }
 static unsigned u16(std::span<const std::byte> b,std::size_t at){
     require(at+2<=b.size(),"Original source u16 bounds");
