@@ -52,6 +52,13 @@ OriginalConstructorProgress originalRunConstructors_428ab8(
     result.complete=true;
     return result;
 }
+void originalAllocatorCtor_41a390(OriginalAllocatorGlobals_41a390& globals) noexcept {
+    // 0x41A390 passes original a0=1, a1=65535 to 0x41A088.
+    // All twelve branches increment their own original global uint64.
+    // A first transition to 1 calls genuine 0x4173B0 which is JR RA/NOP,
+    // so the complete observable native result is exactly increment-by-one.
+    for(auto& value:globals.counters)++value;
+}
 bool OriginalNativeTerminationRegistry::register_428b80(Callback callback){
     if(!callback)return false;
     // 0x428B94..0x428BF8: each original block has 32 four-byte callback
