@@ -1,4 +1,5 @@
 #include "ae3/original_windows_bootstrap.hpp"
+#include <algorithm>
 #include <bit>
 #include <cmath>
 #include <limits>
@@ -93,6 +94,21 @@ bool originalNumericCtor_417c58(OriginalNumericGlobals_417c58& out) noexcept {
     out.second_69e680=secondBits;
     out.initialized=true;
     return true;
+}
+bool originalNoOpCtor_391600() noexcept {
+    // USA 0x391600 -> 0x391148 -> 0x39117C; the only original
+    // callback body is JR RA / NOP.
+    return true;
+}
+void originalResetCtor_38abfc(OriginalResetGlobals_38abfc& globals) noexcept {
+    // Authentic 0x38ABA0 calls 0x38AA64 twice on consecutive
+    // sixteen-byte records at 0x6A9D38 and 0x6A9D48.
+    // 0x38AA64 stores zero to offsets +0, +4 (BYTE), +8, +12.
+    for(auto& record:globals.records){
+        std::fill(record.bytes.begin(),record.bytes.begin()+4,std::byte{0});
+        record.bytes[4]=std::byte{0};
+        std::fill(record.bytes.begin()+8,record.bytes.end(),std::byte{0});
+    }
 }
 bool OriginalNativeTerminationRegistry::register_428b80(Callback callback){
     if(!callback)return false;
