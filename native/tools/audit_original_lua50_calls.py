@@ -30,7 +30,7 @@ OP_TAILCALL = 26
 # linear register tracking because control flow may merge or jump.
 FLOW_BARRIERS = {20, 21, 22, 23, 24, 27, 28, 29, 30}
 # Source-defined instructions that produce a single register A.
-WRITES_A = {1, 4, 6, 10, 12, 13, 14, 15, 16, 17, 18, 19, 34}
+WRITES_A = {1, 4, 6, 10, 12, 13, 14, 15, 16, 17, 18, 19, 35}
 
 
 class InvalidChunk(ValueError):
@@ -139,7 +139,7 @@ class Reader:
                 registers.pop(a, None)
                 if c:
                     registers.clear()
-            elif op > 34:
+            elif op > 35:
                 raise InvalidChunk(f'unknown Lua 5.0 opcode {op}')
         return called
 
