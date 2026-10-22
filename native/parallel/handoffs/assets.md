@@ -76,3 +76,36 @@ Integration owner only: add the new `native/tests/original_resource_package_test
 5. Connect consumer lifetimes with graphics, Lua, gameplay and Windows Runtime teams through integration owner. No claimed native playable build.
 
 **No substitute resources, copyrighted ISO/ELF/PCK/Lua bytes, or GitHub Actions changes are committed.**
+
+
+## Follow-up: native decoding of original VFI SZ resources
+
+Existing owner-audited extraction code (`native/tools/extract_retail_iso.py`, `native/tools/extract_original_stage.py`) establishes the VFI `*.sz` file format: little-endian uint32 expanded byte count at **+0x00**, followed by raw RFC1951 DEFLATE from **+0x04** (`inflateInit2(-MAX_WBITS)`). The native VFI reader itself previously returned compressed source data. This is a separate material blocker to consuming original archived resources directly. **The original retail executable's DEFLATE decoder function VA is still unidentified.**
+
+### Additional commits
+- `05edbc68f859900865013f1b6078f6d50c0896cc`: `native/include/ae3/original_resource_sz.hpp`, original SZ reader signature and bounded expanded-size constant (512 MiB).
+- `22577197233c7dacb6f1429d3e84fae7d734d80e`: `native/src/original_resource_sz.cpp`, streaming native raw-DEFLATE reader; declared-size and per-call-budget checks, incomplete-stream/trailing-byte rejection, output bound checks, zlib initialization/destruction under RAII.
+- `2cd07dc2fc1fa4aa2482f370d4daea84189547dc`: `native/tests/original_resource_sz_test.cpp`, original-format synthetic regression at nine sizes including zero and 524,288 bytes, randomized/high-compression cases, truncation, length mismatch, trailing data, budget cases, and a complete generated **SZ -> PCK -> source-name/type resource -> original I3D signature** chain.
+- `fc1e061ef20d9de61aed0323d6a17c4a0d512c5a`: `native/include/ae3/original_resource_vfi_mount.hpp` update. `readOriginalFile` now uses the actual VFI entry filename extension to expand SZ when present; `openPck` can therefore read explicitly named compressed original PCK members, while `readStoredVfiMember` returns byte-exact stored data for checksum comparison. No guessed stage names or substituted assets.
+
+### Actual local test results
+
+GCC 14.2.0, Debian. Both commands completed with successful output:
+```bash
+c++ -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror \
+  -I native/include native/src/original_resource_sz.cpp \
+  native/tests/original_resource_sz_test.cpp -lz -o resource-sz-test
+./resource-sz-test
+# ORIGINAL_RESOURCE_SZ_TEST_PASSED sizes=9 guards=length,truncation,trailing,budget
+
+c++ -std=c++20 -g -O1 -fsanitize=address,undefined -fno-omit-frame-pointer \
+  -I native/include native/src/original_resource_sz.cpp \
+  native/tests/original_resource_sz_test.cpp -lz -o resource-sz-asan
+ASAN_OPTIONS=detect_leaks=1 ./resource-sz-asan
+# ORIGINAL_RESOURCE_SZ_TEST_PASSED sizes=9 guards=length,truncation,trailing,budget
+```
+The revised mount header also passed strict C++20 compile-only testing with the exact existing `Archive` class declaration. **These are original-format synthetic tests, not a fresh test against owner-private retail files, full CMake/CTest, Win32 link, or game boot.**
+
+**Integrator-only build request:** `native/CMakeLists.txt` already links `Getchu3Assets` against the existing zlib target. Add `src/original_resource_sz.cpp` to the `Getchu3Assets` sources, and add an `original_resource_sz_test.cpp` C++20 executable/test linked against zlib and the SZ implementation. The mounted-resource code requires the new `ae3::originalDecodeSz` linker symbol. No new external runtime library is required beyond the existing zlib target.
+
+**Remaining evidence:** feed a SHA-256-checked owner-private USA original `*.sz` resource to both the new native decoder and the existing `expand_original` Python verifier; compare exact bytes and decoded PCK metadata. Continue identifying original stage archive filenames, authentic runtime allocation/base-VA provenance, dynamic action dependencies and required geometry, animation and audio descriptor resources. A playable retail Windows game is not yet verified.
