@@ -7,7 +7,7 @@
 #include "ToolMenus.h"
 #include "Framework/Docking/TabManager.h"
 #include "Framework/Application/SlateApplication.h"
-#include "DragAndDrop/ExternalDragOperation.h"
+#include "Input/DragAndDrop.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Layout/SBorder.h"
@@ -196,6 +196,11 @@ private:
                 Status = TEXT("Original Unreal assets imported. Original game runtime, AI, gadgets, audio and progression are NOT complete.");
             else
             {
+                if (!bOkay && Result != TEXT("blocked"))
+                {
+                    Status = TEXT("Import failed before a current status report was completed; check Output Log.");
+                    return FReply::Handled();
+                }
                 FString Error;
                 Report->TryGetStringField(TEXT("error"), Error);
                 Status = TEXT("Import blocked: ") + (Error.IsEmpty() ? Result : Error);
