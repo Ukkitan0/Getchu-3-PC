@@ -156,3 +156,18 @@ The constructor addresses, allocated bytes and command parser entrypoints are SO
 **Integrator:** No new CMake sources required beyond original_audio_runtime.cpp and the existing original_input_audio_runtime_test.cpp in the previous handoff. Recompile/CTest on Windows after selecting this commit. The event backend must use original audio assets/resource IDs supplied by Assets and recovered original sound manager; a named event alone is not permission to synthesize sounds.
 
 **Remaining sound work:** Trace vtable-driven SE execution from 0x373264 to original sound manager, original name/EXDB resolution, BGM MIDI/HD/BD sequencing, stream and reverb control, native device output and state transitions. Do not infer played sound from constructor invocation. No copyrighted audio was committed.
+
+
+---
+
+## Pass 2c — physical host state through the verified original channel table
+
+**Commit:** 1e97fbbca81b640e9e8ade4c94278d5c6acfa917, branch parallel/input-audio.
+
+A new OriginalHostPadChannels adapter implements OriginalRetailPadChannelSource directly from the already-owned OriginalPadObservation produced by pollWin32OriginalKeyboard or pollWin32OriginalGamepad. Original 0x4059E8 channel codes 0..15 select a digital pad button in the standard PlayStation bit order; channels 0x10/0x11/0x12/0x13 supply raw LX/LY/RX/RY byte observations. Reader 0x5179B0 then queries them in the *original retail lookup order*, derives original newly-pressed bits and passes unmodified raw sticks through the independently recovered original radial transform 0x517788. Host receives no fabricated new gameplay actions or key bindings.
+
+Integration call sequence: OriginalPadObservation physical = pollWin32OriginalGamepad(hwnd,index) (or pollWin32OriginalKeyboard with *explicit* user/integrator bindings); OriginalHostPadChannels channels(physical); OriginalRetailPadSample originalPad = originalReader.sample(channels,physical.connected); OriginalRetailGamePadState_26eb34 gameState = originalRetailGamePadState_26eb34(originalPad). The original gameplay team, not this team, must connect gameState to original input consumers and gadget actions.
+
+**Focused tests:** physical original Cross/Start observations map to actual retail output bit positions 7/1, RX/RY/LX/LY reorder is correct, analog source normalization preserves right/left stick identity, and unsupported 0x14 channel is rejected. Source/header/test Git blob hashes verified identical to locally executed optimized C++20 and ASan/UBSan source. BOTH tests passed. Only portable non-Windows branch compiled; actual XInput/Windows hardware is still untested.
+
+This is a source-backed channel interface and original polling transformation, NOT PS2 emulation or a fully integrated player gadget controller. Original menu/gameplay button consumers, active gadget actions, and actual game-loop integration still need recovery. No CMake or app entry changes and no GitHub Actions.
