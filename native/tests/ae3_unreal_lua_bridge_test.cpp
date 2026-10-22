@@ -1,4 +1,7 @@
 #include "ae3/ae3_unreal_lua_bridge.h"
+#ifdef NDEBUG
+#undef NDEBUG // Keep all real ABI assertions active in Windows Release builds.
+#endif
 #include <cassert>
 #include <cstring>
 
