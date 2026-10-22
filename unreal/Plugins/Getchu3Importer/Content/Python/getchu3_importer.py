@@ -86,7 +86,8 @@ def convert_original_models(source: Path, destination: Path, repo: Path,
 
 
 def import_assets_in_editor(folder: Path, ue: Any, suffix: str,
-                            destination: str) -> list[str]:
+                            destination: str, *,
+                            source_records: list[dict] | None = None) -> list[str]:
     files = sorted(p for p in folder.rglob("*") if p.is_file() and p.suffix.lower() == suffix)
     if not files and suffix == ".glb":
         raise RuntimeError("No converted original GLB files were found")
@@ -116,11 +117,16 @@ def import_assets_in_editor(folder: Path, ue: Any, suffix: str,
         objects = list(task.get_objects())
         if not objects:
             raise RuntimeError(f"Unreal failed to import original {suffix} {relative}")
-        imported.extend(obj.get_path_name() for obj in objects)
+        paths = [str(obj.get_path_name()) for obj in objects]
+        imported.extend(paths)
+        if source_records is not None:
+            source_records.append({"source_relative": relative.as_posix(),
+                                   "unreal_object_paths": paths})
     return imported
 
 
-def import_collision_in_editor(folder: Path, ue: Any) -> list[str]:
+def import_collision_in_editor(folder: Path, ue: Any, *,
+                               source_records: list[dict] | None = None) -> list[str]:
     """Import real I3C mesh triangles; static physics may collide per polygon.
 
     Dynamic player rules, stage placement, slopes and capture/gameplay are NOT reconstructed.
@@ -148,6 +154,7 @@ def import_collision_in_editor(folder: Path, ue: Any) -> list[str]:
         original_meshes = [obj for obj in task.get_objects() if isinstance(obj, ue.StaticMesh)]
         if not original_meshes:
             raise RuntimeError(f"No Unreal StaticMesh was created from original I3C mesh {relative}")
+        imported_meshes = []
         for obj in original_meshes:
             body = obj.get_editor_property("body_setup")
             if body is None:
@@ -156,13 +163,20 @@ def import_collision_in_editor(folder: Path, ue: Any) -> list[str]:
                                      ue.CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE)
             if not ue.EditorAssetLibrary.save_loaded_asset(obj):
                 raise RuntimeError(f"Could not save original I3C collision asset: {relative}")
-            result.append(obj.get_path_name())
+            item_path = str(obj.get_path_name())
+            result.append(item_path)
+            imported_meshes.append(item_path)
+        if source_records is not None:
+            source_records.append({"source_relative": relative.as_posix(),
+                                   "unreal_object_paths": imported_meshes})
     return result
 
 
 def import_glbs_in_editor(folder: Path, ue: Any,
-                          destination: str = "/Game/ApeEscape3/Original/Models") -> list[str]:
-    return import_assets_in_editor(folder, ue, ".glb", destination)
+                          destination: str = "/Game/ApeEscape3/Original/Models", *,
+                          source_records: list[dict] | None = None) -> list[str]:
+    return import_assets_in_editor(folder, ue, ".glb", destination,
+                                   source_records=source_records)
 
 
 def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
@@ -232,17 +246,30 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         outcome["phase"] = "unreal_editor_asset_import"
         report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         base = "/Game/ApeEscape3/Original"
+        imported_sources: dict[str, list[dict]] = {
+            "models": [], "textures": [], "streams": [], "collision": []}
         assets = import_glbs_in_editor(converted / "models", ue,
-                                       destination=base + "/Models")
+                                       destination=base + "/Models",
+                                       source_records=imported_sources["models"])
         pngs = import_assets_in_editor(converted / "textures", ue, ".png",
-                                       base + "/Textures")
+                                       base + "/Textures",
+                                       source_records=imported_sources["textures"])
         wavs = import_assets_in_editor(converted / "audio", ue, ".wav",
-                                       base + "/Audio") if streams["wav_files"] else []
+                                       base + "/Audio",
+                                       source_records=imported_sources["streams"]) if streams["wav_files"] else []
         outcome["unreal_model_assets"] = assets
         outcome["unreal_texture_assets"] = pngs
         outcome["unreal_stream_audio_assets"] = wavs
-        outcome["unreal_collision_mesh_assets"] = import_collision_in_editor(converted / "collision", ue)
+        outcome["unreal_collision_mesh_assets"] = import_collision_in_editor(
+            converted / "collision", ue, source_records=imported_sources["collision"])
         outcome["source_collision_mesh_assets_imported"] = True
+        outcome["phase"] = "link_original_stage_source_objects"
+        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        from getchu3_asset_registry import build_asset_registry
+        registry_path = folder / "getchu3_source_asset_registry.json"
+        source_registry = build_asset_registry(stages, imported_sources, registry_path)
+        outcome["original_source_registry"] = str(registry_path)
+        outcome["source_linked_stage_count"] = len(source_registry["original_stages"])
         outcome["original_collision_imported"] = False
         outcome["original_lua_bound_to_runtime"] = False
         outcome["phase"] = "asset_import_finished"
