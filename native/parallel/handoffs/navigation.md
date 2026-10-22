@@ -287,3 +287,25 @@ Additional assertions in `original_nav_stage_route_test.cpp` and `original_nav_a
 3. Recover downstream type-2 actor motion beyond vertex reads (`0x57BDFC` onward) and stage-transition actor route replacement.
 4. Validate real stage group ownership across nav_monkey/nav_enemy and multi-key resources; avoid assuming the one-slot native adapter is the retail global registry.
 5. CMake + CTest and native Windows game boot are **integrator-only**; this branch is not independently verified playable.
+
+
+## 2026-10-22: Original actor controller 0x57BCB8 source-audit groundwork
+
+**New navigation-owned offline analysis tools (Python, no runtime code replacement):**
+- `native/tools/analyze_original_nav_controller_57bcb8.py`
+- `native/tools/test_analyze_original_nav_controller_57bcb8.py`
+
+**Original evidence already present in repo:** `native/tools/verify_original_actor_nav_controller.py` hashes the private USA `SCUS_975.01` at `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63` and the original `0x57BCB8..0x57BD3C` post-constructor region (SHA-256 `ca0b2213c64510b3491ec4799aebc5e6a0bb2b375cd43ea0c9f9094e75070f38`). Existing verified caller sites `0x57BAE4` and `0x57BB4C` invoke `0x57BCB8` from both actor controller constructors. Verified machine words show `0x57BCB8` stack allocation `addiu sp,sp,-0x80`; `0x57BCDC` reads controller +0x30 using LBU; `0x57BCE0` takes the zero-variant branch to `0x57BD2C`; and `0x57BD24` has COP1 `BC1T` to `0x57BD30`. Other instructions and exact state-machine effects are **not inferred** without the genuine executable.
+
+**New tooling behavior:** validates entire private ELF SHA and the exact 132-byte controller region SHA; decodes the 33 original MIPS instruction words into register operands and memory offsets; annotates branches, calls, branch delay slots, likely-branch annulment, basic blocks and successor addresses; marks unsupported COP1/COP2/MMI opcodes unresolved rather than inventing semantics. The report is a **private analysis artifact** that contains original 32-bit opcode words; do not commit/publish that report or any executable bytes. Only scripts and synthetic tests were committed.
+
+**Run privately from the repository root:**
+
+```bash
+python native/tools/analyze_original_nav_controller_57bcb8.py /private/path/SCUS_975.01 --json-out /private/path/57bcb8-source-report.json
+python -m unittest discover -s native/tools -p test_analyze_original_nav_controller_57bcb8.py -v
+```
+
+**Local verification, this turn:** the standalone synthetic unit suite was actually executed in the container: 8/8 `unittest` tests passed. It checks original address/branch arithmetic, decoded verified opcode anchors, branch-delay and basic-block metadata, likely-branch delay annulment, unresolved COP2/MMI instructions, and rejection of nonmatching ELF input. The authored test/tool source was SHA-matched to the GitHub blobs using `git hash-object` before committing. **Real `SCUS_975.01` was not mounted here**: the full original `0x57BCB8` report was not produced, its remaining instructions were not recovered, and no actual native gameplay/controller behavior was implemented or tested. This is a source-recovery aid toward completing the blocking actor constructor, not a substitute for it.
+
+**Next mandatory step to recover actual runtime:** run the verifier and new instruction report against the user's SHA-pinned executable, map unknown loads/stores and COP1 comparisons to source actor and route owner fields, implement exact branch behavior in navigation-owned `original_actor_nav_controller.cpp` (and necessary callers), test stage actor runtime together with VU0-owned physics via the integration team. No source files from other teams, global CMake, game bytes, master branch or GitHub Actions were modified in this pass.
