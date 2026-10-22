@@ -19,7 +19,7 @@ void test(){
     obj.hasResourceHandle=true;obj.selector=&selector;
     unsigned culls=0,effects=0;
     OriginalRetailDrawProviders providers{
-        [&](OriginalRenderId id){require(id==9,"wrong original object cull ID");++culls;return false;},
+        [&](OriginalRenderId id){require(id==9,"wrong original object cull ID");++culls;return true;},
         [&](OriginalRenderId id){require(id==9,"wrong original effect object ID");++effects;return effects==1;}
     };
     auto t=traceOriginalPrimaryRenderPass({obj},1,providers);
@@ -43,10 +43,10 @@ void test(){
             "source fallback-path call sequence incorrect");
     require(t.events[0].argument==OriginalRetailBindArg::savedState,"first pass fallback needs s7 state");
     obj.flag32=1;
-    providers.rejectByOriginalBounds=[&](OriginalRenderId){++culls;return true;};
+    providers.originalBoundsVisible=[&](OriginalRenderId){++culls;return false;};
     t=traceOriginalPrimaryRenderPass({obj},1,providers);
     require(t.events.empty()&&t.acceptedIds.empty()&&t.accepted==0&&culls==1,"enabled source cull should reject early");
-    providers.rejectByOriginalBounds=[&](OriginalRenderId){++culls;return false;};
+    providers.originalBoundsVisible=[&](OriginalRenderId){++culls;return true;};
     t=traceOriginalSecondaryRenderPass({obj},providers);
     require(vas(t)==std::vector<std::uint32_t>({0x3B76E8,0x26831C}),
             "secondary source pass should restore and draw actor mode zero");
@@ -59,7 +59,7 @@ void test(){
     obj.flag35=0;
     t=traceOriginalSecondaryRenderPass({obj},providers);
     require(t.events.empty(),"secondary enable guard missing");
-    obj.flag35=1;providers.rejectByOriginalBounds={};
+    obj.flag35=1;providers.originalBoundsVisible={};
     bool threw=false;
     try{traceOriginalSecondaryRenderPass({obj},providers);}catch(const std::runtime_error&){threw=true;}
     require(threw,"unrecovered source bounds must never be guessed");
