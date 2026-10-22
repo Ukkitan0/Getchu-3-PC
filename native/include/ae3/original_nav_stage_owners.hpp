@@ -1,6 +1,7 @@
 #pragma once
 #include "ae3/original_nav_pck_bridge.hpp"
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -66,6 +67,7 @@ public:
     }
     // A route snapshot is valid only while its specific slot has the
     // same revision. Revision is not a retail EE object field.
+    std::uint64_t originalHostOwnerToken() const noexcept {return hostOwnerToken_;}
     std::uint64_t originalSlotRevision(std::size_t slot) const noexcept {
         return slot<slots_.size() && slots_[slot] ? slots_[slot]->hostRevision : 0;
     }
@@ -136,6 +138,9 @@ private:
         if(!revisionClock_)++revisionClock_;
         return revisionClock_;
     }
+    inline static std::atomic<std::uint64_t> nextHostOwnerToken_{1};
+    const std::uint64_t hostOwnerToken_=
+        nextHostOwnerToken_.fetch_add(1,std::memory_order_relaxed);
     std::uint64_t revisionClock_=0;
     std::array<std::unique_ptr<Slot>,3> slots_{};
 };

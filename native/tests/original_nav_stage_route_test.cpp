@@ -4,6 +4,10 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <fstream>
+#include <iterator>
+#include <limits>
+#include <span>
 #include <stdexcept>
 #include <vector>
 
@@ -43,7 +47,7 @@ static OriginalNavSource graph(const char* name,std::size_t slot) {
     w16(d,0x1e0,2);w16(d,0x1e2,0);w16(d,0x1e4,4);
     return s;
 }
-int main(){
+int main(int argc,char**argv){
     OriginalNavStageOwners_21ed30 owners;
     owners.originalInitialize_21ed30();
     const auto a=graph("nav_monkey.nav",0);
@@ -73,6 +77,16 @@ int main(){
           follow.originalRoutePolygonIndices.size()==3 &&
           follow.originalStagePolygonAtActor30==&owners.originalAt(0).decodedGraph->records[0],
           "Route did not connect to original actor follower");
+    // Explicit original 0x2207D0 $8 search index uses admitted DFS
+    // order, independently of original route mode nearest/farthest.
+    q.routeMode=2;q.explicitDestinationSearchIndex=2;
+    const auto indexed=originalNavStageDispatch_2207d0(owners,0,q);
+    check(indexed.originalForwardSourcePolygons==
+          std::vector<std::uint32_t>({0,1,3}),"Original explicit source search index changed");
+    q.explicitDestinationSearchIndex=-1;
+    check(originalNavStageDispatch_2207d0(owners,0,q)
+          .originalForwardSourcePolygons.empty(),"Unset original $8 should yield no route");
+    q.routeMode=0;
     // Independent kind-2 decision, using source seed 2.
     q.sourceSeedIndex=2;
     const auto kind2=originalNavStageDispatch_2207d0(owners,0,q);
@@ -103,6 +117,11 @@ int main(){
     catch(const std::invalid_argument&){rejected=true;}
     check(rejected,"Cross-stage membership list accepted");
     const auto other=originalNavStageDispatch_2207d0(owners,1,q);
+    OriginalNavStageOwners_21ed30 separateOwner;
+    separateOwner.originalInitialize_21ed30();
+    separateOwner.originalAttach_4f0a5c(a,{"nav_monkey.nav",0x510000,0x620000});
+    check(!originalNavStageRouteCurrent(separateOwner,route),
+          "Different original stage owner accepted matching slot/revision");
     owners.originalReleaseSlot_21d7d8(0);
     check(!originalNavStageRouteCurrent(owners,route) &&
           originalNavStageRouteCurrent(owners,other),
@@ -117,4 +136,53 @@ int main(){
     owners.originalInitialize_21ed30();
     owners.originalAttach_4f0a5c(a,{"nav_monkey.nav",0x510000,0x620000});
     check(!originalNavStageRouteCurrent(owners,route),"Stage reinitialization revived old route");
+    // Optional owner-private original PCK regression for ANY supplied
+    // stage, without hardcoded graph sizes or original asset output.
+    // Examples: Getchu3OriginalNavStageRouteTests woods_c/navigation.pck
+    //           Getchu3OriginalNavStageRouteTests woods_c/navigation.pck other_stage/navigation.pck
+    for(int arg=1;arg<argc;++arg){
+        std::ifstream file(argv[arg],std::ios::binary);
+        check(bool(file),"Original navigation.pck test input unavailable");
+        const std::vector<char> original((std::istreambuf_iterator<char>(file)),{});
+        std::vector<std::byte> bytes;
+        bytes.reserve(original.size());
+        for(unsigned char c:original)bytes.push_back(std::byte(c));
+        const auto sources=originalNavReadNativePck_4f0a5c(bytes);
+        check(!sources.empty(),"No original navigation allocations found");
+        OriginalNavStageOwners_21ed30 retail;
+        retail.originalInitialize_21ed30();
+        for(const auto& source:sources){
+            const auto slot=source.originalSlot;
+            const auto sourceVA=std::uint32_t(0x510000+slot*0x20000);
+            const auto ownerVA=std::uint32_t(0x620000+slot*0x28);
+            retail.originalAttach_4f0a5c(source,
+                {source.originalFilename,sourceVA,ownerVA});
+            const auto& g=*retail.originalAt(slot).decodedGraph;
+            if(g.records.empty())continue;
+            const auto count=g.polygonHeaders[0].sourcePointCountAt16;
+            const auto points=originalSpatialVertices_21b468(g.records.front());
+            const auto query=originalVU0Mean_21b468(
+                std::span<const OriginalVU0Vec4>(points.data(),count));
+            OriginalNavDispatchRequest request{};
+            request.sourceSeedIndex=0;
+            request.originalReference=query;
+            request.maximumDistance=std::numeric_limits<float>::max();
+            request.routeMode=0;
+            const auto route=originalNavStageDispatch_2207d0(retail,slot,request);
+            check(!route.originalAdmittedSourcePolygons.empty(),
+                  "Original retail source seed was excluded");
+            check(!route.originalForwardSourcePolygons.empty(),
+                  "Original retail route endpoint unexpectedly missing");
+            check(originalNavStageRoutePolygon(retail,route,0)==&g.records[0],
+                  "Original retail route not rooted at source seed");
+            for(std::size_t j=0;j+1<route.originalForwardSourcePolygons.size();++j){
+                const auto link=originalNavStageRouteEdge_57bd88(retail,route,j);
+                check(link.originalActionKind<=2,
+                      "Unknown original retail type-0/1/2 action semantics");
+            }
+            retail.originalReleaseSlot_21d7d8(slot);
+            check(!originalNavStageRouteCurrent(retail,route),
+                  "Original retail stage transition did not invalidate route");
+        }
+    }
 }

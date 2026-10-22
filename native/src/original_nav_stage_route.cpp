@@ -60,6 +60,7 @@ OriginalNavStageRouteSnapshot originalNavStageDispatch_2207d0(
         : originalNavRouteDispatch_2207d0(graph.records,bytes,request,&type1);
     OriginalNavStageRouteSnapshot snapshot{};
     snapshot.sourceOwnerSlot=ownerSlot;
+    snapshot.hostStageOwnerToken=owners.originalHostOwnerToken();
     snapshot.hostOwnerRevision=slot.hostRevision;
     snapshot.originalFallbackUsed=result.fallbackUsed;
     snapshot.originalSelectedSearchIndex=result.selectedEndpoint;
@@ -74,7 +75,8 @@ OriginalNavStageRouteSnapshot originalNavStageDispatch_2207d0(
 bool originalNavStageRouteCurrent(
     const OriginalNavStageOwners_21ed30& owners,
     const OriginalNavStageRouteSnapshot& route) noexcept {
-    return route.hostOwnerRevision!=0 &&
+    return route.hostOwnerRevision!=0 && route.hostStageOwnerToken!=0 &&
+           owners.originalHostOwnerToken()==route.hostStageOwnerToken &&
            owners.originalSlotRevision(route.sourceOwnerSlot)==route.hostOwnerRevision;
 }
 const OriginalSpatialRecord70* originalNavStageRoutePolygon(

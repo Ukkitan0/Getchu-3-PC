@@ -31,6 +31,7 @@ private:
 // NOT a fabricated guest route structure or original actor state.
 struct OriginalNavStageRouteSnapshot {
     std::size_t sourceOwnerSlot=0;
+    std::uint64_t hostStageOwnerToken=0;
     std::uint64_t hostOwnerRevision=0;
     bool originalFallbackUsed=false;
     std::optional<std::uint32_t> originalFallbackSourcePolygon;
