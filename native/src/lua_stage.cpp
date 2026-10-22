@@ -307,12 +307,12 @@ void LuaStage::executeSource(std::string_view source,const std::string& chunkNam
     std::vector<std::uint8_t> hostChunk;
     const bool binaryChunk=source.size()>=4 &&
         source.substr(0,4)==std::string_view("\x1bLua",4);
-    // A stage may load several Lua chunks. Once ORIGINAL retail bytecode
-    // has been observed, subsequent source chunks must not disable strict
-    // retail-data checks on this interpreter.
-    retailChunk_=retailChunk_||binaryChunk;
+    // A stage may load several Lua chunks. Only a successfully validated
+    // ORIGINAL retail header enables strict data-provider requirements.
+    // A malformed/untrusted chunk must not poison a reusable interpreter.
     if(binaryChunk){
         hostChunk=retargetRetailLua50(source);
+        retailChunk_=true;
         source=std::string_view(
             reinterpret_cast<const char*>(hostChunk.data()),hostChunk.size());
     }
