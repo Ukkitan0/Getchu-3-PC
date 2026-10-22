@@ -41,7 +41,7 @@ REPEATED=("VMULx","VMULx","VADD","VMULx","VADD","VSUB","VMUL",
 def verify(path: Path) -> None:
     data=path.read_bytes()
     assert hashlib.sha256(data).hexdigest()==ORIGINAL_SHA,"Private original ELF SHA mismatch"
-    assert data[:7]==b"\\x7fELF\\x01\\x01\\x01","Expected original ELF32 little-endian"
+    assert data[:7]==b"\x7fELF\x01\x01\x01","Expected original ELF32 little-endian"
     assert struct.unpack_from("<H",data,18)[0]==8,"Expected MIPS ELF"
     ph=struct.unpack_from("<I",data,28)[0]
     stride,count=struct.unpack_from("<HH",data,42)
