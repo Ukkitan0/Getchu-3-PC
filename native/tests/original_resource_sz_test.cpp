@@ -68,6 +68,30 @@ int main() {
   ck(originalPck.require("model","i3d").payloadOffset==0x30,"original SZ -> PCK payload offset");
   ck(originalPckPayloadSignature(originalPck.entries()[0].payload)==OriginalPckPayloadSignature::i3d_mesh,
      "original SZ -> PCK -> original resource magic");
+  // Independently recovered navigation loader 0x4F0A5C reads original
+  // PCK names as absolute offsets, and expects typed nav source entries.
+  std::vector<std::uint8_t> navPck(0x60+0x70);
+  navPck[0]='P';navPck[1]='C';navPck[2]='K';
+  navPck[4]=0x40;navPck[8]=1;
+  const char* navType="nav";
+  for(unsigned i=0;navType[i];++i)navPck[0x10+i]=navType[i];
+  const char* navName="nav_monkey.nav";
+  for(unsigned i=0;navName[i];++i)navPck[0x14+i]=navName[i];
+  navPck[0x40]=0x14;navPck[0x44]=0x10;
+  navPck[0x48]=0x60;navPck[0x4c]=0x70;
+  // 0x21D46C's authentic navigation source header record count is +0x24.
+  navPck[0x60+0x24]=1;
+  auto navSz=encode(navPck);
+  navSz.insert(navSz.end(),4,0); // original nav decoder permits source trailing bytes
+  auto navDecoded=originalDecodeSz(navSz,OriginalSzMaxOutputBytes,OriginalSzTrailerPolicy::permit);
+  std::vector<std::byte> navOwned;
+  for(auto value:navDecoded)navOwned.push_back(std::byte{value});
+  OriginalPckResourcePackage originalNav(std::move(navOwned));
+  ck(originalNav.selectType_26d24c("nav")==std::vector<std::size_t>{0},
+      "Original 0x26D24C nav type filter failed");
+  const auto& navMember=originalNav.require("nav_monkey.nav","nav");
+  ck(navMember.payloadOffset==0x60 && navMember.payload.size()==0x70 &&
+     navMember.payload[0x24]==std::byte{1},"Original 0x4F0A5C nav source payload lost");
   auto highlyCompressed=std::vector<std::uint8_t>(100000,0x66);
   auto encoded=encode(highlyCompressed);
   ck(originalDecodeSz(encoded)==highlyCompressed,"Source highly-compressible data changed");
