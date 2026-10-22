@@ -34,4 +34,17 @@ bool originalStaticCtor_3a6cd0(
     destination=result;
     return true;
 }
+bool originalFourthCtor_39fc78(std::span<const std::byte> source,
+    OriginalFourthGlobals_39fc78& destination) noexcept {
+    if(source.size()!=kFourthCtorLiteralBytes_39fc78 ||
+       originalStaticSourceFingerprint_3a6cd0(source)!=
+           UINT64_C(0x68250f40582435ca))return false;
+    OriginalFourthGlobals_39fc78 result{};
+    for(std::size_t i=0;i<result.namesAndParameters.size();++i)
+        std::copy_n(source.begin()+i*16,16,
+                    result.namesAndParameters[i].begin());
+    result.initialized=true;
+    destination=result;
+    return true;
+}
 }
