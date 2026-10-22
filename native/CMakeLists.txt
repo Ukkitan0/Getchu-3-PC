@@ -465,3 +465,8 @@ add_test(NAME NativeActualRetailLua50FormatRetarget COMMAND Getchu3RetailLua50Te
 # Audit actual game-owned ISO stages, without synthetic scenery or emulated hardware.
 add_executable(Getchu3RetailStageAudit src/retail_stage_audit.cpp)
 target_link_libraries(Getchu3RetailStageAudit PRIVATE Getchu3Assets)
+
+# Host-native startup checkpoint test; successful Lua setup does not imply a game boot.
+add_executable(Getchu3WindowsBootStatusTests tests/windows_runtime_boot_status_test.cpp)
+target_include_directories(Getchu3WindowsBootStatusTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+add_test(NAME NativeRetailStartupCheckpointEvidence COMMAND Getchu3WindowsBootStatusTests)
