@@ -157,3 +157,53 @@ to host buffers by original Assets lookups, never blindly dereferenced.
 The next connected original rendering blocker is material-transform
 groups 0/2/3 and original actor VU scratch construction, which feed
 actual mesh/texture/animation data into these verified material descriptors.
+
+
+## Follow-up within pass 4: authentic packet arena cursor math
+
+After tracing packet allocation from the original `0x3AF8F0` group constructor, the retail helper `0x3B3CE0` was fully identified as a 16-byte-unit **backward** graphics arena cursor adjustment, and `0x3B3D00` as its **forward** counterpart:
+
+```cpp
+// Native host offsets, not EE addresses. Source op sequence only:
+newBack = (back - units*16) & ~uint32_t(15); // original +0x18, 0x3B3CE0
+oldFront = front;                            // original +0x14, 0x3B3D00
+newFront = (front + units*16 + 15) & ~uint32_t(15);
+```
+
+`native/include/ae3/original_render_packet_arena.hpp` and
+`native/src/original_render_packet_arena.cpp` reproduce these original integer
+operations using typed offsets within host-owned graphics memory. They add
+bounds, overflow and cursor-collision guards **not present in the retail
+code** to avoid host memory corruption. The backward routine returns
+the **new** cursor; the forward routine returns the **old** cursor. These
+different return semantics were checked against retail instructions.
+
+The two new exact original executable source SHA-256 fingerprints are:
+
+- `0x3B3CE0–0x3B3CFC`: `13c8b65e6a2bcac7c1ffb3a980f280d4f2cbe70dcc81ca238fa0d27f993e8f92`
+- `0x3B3D00–0x3B3D20`: `4c2ea7ef8022fcd90bf053c968baa32e8650847c95829d708742e35e7639e9bd`
+
+Test: `native/tests/original_render_packet_arena_test.cpp`,
+GCC 14.2 `-O2 -Werror` **PASS**, Clang 17 AddressSanitizer +
+UndefinedBehaviorSanitizer `-O1 -Werror` **PASS**. Tests include
+bidirectional allocation, 16-byte alignment, original return values,
+overflow, malformed capacity, and double-sided collision protection.
+
+Integrator-only CMake additions:
+
+```cmake
+target_sources(Getchu3Assets PRIVATE src/original_render_packet_arena.cpp)
+add_executable(Getchu3OriginalPacketArenaTests tests/original_render_packet_arena_test.cpp)
+target_link_libraries(Getchu3OriginalPacketArenaTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailRenderPacketArena COMMAND Getchu3OriginalPacketArenaTests)
+```
+
+Native packet arena offsets can back the real `0x3B3CE0` allocation callback
+once Windows Runtime provides its graphics arena buffer and byte lifetimes.
+The packet allocator cursor is **not by itself** a GPU memory allocator or a
+complete model renderer. Full original resource ownership and packet
+serialization remain to be recovered and integrated.
+
+**Updated pass-4 focused tests:** four new C++ test suites, **8/8**
+GCC/Clang sanitizer test executions passed, separate from prior passes.
+No game-native GPU draw or playable build claimed.
