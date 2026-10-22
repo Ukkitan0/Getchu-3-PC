@@ -33,11 +33,11 @@ public:
     virtual bool SubmitOriginalParameters_Implementation(const FString&);
 
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Ape Escape 3|Original Manager")
-    bool WriteOriginalFlag(const FString& Scope, const FString& Key, bool Value);
+    bool WriteOriginalFlag(const FString& ScopeHex, const FString& KeyHex, bool Value);
     virtual bool WriteOriginalFlag_Implementation(const FString&, const FString&, bool);
 
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Ape Escape 3|Original Manager")
-    bool ReadOriginalFlag(const FString& Scope, const FString& Key, bool& OutValue);
+    bool ReadOriginalFlag(const FString& ScopeHex, const FString& KeyHex, bool& OutValue);
     virtual bool ReadOriginalFlag_Implementation(const FString&, const FString&, bool& OutValue);
 
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Ape Escape 3|Original Manager")
