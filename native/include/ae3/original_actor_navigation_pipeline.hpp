@@ -53,6 +53,12 @@ public:
         const OriginalVU0Vec4& originalIncomingA1,
         const OriginalVU0Vec4& originalControllerVector40);
 
+    // Original 0x57C978 loads owner[+0x14], and 0x57C980
+    // loads packed +0x40 into the fallback's $a1. This is
+    // distinct from the $a2 loaded at controller+0x20.
+    void setOriginalFallbackOwnerVector_57ca68(
+        const std::array<std::byte,16>& originalOwner14Vector40);
+
     OriginalActorRouteFollowResult_57c7cc advance(
         OriginalActorRouteFollowerState_57c7cc& originalActorRoute);
     std::span<const OriginalActorTargetResult_57c8ec> sourceTargetResults() const noexcept {
@@ -82,6 +88,7 @@ private:
     OriginalGameRandom_36f3c0* originalSharedRandom_=nullptr;
     OriginalActorFallbackVU0Transform_57ca68* originalFallbackTransform_=nullptr;
     std::span<const OriginalPolygonLinks_21bd3c> originalSourceAdjacency_;
+    std::optional<std::array<std::byte,16>> originalOwner14Vector40_;
     std::optional<OriginalVU0Vec4> originalIncomingRayA1_;
     std::optional<OriginalVU0Vec4> originalController40_;
     std::optional<OriginalVU0Vec4> latestTargetRayA2_;

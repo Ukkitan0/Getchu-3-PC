@@ -28,6 +28,10 @@ void OriginalActorNavigationPipeline_57c7cc::setOriginalProjectionOperands_57c7c
     originalIncomingRayA1_=incomingA1;
     originalController40_=sourceController40;
 }
+void OriginalActorNavigationPipeline_57c7cc::setOriginalFallbackOwnerVector_57ca68(
+    const std::array<std::byte,16>& sourceOwnerVector) {
+    originalOwner14Vector40_=sourceOwnerVector;
+}
 std::size_t OriginalActorNavigationPipeline_57c7cc::sourceIndex(
     const OriginalSpatialRecord70& polygon) const {
     // Use equality instead of undefined host pointer-range comparisons.
@@ -49,10 +53,15 @@ std::uint64_t OriginalActorNavigationPipeline_57c7cc::call_original_57ca68_geome
     // Original 0x57CA68 outer game RNG and best-of-six loop is
     // now recovered when the caller supplies the original VU0
     // candidate transform. The latter is still untranslated.
-    if(originalSharedRandom_ && originalFallbackTransform_)
+    if(originalSharedRandom_ && originalFallbackTransform_) {
+        if(!originalOwner14Vector40_)
+            throw std::invalid_argument(
+                "Original 0x57CA68 owner+0x14->+0x40 vector missing; cannot reuse controller+0x20");
         return originalActorFallbackSelect_57ca68(
-            target,controllerVector20_,*originalSharedRandom_,
-            *originalFallbackTransform_).originalWinningPackedTargetLow64;
+            target,*originalOwner14Vector40_,controllerVector20_,
+            *originalSharedRandom_,*originalFallbackTransform_)
+            .originalWinningPackedTargetLow64;
+    }
     return math_.call_original_57ca68_fallback(target);
 }
 std::uint64_t OriginalActorNavigationPipeline_57c7cc::call_original_57c98c_three_vertex_transform(

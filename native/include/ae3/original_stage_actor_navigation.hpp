@@ -32,6 +32,11 @@ public:
         const OriginalVU0Vec4& incomingA1,
         const OriginalVU0Vec4& originalController40);
 
+    // Original fallback a1 is actor owner->+0x14->+0x40,
+    // not actor movement input or controller+0x20.
+    void setOriginalFallbackOwnerVector_57ca68(
+        const std::array<std::byte,16>& originalOwner14Vector40);
+
     // The route span belongs to the caller and must remain valid
     // through advance(). Returned polygon identities belong to stage.
     OriginalActorRouteFollowResult_57c7cc advance(

@@ -31,8 +31,13 @@ struct Candidate:OriginalActorFallbackVU0Transform_57ca68 {
     std::array<std::array<std::byte,16>,3> expected{};
     OriginalActorFallbackCandidate_57ca68 call_original_57ca68_candidate_VU0(
        const std::array<std::array<std::byte,16>,3>& bytes,
-       const std::array<std::byte,16>&,
+       const std::array<std::byte,16>& originalOwnerA1,
+       const std::array<std::byte,16>& originalControllerA2,
        const OriginalActorTriangleWeights_57c98c&,std::size_t index) override {
+        require(originalOwnerA1[0]==std::byte(0xab),
+            "Original fallback $a1 not actor owner's +0x14->+0x40 vector");
+        require(originalControllerA2[0]==std::byte(0),
+            "Original fallback $a2 not controller+0x20 source");
         require(bytes==expected,"Actual original source vertex bytes changed");
         require(index==calls++,"Original six candidate order");
         const float score= index==4?25.0f:float(index);
@@ -55,6 +60,15 @@ static void runPolygon(const OriginalSpatialRecord70& original,
         candidate.expected[i]=originalSpatialVector_21b458(original,i);
     OriginalActorNavigationPipeline_57c7cc pipeline(
         records,geometry,veryFarOutside,true,missing,&random,{},&candidate);
+    // Distinct source arguments must be explicitly supplied. No fallback
+    // may silently substitute controller+0x20 for the actor owner vector.
+    bool missingOwnerRejected=false;
+    try{(void)pipeline.advance(state);}
+    catch(const std::invalid_argument&){missingOwnerRejected=true;}
+    require(missingOwnerRejected,"Missing original owner+0x14->+0x40 vector was silently substituted");
+    std::array<std::byte,16> ownerVector{};
+    ownerVector[0]=std::byte(0xab);
+    pipeline.setOriginalFallbackOwnerVector_57ca68(ownerVector);
     const auto result=pipeline.advance(state);
     require(result.sourceTargetsApplied==1&&result.sourceProjectionsPerformed==0,
             "Original route[1] initial target must bypass projection");

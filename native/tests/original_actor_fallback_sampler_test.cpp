@@ -23,7 +23,8 @@ static unsigned u32(std::span<const std::byte> src,unsigned at){
 class OriginalTransformCheck final:public OriginalActorFallbackVU0Transform_57ca68 {
 public:
     std::array<std::array<std::byte,16>,3> expectedVertices{};
-    std::array<std::byte,16> expectedInput{};
+    std::array<std::byte,16> expectedOwnerA1{};
+    std::array<std::byte,16> expectedControllerA2{};
     OriginalGameRandom_36f3c0 independent;
     unsigned sourceCalls=0;
     bool initialScoreNaN=false;
@@ -31,11 +32,14 @@ public:
     OriginalActorFallbackCandidate_57ca68 call_original_57ca68_candidate_VU0(
         const std::array<std::array<std::byte,16>,3>& originalVertices,
         const std::array<std::byte,16>& originalA1,
+        const std::array<std::byte,16>& originalA2,
         const OriginalActorTriangleWeights_57c98c& weights,
         std::size_t trial) override {
         ck(trial==sourceCalls&&trial<6,"Original source sample-order mismatch");
         ck(originalVertices==expectedVertices,"Original polygon 0x21B458 vertex bytes changed");
-        ck(originalA1==expectedInput,"Original fallback source A1 vector changed");
+        ck(originalA1==expectedOwnerA1,"Original fallback actor owner A1 vector changed");
+        ck(originalA2==expectedControllerA2,"Original fallback controller A2 vector changed");
+        ck(originalA1!=originalA2,"Fallback tests must use distinct original source arguments");
         const auto expected=originalActorTriangleWeights_57c98c(independent);
         const auto bits=[](float value){return std::bit_cast<std::uint32_t>(value);};
         ck(bits(weights.firstDraw)==bits(expected.firstDraw)&&
@@ -57,14 +61,17 @@ public:
 static void oneOriginalPolygon(const OriginalSpatialRecord70& polygon,std::uint32_t seed) {
     std::array<std::byte,16> originalInput{};
     for(unsigned i=0;i<16;++i)originalInput[i]=std::byte(i*7);
+    std::array<std::byte,16> controllerVector{};
+    for(unsigned i=0;i<16;++i)controllerVector[i]=std::byte(i*11+3);
     OriginalGameRandom_36f3c0 sourceRNG(seed);
     OriginalTransformCheck geometry(seed);
-    geometry.expectedInput=originalInput;
+    geometry.expectedOwnerA1=originalInput;
+    geometry.expectedControllerA2=controllerVector;
     for(unsigned i=0;i<3;++i)
         geometry.expectedVertices[i]=originalSpatialVector_21b458(polygon,i);
     OriginalActorFallbackVu0R_57ca68 vuRandom{0xdeadbeefu};
     const auto result=originalActorFallbackSelect_57ca68(
-        polygon,originalInput,sourceRNG,geometry,&vuRandom);
+        polygon,originalInput,controllerVector,sourceRNG,geometry,&vuRandom);
     ck(vuRandom.rawR==0x3f800000u &&
        vuRandom.sourceVRINITCalls==12 && vuRandom.sourceVRXORCalls==12,
        "Actual source VU0 VI[R] final state or special-op count changed");
@@ -81,9 +88,10 @@ static void oneOriginalPolygon(const OriginalSpatialRecord70& polygon,std::uint3
     OriginalTransformCheck geoNaN(seed);
     geoNaN.initialScoreNaN=true;
     geoNaN.expectedVertices=geometry.expectedVertices;
-    geoNaN.expectedInput=originalInput;
+    geoNaN.expectedOwnerA1=originalInput;
+    geoNaN.expectedControllerA2=controllerVector;
     const auto nan=originalActorFallbackSelect_57ca68(
-       polygon,originalInput,na,geoNaN);
+       polygon,originalInput,controllerVector,na,geoNaN);
     ck(nan.sourceWinningCandidate==0&&
        nan.originalWinningPackedTargetLow64==0x1000,
        "Original C.OLT must not replace NaN first-best score");

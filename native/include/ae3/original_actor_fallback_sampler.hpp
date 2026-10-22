@@ -23,7 +23,8 @@ public:
     virtual ~OriginalActorFallbackVU0Transform_57ca68()=default;
     virtual OriginalActorFallbackCandidate_57ca68 call_original_57ca68_candidate_VU0(
         const std::array<std::array<std::byte,16>,3>& originalSourcePolygonVertices,
-        const std::array<std::byte,16>& originalInputA1,
+        const std::array<std::byte,16>& originalInputA1OwnerVector,
+        const std::array<std::byte,16>& originalInputA2Controller20,
         const OriginalActorTriangleWeights_57c98c& sourceRandomWeights,
         std::size_t sourceCandidateNumber)=0;
 };
@@ -42,7 +43,8 @@ struct OriginalActorFallbackSelection_57ca68 {
 // remain explicit original-specific dependencies, not guesses.
 OriginalActorFallbackSelection_57ca68 originalActorFallbackSelect_57ca68(
     const OriginalSpatialRecord70& originalPolygon,
-    const std::array<std::byte,16>& originalInputA1,
+    const std::array<std::byte,16>& originalInputA1OwnerVector,
+    const std::array<std::byte,16>& originalInputA2Controller20,
     OriginalGameRandom_36f3c0& originalSharedRNG,
     OriginalActorFallbackVU0Transform_57ca68& originalVU0,
     OriginalActorFallbackVu0R_57ca68* originalVu0R=nullptr);
