@@ -172,3 +172,65 @@ Additional commits:
 The earlier handoff test summary (stages=2 members=6) refers to the earlier commit, not the updated test.
 
 Final local verification after source-stage-name correction: updated stage-catalog test (three synthetic stage folders, seven source members, six rejected malformed lookups) passed GCC 14.2.0 strict -O2, Clang 17.0.0 strict -O2, and GCC AddressSanitizer+UndefinedBehaviorSanitizer with ASAN_OPTIONS=detect_leaks=1. Native stage probe remained syntax-only compiled under GCC -Werror; complete binary linkage and original ISO tests still require integrator and private data.
+
+
+## Continuation — source-backed stage-scoped resource ownership and original folder-chain tests
+
+**Starting specialist head:** `d22511c2f49e806f747907b64b62a8c2f3749330`.
+
+### Actual ownership/data-flow problem addressed
+
+The earlier ISO/VFI->SZ->PCK package pipeline decoded authentic source bytes but left package and EXDB lifetime management to callers. Borrowed EXDB attribute record spans and original navigation/model payloads must remain valid while their original package allocation is retained, across independent loads. There was no per-stage original-asset owner that could make this boundary explicit.
+
+The **new native ownership boundary does not claim to implement retail stage transition logic**, nor fabricate an EE original pointer VA. It consumes actual, explicitly named VFI assets and releases host-native resources when its stage scope is destroyed. The integration owner must respect that lifetime in graphics, Lua, navigation and gameplay.
+
+### New commits (all source/tests only on `parallel/assets`)
+- `5ca2ab94bf2ba5db5a218ee1e86827f502d43c8b` — new `native/include/ae3/original_resource_stage_scope.hpp`. `OriginalStageResourceScope` owns ISO/VFI mount, original stage catalog, lazy immutable original file payloads, PCK allocations, and native EXDB documents in lifetime-safe order. The scope cannot copy/move (borrowed spans remain stable). Exact `file`, `package`, `requireMember`, `filterMembers_26d24c`, `exdb` interfaces reject nonexistent source paths/names/types. Resource maps use original VFI path as cache key, preserving stable pointers across subsequent loads and ASCII-case alternate lookups. Failed original EXDB parsing does not publish a partially decoded document. `decodedExdbCount()` tracks committed documents only.
+- `9c0ba0a9558299b4057ac4124302d2977dcf4a69` — new `native/tests/original_resource_stage_scope_test.cpp`. Builds original-format *synthetic* DATA.BIN and ISO source fixture, three VFI stage members (raw `area.luc`, compressed `navigation.pck.sz` with optional nav trailer, original PCK `exdb.pck`), validates stage ownership reuse, actual typed nav payload offset/count, stable borrowed pointers and absent-resource rejection. Intentionally malformed generated EXDB verifies failure leaves no cached decoded document. This is NOT a proof of retail EXDB compatibility.
+- `c5e56e6f57a05924fa4c4249b6a558e078e62e24` — new `native/tests/original_resource_stage_scope_retail_test.cpp` (opt-in **private USA ISO/DATA.BIN only**). Checks documented original `woods_c/exdb.pck`, both genuine PCK resource offset/size pairs, original type selection and source magic, then calls the already recovered `0x2BB03C/0x2BB0F4` camera/monkey attribute chain directly from the source PCK allocation: original camera name, area, `lkdown_ang` 30.0, record count/stride; original four monkey profile records and stride. Tests document reuse/stability across an optional separately indexed `navigation.pck.sz`. Retail SHA values and expected offsets derive from PREVIOUS owner-private original audits; these source values were not reproduced/embedded as commercial payload. Actual owner-file execution still pending.
+- `dd129b7418e6a08c3594d93ab6111a4592ddb618` — new `native/tests/original_resource_vfi_folder_owner_test.cpp`. Builds VFI's **actual parent-linked folder-table structure** (parent fields are 16-bit table-relative offsets; zero is root sentinel; files have parent IDs). Validates real Archive reconstruction of `debug/us/stage/woods_c/area.luc` and `exdb.pck` from separate `debug`, `us`, `stage`, `woods_c` parent-linked records. Chains decoded VFI paths through the new native stage scope into original-format PCK payload bytes. Rejects invalid parent IDs and cyclic folder ancestry. No retail payload bytes.
+
+### Original code provenance / field offsets (existing evidence, not new ELF access)
+- Original USA executable SHA-256 `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`.
+- Original resource type dispatch `0x26D24C`; `0x26D2B8..0x26D2E0` type boundary check; `0x26D120`, `0x26D214` vector count/index.
+- NavGraph stage load `0x4F0A5C` calls original source-spatial builder at `0x4F0B14 -> 0x21D46C`. `.nav` loaded source descriptor count at +0x24.
+- Retail attribute decoding `0x2BB03C`, index `0x2BB0F4`, source string getter `0x2BB3BC`, float getter `0x2BB1D0`.
+- Previously SHA-verified private `woods_c/exdb.pck`: original PCK table offset `0x40`, 2 items of 16 bytes; `monkeyprofile.exdb` at payload `0x60` with `0x1400` bytes; `MainCameraParam.exdb` at `0x1460` with `0x200` bytes; PCK SHA-256 `185db8cfd710760d9c715e0d1cce8ac4ecf6b18201673ce00bc6815078ae4615`.
+- The archive parser's original VFI source-parent offsets and native layout are inherited from `native/src/archive.cpp`; original retail ELF function VA for this ISO/VFI loader has **not yet been established**. This pass does not invent one.
+
+### Local checks genuinely performed, with qualification
+We built an *equivalent local mirror* of the new stage-scope API against copied native archive/SZ source behavior and a **stub for the original EXDB parser**, because the full privately owned retail assets and complete repository toolchain are not present in this session. Strict GCC 14.2.0 C++20 `-O2 -Wall -Wextra -Wpedantic -Werror` stage-owner syntax check passed; fixture exercise with generated DATA.BIN and ISO passed real host file IO, VFI path, SZ raw-DEFLATE, PCK type/name/payload lookup and source-lifetime pointer stability. GCC AddressSanitizer + UndefinedBehaviorSanitizer (`-g -O1 -fsanitize=address,undefined`) passed that fixture. The **EXDB error-path** in this local mirror was a deliberately throwing stub; actual `OriginalExdbDecodedDocument::decode` still requires CMake integration and owner-private execution.
+
+Additional independently generated *nested-folder VFI* fixture passed the same local C++ source-path reader:
+- Valid four-level parent-chain `debug/us/stage/woods_c` -> Lua and EXDB PCK source: **PASS**.
+- File referring to absent folder table ID: rejected **PASS**.
+- Cyclic parent chain: rejected **PASS**.
+
+The existing optimized native resource-package, SZ and stage catalog tests were rerun locally successfully in this session, reporting respectively:
+`ORIGINAL_RESOURCE_PACKAGE_TEST_PASSED`,
+`ORIGINAL_RESOURCE_SZ_TEST_PASSED`,
+`ORIGINAL_RESOURCE_STAGE_CATALOG_TEST_PASSED`.
+Complete **new committed C++ test source** was not fully built against the original full repo in this disconnected environment; Win32 linker/game boot and new retail asset validation are unverified. Do not equate the successful local mirror checks to a full integration build.
+
+### Integration-owner-only CMake recipe and native entry points
+Previously requested: add `src/original_resource_sz.cpp` to `Getchu3Assets` (existing zlib target is already linked). New stage scope is header-only and requires existing `archive.cpp`, original attribute/EXDB inline decoders, plus the SZ implementation.
+
+Add focused test executables linked to `Getchu3Assets`:
+- `native/tests/original_resource_stage_scope_test.cpp`
+- `native/tests/original_resource_vfi_folder_owner_test.cpp`
+- Optional private USA `native/tests/original_resource_stage_scope_retail_test.cpp` only if `AE3_RETAIL_USA_ISO` is configured; run with that ISO path and independently verify ELF and PCK hashes as existing tools describe.
+
+Integration example, caller must retain the scope as long as any returned span/view/document is used:
+```cpp
+ae3::OriginalStageResourceScope stage(ownedUsaIso, "woods_c");
+auto bytes = stage.file("area.luc");           // borrowed original Lua source
+const auto& pkg = stage.package("exdb.pck"); // original, independently owned PCK
+const auto& camera = stage.exdb("exdb.pck", "MainCameraParam.exdb");
+const auto& navPkg = stage.package("navigation.pck.sz");
+// navPkg.originalPackageBytes() can feed the EXISTING original navigation
+// team bridge; source runtime allocation VA must be supplied separately.
+```
+Do not put inferred 32-bit retail VAs into this owner. Do not import/render original geometry in this parser team; graphics owns rendering and original nav team owns stage registration and path selection.
+
+### Next essential source recovery / missing proof
+The authentic retail engine's stage bundle selection, resource registration, dependency ordering and teardown call chain is STILL UNKNOWN. Recover its original executable addresses using owner-private USA ELF data. Confirm the exact native new scope with actual original ISO/VFI and the pinned woods_c retail EXDB package, determine live original NavGraph and actor allocation VAs, and identify dependencies required to initialize an authentic stage: source I3D_BIN meshes/material references, TIM2, I3D_I3M, I3D_I3C, Lua 5.0 bytecode, EXDB attributes, nav sources, audio descriptors and game tables. Separate raw parsing from graphics and gameplay execution. No Windows game boot or playable result claimed. No GitHub Actions triggered, no copyrighted content committed, no other team's files/global CMake modified.
