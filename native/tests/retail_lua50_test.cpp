@@ -193,6 +193,20 @@ void testRetailBytecodeExecution(){
         reinterpret_cast<const char*>(broken.data()),broken.size()));}
     catch(const std::runtime_error&){rejected=true;}
     check(rejected,"unknown PS2 Lua header was allowed");
+    // Rejecting a corrupt bytecode candidate must not poison an
+    // otherwise reusable source-only Lua 5.0 stage with retail strictness.
+    ae3::NativeStageWorld candidateWorld;
+    ae3::LuaStage candidate(candidateWorld);
+    bool rejectedCandidate=false;
+    try{candidate.executeSource(std::string_view(
+        reinterpret_cast<const char*>(broken.data()),broken.size()));}
+    catch(const std::runtime_error&){rejectedCandidate=true;}
+    check(rejectedCandidate,"invalid original-bytecode header was accepted by LuaStage");
+    candidate.executeSource(
+        "function sourceOnlyFlag() gw_set_flag('allowed_source_only') end");
+    check(candidate.invokeCallback("sourceOnlyFlag") &&
+          candidateWorld.flag("gw","allowed_source_only"),
+          "malformed Lua 5.0 chunk left strict retail binding mode enabled");
     broken=originalFormat;
     broken.resize(originalFormat.size()-2);
     rejected=false;
