@@ -92,7 +92,6 @@ bool OriginalRenderWorld::remove(OriginalRenderId id){
     return true;
 }
 OriginalRenderFrame OriginalRenderWorld::composeFrame() const{
-    OriginalRenderFrame out;
     std::vector<const Entry*> order;
     order.reserve(entries_.size());
     for(const auto& e:entries_)if(e.object.visible)order.push_back(&e);
@@ -100,6 +99,30 @@ OriginalRenderFrame OriginalRenderWorld::composeFrame() const{
     std::stable_sort(order.begin(),order.end(),[](const Entry* a,const Entry* b){
         return a->object.renderLayer<b->object.renderLayer;
     });
+    return composeOrdered(order);
+}
+OriginalRenderFrame OriginalRenderWorld::composeFrameInOriginalOrder(
+    const std::vector<OriginalRenderId>& ids) const {
+    if(ids.size()>entries_.size())
+        throw std::invalid_argument("original render list has more actor IDs than owner instances");
+    std::unordered_map<OriginalRenderId,const Entry*> indexed;
+    indexed.reserve(entries_.size());
+    for(const auto& e:entries_)indexed.emplace(e.object.id,&e);
+    std::vector<const Entry*> order;
+    order.reserve(ids.size());
+    for(const OriginalRenderId id:ids){
+        const auto it=indexed.find(id);
+        if(it==indexed.end())throw std::out_of_range("retail render list references missing actor");
+        const Entry* actor=it->second;
+        if(std::find(order.begin(),order.end(),actor)!=order.end())
+            throw std::invalid_argument("duplicate original actor in render list");
+        if(actor->object.visible)order.push_back(actor);
+    }
+    return composeOrdered(order);
+}
+OriginalRenderFrame OriginalRenderWorld::composeOrdered(
+    const std::vector<const Entry*>& order) const{
+    OriginalRenderFrame out;
     struct TextureKey {
         const StaticScene* scene;
         int index;
