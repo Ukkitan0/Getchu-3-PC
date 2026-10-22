@@ -77,6 +77,15 @@ def verify(path: Path) -> None:
     later=tuple(v for at in range(0x57CC48,0x57CCB4,4) if (v:=macro(at)))
     assert first==INITIAL,(first,INITIAL)
     assert later==REPEATED,(later,REPEATED)
+    # Verify original source PCPYUD arguments and 128-bit target transfers.
+    # 0x57C994/C9A8/C9B8: three source vertex PCPYUDs.
+    # 0x57C894: caller projection operand PCPYUD a2,zero,v0.
+    for at,rd,rt in ((0x57C994,17,2),(0x57C9A8,19,2),
+                     (0x57C9B8,18,2),(0x57C894,6,2),
+                     (0x57C880,18,2),(0x57C88C,5,21)):
+        x=word(at)
+        assert (x>>26,x&63,(x>>6)&31,
+                (x>>21)&31,(x>>16)&31,(x>>11)&31)==(28,0x29,18,0,rt,rd),hex(at)
     # Verify the connected full-width target-transfer path, not just VU0 math.
     # 0x57C948 QMFC2 v0,VF1; 0x57C988 QMTC2 v0,VF1;
     # 0x57C894 PCPYUD a2,zero,v0. All 128 bits matter.
