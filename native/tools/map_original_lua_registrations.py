@@ -85,38 +85,49 @@ def is_branch(word: int) -> bool:
 
 
 def producer(regs: dict[int, tuple[int, int]], word: int, at: int) -> None:
-    """Track only known 32-bit constant definitions, retaining producer PC.
+    """Conservative MIPS32 constant provenance, not an instruction emulator.
 
-    Anything that may write a destination without a modeled constant kills
-    that register. This deliberately loses matches rather than falsely
-    associating Lua names with arbitrary prior LUI instructions.
+    Every instruction which could overwrite a modeled destination must kill
+    its old value unless it is one of the exact literal constructors here.
+    In particular ANDI, XORI, SLTI, DADDIU and loads must not preserve an
+    unrelated earlier string pointer in $a1.
     """
     op = word >> 26
     rs, rt, rd = (word >> 21) & 31, (word >> 16) & 31, (word >> 11) & 31
     imm = word & 0xFFFF
-    if op == 15 and rs == 0:  # LUI
-        if rt:
+    if op == 15:  # LUI: target is invalidated even for noncanonical rs
+        regs.pop(rt, None)
+        if rt and rs == 0:
             regs[rt] = (imm << 16, at)
     elif op in (8, 9, 13):  # ADDI / ADDIU / ORI
         src = regs.get(rs) if rs else (0, at)
         regs.pop(rt, None)
         if rt and src is not None:
-            val = ((src[0] | imm) if op == 13 else (src[0] + signed16(imm))) & 0xFFFFFFFF
-            regs[rt] = (val, src[1])
-    elif op == 0 and (word & 63) in (33, 37):  # ADDU/OR with $zero (MOVE)
-        source = rs if rt == 0 else (rt if rs == 0 else None)
-        known = regs.get(source) if source is not None else None
-        regs.pop(rd, None)
-        if rd and known is not None:
-            regs[rd] = known
-    elif op == 0 and (word & 63) in (0, 2, 3):  # shifts, including NOP
-        if rd:
+            value = ((src[0] | imm) if op == 13 else
+                     (src[0] + signed16(imm))) & 0xFFFFFFFF
+            regs[rt] = (value, src[1])
+    elif op == 0:  # SPECIAL R-type instructions
+        fn = word & 63
+        if fn in (33, 37) and (rs == 0 or rt == 0):
+            source = rs if rt == 0 else rt
+            known = regs.get(source) if source else (0, at)
             regs.pop(rd, None)
-    elif op in (32, 33, 34, 35, 36, 37, 38, 39):  # load byte/half/word
+            if rd and known is not None:
+                regs[rd] = known
+        elif fn not in (8, 9, 12, 13):
+            # Conservative for arithmetic, shifts, MFHI/MFLO etc.
+            regs.pop(rd, None)
+    elif op in (40, 41, 42, 43, 44, 45, 46, 47, 56, 57, 61, 63):
+        # stores do not overwrite their source integer registers
+        return
+    elif op in (16, 17, 18, 19, 28, 31):
+        # COP0/COP1/COP2/SPECIAL2/SPECIAL3 can expose register transfers
+        # outside this small proof. Forget all pending values.
+        regs.clear()
+    elif op not in (2, 3, 4, 5, 6, 7, 20, 21, 22, 23):
+        # Immediate arithmetic, shifts, loads, special, etc. Unknowns may
+        # target rt; losing provenance is preferable to a false match.
         regs.pop(rt, None)
-    # Unrecognized arithmetic is not assumed to preserve its destination.
-    elif op == 0 and rd and (word & 63) not in (8, 9, 12, 13):
-        regs.pop(rd, None)
 
 
 def scan_calls(blob: bytes, segments: list[tuple[int, int, int]],
