@@ -76,7 +76,9 @@ struct NativeLuaStageBindings {
     std::function<void(const ScriptValue&)> submitParameters;
     std::function<void(std::string_view,std::string_view,bool)> writeFlag;
     std::function<std::optional<bool>(std::string_view,std::string_view)> readFlag;
-    std::function<std::optional<int>(std::string_view)> readStageInteger;
+    // Argument contract is intentionally opaque until SCUS_975.01's
+    // stage_var_get_int callback is recovered. Do not assume a string key.
+    std::function<std::optional<int>(const std::vector<ScriptValue>&)> readStageInteger;
     std::function<std::optional<bool>()> readSurvival;
     std::function<void(int)> selectWeapon;
 };
