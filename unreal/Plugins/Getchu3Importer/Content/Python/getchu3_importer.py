@@ -253,6 +253,23 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         outcome["original_stage_count"] = stages["stage_count"]
         outcome["original_stage_script_count"] = stages["stage_scripts"]
         outcome["original_stage_catalog"] = str(folder / "getchu3_original_stages.json")
+        outcome["phase"] = "audit_original_lua_manager_bindings"
+        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        from getchu3_original_bindings import create_original_binding_report
+        try:
+            native_evidence = create_original_binding_report(
+                extracted, repo, folder / "getchu3_original_binding_evidence.json")
+            outcome["original_binding_evidence_status"] = "source_checked"
+            outcome["unresolved_original_binding_candidates"] = len(
+                native_evidence["unresolved_original_bindings"])
+            outcome["original_actor_class_literal_count"] = len(
+                native_evidence["source_original_actor_class_literals"])
+        except (OSError, ValueError, RuntimeError) as exc:
+            # A failure in the static recovery audit is not a failed asset
+            # decode. Report it explicitly, without hiding missing gameplay.
+            outcome["original_binding_evidence_status"] = "blocked"
+            outcome["original_binding_evidence_error"] = (
+                f"{type(exc).__name__}: {exc}")
         outcome["phase"] = "decode_streams"
         report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         streams = convert_stream_audio(extracted / "vfi", converted / "audio", ae3_cli)
