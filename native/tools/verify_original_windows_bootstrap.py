@@ -17,6 +17,9 @@ FIRST_CTOR_DEP_SHA = "07cac5712617a817c73f96b849d99560b9bdfefd2b02f23ea943600206
 SOURCE_NOOP_SHA = "6d64edf91449c1b17746c1ef18afa2eb25c70bdf1322ab3df5a2630993b7e2f1"
 THIRD_CTOR_SOURCE_SHA = "a7ea32a26e18a2f6baf7e5341a5869caf968c5673a8818cd585473555005b68a"
 THIRD_CTOR_LITERAL_SHA = "409f7ce3cbaeb6670123aa8e26359e36f118ec8d784f405ac78f0657ffd4e446"
+FOURTH_CTOR_SHA = "769e555620bccceda273b52b0b90d2a24e8872ecaae788a126566f26d703c0fd"
+FOURTH_ENTRY_SHA = "20552c8eb949f74f127d90eaef73b7f76e9878f3c332efc605a97d443fa9a341"
+FOURTH_LITERAL_SHA = "d355cd4bb05ebf17c914cfb28d4cd2cdb2e2bb10a6959869af5cd051d1abc0f0"
 NUMERIC_CTOR_SHA = "035a60ed83dc1ceb0893ae3d0ab2949656327f914812efeafe76a7dec6fefd4e"
 NUMERIC_INIT_SHA = "ad45d81525c06e107fa271f6b8f51e678f64e81c25dc267dcad5451e4abbb800"
 MATH_SQRT_WRAPPER_SHA = "d448df6f0659e171eabf325fdd8d52171a72e1fe13dbea6e14971dc99952d961"
@@ -91,6 +94,16 @@ def verify(path):
         raise ValueError('Original static literal payload for third constructor differs')
     if elf.word(0x3a6ce4)>>26!=2 or (elf.word(0x3a6ce4)&0x3ffffff)<<2!=0x3a6b34:
         raise ValueError('Original static resource constructor trampoline mismatch')
+    if sha(0x39fa10,0x240)!=FOURTH_CTOR_SHA or sha(0x39fc78,0x1c)!=FOURTH_ENTRY_SHA:
+        raise ValueError('Original fourth constructor opcode fingerprint changed')
+    if sha(0x71f600,0x260)!=FOURTH_LITERAL_SHA:
+        raise ValueError('Original 38 native qword source records changed')
+    fourth_jump=elf.word(0x39fc8c)
+    if fourth_jump>>26!=2 or ((fourth_jump&0x3ffffff)<<2)!=0x39fa10:
+        raise ValueError('Fourth constructor original trampoline changed')
+    fourth=[elf.word(pc) for pc in range(0x39fa10,0x39fc78,4)]
+    if sum(op>>26==30 for op in fourth)!=42 or sum(op>>26==31 for op in fourth)!=41:
+        raise ValueError('Original fourth constructor source quadword load/store count changed')
     if elf.word(0x62e660)!=0xffffffff or elf.word(0x62e8a0)!=0:
         raise ValueError('Original constructor table sentinel/boundary mismatch')
     functions=[elf.word(0x62e89c-i*4) for i in range(143)]
@@ -123,8 +136,10 @@ def verify(path):
             'original_numeric_source_inputs':[10,16,8],
             'third_constructor_source_literals':13,
             'third_constructor_source_type_words':[1,1,1,2,1,1,4,3,2],
-            'third_constructor_not_integrated':True,
-            'next_unrecovered_original_constructor':"0x3a6cd0",
+            'third_constructor_source_data_required':True,
+            'fourth_constructor_source_data_required':True,
+            'fourth_constructor_native_qwords':38,
+            'next_unrecovered_original_constructor':"0x391600",
             'original_callbacks_not_implemented':True,
             'original_windows_gameplay_booted':False}
 
