@@ -130,3 +130,29 @@ Tests cover neutral and dead-zone values, nontrivial radial scaling, component c
 ### Remaining blockers (do not claim working Windows input yet)
 
 Still must resolve original per-game-state button interpretation and gadget action call tree, controller channel mapping from physical Windows input, hardware controller device connection semantics, direct original game-state consumer, genuine SoundSys mixing/streaming/resource lookup and original music system. The original Win32 app was not linked or booted and live input/audio were not tested. No GitHub Actions triggered and no game data published.
+
+
+---
+
+## Pass 2b — connected retail sound-command constructors and entity sound fields
+
+**Commit:** 17ff9527ccda5a721628359018a13e9b8b1cca56 on parallel/input-audio.
+
+Direct ELF calls and size arguments verified from original private SCUS_975.01:
+
+| Original c_ctrl command | Lua parser entry | Source event constructor call | Original allocation |
+| --- | --- | --- | --- |
+| se | 0x2191D4 | 0x219264 -> 0x373264 | 0xA0 (160) bytes |
+| se_stop | 0x2190D8 | 0x219138 -> 0x3732FC | 0x70 (112) bytes |
+| add_entity_se | 0x219454 | 0x2195A0 -> 0x3738DC | 0xD0 (208) bytes |
+| kick_entity_se | 0x2195D0 | 0x2196C0 -> 0x373960 | 0xB0 (176) bytes |
+
+The constructor addresses, allocated bytes and command parser entrypoints are SOURCE provenance only, not host allocation commands, original playback entrypoints or a claim that audio samples are decoded.
+
+**Actual interface additions:** OriginalSoundRoute now exposes originalConstructorVa and originalObjectBytes for the real command object type. originalEntitySoundLuaFields(event) recognizes exactly source-backable keys: exdb_se_id and entity_name for both entity sound commands; watch_rollerhandle_name, sign, is_2d and is_3d for add_entity_se; mark_name for kick_entity_se. Absence remains an optional value, and the complete original parameters remain in the audio event untouched. This typed extractor does not claim to reproduce the incomplete original Lua conversion/default system.
+
+**Verification:** Native C++20 optimized and ASan/UBSan boundary tests passed locally for these functional additions using the local source variants; original ELF audit with added constructor JAL, event-size and literal-key checks also passed locally. The newly committed remote source changes were not independently recompiled after remote upload; the remote input/audio test Git blob did match the exact locally tested test file. No Windows sound device, original bank decoder or full native game boot was tested.
+
+**Integrator:** No new CMake sources required beyond original_audio_runtime.cpp and the existing original_input_audio_runtime_test.cpp in the previous handoff. Recompile/CTest on Windows after selecting this commit. The event backend must use original audio assets/resource IDs supplied by Assets and recovered original sound manager; a named event alone is not permission to synthesize sounds.
+
+**Remaining sound work:** Trace vtable-driven SE execution from 0x373264 to original sound manager, original name/EXDB resolution, BGM MIDI/HD/BD sequencing, stream and reverb control, native device output and state transitions. Do not infer played sound from constructor invocation. No copyrighted audio was committed.
