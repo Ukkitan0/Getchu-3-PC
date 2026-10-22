@@ -78,6 +78,36 @@ int main(){
  const auto withPending=originalStageBuildSourceSpatial_21d46c(input);
  check(withPending.pendingOriginalActions.size()==1);
  check(withPending.pendingOriginalActions[0].type==2&&withPending.pendingOriginalActions[0].argument==7);
+ // The verified 0x1E-byte source descriptor contains exactly three
+ // independent action type/argument pairs before the +0x16 vertex count.
+ put16(bytes,desc0+2,3);
+ put16(bytes,desc0+0x0a,1);put16(bytes,desc0+0x0c,2);put16(bytes,desc0+0x0e,1);
+ put16(bytes,desc0+0x10,7);put16(bytes,desc0+0x12,8);put16(bytes,desc0+0x14,9);
+ input.loadedBytes=bytes;
+ const auto threeActions=originalStageBuildSourceSpatial_21d46c(input);
+ check(threeActions.pendingOriginalActions.size()==3);
+ check(threeActions.pendingOriginalActions[0].argument==7);
+ check(threeActions.pendingOriginalActions[1].argument==8);
+ check(threeActions.pendingOriginalActions[2].argument==9);
+ // Action #4 would read field +0x10 as a *type*, already used
+ // as the first action argument, then cross the vertex-count field.
+ put16(bytes,desc0+2,4);
+ bool tooMany=false;
+ try{(void)originalStageBuildSourceSpatial_21d46c({sourceBaseVA,bytes});}
+ catch(const std::out_of_range&){tooMany=true;}check(tooMany);
+ put16(bytes,desc0+2,1);
+ // The original 0x20-stride optional source table at source+0x48
+ // must contain a *complete* selected record, not just one byte.
+ put16(bytes,desc0,0);
+ const auto fullExtra=originalStageBuildSourceSpatial_21d46c({sourceBaseVA,bytes});
+ check(readWord(fullExtra.records[0],0x1c)==sourceBaseVA+0x1c0);
+ put32(bytes,0x48,0x21f); // only 1 source byte remains
+ bool partialExtra=false;
+ try{(void)originalStageBuildSourceSpatial_21d46c({sourceBaseVA,bytes});}
+ catch(const std::out_of_range&){partialExtra=true;}check(partialExtra);
+ put32(bytes,0x48,0x1c0);
+ put16(bytes,desc0,0xffff);
+
  put16(bytes,desc0+0x16,4);
  bool rejected=false;
  try{(void)originalStageBuildSourceSpatial_21d46c({sourceBaseVA,bytes});}

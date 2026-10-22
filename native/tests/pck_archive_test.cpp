@@ -17,7 +17,6 @@ void write32(std::vector<std::uint8_t>& data,std::size_t at,std::uint32_t v){
 }
 std::vector<std::uint8_t> sample(){
     std::vector<std::uint8_t> bytes(512);
-    const std::string pool="testmesh";
     bytes[0]='P';bytes[1]='C';bytes[2]='K';bytes[3]=0;
     bytes[16]='t';bytes[17]='e';bytes[18]='s';bytes[19]='t';
     bytes[20]='m';bytes[21]='e';bytes[22]='s';bytes[23]='h';
@@ -26,15 +25,19 @@ std::vector<std::uint8_t> sample(){
     bytes[29]=0;
     bytes[30]='t';bytes[31]='e';bytes[32]='x';bytes[33]=0;
     bytes[34]='c';bytes[35]='o';bytes[36]='l';bytes[37]=0;
+    bytes[40]='i';bytes[41]='3';bytes[42]='r';
+    bytes[44]='i';bytes[45]='3';bytes[46]='m';
+    bytes[48]='t';bytes[49]='m';bytes[50]='2';
+    bytes[52]='i';bytes[53]='3';bytes[54]='c';
     write32(bytes,4,64);write32(bytes,8,4);
-    // Entry name indexes may land in the middle or AT trailing NUL.
-    write32(bytes,64,2);write32(bytes,68,980);
+    // Verified retail PCK table name and type values are absolute file offsets.
+    write32(bytes,64,16);write32(bytes,68,40);
     write32(bytes,72,128);write32(bytes,76,16);
-    write32(bytes,80,13);write32(bytes,84,428);
+    write32(bytes,80,25);write32(bytes,84,44);
     write32(bytes,88,144);write32(bytes,92,16);
-    write32(bytes,96,17);write32(bytes,100,1674);
+    write32(bytes,96,30);write32(bytes,100,48);
     write32(bytes,104,160);write32(bytes,108,16);
-    write32(bytes,112,18);write32(bytes,116,1508);
+    write32(bytes,112,34);write32(bytes,116,52);
     write32(bytes,120,176);write32(bytes,124,16);
     for(unsigned i=0;i<4;++i){
         std::size_t at=128+i*16;
@@ -59,8 +62,8 @@ int main(){
         auto b=sample();
         ae3::PckArchive pck(b);
         check(pck.entries().size()==4,"PCK member count wrong");
-        check(pck.entries()[0].name=="testmesh","PCK middle-of-name pointer incorrectly read");
-        check(pck.entries()[1].name=="anim","PCK terminator-offset name incorrectly read");
+        check(pck.entries()[0].name=="testmesh","Original PCK absolute name string offset");
+        check(pck.entries()[1].name=="anim","Original PCK second absolute name offset");
         check(pck.entries()[2].name=="tex","PCK texture entry missing");
         check(pck.entries()[3].name=="col","PCK original collision member name missing");
         check(pck.entries()[0].kind==ae3::PckAssetKind::mesh,"real I3D_BIN magic not detected");
@@ -68,6 +71,10 @@ int main(){
         check(pck.entries()[2].kind==ae3::PckAssetKind::texture,"TIM2 texture not detected");
         check(pck.entries()[3].kind==ae3::PckAssetKind::collision,
               "real I3D_I3C PCK magic not detected");
+        check(pck.entries()[0].originalType=="i3r","Original mesh type string");
+        check(pck.entries()[1].originalType=="i3m","Original animation type string");
+        check(pck.entries()[2].originalType=="tm2","Original texture type string");
+        check(pck.entries()[3].originalType=="i3c","Original collision type string");
         auto blob=pck.read(pck.entries()[0]);
         check(blob.size()==16 && blob[0]=='I',"native PCK extraction bytes mismatch");
         auto invalid=b;
@@ -76,6 +83,16 @@ int main(){
         try{ae3::PckArchive bad(invalid);}
         catch(const std::runtime_error&){rejected=true;}
         check(rejected,"out-of-range PCK payload accepted");
+        invalid=b;write32(invalid,64,17);
+        rejected=false;
+        try{ae3::PckArchive bad(invalid);}
+        catch(const std::runtime_error&){rejected=true;}
+        check(rejected,"mid-string pointer must not invent a new retail resource name");
+        invalid=b;write32(invalid,68,8);
+        rejected=false;
+        try{ae3::PckArchive bad(invalid);}
+        catch(const std::runtime_error&){rejected=true;}
+        check(rejected,"type pointer outside source string pool accepted");
         invalid=b;write32(invalid,4,5000);
         rejected=false;
         try{ae3::PckArchive bad(invalid);}
