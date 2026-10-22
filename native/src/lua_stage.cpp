@@ -85,6 +85,24 @@ void LuaStage::registerOriginalFunction(std::string name,std::uint32_t originalV
     originalFunctions_.emplace(std::move(name),RegisteredOriginal{originalVA,std::move(callback)});
     registerCallback(key.c_str(),&dispatchOriginal);
 }
+void LuaStage::registerOriginalRawFunction(std::string name,std::uint32_t originalVA,
+                                          OriginalLuaRawCallback callback){
+    if(name.empty() || name.size()>128 || !callback || originalVA==0 ||
+       (originalVA&3u)!=0)
+        throw std::invalid_argument(
+            "original raw Lua callback needs a name, aligned source VA and implementation");
+    if(originalFunctions_.count(name))
+        throw std::invalid_argument("original Lua function registered twice: "+name);
+    lua_getglobal(state_,name.c_str());
+    const bool collision=!lua_isnil(state_,-1);
+    lua_pop(state_,1);
+    if(collision)
+        throw std::invalid_argument("refusing to overwrite an existing Lua global: "+name);
+    const std::string key=name;
+    originalFunctions_.emplace(std::move(name),
+        RegisteredOriginal{originalVA,{},std::move(callback)});
+    registerCallback(key.c_str(),&dispatchOriginal);
+}
 void LuaStage::pushValue(lua_State* L,const ScriptValue& value,int depth){
     if(depth>24)throw std::runtime_error("native Lua result exceeds table nesting limit");
     switch(value.kind){
@@ -122,6 +140,14 @@ int LuaStage::dispatchOriginal(lua_State* L){
     try{
         const int count=lua_gettop(L);
         if(count>64)throw std::runtime_error("too many original Lua call arguments");
+        if(it->second.rawCallback){
+            // The full original Lua stack is supplied unchanged. No table
+            // coercion, copied closure or fake game-object handle occurs.
+            const int results=it->second.rawCallback(L);
+            if(results<0 || results>64 || results>lua_gettop(L))
+                throw std::runtime_error("original raw Lua binding returned invalid result count");
+            return results;
+        }
         std::vector<ScriptValue> arguments;
         arguments.reserve(static_cast<std::size_t>(count));
         for(int i=1;i<=count;++i){
