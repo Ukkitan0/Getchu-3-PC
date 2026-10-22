@@ -37,6 +37,22 @@ void OriginalNavActorRouteBinding::originalUseGroupRoute_2207d0(
     groupLifetime_=group.originalLifetimeToken();
     currentTargetAt50_=nullptr;
 }
+bool OriginalNavActorRouteBinding::originalRetargetStage_2207d0(
+    std::size_t slot,OriginalNavDispatchRequest request,
+    const OriginalNavListOwner* membership) {
+    // Generate into temporary first. This preserves the old binding
+    // when original admission, type-1 cost or fallback resolution fails.
+    auto next=originalNavStageDispatch_2207d0(owners_,slot,request,membership);
+    originalUseStageRoute_2207d0(std::move(next));
+    return originalRouteCurrent();
+}
+bool OriginalNavActorRouteBinding::originalRetargetGroup_2207d0(
+    const OriginalNavStageGroupSession& group,
+    const OriginalNavGroupKey20& key,OriginalNavDispatchRequest request) {
+    auto next=group.originalBoundRouteByKey_2207d0(key,request);
+    originalUseGroupRoute_2207d0(group,std::move(next));
+    return originalRouteCurrent();
+}
 bool OriginalNavActorRouteBinding::originalRouteCurrent() const noexcept {
     if(groupRoute_)
         return groupOwner_ && !groupLifetime_.expired() &&

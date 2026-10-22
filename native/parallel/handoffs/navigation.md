@@ -198,6 +198,18 @@ A focused synthetic original-format two-polygon test creates a genuine `0x1E`-st
 
 **Testing this turn:** Real C++20 `g++ -Wall -Wextra -Werror -pedantic -fsanitize=address,undefined` *isolated* adapter and bridge smoke harnesses compiled and ran successfully using minimal locally authored dependency stubs. These exercise source lifetime guards, no-route state, bridge dispatch, wrong stage identity, foreign target and invalid indices. They do **not** compile/link the full repository source tree, and the new repository integration test is not executed here (container DNS cannot resolve github.com for a clone). Original USA executable/PCK verification and native Windows boot are not performed; no Actions triggered.
 
+## Source-backed actor retarget / original destination changes
+
+A second navigation-only adapter extension adds:
+- `OriginalNavActorRouteBinding::originalRetargetStage_2207d0(slot, request, optionalOriginalMembershipOwner)`.
+- `OriginalNavActorRouteBinding::originalRetargetGroup_2207d0(groupSession, originalKey, request)`.
+
+Both call the **existing** recovered source `0x2207D0` dispatcher and its existing group/list fallback. The next route is computed in temporary native storage and installed only after successful admission, type-1 cost and destination extraction. Thus a malformed request, missing group or missing source allocation throws without replacing an already current actor path. A valid original explicit destination `-1` remains **no route**, and clears the old actor binding instead of fabricating another destination. On a successful replacement, controller+0x50 native target is cleared so the existing recovered `0x57C7CC` follower can decide its new target on the next tick. No A*, heuristic, physics rewrite or synthetic state machine was added.
+
+The extended `original_nav_actor_binding_test.cpp` covers nearest/farthest target change, failed query retaining the previous route, explicit -1 removing it, successful regeneration and failed group-key retarget preserving the earlier path.
+
+**Execution evidence:** In addition to the earlier C++20 ASan/UBSan boundary smoke harness, a local isolated `g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsanitize=address,undefined` retarget smoke check compiled and ran against dependency stubs; the focused full-repository tests and Windows game were **not** compiled/booted in this environment.
+
 ## Remaining original blockers
 
 1. Decompile source `0x57BCB8` original controller post-constructor and subsequent real actor movement/state transitions using original executable input.

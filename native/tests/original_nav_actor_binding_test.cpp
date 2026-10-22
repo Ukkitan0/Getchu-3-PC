@@ -128,6 +128,35 @@ int main() {
        advanced.sourceTargetsApplied==1&&calls.applied==before+1,
        "Original two-polygon class-2 actor follower did not advance");
 
+    // A target-change request uses the original dispatcher and swaps the
+    // actor's active route only after that original search succeeds.
+    OriginalNavDispatchRequest requery=query;
+    requery.sourceSeedIndex=0;
+    requery.routeMode=1;
+    ck(actor.originalRetargetStage_2207d0(0,requery) &&
+       actor.originalPathLength()==1 &&
+       !actor.originalHasMultiplePolygonsAtController1c() &&
+       actor.originalCurrentTargetAt50()==nullptr,
+       "Original nearest-route target change did not replace actor state");
+    requery.routeMode=0;
+    ck(actor.originalRetargetStage_2207d0(0,requery) &&
+       actor.originalPathLength()==3,
+       "Original farthest destination was not regenerated");
+    requery.sourceSeedIndex=999;
+    bool failedRetarget=false;
+    try{(void)actor.originalRetargetStage_2207d0(0,requery);}
+    catch(const std::out_of_range&){failedRetarget=true;}
+    ck(failedRetarget&&actor.originalRouteCurrent()&&actor.originalPathLength()==3,
+       "Failed original route request overwrote previous valid actor route");
+    requery.sourceSeedIndex=0;
+    requery.routeMode=2;
+    requery.explicitDestinationSearchIndex=-1;
+    ck(!actor.originalRetargetStage_2207d0(0,requery) &&
+       !actor.originalRouteCurrent() && actor.originalPathLength()==0,
+       "Original explicit destination -1 must clear actor route");
+    requery.routeMode=0;
+    ck(actor.originalRetargetStage_2207d0(0,requery),
+       "Original actor failed to regenerate route after no-route response");
     auto hdr=navrange(2.f);
     std::array<std::byte,0x20> groupKeyBytes{};
     groupKeyBytes[0]=std::byte{0x35};
@@ -147,6 +176,16 @@ int main() {
     ck(actor.originalRouteCurrent()&&actor.originalPathLength()==2 &&
        !actor.originalInitialType2Target_57bdb8(),
        "Original range-based actor route binding failed");
+    ck(actor.originalRetargetGroup_2207d0(group,key,query) &&
+       actor.originalPathLength()==2,
+       "Original keyed navrange retarget failed");
+    OriginalNavGroupKey20 badKey{};
+    badKey.originalBytes[0]=std::byte{0xff};
+    failedRetarget=false;
+    try{(void)actor.originalRetargetGroup_2207d0(group,badKey,query);}
+    catch(const std::out_of_range&){failedRetarget=true;}
+    ck(failedRetarget&&actor.originalRouteCurrent()&&actor.originalPathLength()==2,
+       "Unknown original group key discarded a valid actor route");
     auto wider=navrange(4.f);
     const OriginalNavGroupSource grown{wider,allocations};
     ck(group.originalRegisterRange_4e4060(grown).sourcePolygonsInserted==1,

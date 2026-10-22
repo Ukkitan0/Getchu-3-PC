@@ -28,6 +28,19 @@ public:
         const OriginalNavStageGroupSession& originalGroupOwner,
         OriginalNavStageGroupedRoute route);
 
+    // Source 0x2207D0 reruns the existing recovered route dispatcher
+    // when an original target/query changes. An invalid source request
+    // throws without replacing the actor's prior route; a valid retail
+    // explicit destination -1 clears it. No new path-search algorithm.
+    bool originalRetargetStage_2207d0(
+        std::size_t originalNavOwnerSlot,
+        OriginalNavDispatchRequest originalQuery,
+        const OriginalNavListOwner* originalMembershipOwner=nullptr);
+    bool originalRetargetGroup_2207d0(
+        const OriginalNavStageGroupSession& originalGroupOwner,
+        const OriginalNavGroupKey20& originalGroupKey,
+        OriginalNavDispatchRequest originalQuery);
+
     // Original 0x57C7CC targets point INTO the live owner's 0x70-byte
     // records; dropping the owner invalidates controller target+0x50.
     bool originalRouteCurrent() const noexcept;
