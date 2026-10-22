@@ -203,3 +203,19 @@ A fresh checkout should repeat the same commands from `native/tools`. The C++ `G
 No new `.cpp` targets, global CMake edits, actor/gameplay rewrites, asset parser changes, proprietary data or copyrighted script copies.
 
 The largest genuine next runtime step remains: run `reconcile_original_lua_bindings.py` on owner-private verified SHA-256 original USA `SCUS_975.01` and real extracted `area.luc` corpus. Inspect actual candidate method code for `gw_get_string`, `stage_var_get_int` and flag storage, determine exact original Lua callback argument/result contracts, and only then register actual bindings in `LuaStage`. The Assets team must supply original bytes privately; Gameplay must own actual actor/mission implementation; Windows/runtime must connect lifecycle and run C++ tests. Do **not** introduce guessed Lua methods or stage-update schedules.
+
+
+### Additional original SetupBindLauncher registrations recovered from published USA decompilation
+
+- `c36954eb`, `e446143d`, `ee259551`, `63acca0b` — `map_original_lua_registrations.py` now also recognizes six published native launcher-binding names from `SetupBindLauncher` (original VA **0x21A93C**), and `reconcile_original_lua_bindings.py` carries their independent provenance. The published listing is in Byaidu's article <https://www.cnblogs.com/algonote/p/15678057.html>:
+  - `BindTester` — published `off_6ADF78`
+  - `createFeatureLauncher` — published **symbol only** `s_SetSelectFortune`
+  - `createWarpGateLauncher` — published **symbol only** `s_SetSelectStage`
+  - `createTutorialExit` — published **symbol only** `s_SetSelectTutorial`
+  - `createMGSGenerator` — published `off_6ADF00`
+  - `LocaleInfo_getID` — published `off_6ADF18`
+- These six plus eleven published `SetupBindFlag` registrations give **17 documented native-binding names**, not seventeen verified callback implementations. Unknown numeric addresses remain `None`, and all VAs must be checked against the actual owner's verified `SCUS_975.01` before claiming direct source recovery.
+- On the verified original ELF, the new launcher audit will list six possible vtable slots only when a published numeric vtable maps to file bytes; symbolic-only aliases never produce fabricated method addresses. The reconciler never mistakes a published binding for a scanned `CreateBind` call.
+- Two further static tests were added. **Latest Python test run: 27 / 27 pass**, `python3 -m py_compile` all six local modules/tests succeeds. C++ tests and owned original stage runtime still **not executed**.
+- No implementation of `createFeatureLauncher`, `createWarpGateLauncher`, `createTutorialExit`, `createMGSGenerator`, or other launcher functions was invented. This pass adds original registration provenance and points to concrete method candidates for the integrator's source-based reconstruction.
+
