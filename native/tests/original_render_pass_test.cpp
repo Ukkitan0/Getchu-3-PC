@@ -23,7 +23,7 @@ void test(){
         [&](OriginalRenderId id){require(id==9,"wrong original effect object ID");++effects;return effects==1;}
     };
     auto t=traceOriginalPrimaryRenderPass({obj},1,providers);
-    require(t.considered==1&&t.accepted==1&&culls==0,"source gate should not cull when +0x32 unset");
+    require(t.considered==1&&t.accepted==1&&t.acceptedIds==std::vector<OriginalRenderId>{9}&&culls==0,"source gate should not cull when +0x32 unset");
     require(effects==2,"original effect flag must be re-evaluated after actor draw");
     require(vas(t)==std::vector<std::uint32_t>({0x2802D4,0x3B76F8,0x2803B4,0x2804F4,
                                                 0x3B76F8,0x26831C,0x3B76F8}),
@@ -45,7 +45,7 @@ void test(){
     obj.flag32=1;
     providers.rejectByOriginalBounds=[&](OriginalRenderId){++culls;return true;};
     t=traceOriginalPrimaryRenderPass({obj},1,providers);
-    require(t.events.empty()&&t.accepted==0&&culls==1,"enabled source cull should reject early");
+    require(t.events.empty()&&t.acceptedIds.empty()&&t.accepted==0&&culls==1,"enabled source cull should reject early");
     providers.rejectByOriginalBounds=[&](OriginalRenderId){++culls;return false;};
     t=traceOriginalSecondaryRenderPass({obj},providers);
     require(vas(t)==std::vector<std::uint32_t>({0x3B76E8,0x26831C}),
