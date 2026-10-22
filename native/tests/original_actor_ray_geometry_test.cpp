@@ -1,6 +1,9 @@
 #include "ae3/original_actor_ray_geometry.hpp"
 #include <array>
 #include <cmath>
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <cassert>
 #include <cstring>
 #include <fstream>

@@ -2,6 +2,9 @@
 #include "ae3/original_actor_random_triangle.hpp"
 #include <array>
 #include <bit>
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <cassert>
 #include <cmath>
 #include <cstring>
