@@ -33,6 +33,22 @@ add_library(Getchu3Lua50 STATIC ${LUA50_SRC})
 target_include_directories(Getchu3Lua50 PUBLIC "${lua50_SOURCE_DIR}/include")
 target_include_directories(Getchu3Lua50 PRIVATE "${lua50_SOURCE_DIR}/src")
 set_target_properties(Getchu3Lua50 PROPERTIES C_STANDARD 90 C_STANDARD_REQUIRED ON)
+# Original Lua 5.0.3 compiled into an engine-independent C ABI used by Unreal.
+# No C++ STL types or copyrighted original data cross this DLL boundary.
+set_target_properties(Getchu3Lua50 PROPERTIES POSITION_INDEPENDENT_CODE ON)
+add_library(Getchu3OriginalLuaBridge SHARED
+  src/ae3_unreal_lua_bridge.cpp
+  src/lua_stage.cpp src/retail_lua50.cpp src/player_state.cpp)
+target_include_directories(Getchu3OriginalLuaBridge PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_link_libraries(Getchu3OriginalLuaBridge PRIVATE Getchu3Lua50)
+target_compile_definitions(Getchu3OriginalLuaBridge PRIVATE AE3_LUA_BRIDGE_BUILD)
+set_target_properties(Getchu3OriginalLuaBridge PROPERTIES
+  OUTPUT_NAME "Getchu3OriginalLuaBridge"
+  CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN YES)
+if(UNIX AND NOT APPLE)
+  target_link_libraries(Getchu3OriginalLuaBridge PRIVATE m)
+endif()
+
 
 # cgltf is a MIT single-file glTF parser, pinned to an immutable upstream
 # commit. It parses host-native asset data, never console GPU commands.
@@ -83,6 +99,11 @@ if(WIN32)
 endif()
 
 enable_testing()
+add_executable(Getchu3OriginalUnrealLuaBridgeTests tests/ae3_unreal_lua_bridge_test.cpp)
+target_include_directories(Getchu3OriginalUnrealLuaBridgeTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_link_libraries(Getchu3OriginalUnrealLuaBridgeTests PRIVATE Getchu3OriginalLuaBridge)
+add_test(NAME OriginalLua50UnrealHostBridgeFailClosed COMMAND Getchu3OriginalUnrealLuaBridgeTests)
+
 # Authentic SCUS_975.01 secondary Player virtual method, reconstructed in C++.
 add_executable(Getchu3OriginalPlayerModeTests tests/original_player_mode_test.cpp)
 target_link_libraries(Getchu3OriginalPlayerModeTests PRIVATE Getchu3Assets)
