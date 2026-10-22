@@ -16,6 +16,9 @@ WINDOWS={
  (0x24D858,0x24D9EC):"154dd26d320162b79f7aa75512afa0a6938b580754e5c473847cb2c18a6b3511",
  (0x25182C,0x251BC8):"cef6579182e855442ede0b3980a2d3c5c3680ce3f81d02250e8d0e05859d23de",
  (0x24D4F0,0x24D5FC):"7ec60322e5ae08a2e117a0b4c120837a4a7ac1d3c16fda83a2e6930afe6b20ad",
+ (0x509C10,0x509CC8):"c463623742c0eb132a357a7c1cf962c2aeb407512ea79e3a0613ea3e5b24ec4d",
+ (0x49C150,0x49C1E4):"62c9bb3452dbba43fe960a06cf7db796556c3074cfaf097326bc7d948bd051f6",
+ (0x627E60,0x627EB0):"663aa53699355ffdb17cd9f61fde1b9882cad56c43a6d06b3ec3ad5bf6663e70",
 }
 OPCODES={
  0x24D894:0xAC910000,  # name at record+0
@@ -28,6 +31,10 @@ OPCODES={
  0x2519DC:0x82CE0000,  # filter first byte
  0x2519E0:0x11CF000A,  # wildcard branch
  0x251A3C:0x25EF0010,  # 16-byte append pointer increment
+ 0x49C154:0x8D8F000C,  # original RB-tree right child
+ 0x49C164:0x8DEF0008,  # original RB-tree left child
+ 0x627E74:0x8C8FFFF4,  # source byte-string length word
+ 0x627EA4:0x01CF1023,  # source length tie break
 }
 CALLS={
  0x24D8DC:0x627CF8, # find first '.' (NOT +0xD8)
@@ -37,6 +44,10 @@ CALLS={
  0x2519FC:0x42C44C, # compare selector to record +4
  0x251A30:0x50ACD4, # append
  0x251A84:0x50A238, # first/expanded append
+ 0x251930:0x509C10, # lookup directory owner by original source string
+ 0x251A6C:0x49C150, # advance the original ordered tree iterator
+ 0x509C50:0x627E60, # bytewise original directory key compare
+ 0x509C8C:0x627E60, # equal-bound source key compare
 }
 PRIVATE_FILES={
  "placeholder.plc":(6528,"e91dbf300b3dc9e410c3af4d50e6761f8ee78a64a3912bad64aac1eb956de9ae"),
