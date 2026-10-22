@@ -25,6 +25,8 @@ FIFTH_CALL_SHA = "22f7ce43f757ec3635a967cdffc7f06c715a3fb8f773654b7fd2a7283f633b
 SIXTH_WRAPPER_SHA = "ac1a87f54e8c6a62b046f07c871394582e8670565030e3cc391f7f3dec1b5a48"
 SIXTH_CLEAR_SHA = "147ec31a450535311c9f83fe65361ec99ac3359a1cf6eeb6c4aa963c50966be4"
 SIXTH_RESET_SHA = "70fe2f3808fc889ce02fee60156d9357c9df5f9a525fd1a71bc1a72c78e22b50"
+SEVENTH_WRAPPER_SHA = "865222281292676ff9b0dc6ebc3b6949e4738f829f300b086e818a2bc1deec21"
+SEVENTH_INIT_SHA = "fd75dbb36b4023e67b0c5a79c47d456ac905d75b53e91fd3d1aee9857bd85165"
 NUMERIC_CTOR_SHA = "035a60ed83dc1ceb0893ae3d0ab2949656327f914812efeafe76a7dec6fefd4e"
 NUMERIC_INIT_SHA = "ad45d81525c06e107fa271f6b8f51e678f64e81c25dc267dcad5451e4abbb800"
 MATH_SQRT_WRAPPER_SHA = "d448df6f0659e171eabf325fdd8d52171a72e1fe13dbea6e14971dc99952d961"
@@ -130,6 +132,13 @@ def verify(path):
             raise ValueError(f'Original fifth/sixth call/jump changed at {site:#x}')
     if elf.word(0x39117c)!=0x03e00008 or elf.word(0x391180)!=0:
         raise ValueError('Original fifth constructor callee is no longer no-op')
+    if sha(0x38aa18,0x1c)!=SEVENTH_WRAPPER_SHA or sha(0x38a978,0xa0)!=SEVENTH_INIT_SHA:
+        raise ValueError('Original seventh allocator/list constructor changed')
+    for site,target,kind in ((0x38aa2c,0x38a978,2),(0x38a9b0,0x44e420,3)):
+        op=elf.word(site)
+        dst=((site+4)&0xf0000000)|((op&0x3ffffff)<<2)
+        if op>>26!=kind or dst!=target:
+            raise ValueError(f'Original seventh constructor allocator edge changed at {site:#x}')
     if elf.word(0x62e660)!=0xffffffff or elf.word(0x62e8a0)!=0:
         raise ValueError('Original constructor table sentinel/boundary mismatch')
     functions=[elf.word(0x62e89c-i*4) for i in range(143)]
@@ -168,6 +177,8 @@ def verify(path):
             'original_fifth_native_noop':"0x391600",
             'original_sixth_native_reset_records':2,
             'original_sixth_preserved_padding_offsets':[5,6,7],
+            'seventh_unrecovered_native_allocator':"0x44e420",
+            'seventh_original_global_owner':"0x6a9d28",
             'next_unrecovered_original_constructor':"0x38aa18",
             'original_callbacks_not_implemented':True,
             'original_windows_gameplay_booted':False}
