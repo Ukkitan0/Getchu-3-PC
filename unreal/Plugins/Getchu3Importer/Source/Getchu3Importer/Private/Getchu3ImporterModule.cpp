@@ -183,7 +183,14 @@ private:
         // manipulate editor packages; no UObjects are touched by worker threads.
         const FString Command = FString::Printf(TEXT("import sys; sys.path.insert(0, %s); import getchu3_importer; getchu3_importer.run(%s)"),
             *PythonLiteral(ScriptFolder), *PythonLiteral(SelectedIso));
-        const bool bOkay = IPythonScriptPlugin::Get()->ExecPythonCommand(*Command);
+        IPythonScriptPlugin* PythonPlugin = IPythonScriptPlugin::Get();
+        if (!PythonPlugin || !PythonPlugin->IsPythonInitialized())
+        {
+            bImporting = false;
+            Status = TEXT("Unreal Editor Python is unavailable. Enable Python Script Plugin and reopen the Editor.");
+            return FReply::Handled();
+        }
+        const bool bOkay = PythonPlugin->ExecPythonCommand(*Command);
         bImporting = false;
         const FString ReportFile = FPaths::ProjectSavedDir() / TEXT("Getchu3Private/Getchu3ImportStatus.json");
         FString Json;
