@@ -1247,8 +1247,23 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
                 originalBootFailure=L"Original game ISO not provided";
                 retailLaunchFailed=true;
             }else{
-                bootCheckpoint(BootCheckpoint::original_disc,BootResult::passed,
-                               "Owned original ISO file path exists (not yet indexed)");
+                // Validate the real original DATA.BIN/VFI inside the ISO on
+                // the host, before attempting native game constructors.
+                // A file merely named .iso must never be considered retail.
+                try {
+                    ae3::Archive retailDisc(fs::path(argv[2]));
+                    if(retailDisc.sourceKind().find("ISO9660")==std::string::npos ||
+                       retailDisc.entries().empty())
+                        throw std::runtime_error(
+                            "Original USA ISO9660 game DATA.BIN/VFI index missing");
+                    bootCheckpoint(BootCheckpoint::original_disc,BootResult::passed,
+                                   "Original ISO9660/DATA.BIN/VFI archive indexed");
+                }catch(const std::exception& e){
+                    bootCheckpoint(BootCheckpoint::original_disc,BootResult::blocked,e.what());
+                    originalBootFailure=L"Original retail ISO archive rejected: "+wide(e.what());
+                    retailLaunchFailed=true;
+                }
+                if(!retailLaunchFailed){
                 class SourceVerifiedNativeConstructorCalls final:
                     public ae3::runtime::OriginalNativeConstructorCalls {
                 public:
@@ -1285,6 +1300,7 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
                                    BootResult::blocked,
                                    "Original post-constructor startup sequence and 0x1037E8 main loop not yet recovered");
                     originalBootFailure=L"Original post-constructor startup dispatcher still unresolved";
+                }
                 }
             }
         }else if(argc>=2 && std::wstring(argv[1])==L"--retail"){
