@@ -193,7 +193,23 @@ def verify_and_audit(elf: bytes) -> dict:
         copy_evidence.append({"start_va": f"0x{first:08x}",
                               "end_va_exclusive": f"0x{end:08x}",
                               "sha256": digest_copy})
+    # Source graphics packet arena uses two exact 16-byte unit allocators,
+    # at global owner+0x18 (backward) and owner+0x14 (forward).
+    arena_ranges = [
+        (0x3B3CE0, 0x3B3CFC, "13c8b65e6a2bcac7c1ffb3a980f280d4f2cbe70dcc81ca238fa0d27f993e8f92"),
+        (0x3B3D00, 0x3B3D20, "4c2ea7ef8022fcd90bf053c968baa32e8650847c95829d708742e35e7639e9bd"),
+    ]
+    arena_evidence = []
+    for first, end, expected in arena_ranges:
+        data = elf[first - TEXT_VA + TEXT_FILE:end - TEXT_VA + TEXT_FILE]
+        digest_arena = hashlib.sha256(data).hexdigest()
+        if digest_arena != expected:
+            raise ValueError(f"retail renderer allocation routine differs at {first:#x}")
+        arena_evidence.append({"start_va": f"0x{first:08x}",
+                               "end_va_exclusive": f"0x{end:08x}",
+                               "sha256": digest_arena})
     report = {
+        "source_verified_original_packet_arena": arena_evidence,
         "source_verified_native_packet_copies": copy_evidence,
         "source_verified_original_model_packet_pipeline": packet_evidence,
         "source_verified_render_context_and_actor_entry": recovered_graphics_evidence,
