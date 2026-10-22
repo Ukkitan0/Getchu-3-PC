@@ -44,7 +44,7 @@ CALLS={
  0x2519FC:0x42C44C, # compare selector to record +4
  0x251A30:0x50ACD4, # append
  0x251A84:0x50A238, # first/expanded append
- 0x251930:0x509C10, # lookup directory owner by original source string
+ 0x251928:0x509C10, # lookup directory owner by original source string
  0x251A6C:0x49C150, # advance the original ordered tree iterator
  0x509C50:0x627E60, # bytewise original directory key compare
  0x509C8C:0x627E60, # equal-bound source key compare
