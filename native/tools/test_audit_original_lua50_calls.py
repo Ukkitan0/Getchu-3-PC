@@ -20,8 +20,8 @@ def string(value):
     return u32(len(raw)) + raw
 
 
-def function(reads=(), writes=(), nested=()):
-    names = list(dict.fromkeys([*reads, *writes]))
+def function(reads=(), writes=(), nested=(), calls=(), alias_calls=(), barrier_calls=()):
+    names = list(dict.fromkeys([*reads, *writes, *calls, *alias_calls, *barrier_calls]))
     result = bytearray()
     result += string('synthetic_unit_test') + u32(1) + b'\0\0\0\x02'
     result += u32(0) + u32(0) + u32(0)
@@ -33,6 +33,19 @@ def function(reads=(), writes=(), nested=()):
         result += child
     ins = [((names.index(name) << 6) | 5) for name in reads]
     ins += [((names.index(name) << 6) | 7) for name in writes]
+    # Lua 5.0 OP_GETGLOBAL/OP_CALL use A at bit 24, Bx at bit 6.
+    for name in calls:
+        ins += [(4 << 24) | (names.index(name) << 6) | 5,
+                (5 << 24) | (names.index(name) << 6) | 1,
+                (4 << 24) | (1 << 6) | 25]
+    for name in alias_calls:
+        ins += [(3 << 24) | (names.index(name) << 6) | 5,
+                (5 << 24) | (3 << 15) | 0,
+                (5 << 24) | (1 << 6) | 25]
+    for name in barrier_calls:
+        ins += [(4 << 24) | (names.index(name) << 6) | 5,
+                20,  # OP_JMP: do not invent a direct call across flow joins
+                (4 << 24) | (1 << 6) | 25]
     result += u32(len(ins))
     for op in ins:
         result += u32(op)
@@ -54,15 +67,37 @@ class RetailLua50AuditTests(unittest.TestCase):
                          ['get_capture_flag', 'gw_set_flag', 'new_ent'])
         self.assertEqual(result['global_writes'], ['setupArea'])
 
+    def test_lua50_call_provenance_and_branch_safety(self):
+        blob = chunk(function(['new_ent'], ['setupArea'],
+                              calls=['new_ent'], alias_calls=['lua_param'],
+                              barrier_calls=['branch_only']))
+        parsed = audit.inspect(blob)
+        self.assertEqual(parsed['direct_global_calls'], ['lua_param', 'new_ent'])
+        self.assertEqual(parsed['prototype_calls'][0]['line_defined'], 1)
+        self.assertIn('branch_only', parsed['global_reads'])
+        self.assertNotIn('branch_only', parsed['direct_global_calls'])
+
+    def test_actual_lua50_abx_layout_uses_bits_6_to_23(self):
+        # The previous auditor incorrectly decoded Lua 5.1's bit-14 Bx.
+        # A nonzero register A in bits 24..31 must not contaminate Bx.
+        body = function(['first', 'second', 'third'])
+        blob = chunk(body)
+        parsed = audit.inspect(blob)
+        self.assertEqual(parsed['global_reads'], ['first', 'second', 'third'])
+        self.assertEqual(parsed['instructions'], 3)
+
     def test_private_report_separates_known_bindings_and_script_definitions(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / 'stage').mkdir()
             (root / 'stage' / 'area.luc').write_bytes(chunk(
-                function(['new_ent', 'needs_retail_binding'], ['setupArea'])))
+                function(['new_ent', 'needs_retail_binding'], ['setupArea'],
+                         calls=['needs_retail_binding'])))
             (root / 'runtime.cpp').write_text('registerCallback("new_ent", &handler);')
             result = audit.audit(root / 'stage', root / 'runtime.cpp')
             self.assertEqual(result['unresolved_global_reads'],
+                             ['needs_retail_binding'])
+            self.assertEqual(result['unresolved_direct_global_calls'],
                              ['needs_retail_binding'])
             self.assertEqual(result['scripts'][0]['path'], 'area.luc')
 
