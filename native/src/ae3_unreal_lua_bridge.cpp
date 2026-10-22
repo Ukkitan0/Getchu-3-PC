@@ -152,7 +152,7 @@ struct Ae3LuaRuntime {
         if (callbacks.write_flag) {
             bindings.writeFlag = [this](
                 std::string_view scope, std::string_view key, bool value) {
-                const std::string s(scope), k(key);
+                const std::string s = hexBytes(scope), k = hexBytes(key);
                 requireManagerSuccess(callbacks.write_flag(
                     callbacks.user, s.c_str(), k.c_str(), value ? 1 : 0),
                     "original flag write");
@@ -162,7 +162,7 @@ struct Ae3LuaRuntime {
             bindings.readFlag = [this](std::string_view scope,
                                        std::string_view key) -> std::optional<bool> {
                 int result = 0;
-                const std::string s(scope), k(key);
+                const std::string s = hexBytes(scope), k = hexBytes(key);
                 if (callbacks.read_flag(callbacks.user, s.c_str(), k.c_str(),
                                         &result) != 1)
                     return {};
