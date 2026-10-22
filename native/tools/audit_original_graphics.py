@@ -70,7 +70,17 @@ def verify_and_audit(elf: bytes) -> dict:
     if elf[:4] != b"\x7fELF" or elf[4] != 1 or elf[5] != 1:
         raise ValueError("invalid ELF32 LE header")
     assert len(elf) >= TEXT_FILE + TEXT_SIZE
+    render_gate_start = 0x280838
+    render_gate_end = 0x280884
+    file_start = render_gate_start - TEXT_VA + TEXT_FILE
+    file_end = render_gate_end - TEXT_VA + TEXT_FILE
+    gate_hash = hashlib.sha256(elf[file_start:file_end]).hexdigest()
+    if gate_hash != "a2ed3f2062ea0d0f7de6d252dd468d1f8345833d57a950cf1f5eb67b64a9fa00":
+        raise ValueError("retail render early-gate MIPS instructions changed")
     report = {
+        "retail_gate_va_range": ["0x00280838", "0x00280884"],
+        "retail_gate_instruction_sha256": gate_hash,
+        "retail_gate_ported_gate_only": True,
         "verified_usa_executable_sha256": digest,
         "meaning": "MIPS text-to-rodata reference provenance only; not game renderer reconstruction",
         "anchors": [],
