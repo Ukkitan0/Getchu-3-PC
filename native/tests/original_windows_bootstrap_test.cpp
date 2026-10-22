@@ -1,0 +1,73 @@
+#include "ae3/original_windows_bootstrap.hpp"
+#include <array>
+#include <cstdint>
+#include <iostream>
+#include <stdexcept>
+#include <vector>
+using namespace ae3::runtime;
+namespace {
+void require(bool ok,const char* what){if(!ok)throw std::runtime_error(what);}
+class NativeConstructorRecorder final:public OriginalNativeConstructorCalls {
+public:
+    std::vector<std::uint32_t> called;
+    std::uint32_t unresolved=0;
+    bool callRecoveredConstructor(std::uint32_t va) override {
+        called.push_back(va);
+        return va!=unresolved;
+    }
+};
+void check(){
+    const auto& source=originalConstructorOrder_428ab8();
+    require(source.size()==143,"original retail constructor count");
+    require(source.front()==0x41a390&&source.back()==0x10526c,
+            "original source constructor table endpoints/order");
+    for(std::size_t i=1;i<source.size();++i)
+        require(source[i]<source[i-1],"source constructor table must traverse strictly reverse addresses");
+    NativeConstructorRecorder incomplete;
+    incomplete.unresolved=source[2];
+    const auto interrupted=originalRunConstructors_428ab8(incomplete);
+    require(!interrupted.complete && interrupted.executed==2 &&
+            interrupted.firstUnrecovered==source[2] && incomplete.called.size()==3,
+            "source dispatcher must fail at the first missing native constructor");
+    NativeConstructorRecorder none;
+    none.unresolved=source.front();
+    auto halted=originalRunConstructors_428ab8(none);
+    require(halted.executed==0&&halted.firstUnrecovered==0x41a390 &&
+            !halted.complete,"initial original game constructor must not be skipped");
+    NativeConstructorRecorder complete;
+    const auto finished=originalRunConstructors_428ab8(complete);
+    require(finished.complete&&finished.executed==source.size() &&
+            !finished.firstUnrecovered && complete.called==std::vector<std::uint32_t>(source.begin(),source.end()),
+            "original 143-entry dispatch order changed");
+    OriginalNativeTerminationRegistry registry;
+    require(!registry.register_428b80({}),"original exit callback registry accepted absent function");
+    std::vector<int> calls;
+    for(int i=0;i<71;++i)
+        require(registry.register_428b80([&calls,i]{calls.push_back(i);}),
+                "native destructor registration failed");
+    require(registry.count()==71,"original 32-element termination block rollover");
+    registry.runRegisteredCallbacks_428cb8();
+    require(registry.count()==0&&calls.size()==71,
+            "original termination callbacks not all invoked");
+    for(int i=0;i<71;++i)
+        require(calls[std::size_t(i)]==70-i,
+                "original termination callback reverse sequence lost");
+    // Native callback throws: preserve unexecuted stack, no invented success.
+    int attempts=0;
+    registry.register_428b80([&]{++attempts;});
+    registry.register_428b80([&]{throw std::runtime_error("unresolved native teardown dependency");});
+    bool thrown=false;
+    try{registry.runRegisteredCallbacks_428cb8();}
+    catch(const std::runtime_error&){thrown=true;}
+    require(thrown&&registry.count()==1&&attempts==0,
+            "native teardown error must stop and retain later callbacks");
+    registry.runRegisteredCallbacks_428cb8();
+    require(attempts==1&&registry.count()==0,"native teardown resume lost source callbacks");
+}
+}
+int main() {
+    try {check();std::cout<<"ORIGINAL_WINDOWS_BOOTSTRAP_PASSED original_ctors=143 teardown_callbacks=71\n";return 0;}
+    catch(const std::exception& e){
+        std::cerr<<"ORIGINAL_WINDOWS_BOOTSTRAP_FAILED "<<e.what()<<"\n";return 1;
+    }
+}
