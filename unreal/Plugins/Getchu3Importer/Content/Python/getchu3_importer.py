@@ -208,6 +208,14 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         models = convert_original_models(extracted / "vfi", converted / "models",
                                          repo, ae3_cli, textures=converted / "textures")
         outcome["models_detected"] = models["original_i3d_bin_files"]
+        outcome["phase"] = "original_stage_catalog"
+        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        from getchu3_stage_catalog import build_original_stage_catalog
+        stages = build_original_stage_catalog(extracted / "vfi", converted / "models",
+                                              folder / "getchu3_original_stages.json")
+        outcome["original_stage_count"] = stages["stage_count"]
+        outcome["original_stage_script_count"] = stages["stage_scripts"]
+        outcome["original_stage_catalog"] = str(folder / "getchu3_original_stages.json")
         outcome["phase"] = "decode_streams"
         report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         streams = convert_stream_audio(extracted / "vfi", converted / "audio", ae3_cli)
