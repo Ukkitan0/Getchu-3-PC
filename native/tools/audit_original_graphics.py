@@ -177,7 +177,24 @@ def verify_and_audit(elf: bytes) -> dict:
         packet_evidence.append({"start_va": f"0x{first:08x}",
                                 "end_va_exclusive": f"0x{end:08x}",
                                 "sha256": actual})
+    # Original source packet segment copy routines. These use count*0x20
+    # and count*0x30 native transfers, unlike the transform-heavy groups.
+    copy_ranges = [
+        (0x3AF600, 0x3AF680, "d81f350f97a6c04771884fcb544166391ceaac7604825fa11564234e4edf17a4"),
+        (0x3AF680, 0x3AF6F8, "4953e4927eeaa9b066fbb1a72f30706bcfb3d644acd9f230b2da1ab96a2e416b"),
+        (0x42B16C, 0x42B224, "a7f576b7fc50f78255778c0773db38be4ae78a38dbbf0758d7eb52dfbb35d2ad"),
+    ]
+    copy_evidence = []
+    for first, end, expected in copy_ranges:
+        section = elf[first - TEXT_VA + TEXT_FILE:end - TEXT_VA + TEXT_FILE]
+        digest_copy = hashlib.sha256(section).hexdigest()
+        if digest_copy != expected:
+            raise ValueError(f"original native packet copy source changed at {first:#x}")
+        copy_evidence.append({"start_va": f"0x{first:08x}",
+                              "end_va_exclusive": f"0x{end:08x}",
+                              "sha256": digest_copy})
     report = {
+        "source_verified_native_packet_copies": copy_evidence,
         "source_verified_original_model_packet_pipeline": packet_evidence,
         "source_verified_render_context_and_actor_entry": recovered_graphics_evidence,
         "source_verified_render_owner": owner_evidence,
