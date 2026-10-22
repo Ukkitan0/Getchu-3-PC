@@ -93,7 +93,31 @@ def verify_and_audit(elf: bytes) -> dict:
             "va_end_exclusive": f"0x{end:08x}",
             "source_sha256": digest_span,
         })
+    # Fingerprint the actual retail code governing the newly native-ported
+    # primary and secondary draw traversals, resource effect query, and
+    # (still-unported) original bounds owner entry. Each range is end-exclusive.
+    render_call_ranges = [
+        (0x280810, 0x280968, "2e5208f2d3a5011fb14547dd136a3024c2f5ae7d1cf88e0cf87d48725f4e5dc3"),
+        (0x280E20, 0x280EB8, "4a792023553cf070bf97e992aa560185e6992b88e4b1fd83fae4cff60ec9c9e0"),
+        (0x26B3D0, 0x26B3FC, "764c6db6a386166eab9621a815e42c60738affbeeee7d903e82b41bd4a187198"),
+        (0x26A968, 0x26A980, "ecbb590540e60a82dc670dfd606d0408498bc2d236b514168aa155e5bc34522b"),
+        (0x280A90, 0x280ABC, "09728d913e02ed6e44f0cadb6aea8a436931d3e70ec0407a2bc10da601565f61"),
+        (0x2802D4, 0x2802F8, "df96d533136361022447536b0e381b5ce9337cd0472f2f195b070785680e78ef"),
+        (0x26C9B8, 0x26C9D4, "c08bbe94a2e307a3200b51de2522332b0c72805da4effe414a0eec93ef6ceaa8"),
+    ]
+    render_evidence = []
+    for first, end, expected in render_call_ranges:
+        contents = elf[first - TEXT_VA + TEXT_FILE:end - TEXT_VA + TEXT_FILE]
+        actual = hashlib.sha256(contents).hexdigest()
+        if actual != expected:
+            raise ValueError(f"retail render traversal changed at {first:#x}")
+        render_evidence.append({
+            "va_start": f"0x{first:08x}",
+            "va_end_exclusive": f"0x{end:08x}",
+            "sha256": actual,
+        })
     report = {
+        "source_verified_draw_traversal": render_evidence,
         "retail_selector_instruction_ranges": selector_evidence,
         "retail_gate_va_range": ["0x00280838", "0x00280884"],
         "retail_gate_instruction_sha256": gate_hash,
