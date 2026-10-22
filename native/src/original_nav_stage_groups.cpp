@@ -24,6 +24,7 @@ bool OriginalNavStageGroupSession::originalCurrentSourceGraph() const noexcept {
 }
 void OriginalNavStageGroupSession::originalClear_4e3fec() noexcept {
     registry_.originalClear_4e3fec();
+    advanceGroupRevision();
 }
 void OriginalNavStageGroupSession::originalRebindSourceGraph() {
     // First release pointers from the old source. Rebinding does not
@@ -44,8 +45,11 @@ OriginalNavGroupBuildResult OriginalNavStageGroupSession::originalRegisterRange_
     const auto& live=owners_.originalAt(slot_);
     if(!live.active())
         throw std::logic_error("Original navrange source graph released");
-    return originalNavBuildGroupsRecovered_4e4060(
+    const auto result=originalNavBuildGroupsRecovered_4e4060(
         registry_,range,live.decodedGraph->records,originalNavBytes(live));
+    if(result.ownersCreated||result.sourcePolygonsInserted)
+        advanceGroupRevision();
+    return result;
 }
 OriginalNavStageRouteSnapshot OriginalNavStageGroupSession::originalRouteByKey_2207d0(
     const OriginalNavGroupKey20& key,OriginalNavDispatchRequest request) const {
@@ -60,5 +64,22 @@ OriginalNavStageRouteSnapshot OriginalNavStageGroupSession::originalRouteByKey_2
     // Original 0x2207D0 still performs admission and predecessor
     // search, including its own normal/fallback linked list selection.
     return originalNavStageDispatch_2207d0(owners_,slot_,request,group);
+}
+OriginalNavStageGroupedRoute OriginalNavStageGroupSession::originalBoundRouteByKey_2207d0(
+    const OriginalNavGroupKey20& key,OriginalNavDispatchRequest request) const {
+    OriginalNavStageGroupedRoute bound{};
+    bound.sourceRoute=originalRouteByKey_2207d0(key,request);
+    bound.originalGroupKey=key;
+    bound.hostGroupSessionToken=groupSessionToken_;
+    bound.hostGroupRevision=groupRevision_;
+    return bound;
+}
+bool OriginalNavStageGroupSession::originalGroupedRouteCurrent(
+    const OriginalNavStageGroupedRoute& route) const noexcept {
+    return originalCurrentSourceGraph() &&
+           route.hostGroupSessionToken==groupSessionToken_ &&
+           route.hostGroupRevision==groupRevision_ &&
+           route.hostGroupRevision!=0 &&
+           originalNavStageRouteCurrent(owners_,route.sourceRoute);
 }
 } // namespace ae3

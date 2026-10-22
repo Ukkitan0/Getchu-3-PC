@@ -9,7 +9,7 @@
 - `b77a5fd741ab0c1359fa73fc91b5998380dc7e0f`: connect original stage graph owner, type-1 route costs, original path dispatcher, native stable polygon index route snapshots, actor route/follower adapters.
 - `cbd03b0af81725a421aebf4612e57870d5896295`: strengthen stage-instance/revision checks, expand synthetic and optional original-PCK tests, initial integration recipe.
 - `8040c9fa40d22c7d222cec8213c03ea6d60dafc4`: add keyed navrange-to-live-graph group binding; connect original class-2 destination vectors and in-place actor route advancement.
-- This handoff/test correction commit: fix type-2 and original-follower test expectations based on actual source-route ordering; broaden foreign-filter and early-return checks.
+- `01b6c689eda08b838ec64e4a8bb4fad04603bf28`: fix type-2 and original-follower test expectations based on actual source-route ordering; broaden foreign-filter and early-return checks.
 
 ### Native files
 
@@ -37,6 +37,12 @@ Address claims below derive from the **preexisting** pinned original USA ELF ver
 - `0x21EF3C`: existing mathematical recovery of original navrange membership score. **Not bit-exact** for all PS2 VU0 precision/NaN behavior, not claimed fully recovered.
 - `0x4E4060` / `0x21F6D4` / `0x21F82C` / `0x4E3DEC`: original resource-key registration, polygon eligibility callback, front-of-list insertion and strict-first nearest fallback.
 - `0x57BA98` / `0x57BAF8` / `0x57C7CC` / `0x57C8EC`: actor-route count byte and original route advancement/target updates, with missing VU0 geometry kept in explicit callbacks.
+
+## Navrange membership-version route invalidation
+
+A stage graph can remain live while `0x4E4060` populates additional source polygons into an existing navrange key. The first stage bound route adapter tracked graph release/replacement but did not detect this separate list mutation. The native `OriginalNavStageGroupSession` now provides `originalBoundRouteByKey_2207d0`, returning `OriginalNavStageGroupedRoute` with the source route and a separate host-only group revision/session token. Call `session.originalGroupedRouteCurrent(bound)` before using `bound.sourceRoute`. Source list insertions (`0x21F82C`), group clear (`0x4E3FEC`) and rebind invalidate earlier grouped routes; idempotent registration does not. Group revision/token are **native lifetime safeguards**, not claimed recovered PS2 fields.
+
+The focused group test exercises all these cases, including a source navrange extent change that adds polygon 3 to an existing group without releasing the graph; old grouped route is rejected while graph route identity remains current. The tests are committed, **not executed**.
 
 ## Compilation, verification and evidence
 
@@ -79,8 +85,9 @@ Actual API call flow once original stage owners are initialized and resources ar
 ```cpp
 ae3::OriginalNavStageGroupSession groups(owners, graphSlot);
 groups.originalRegisterRange_4e4060(originalNavrangeSource);
-auto route=groups.originalRouteByKey_2207d0(originalGroupKey,originalRouteQuery);
-if(ae3::originalNavStageRouteCurrent(owners, route)) {
+auto bound=groups.originalBoundRouteByKey_2207d0(originalGroupKey,originalRouteQuery);
+auto& route=bound.sourceRoute;
+if(groups.originalGroupedRouteCurrent(bound)) {
     auto edge=ae3::originalNavStageRouteEdge_57bd88(owners,route,0);
     auto originalClass2=ae3::originalNavStageType2Target_57bdb8(owners,route);
     auto follower=ae3::originalNavStageFollowerState_57c7cc(

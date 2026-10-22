@@ -1,10 +1,19 @@
 #pragma once
 #include "ae3/original_nav_stage_route.hpp"
 #include "ae3/original_navrange_recovered_eligibility.hpp"
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 
 namespace ae3 {
+
+// Host-native lifetime for routes selected from a mutating original group.
+struct OriginalNavStageGroupedRoute {
+    OriginalNavStageRouteSnapshot sourceRoute;
+    OriginalNavGroupKey20 originalGroupKey;
+    std::uint64_t hostGroupSessionToken=0;
+    std::uint64_t hostGroupRevision=0;
+};
 
 // Native bridge between original 0x4E4060 navrange group registration,
 // original 0x21EF3C polygon eligibility, live 0x21ED30 graph owners,
@@ -35,6 +44,12 @@ public:
         const OriginalNavGroupKey20& originalKey,
         OriginalNavDispatchRequest originalRequest) const;
 
+    // Validates source graph AND navrange membership version.
+    OriginalNavStageGroupedRoute originalBoundRouteByKey_2207d0(
+        const OriginalNavGroupKey20& key,OriginalNavDispatchRequest request) const;
+    bool originalGroupedRouteCurrent(
+        const OriginalNavStageGroupedRoute& route) const noexcept;
+
     // Source graph reattachment/release invalidates prior group list
     // pointers. Native rebinding MUST erase the registry first.
     bool originalCurrentSourceGraph() const noexcept;
@@ -51,6 +66,14 @@ private:
     std::size_t slot_;
     std::uint64_t ownerToken_;
     std::uint64_t ownerRevision_;
+    void advanceGroupRevision() noexcept {
+        ++groupRevision_;
+        if(!groupRevision_)++groupRevision_;
+    }
+    inline static std::atomic<std::uint64_t> nextSessionToken_{1};
+    const std::uint64_t groupSessionToken_=
+        nextSessionToken_.fetch_add(1,std::memory_order_relaxed);
+    std::uint64_t groupRevision_=1;
     OriginalNavGroupRegistry registry_{};
 };
 } // namespace ae3

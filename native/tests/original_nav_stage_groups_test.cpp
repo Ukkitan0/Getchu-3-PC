@@ -82,7 +82,9 @@ int main(){
     OriginalNavDispatchRequest q{};
     q.sourceSeedIndex=0;q.maximumDistance=100;q.routeMode=0;
     q.originalReference={0,0,0,1};
-    auto filtered=first.originalRouteByKey_2207d0(keys[0],q);
+    const auto bound=first.originalBoundRouteByKey_2207d0(keys[0],q);
+    ck(first.originalGroupedRouteCurrent(bound),"New grouped route invalid");
+    auto filtered=bound.sourceRoute;
     ck(filtered.originalAdmittedSourcePolygons==
        std::vector<std::uint32_t>({0,1,2}),"Original range filter did not prune neighbor 3");
     ck(filtered.originalForwardSourcePolygons==
@@ -92,12 +94,36 @@ int main(){
        std::vector<std::uint32_t>({0,1,3}),"Ungrouped retail branch changed");
     ck(first.originalRegisterRange_4e4060(resource).sourcePolygonsInserted==0,
        "Original group duplicate insertion must be ignored");
+    ck(first.originalGroupedRouteCurrent(bound),
+       "Idempotent group registration changed route generation");
+    auto widerHeader=makeRangeHeader();
+    set32(widerHeader,0x40,std::bit_cast<std::uint32_t>(4.f));
+    const OriginalNavGroupSource widened{widerHeader,alloc};
+    ck(first.originalRegisterRange_4e4060(widened).sourcePolygonsInserted==2,
+       "Expanded range failed to add polygon 3 to both groups");
+    ck(!first.originalGroupedRouteCurrent(bound) &&
+       originalNavStageRouteCurrent(owners,bound.sourceRoute),
+       "Membership mutation failed to invalidate bound route");
+    const auto widenedRoute=first.originalBoundRouteByKey_2207d0(keys[0],q);
+    ck(first.originalGroupedRouteCurrent(widenedRoute) &&
+       widenedRoute.sourceRoute.originalForwardSourcePolygons==
+       std::vector<std::uint32_t>({0,1,3}),
+       "New range membership did not alter original destination");
+    first.originalClear_4e3fec();
+    ck(!first.originalGroupedRouteCurrent(widenedRoute) &&
+       first.originalRegisteredGroupCount()==0,
+       "Original group clear failed to invalidate bound route");
+    ck(first.originalRegisterRange_4e4060(resource).sourcePolygonsInserted==6,
+       "Original group rebuild after clear failed");
     q.sourceSeedIndex=3;q.originalReference={3,0,0,1};
     const auto fallback=first.originalRouteByKey_2207d0(keys[0],q);
     ck(fallback.originalFallbackUsed &&
        fallback.originalFallbackSourcePolygon==2 &&
        fallback.originalForwardSourcePolygons==
        std::vector<std::uint32_t>({3}),"Original out-of-group fallback incorrect");
+    OriginalNavStageGroupSession distinct(owners,0);
+    ck(!distinct.originalGroupedRouteCurrent(bound),
+       "Another navrange session accepted foreign route token");
     OriginalNavGroupKey20 missing{};
     missing.originalBytes[0]=std::byte{0xff};
     bool caught=false;
