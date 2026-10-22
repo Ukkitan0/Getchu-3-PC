@@ -470,3 +470,7 @@ target_link_libraries(Getchu3RetailStageAudit PRIVATE Getchu3Assets)
 add_executable(Getchu3WindowsBootStatusTests tests/windows_runtime_boot_status_test.cpp)
 target_include_directories(Getchu3WindowsBootStatusTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
 add_test(NAME NativeRetailStartupCheckpointEvidence COMMAND Getchu3WindowsBootStatusTests)
+
+# Activate reviewed specialist files only after a complete source+test handoff
+# is copied into the native worktree. Incomplete cherry-picks fail configure.
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/ParallelIntegration.cmake")
