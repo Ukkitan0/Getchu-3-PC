@@ -77,6 +77,13 @@ def verify(path: Path) -> None:
     later=tuple(v for at in range(0x57CC48,0x57CCB4,4) if (v:=macro(at)))
     assert first==INITIAL,(first,INITIAL)
     assert later==REPEATED,(later,REPEATED)
+    # Verify the connected full-width target-transfer path, not just VU0 math.
+    # 0x57C948 QMFC2 v0,VF1; 0x57C988 QMTC2 v0,VF1;
+    # 0x57C894 PCPYUD a2,zero,v0. All 128 bits matter.
+    assert word(0x57C948)==0x48220800,"Original QMFC2 return changed"
+    assert word(0x57C988)==0x48a20800,"Original full-width QMTC2 changed"
+    assert word(0x57C894)==0x700234a9,"Original subsequent PCPYUD changed"
+    assert word(0x57CA60)==0x1000ffb9,"Variant-0 return branch changed"
     # VMOVE is special2, so its destination is FT (bits 20..16), not FD.
     assert word(0x57CB74)==0x4be21b3c
     # Four masked VADDy.xyW instructions preserve Z, unlike VADDz.xyzw.

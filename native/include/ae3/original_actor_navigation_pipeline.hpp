@@ -88,6 +88,9 @@ private:
     std::uint64_t call_original_57ca68_geometry_high64() const override {
         return latestFallbackHigh64_;
     }
+    std::uint64_t call_original_57c98c_geometry_high64() const override {
+        return latestTriangleHigh64_;
+    }
     std::uint64_t call_original_57c98c_three_vertex_transform(
         const OriginalSpatialRecord70&,
         const std::array<std::array<std::byte,16>,3>&) override;
@@ -107,6 +110,7 @@ private:
     std::optional<std::array<std::byte,16>> originalOwner14Vector40_;
     std::optional<std::uint32_t> originalFallbackQBits_;
     OriginalActorFallbackVu0R_57ca68* originalFallbackR_=nullptr;
+    std::uint64_t latestTriangleHigh64_=0;
     std::optional<OriginalVU0Vec4> originalIncomingRayA1_;
     std::optional<OriginalVU0Vec4> originalController40_;
     std::optional<OriginalVU0Vec4> latestTargetRayA2_;

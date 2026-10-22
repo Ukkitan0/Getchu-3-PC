@@ -103,7 +103,11 @@ int main(int argc,char**argv) {
                 const auto expected=originalActorRandomTriangle_57c98c(vertexRecords[i],independent);
                 assert(pipeline.sourceTargetResults().size()==1);
                 assert(pipeline.sourceTargetResults()[0].originalVectorLow64==low64(expected));
-                assert(actual.originalCursor()==independent.originalCursor());
+                assert(pipeline.sourceTargetResults()[0].originalVectorHigh64==
+            (std::uint64_t(std::bit_cast<std::uint32_t>(expected.z)) |
+            (std::uint64_t(std::bit_cast<std::uint32_t>(expected.w))<<32)));
+        assert(pipeline.sourceTargetResults()[0].originalVectorLow64==0);
+        assert(actual.originalCursor()==independent.originalCursor());
                 ++verified;
             }
         }

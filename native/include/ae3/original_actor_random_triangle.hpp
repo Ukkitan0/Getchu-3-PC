@@ -14,11 +14,14 @@ struct OriginalActorTriangleWeights_57c98c {
 OriginalActorTriangleWeights_57c98c originalActorTriangleWeights_57c98c(
     OriginalGameRandom_36f3c0& originalRandom) noexcept;
 
-// Implements original VMULx/VADD VU0 sequence using original vertex order
-// and the authentic 0x708A68 (0.8) / 0x708A6C (~1/15) constants.
+// Implements source PCPYUD of each vertex's HIGH 64 bits followed by
+// 0x57CA28/40/54 VMULx and 0x57CA5C/64 VADD in source order.
+// VF.x/y are zero; VF.z/w hold the weighted original z/w coordinates.
 OriginalVU0Vec4 originalActorRandomTriangle_57c98c(
     const std::array<OriginalVU0Vec4,3>& sourceVertices,
     OriginalGameRandom_36f3c0& originalRandom) noexcept;
+// Source 0x57C948 QMFC2 returns 128 bits; the low 64 is zero here.
+// For the entire result, use originalActorRandomTriangle_57c98c.
 std::uint64_t originalActorRandomTriangleLow64_57c98c(
     const std::array<std::array<std::byte,16>,3>& sourceVertexBytes,
     OriginalGameRandom_36f3c0& originalRandom) noexcept;

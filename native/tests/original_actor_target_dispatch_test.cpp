@@ -50,8 +50,9 @@ int main(int argc,char**argv){
  auto a=originalActorTargetVector_57c8ec(polygon,true,stored,c);
  ck(a.branch==OriginalActorTargetBranch_57c8ec::OriginalVariantVectorPassThrough_57c944,
     "original positive eligibility direct-vector branch");
- ck(a.originalVectorLow64==0x0807060504030201ULL,
-    "LQC2/DMFC2 original stored vector low 64 bits");
+ ck(a.originalVectorLow64==0x0807060504030201ULL &&
+    a.originalVectorHigh64==0x100f0e0d0c0b0a09ULL,
+    "LQC2/QMFC2 original stored full 128 bits");
  ck(c.eligibleCalls==1&&c.geometryCalls==0&&c.threeVertexCalls==0,
     "direct stored-vector branch avoids geometry");
  c.allow=false;
@@ -90,7 +91,8 @@ int main(int argc,char**argv){
     Calls call;call.expected=&record;
     const auto pass=originalActorTargetVector_57c8ec(record,true,stored,call);
     ck(pass.branch==OriginalActorTargetBranch_57c8ec::OriginalVariantVectorPassThrough_57c944
-       &&pass.originalVectorLow64==0x0807060504030201ULL,
+       &&pass.originalVectorLow64==0x0807060504030201ULL
+       &&pass.originalVectorHigh64==0x100f0e0d0c0b0a09ULL,
        "source polygon stored-vector pass-through");
     ++direct;
     call.allow=false;

@@ -80,8 +80,20 @@ std::uint64_t OriginalActorNavigationPipeline_57c7cc::call_original_57c98c_three
     sourceIndex(target);
     // Original source 0x57C98C is now fully recovered when the
     // actor owns its original game-global RNG state.
-    if(originalSharedRandom_)
-        return originalActorRandomTriangleLow64_57c98c(vertices,*originalSharedRandom_);
+    latestTriangleHigh64_=0;
+    if(originalSharedRandom_) {
+        std::array<OriginalVU0Vec4,3> source{};
+        for(std::size_t i=0;i<3;++i)
+            std::memcpy(&source[i],vertices[i].data(),sizeof(source[i]));
+        // 0x57C994/0x57C9A8/0x57C9B8 PCPYUD source vertices:
+        // original source math only uses upper z/w lanes.
+        const auto result=originalActorRandomTriangle_57c98c(source,*originalSharedRandom_);
+        latestTriangleHigh64_=
+            std::uint64_t(std::bit_cast<std::uint32_t>(result.z))|
+            (std::uint64_t(std::bit_cast<std::uint32_t>(result.w))<<32);
+        return std::uint64_t(std::bit_cast<std::uint32_t>(result.x))|
+            (std::uint64_t(std::bit_cast<std::uint32_t>(result.y))<<32);
+    }
     return math_.call_original_57c98c_random_vertex_transform(target,vertices);
 }
 const OriginalSpatialRecord70* OriginalActorNavigationPipeline_57c7cc::call_original_4c1b3c_project(
@@ -110,17 +122,16 @@ void OriginalActorNavigationPipeline_57c7cc::call_original_57c8ec_update_target(
     const auto output=originalActorTargetVector_57c8ec(
         *target,variant30_,controllerVector20_,*this);
     targetResults_.push_back(output);
-    // Source 0x57C894 builds $a2 from original 64-bit $v0,
-    // zeroing the high EE GPR half. Do not treat +0x20 as this
-    // generated target; source 0x57C8EC owns its packed result.
-    OriginalVU0Vec4 packed{};
-    const auto bits=output.originalVectorLow64;
-    packed.x=std::bit_cast<float>(std::uint32_t(bits));
-    packed.y=std::bit_cast<float>(std::uint32_t(bits>>32));
-    // 0x57C988 DMTC2 consumes only the low 64 bits of the original GPR.
-    // Do not reinterpret the returned PCPYUD upper half as target z/w.
-    // 0x57C894 also zero-extends the original $v0 low doubleword to $a2.
-    latestTargetRayA2_=packed;
+    // 0x57C894 PCPYUD a2,zero,v0 constructs {0,0,v0.z,v0.w}.
+    // Retail QMFC2 and QMTC2 transfer all 128 bits; the target's
+    // *upper* 64-bit GPR half feeds subsequent 0x4C1B3C projection.
+    // Its lower 64 bits MUST NOT become the projection X/Y lanes.
+    const auto hi=output.originalVectorHigh64;
+    latestTargetRayA2_={
+        0.0f,0.0f,
+        std::bit_cast<float>(std::uint32_t(hi)),
+        std::bit_cast<float>(std::uint32_t(hi>>32))
+    };
 }
 OriginalActorRouteFollowResult_57c7cc OriginalActorNavigationPipeline_57c7cc::advance(
     OriginalActorRouteFollowerState_57c7cc& route) {

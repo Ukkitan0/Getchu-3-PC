@@ -32,8 +32,11 @@ OriginalVU0Vec4 originalActorRandomTriangle_57c98c(
         const float c=z*weights.originalWeightedCoefficients[2];
         return (a+b)+c;
     };
-    return {blend(src[0].x,src[1].x,src[2].x),
-            blend(src[0].y,src[1].y,src[2].y),
+    // 0x57C994/57C9A8/57C9B8 PCPYUD zero,vertex retain ONLY
+    // the vertex's upper doubleword in the EE register. QMTC2
+    // copies all 128 bits, so source VF.x/y are zero, not the
+    // original vertex x/y. 0x57CA28/40/54 and 5C/64 combine z/w.
+    return {0.0f,0.0f,
             blend(src[0].z,src[1].z,src[2].z),
             blend(src[0].w,src[1].w,src[2].w)};
 }
