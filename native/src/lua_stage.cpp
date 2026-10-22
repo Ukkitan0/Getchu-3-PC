@@ -66,6 +66,98 @@ LuaStage::LuaStage(NativeStageWorld& world,const PlayerProgress* progress)
     registerCallback("set_player_weapon",&setPlayerWeapon);
 }
 LuaStage::~LuaStage(){if(state_)lua_close(state_);}
+void LuaStage::setNativeBindings(NativeLuaStageBindings bindings){
+    nativeBindings_=std::move(bindings);
+}
+void LuaStage::registerOriginalFunction(std::string name,std::uint32_t originalVA,
+                                       OriginalLuaNativeCallback callback){
+    if(name.empty() || name.size()>128 || !callback || originalVA==0 ||
+       (originalVA&3u)!=0)
+        throw std::invalid_argument("verified original Lua function needs a name, aligned retail VA and implementation");
+    if(originalFunctions_.count(name))
+        throw std::invalid_argument("original Lua function registered twice: "+name);
+    lua_getglobal(state_,name.c_str());
+    const bool collision=!lua_isnil(state_,-1);
+    lua_pop(state_,1);
+    if(collision)
+        throw std::invalid_argument("refusing to overwrite an existing Lua global: "+name);
+    const std::string key=name;
+    originalFunctions_.emplace(std::move(name),RegisteredOriginal{originalVA,std::move(callback)});
+    registerCallback(key.c_str(),&dispatchOriginal);
+}
+void LuaStage::pushValue(lua_State* L,const ScriptValue& value,int depth){
+    if(depth>24)throw std::runtime_error("native Lua result exceeds table nesting limit");
+    switch(value.kind){
+    case ScriptValue::Kind::nil:lua_pushnil(L);break;
+    case ScriptValue::Kind::boolean:lua_pushboolean(L,value.boolean);break;
+    case ScriptValue::Kind::number:
+        if(!std::isfinite(value.number))
+            throw std::runtime_error("native Lua result contains nonfinite number");
+        lua_pushnumber(L,value.number);break;
+    case ScriptValue::Kind::text:
+        lua_pushlstring(L,value.text.data(),value.text.size());break;
+    case ScriptValue::Kind::object:
+        lua_newtable(L);
+        for(const auto& [key,child]:value.object){
+            lua_pushlstring(L,key.data(),key.size());
+            pushValue(L,child,depth+1);
+            lua_settable(L,-3);
+        }
+        break;
+    case ScriptValue::Kind::array:
+        lua_newtable(L);
+        for(std::size_t i=0;i<value.array.size();++i){
+            pushValue(L,value.array[i],depth+1);
+            lua_rawseti(L,-2,static_cast<int>(i+1));
+        }
+        break;
+    }
+}
+int LuaStage::dispatchOriginal(lua_State* L){
+    auto* stage=self(L);
+    const char* name=lua_tostring(L,lua_upvalueindex(2));
+    const auto it=stage->originalFunctions_.find(name?name:"");
+    if(it==stage->originalFunctions_.end())
+        return luaL_error(L,"unregistered original Lua native callback");
+    try{
+        const int count=lua_gettop(L);
+        if(count>64)throw std::runtime_error("too many original Lua call arguments");
+        std::vector<ScriptValue> arguments;
+        arguments.reserve(static_cast<std::size_t>(count));
+        for(int i=1;i<=count;++i)arguments.push_back(takeValue(L,i));
+        auto results=it->second.callback(arguments);
+        if(results.size()>64)throw std::runtime_error("too many original Lua results");
+        for(const auto& result:results)pushValue(L,result);
+        return static_cast<int>(results.size());
+    }catch(const std::exception& error){
+        return luaL_error(L,"original Lua binding %s at 0x%08X failed: %s",
+                          name,static_cast<unsigned>(it->second.originalVA),error.what());
+    }
+}
+bool LuaStage::invokeCallback(const std::string& name,
+                              const std::vector<ScriptValue>& arguments){
+    if(name.empty() || name.size()>128 || arguments.size()>64)
+        throw std::invalid_argument("invalid original Lua callback name or argument count");
+    error_.clear();
+    lua_getglobal(state_,name.c_str());
+    if(lua_isnil(state_,-1)){
+        lua_pop(state_,1);
+        return false;
+    }
+    if(!lua_isfunction(state_,-1)){
+        lua_pop(state_,1);
+        throw std::runtime_error("original Lua callback "+name+" is not a function");
+    }
+    for(const auto& argument:arguments)pushValue(state_,argument);
+    const int status=lua_pcall(state_,static_cast<int>(arguments.size()),0,0);
+    if(status){
+        const char* message=lua_tostring(state_,-1);
+        error_=message?message:"unknown original Lua callback error";
+        lua_pop(state_,1);
+        throw std::runtime_error("original Lua callback "+name+" failed: "+error_);
+    }
+    return true;
+}
 void LuaStage::registerCallback(const char* name,int (*callback)(lua_State*)){
     lua_pushlightuserdata(state_,this);
     lua_pushstring(state_,name);
@@ -127,8 +219,13 @@ void LuaStage::executeSource(std::string_view source,const std::string& chunkNam
     // uses double and 64-bit size_t. Repack only the original storage
     // representation. Do not change or replace a single Lua opcode.
     std::vector<std::uint8_t> hostChunk;
-    retailChunk_=source.size()>=4 && source.substr(0,4)==std::string_view("\x1bLua",4);
-    if(retailChunk_){
+    const bool binaryChunk=source.size()>=4 &&
+        source.substr(0,4)==std::string_view("\x1bLua",4);
+    // A stage may load several Lua chunks. Once ORIGINAL retail bytecode
+    // has been observed, subsequent source chunks must not disable strict
+    // retail-data checks on this interpreter.
+    retailChunk_=retailChunk_||binaryChunk;
+    if(binaryChunk){
         hostChunk=retargetRetailLua50(source);
         source=std::string_view(
             reinterpret_cast<const char*>(hostChunk.data()),hostChunk.size());
@@ -144,22 +241,14 @@ void LuaStage::executeSource(std::string_view source,const std::string& chunkNam
     }
 }
 void LuaStage::callSetupArea(const std::string& spawnTag){
-    lua_getglobal(state_,"setupArea");
-    if(!lua_isfunction(state_,-1)){
-        lua_pop(state_,1);
+    ScriptValue tag;
+    tag.kind=ScriptValue::Kind::text;
+    tag.text=spawnTag;
+    ScriptValue options;
+    options.kind=ScriptValue::Kind::object;
+    options.object.emplace("spawn_tag",std::move(tag));
+    if(!invokeCallback("setupArea",{options}))
         throw std::runtime_error("area.lua did not define setupArea");
-    }
-    lua_newtable(state_);
-    lua_pushstring(state_,"spawn_tag");
-    lua_pushlstring(state_,spawnTag.data(),spawnTag.size());
-    lua_settable(state_,-3);
-    const int status=lua_pcall(state_,1,0,0);
-    if(status){
-        const char* msg=lua_tostring(state_,-1);
-        error_=msg?msg:"unknown setupArea error";
-        lua_pop(state_,1);
-        throw std::runtime_error("native setupArea failed: "+error_);
-    }
 }
 int LuaStage::newEntity(lua_State* L){
     auto* game=self(L);
@@ -175,13 +264,29 @@ int LuaStage::newEntity(lua_State* L){
     entry.fields=std::move(fields);
     if(lua_gettop(L)>=3)entry.controllers=takeValue(L,3);
     // Native entity descriptor only; asset loading and AI are separate stages.
-    game->world_.addEntity(std::move(entry));
+    try{
+        // This callback is the injection point for a recovered actor manager.
+        // Do not substitute a made-up actor factory when it is unavailable.
+        if(game->nativeBindings_.createEntity)
+            game->nativeBindings_.createEntity(entry);
+        game->world_.addEntity(std::move(entry));
+    }catch(const std::exception& error){
+        return luaL_error(L,"native new_ent binding failed: %s",error.what());
+    }
     lua_pushnumber(L,static_cast<double>(game->world_.entities().size()));
     return 1;
 }
 int LuaStage::luaParam(lua_State* L){
     luaL_checktype(L,1,LUA_TTABLE);
-    self(L)->world_.addParameters(takeValue(L,1));
+    auto* stage=self(L);
+    try{
+        ScriptValue parameters=takeValue(L,1);
+        if(stage->nativeBindings_.submitParameters)
+            stage->nativeBindings_.submitParameters(parameters);
+        stage->world_.addParameters(std::move(parameters));
+    }catch(const std::exception& error){
+        return luaL_error(L,"native lua_param binding failed: %s",error.what());
+    }
     return 0;
 }
 static void field(lua_State* L,const char* name){
@@ -223,7 +328,17 @@ int LuaStage::setFlag(lua_State* L){
     bool value=true;
     if(scope!="gw" && lua_gettop(L)>=2 && lua_type(L,2)==LUA_TBOOLEAN)
         value=lua_toboolean(L,2)!=0;
-    self(L)->world_.setFlag(scope,key,value);
+    auto* stage=self(L);
+    if(stage->retailChunk_ && !stage->nativeBindings_.writeFlag)
+        return luaL_error(L,
+            "original %s requires real game flag-manager write binding",binding);
+    try{
+        if(stage->nativeBindings_.writeFlag)
+            stage->nativeBindings_.writeFlag(scope,key,value);
+        stage->world_.setFlag(scope,key,value);
+    }catch(const std::exception& error){
+        return luaL_error(L,"original %s failed: %s",binding,error.what());
+    }
     return 0;
 }
 int LuaStage::getFlag(lua_State* L){
@@ -249,22 +364,51 @@ int LuaStage::getFlag(lua_State* L){
     }
     const char* key=luaL_checkstring(L,1);
     const std::string scope=name.substr(0,name.find('_'));
-    lua_pushboolean(L,stage->world_.flag(scope,key));
-    return 1;
+    try{
+        if(stage->nativeBindings_.readFlag){
+            const auto value=stage->nativeBindings_.readFlag(scope,key);
+            if(!value.has_value())
+                return luaL_error(L,"original %s: game flag value unavailable",name.c_str());
+            lua_pushboolean(L,*value);
+        }else{
+            if(stage->retailChunk_)
+                return luaL_error(L,"original %s needs real game flag-manager read binding",
+                                  name.c_str());
+            lua_pushboolean(L,stage->world_.flag(scope,key));
+        }
+        return 1;
+    }catch(const std::exception& error){
+        return luaL_error(L,"original %s failed: %s",name.c_str(),error.what());
+    }
 }
 int LuaStage::getStageInt(lua_State* L){
-    if(self(L)->retailChunk_)
-        return luaL_error(L,
-            "original stage_var_get_int semantics not yet reconstructed from SCUS_975.01");
-    lua_pushnumber(L,0);
-    return 1;
+    auto* stage=self(L);
+    if(!stage->nativeBindings_.readStageInteger)
+        return luaL_error(L,"original stage_var_get_int has no recovered native provider");
+    try{
+        const char* key=luaL_checkstring(L,1);
+        const auto value=stage->nativeBindings_.readStageInteger(key);
+        if(!value)
+            return luaL_error(L,"original stage_var_get_int value unavailable: %s",key);
+        lua_pushnumber(L,static_cast<double>(*value));
+        return 1;
+    }catch(const std::exception& error){
+        return luaL_error(L,"original stage_var_get_int failed: %s",error.what());
+    }
 }
 int LuaStage::isSurvival(lua_State* L){
-    if(self(L)->retailChunk_)
-        return luaL_error(L,
-            "original is_survival_mode runtime flag not initialized from retail data");
-    lua_pushboolean(L,0);
-    return 1;
+    auto* stage=self(L);
+    if(!stage->nativeBindings_.readSurvival)
+        return luaL_error(L,"original is_survival_mode has no recovered native provider");
+    try{
+        const auto value=stage->nativeBindings_.readSurvival();
+        if(!value)
+            return luaL_error(L,"original is_survival_mode state unavailable");
+        lua_pushboolean(L,*value);
+        return 1;
+    }catch(const std::exception& error){
+        return luaL_error(L,"original is_survival_mode failed: %s",error.what());
+    }
 }
 int LuaStage::costumePossess(lua_State* L){
     auto* stage=self(L);
@@ -308,7 +452,14 @@ int LuaStage::setPlayerWeapon(lua_State* L){
     else if(std::strcmp(weapon,"net")==0)selection=1;
     else if(std::strcmp(weapon,"club")==0)selection=2;
     // Native temporary state, not a fabricated active gadget or player.
-    self(L)->world_.setPlayerWeaponSelection(selection);
+    auto* stage=self(L);
+    try{
+        if(stage->nativeBindings_.selectWeapon)
+            stage->nativeBindings_.selectWeapon(selection);
+        stage->world_.setPlayerWeaponSelection(selection);
+    }catch(const std::exception& error){
+        return luaL_error(L,"original set_player_weapon failed: %s",error.what());
+    }
     return 0;
 }
 } // namespace ae3
