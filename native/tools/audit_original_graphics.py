@@ -67,7 +67,7 @@ def verify_and_audit(elf: bytes) -> dict:
     digest = hashlib.sha256(elf).hexdigest()
     if digest != RETAIL_SHA256:
         raise ValueError("not the verified original Ape Escape 3 USA SCUS_975.01")
-    if elf[:4] != b"\\x7fELF" or elf[4] != 1 or elf[5] != 1:
+    if elf[:4] != b"\x7fELF" or elf[4] != 1 or elf[5] != 1:
         raise ValueError("invalid ELF32 LE header")
     assert len(elf) >= TEXT_FILE + TEXT_SIZE
     report = {
@@ -76,7 +76,7 @@ def verify_and_audit(elf: bytes) -> dict:
         "anchors": [],
     }
     for label, (expected_va, expected_refs) in ANCHORS.items():
-        string_at = elf.find(label.encode("ascii") + b"\\0", RODATA_FILE)
+        string_at = elf.find(label.encode("ascii") + b"\0", RODATA_FILE)
         if string_at < 0:
             raise ValueError("retail graphics anchor missing: " + label)
         va = string_at - RODATA_FILE + RODATA_VA
