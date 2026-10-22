@@ -1,0 +1,52 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Subsystems/GameInstanceSubsystem.h"
+#include "Getchu3OriginalManagerProvider.h"
+#include "Getchu3OriginalLuaSubsystem.generated.h"
+
+/**
+ * Packaged-runtime integration for the ORIGINAL Ape Escape 3 Lua 5.0 VM.
+ *
+ * The source game file MUST be an actual owner-extracted original area.luc;
+ * neither Editor Python nor a fake Lua interpreter runs in the game.
+ *
+ * All real game managers are accessed through UGetchu3OriginalManagerProvider.
+ * Unimplemented managers reject the requested operation; there is no fake
+ * player/monkey generation or default gameplay.
+ */
+UCLASS()
+class GETCHU3ORIGINALLUA_API UGetchu3OriginalLuaSubsystem : public UGameInstanceSubsystem
+{
+    GENERATED_BODY()
+
+public:
+    UFUNCTION(BlueprintCallable, Category="Ape Escape 3|Original Lua")
+    bool StartOriginalStage(const FString& OriginalLuaFilePath,
+                            const FString& OriginalSpawnTag,
+                            UGetchu3OriginalManagerProvider* SourceManager);
+
+    UFUNCTION(BlueprintCallable, Category="Ape Escape 3|Original Lua")
+    void StopOriginalStage();
+
+    UFUNCTION(BlueprintPure, Category="Ape Escape 3|Original Lua")
+    bool HasActiveOriginalVM() const { return NativeState != nullptr; }
+
+    UFUNCTION(BlueprintPure, Category="Ape Escape 3|Original Lua")
+    FString GetOriginalLuaError() const { return LastError; }
+
+    virtual void Deinitialize() override;
+
+    UGetchu3OriginalManagerProvider* GetOriginalManager() const { return Manager.Get(); }
+
+private:
+    // The API is resolved by name from the native C ABI DLL at runtime.
+    // Keep Unreal's STL ABI/allocator and the native Lua allocator separate.
+    void* NativeLibrary = nullptr;
+    void* NativeState = nullptr;
+    UPROPERTY(Transient)
+    TObjectPtr<UGetchu3OriginalManagerProvider> Manager = nullptr;
+    FString LastError;
+
+    void ReportRuntimeError(const FString& Fallback);
+};
