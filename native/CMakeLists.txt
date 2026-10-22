@@ -474,3 +474,14 @@ add_test(NAME NativeRetailStartupCheckpointEvidence COMMAND Getchu3WindowsBootSt
 # Activate reviewed specialist files only after a complete source+test handoff
 # is copied into the native worktree. Incomplete cherry-picks fail configure.
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/ParallelIntegration.cmake")
+
+# Optional Python is used only for a disposable CMake registration contract test.
+# No game data or gameplay mock is compiled into the actual native engine.
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+  add_test(NAME NativeParallelManifestRegistration
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_parallel_integration_manifest.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ParallelIntegration.cmake"
+            --cmake "${CMAKE_COMMAND}")
+endif()
