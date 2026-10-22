@@ -168,20 +168,63 @@ def scan_calls(blob: bytes, segments: list[tuple[int, int, int]],
     return calls
 
 
+# Published USA SetupBindFlag C++ constructor assignments, NOT proof of the
+# virtual-call slot or method body. Treat each table only as six raw pointers.
+# Evidence: Byaidu, "PlayStation 2 Game Reverse Engineering: Ape Escape 3",
+# SetupBindFlag() pseudocode (https://www.cnblogs.com/algonote/p/15678057.html).
+FLAG_VTABLES = {
+    'gw_set_flag': 0x6B70F0,
+    'gw_get_flag': 0x6B70D8,
+    'gw_get_string': 0x6B70C0,
+    'lw_set_flag': 0x6B7090,
+    'lw_get_flag': 0x6B7078,
+    'area_set_flag': 0x6B7060,
+    'area_get_flag': 0x6B7048,
+    'get_costume_possess': 0x6B7018,
+    'get_costume_possess_ninja': 0x6B7000,
+    'stage_var_get_int': 0x6B70A8,
+    'is_survival_mode': 0x6B7030,
+}
+
+
+def flag_vtable_candidates(blob: bytes, segments: list[tuple[int, int, int]]) -> list[dict]:
+    result = []
+    for name, address in sorted(FLAG_VTABLES.items()):
+        raw = read_va(blob, segments, address, 24)
+        if raw is None:
+            result.append({'name': name, 'vtable_address': f'0x{address:08X}',
+                           'available': False, 'slots': []})
+            continue
+        pointers = struct.unpack('<6I', raw)
+        result.append({
+            'name': name,
+            'vtable_address': f'0x{address:08X}',
+            'available': True,
+            'slots': [{'index': i, 'pointer': f'0x{va:08X}',
+                       'points_into_original_text':
+                           va % 4 == 0 and TEXT_START <= va < TEXT_START + TEXT_BYTES}
+                      for i, va in enumerate(pointers)],
+        })
+    return result
+
+
 def inspect(blob: bytes) -> dict:
     sha = hashlib.sha256(blob).hexdigest()
     if sha != US_SHA256:
         raise ValueError('Unknown game ELF: only verified USA SCUS_975.01 accepted')
     segments = segments_from_elf(blob)
     registrations = scan_calls(blob, segments)
+    flag_tables = flag_vtable_candidates(blob, segments)
     return {
         'original_verified_elf_sha256': sha,
         'source': 'Static SCUS_975.01 MIPS instruction data; no guest execution',
         'api_names_found': len(registrations),
         'registrations': registrations,
+        'published_flag_vtable_slot_candidates': flag_tables,
         'limits': 'Only a1 literal construction within 64 bytes of calls to 0x255BD8; '
-                  'indirect calls and other registration helpers are intentionally omitted; '
-                  'no callback/vtable semantics inferred.',
+                  'indirect calls and other registration helpers are intentionally omitted. '
+                  'Published flag vtable addresses are treated as six raw 32-bit pointer '
+                  'slots; slot purpose and callback function entry are NOT inferred.',
     }
 
 
