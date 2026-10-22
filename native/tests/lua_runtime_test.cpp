@@ -355,6 +355,23 @@ void originalRawLuaValuePreservationTests(){
         check(rejected && !typedInvoked,
               "unsafe Lua table/function/string was truncated or altered by typed transport");
     }
+    stage.registerOriginalFunction("__lua_bridge_throw_test",0x0051200Cu,
+        [](const std::vector<ae3::ScriptValue>&)
+            ->std::vector<ae3::ScriptValue>{
+            throw std::runtime_error("original adapter failure");
+        });
+    stage.executeSource(
+        "function bridgeThrows() __lua_bridge_throw_test() end");
+    bool translated=false;
+    try{stage.invokeCallback("bridgeThrows");}
+    catch(const std::runtime_error& e){
+        const std::string message=e.what();
+        // 0x0051200C == decimal 5316620. Lua 5.0 supports %d, not %08X.
+        translated=message.find("original adapter failure")!=std::string::npos &&
+                   message.find("VA 5316620")!=std::string::npos;
+    }
+    check(translated,
+          "original binding failure was not safely reported by Lua 5.0 formatting");
     // Failure of a C++ adapter must not destroy the original Lua VM.
     check(stage.invokeCallback("rawEvent") && rawInvocations==2,
           "Lua VM did not recover after rejected binding arguments");
