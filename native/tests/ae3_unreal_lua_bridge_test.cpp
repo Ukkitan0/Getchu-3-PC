@@ -12,7 +12,7 @@ int rejectParams(void*, const char*) { return 0; }
 int acceptEntity(void*, const char*, const char*, const char*,
                  const char*, const char*) { return 1; }
 int acceptParams(void*, const char*) { return 1; }
-int rejectPackedProgress(void*, void*, size_t bytes) { return bytes == 1033 ? 0 : 0; }
+int rejectPackedProgress(void*, void*, size_t) { return 0; }
 int acceptTestPackedProgress(void*, void* destination, size_t bytes) {
     if (!destination || bytes != 1033) return 0;
     std::memset(destination, 0, bytes); // Test fixture only, never a game save.
