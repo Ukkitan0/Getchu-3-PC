@@ -21,6 +21,23 @@ class GETCHU3ORIGINALLUA_API UGetchu3OriginalManagerProvider : public UObject
     GENERATED_BODY()
 
 public:
+    // A stage must not leak partially spawned actors or game flag changes
+    // when a later original Lua native binding is unavailable.
+    // Only genuinely atomic source-backed managers may return true.
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Ape Escape 3|Original Manager")
+    bool BeginOriginalStageSetup(const FString& OriginalLuaPath,
+                                 const FString& OriginalSpawnTag);
+    virtual bool BeginOriginalStageSetup_Implementation(
+        const FString&, const FString&);
+
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Ape Escape 3|Original Manager")
+    bool CommitOriginalStageSetup();
+    virtual bool CommitOriginalStageSetup_Implementation();
+
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Ape Escape 3|Original Manager")
+    void AbortOriginalStageSetup();
+    virtual void AbortOriginalStageSetup_Implementation();
+
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Ape Escape 3|Original Manager")
     bool CreateOriginalEntity(const FString& ClassHex, const FString& NameHex,
                               const FString& TagHex, const FString& FieldsTypedJson,
