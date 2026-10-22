@@ -12,6 +12,10 @@ struct PckMember {
     std::string name;
     std::uint32_t type = 0,offset = 0,size = 0;
     PckAssetKind kind = PckAssetKind::other;
+    // Exact original source type text (e.g. "i3r static prio=0..."),
+    // fetched through the PCK table's absolute +0x04 string offset.
+    // The existing uint32_t type field remains the raw source offset.
+    std::string originalType;
 };
 // Data format recovered from the owner's Exporter.zip and independently
 // validated against its actual bg.pck file. Parsing game DATA is not
