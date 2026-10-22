@@ -100,6 +100,17 @@ ae3_optional_parallel_group(VU0
       tests/original_actor_fallback_vu0_native_test.cpp
     SOURCES src/original_actor_fallback_vu0_native.cpp)
 if(AE3_PARALLEL_VU0_READY)
+    # Original VU0 macro math is instruction-ordered; never permit host FMA
+    # contraction or fast-math to silently change source float results.
+    if(MSVC)
+        set_source_files_properties(
+            "${PROJECT_SOURCE_DIR}/src/original_actor_fallback_vu0_native.cpp"
+            PROPERTIES COMPILE_OPTIONS "/fp:strict")
+    else()
+        set_source_files_properties(
+            "${PROJECT_SOURCE_DIR}/src/original_actor_fallback_vu0_native.cpp"
+            PROPERTIES COMPILE_OPTIONS "-ffp-contract=off;-fno-fast-math")
+    endif()
     ae3_parallel_test(Getchu3OriginalActorFallbackNativeVU0Tests
         tests/original_actor_fallback_vu0_native_test.cpp OriginalActorFallbackNativeVU0ExactSourceSequence)
 endif()
@@ -137,6 +148,12 @@ ae3_optional_parallel_group(INPUT_AUDIO
     SOURCES src/original_pad_runtime.cpp src/original_pad_win32.cpp
             src/original_audio_runtime.cpp)
 if(AE3_PARALLEL_INPUT_AUDIO_READY)
+    # Win32 physical-input polling resolves focus/key APIs in user32.dll.
+    # It is linked PUBLIC because other component tests consume the same
+    # static assets/runtime target; no XInput import library is required.
+    if(WIN32)
+        target_link_libraries(Getchu3Assets PUBLIC user32)
+    endif()
     ae3_parallel_test(Getchu3OriginalInputAudioTests
         tests/original_input_audio_runtime_test.cpp OriginalInputAudioSourceBoundaries)
 endif()
