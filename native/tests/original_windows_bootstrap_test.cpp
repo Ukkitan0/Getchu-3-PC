@@ -79,6 +79,18 @@ void check(int argc,char**argv){
             numeric.first_69e678==previous.first_69e678 &&
             numeric.second_69e680==previous.second_69e680,
             "Original repeated second constructor must preserve constant globals");
+    require(originalNoOpCtor_391600(),
+            "Original fifth constructor 0x391600 must return through verified no-op");
+    OriginalResetGlobals_38abfc cleared{};
+    for(auto& record:cleared.records)record.bytes.fill(std::byte{0xff});
+    originalResetCtor_38abfc(cleared);
+    for(const auto& record:cleared.records){
+        for(std::size_t i=0;i<record.bytes.size();++i){
+            const auto expected=i>=5 && i<=7?std::byte{0xff}:std::byte{0};
+            require(record.bytes[i]==expected,
+                    "Original sixth constructor must leave padding +5..+7 unchanged");
+        }
+    }
     class RecoveredStartup final:public OriginalNativeConstructorCalls {
     public:
         OriginalAllocatorGlobals_41a390 allocator{};
@@ -99,7 +111,7 @@ void check(int argc,char**argv){
     if(argc==2){
         const auto literal=originalReadStaticSourceFromElf_3a6cd0(argv[1]);
         const auto fourthLiteral=originalReadFourthSourceFromElf_39fc78(argv[1]);
-        class OriginalFourConstructors final : public OriginalNativeConstructorCalls {
+        class OriginalSixConstructors final : public OriginalNativeConstructorCalls {
         public:
             std::span<const std::byte> source;
             std::span<const std::byte> sourceFourth;
@@ -107,22 +119,25 @@ void check(int argc,char**argv){
             OriginalNumericGlobals_417c58 numeric{};
             OriginalStaticResourceGlobals_3a6cd0 staticResources{};
             OriginalFourthGlobals_39fc78 fourthResources{};
+            OriginalResetGlobals_38abfc resetResources{};
             bool callRecoveredConstructor(std::uint32_t va) override {
                 if(va==0x41a390){originalAllocatorCtor_41a390(allocator);return true;}
                 if(va==0x417c58)return originalNumericCtor_417c58(numeric);
                 if(va==0x3a6cd0)return originalStaticCtor_3a6cd0(source,staticResources);
                 if(va==0x39fc78)return originalFourthCtor_39fc78(sourceFourth,fourthResources);
+                if(va==0x391600)return originalNoOpCtor_391600();
+                if(va==0x38abfc){originalResetCtor_38abfc(resetResources);return true;}
                 return false;
             }
         } startupWithOriginalSource;
         startupWithOriginalSource.source=literal;
         startupWithOriginalSource.sourceFourth=fourthLiteral;
         const auto result=originalRunConstructors_428ab8(startupWithOriginalSource);
-        require(!result.complete && result.executed==4 &&
-                result.firstUnrecovered==0x391600 &&
+        require(!result.complete && result.executed==6 &&
+                result.firstUnrecovered==0x38aa18 &&
                 startupWithOriginalSource.staticResources.initialized &&
                 startupWithOriginalSource.fourthResources.initialized,
-                "four authenticated original constructors should advance exactly to #5");
+                "six authenticated original constructors should advance exactly to #7");
     }
     OriginalNativeTerminationRegistry registry;
     require(!registry.register_428b80({}),"original exit callback registry accepted absent function");
