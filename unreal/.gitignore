@@ -6,6 +6,5 @@ Saved/
 .idea/
 *.sln
 *.VC.db
-**/__pycache__/
 Content/ApeEscape3/
 **/Saved/Getchu3Private/
