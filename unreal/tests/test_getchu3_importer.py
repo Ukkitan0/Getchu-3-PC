@@ -57,6 +57,24 @@ class ImporterTests(unittest.TestCase):
             (base/'debug/us/stage/Hero One.glb').write_bytes(b'glb test')
             self.assertEqual(module.import_glbs_in_editor(base, FakeUE()),
                              ['/Game/ApeEscape3/Original/Models/debug/us/stage/SourceMesh'])
+    def test_original_animation_association_is_never_guessed(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            source = base / "vfi"; source.mkdir()
+            out = base / "models"
+            converter = base / "ae3.exe"
+            converter.write_bytes(b"stub executable: tests only")
+            seen = []
+            class FakeNativeConverter:
+                @staticmethod
+                def export_models(*args, **kwargs):
+                    seen.append(kwargs)
+                    return {"results": {"converted": 1}, "original_i3d_bin_files": 1}
+            with patch.object(module.importlib, 'import_module', return_value=FakeNativeConverter()):
+                module.convert_original_models(source, out, base, str(converter))
+            self.assertEqual(len(seen), 1)
+            self.assertIs(seen[0]["animations"], False)
+
     def test_no_glb_fails(self):
         with tempfile.TemporaryDirectory() as d:
             with self.assertRaisesRegex(RuntimeError, 'No converted'):
