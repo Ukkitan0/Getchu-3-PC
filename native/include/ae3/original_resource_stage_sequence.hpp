@@ -21,6 +21,16 @@ struct OriginalStageInitLookup_22d7b4 {
     std::uint32_t originalConsumerCallVA;
     std::uint32_t originalConsumerVA;
 };
+// Upstream source stage registration: 0x22D7F8 calls wrapper 0x252BC4
+// (which dispatches to 0x25182C) with A3 pointing to the literal "*"
+// at original VA 0x6E7380. This occurs BEFORE the four resource-key
+// lookups. This metadata does not reconstruct the object-container loader.
+inline constexpr std::uint32_t OriginalStageWildcardLiteralVA_22d7f8 = 0x6e7380;
+inline constexpr std::uint32_t OriginalStageWildcardSetupCall_22d7f8 = 0x22d7f8;
+inline constexpr std::uint32_t OriginalStageWildcardWrapperVA_252bc4 = 0x252bc4;
+inline constexpr std::uint32_t OriginalStageSourceRegistrationVA_25182c = 0x25182c;
+inline constexpr std::string_view OriginalStageRegistrationWildcard_25182c = "*";
+
 inline constexpr std::array<OriginalStageInitLookup_22d7b4,4>
     OriginalStageInitLookupOrder_22d7b4{{
         {"placeholder",0x6e7388,0x22d828,0x22d844,0x272294},
