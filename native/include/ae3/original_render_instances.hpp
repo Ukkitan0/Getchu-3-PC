@@ -51,12 +51,17 @@ public:
     std::size_t size() const noexcept {return entries_.size();}
     void clear() noexcept {entries_.clear();}
     OriginalRenderFrame composeFrame() const;
+    // Preserve exact source-provided actor ordering; never infer order from
+    // guessed host transparency or staging layers.
+    OriginalRenderFrame composeFrameInOriginalOrder(
+        const std::vector<OriginalRenderId>& sourceAcceptedIds) const;
 private:
     struct Entry {
         OriginalRenderObject object;
         std::shared_ptr<const StaticScene> staticScene;
         OriginalSceneSampler sampler;
     };
+    OriginalRenderFrame composeOrdered(const std::vector<const Entry*>& order) const;
     std::vector<Entry> entries_;
 };
 } // namespace ae3
