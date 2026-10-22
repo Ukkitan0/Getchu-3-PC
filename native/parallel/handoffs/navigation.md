@@ -154,6 +154,12 @@ if(actor.originalDropInvalidRoute()) {
 
 **Verification:** GitHub connector commit/write verification only. No local native build, CTest, original private ELF/PCK audit or Windows game boot was run. The isolated container lacks GitHub network resolution, and the private executable/resource files were not accessible. No GitHub Actions were triggered.
 
+### No-route and partial-registration failure semantics
+
+The actor-binding adapter treats an original `0x2207D0` route with an empty `forwardPath` (e.g. route mode selecting explicit original search index `-1`) as **no active actor route**. It clears a previously bound route rather than proceeding through `0x57C7CC`'s no-multiple-polygon branch and accidentally applying actor+0x30 as if a route existed. This is a native caller guard, not a new pathfinding decision.
+
+The stage group binding wraps original recovered `0x4E4060` registration with exception-safe conservative generation invalidation. If a failure occurs after some group nodes were inserted, prior group routes cannot remain valid. A malformed original resource fails and invalidates borrowed route identities even if mutation did not yet start (conservative host safety). The focused actor regression tests both the explicit no-route transition and malformed-resource invalidation. **Not executed in this environment.**
+
 ## Remaining original blockers
 
 1. Decompile source `0x57BCB8` original controller post-constructor and subsequent real actor movement/state transitions using original executable input.

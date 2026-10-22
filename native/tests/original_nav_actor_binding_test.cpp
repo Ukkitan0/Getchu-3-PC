@@ -171,6 +171,34 @@ int main() {
     ck(!actor.originalRouteCurrent()&&actor.originalDropInvalidRoute(),
        "Destroyed navrange group still considered live by actor");
 
+    // Original routeMode>=2 with $8=-1 is an explicit NO ROUTE,
+    // not permission to invent a path from actor+0x30.
+    query.routeMode=2;query.explicitDestinationSearchIndex=-1;
+    const auto none=originalNavStageDispatch_2207d0(stage,0,query);
+    ck(none.originalForwardSourcePolygons.empty(),
+       "Original explicit search-index -1 did not return no route");
+    actor.originalUseStageRoute_2207d0(plain);
+    actor.originalUseStageRoute_2207d0(none);
+    ck(!actor.originalRouteCurrent()&&actor.originalPathLength()==0,
+       "Original no-route path must clear actor binding");
+    actor.originalUseGroupRoute_2207d0(
+        group,group.originalBoundRouteByKey_2207d0(key,query));
+    ck(!actor.originalRouteCurrent(),
+       "Original group with explicit -1 must also unbind actor route");
+    query.routeMode=0;
+    // Malformed original navrange input must not leave existing actor
+    // bound to a possibly partially-mutated source registry.
+    actor.originalUseGroupRoute_2207d0(
+        group,group.originalBoundRouteByKey_2207d0(key,query));
+    ck(actor.originalRouteCurrent(),"Original grouped route failed to rebind");
+    auto corrupt=navrange(2.f);
+    w32(corrupt,0x5c,0x660000);
+    bool badSource=false;
+    try {
+        (void)group.originalRegisterRange_4e4060({corrupt,allocations});
+    } catch(const std::out_of_range&) {badSource=true;}
+    ck(badSource&&!actor.originalRouteCurrent(),
+       "Failed navrange registration did not conservatively invalidate routes");
     actor.originalUseStageRoute_2207d0(plain);
     stage.originalReleaseSlot_21d7d8(0);
     ck(!actor.originalRouteCurrent()&&actor.originalCurrentTargetAt50()==nullptr,

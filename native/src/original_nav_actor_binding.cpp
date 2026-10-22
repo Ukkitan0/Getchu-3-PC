@@ -7,6 +7,13 @@ void OriginalNavActorRouteBinding::originalUseStageRoute_2207d0(
     OriginalNavStageRouteSnapshot route) {
     if(!originalNavStageRouteCurrent(owners_,route))
         throw std::invalid_argument("Original actor stage route source owner is stale");
+    // An explicit original 0x2207D0 destination of -1 gives an
+    // empty path; no source route exists for 0x57C7CC to follow.
+    // Do not synthesize a one-polygon route from actor+0x30.
+    if(route.originalForwardSourcePolygons.empty()) {
+        originalClearForStageTransition();
+        return;
+    }
     // Commit only after validating incoming source identity.
     plainRoute_=std::move(route);
     groupRoute_.reset();
@@ -20,6 +27,10 @@ void OriginalNavActorRouteBinding::originalUseGroupRoute_2207d0(
     if(!group.originalGroupedRouteCurrent(route) ||
        !originalNavStageRouteCurrent(owners_,route.sourceRoute))
         throw std::invalid_argument("Original actor navrange route identity is stale");
+    if(route.sourceRoute.originalForwardSourcePolygons.empty()) {
+        originalClearForStageTransition();
+        return;
+    }
     groupRoute_=std::move(route);
     plainRoute_.reset();
     groupOwner_=&group;

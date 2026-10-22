@@ -45,8 +45,17 @@ OriginalNavGroupBuildResult OriginalNavStageGroupSession::originalRegisterRange_
     const auto& live=owners_.originalAt(slot_);
     if(!live.active())
         throw std::logic_error("Original navrange source graph released");
-    const auto result=originalNavBuildGroupsRecovered_4e4060(
-        registry_,range,live.decodedGraph->records,originalNavBytes(live));
+    // 0x4E4060 can insert some original polygon-list nodes before a
+    // later allocation/descriptor failure. Invalidate borrowed routes
+    // even if population throws after a partial mutation.
+    OriginalNavGroupBuildResult result{};
+    try {
+        result=originalNavBuildGroupsRecovered_4e4060(
+            registry_,range,live.decodedGraph->records,originalNavBytes(live));
+    } catch(...) {
+        advanceGroupRevision();
+        throw;
+    }
     if(result.ownersCreated||result.sourcePolygonsInserted)
         advanceGroupRevision();
     return result;
