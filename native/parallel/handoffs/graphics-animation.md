@@ -378,3 +378,50 @@ All three modules are C++20 with no external dependencies beyond other graphics-
 The highest-value original graphics recovery is now translating the **three remaining material packet transforms** (`0x3AF478` group 0, `0x3AF6F8` group 2, `0x3AF530` group 3), their source VU/packed math and allocation semantics, plus the model conversion routines `0x27C614/0x27C520` and the actor VU block `0x28040C–0x2804C8`. The Assets team must expose original mesh and material buffers; VU0/Physics supplies math where ownership applies; the Windows Runtime integrator owns CMake and actual GPU integration. Do not call rendering/playability complete until real retail models and levels appear correctly in the native application.
 
 **No original copyrighted ELF/models/textures checked in, no PS2 emulation, no app entry point/CMake/cross-team edits and no manual GitHub Actions.**
+
+
+### Source-backed graphics packet arena (pass 4 extension)
+
+The original packet constructor's allocation dependency has an accurately
+recovered native cursor implementation:
+
+- `1bc9ed2`: `native/include/ae3/original_render_packet_arena.hpp`.
+- `d23a24a`: `native/src/original_render_packet_arena.cpp`.
+- `e58bab4`: `native/tests/original_render_packet_arena_test.cpp`.
+- `44ac9a1`: retail `SCUS_975.01` byte fingerprints added for original allocation VAs.
+
+The original `0x3B3CE0` reads/writes graphics owner U32 at `+0x18`:
+`back=(back-count*16)&~15`, returns **new** back.
+The complementary `0x3B3D00` reads/writes `+0x14`:
+`front=(front+count*16+15)&~15`, returns **old** front.
+Both original instruction ranges were matched to the private ELF SHA-256:
+`0x3B3CE0–0x3B3CFC` =
+`13c8b65e6a2bcac7c1ffb3a980f280d4f2cbe70dcc81ca238fa0d27f993e8f92`,
+`0x3B3D00–0x3B3D20` =
+`4c2ea7ef8022fcd90bf053c968baa32e8650847c95829d708742e35e7639e9bd`.
+
+Native host offsets preserve the original 16-byte alignment and return
+conventions, with additional host-safe overflow/bounds/cursor-overlap rejection.
+Neither a guest memory emulator nor a replacement allocator. The original
+graphics arena buffer/source pointer ownership remains a Windows integration
+dependency. This is the math for a real renderer allocation interface, **not
+actual GPU allocation or game rendering**.
+
+Focused suite built and run with GCC 14.2 `-O2 -Wall -Wextra -Wpedantic -Werror`:
+**PASS**; Clang 17 `-O1 -g -fsanitize=address,undefined -Werror`: **PASS**,
+no sanitizer findings. Pass 4 therefore contributes **4 new native suites,
+8/8 GCC/Clang executions**. It does NOT include an actual Windows graphics
+device rendering test.
+
+Windows integration owner only, add:
+
+```cmake
+target_sources(Getchu3Assets PRIVATE src/original_render_packet_arena.cpp)
+add_executable(Getchu3OriginalPacketArenaTests tests/original_render_packet_arena_test.cpp)
+target_link_libraries(Getchu3OriginalPacketArenaTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailRenderPacketArena COMMAND Getchu3OriginalPacketArenaTests)
+```
+
+Documentation: `native/docs/ORIGINAL_RETAIL_MODEL_DRAW_AND_PACKET_ASSEMBLY.md`
+includes all retail details and updated integration recipe. These commits
+do not touch any other category or shared orchestration files.
