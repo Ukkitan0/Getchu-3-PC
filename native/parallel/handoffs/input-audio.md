@@ -2,28 +2,89 @@
 
 **Specialist branch:** `parallel/input-audio`
 **Integration target:** `native/original-elf-engine-recovery-20261020`
-**Status at branch creation:** Not started on the parallel branch. Inherited source remains unmodified.
+**Workstream state:** Source-backed Lua sound/gadget command boundary and physical host pad transport implemented and locally tested; original player pad decision tree, complete gadget execution, original audio mixing/decoding and playable Windows integration are **not** recovered.
 
-The owner of this category updates **only this handoff document** on its own dedicated branch. The integrator reviews and merges from here; do not edit the shared integration documents.
+## Commits (this branch ONLY)
 
-## Completed source recovery and commits
-- _No parallel-category commits yet._
+- `de3cf850826cf73965943444d0c814457fa7c57b` — six new isolated native files: `original_pad_runtime.hpp/.cpp`, `original_pad_win32.cpp`, `original_audio_runtime.hpp/.cpp`, `original_input_audio_runtime_test.cpp`.
+- `3f27ce8bf35fa5147fbc2cb5fe402c7e5ceede93` — original-source `se` parameter fields, **source-correct retail Lua `wait` default of 1.0s**, tests, and an offline SHA-pinned retail ELF audit.
+- This document is the category-owned handoff. All other category branches, `native/CMakeLists.txt`, `native/src/app_win32.cpp`, workflow config, and `main` were left unchanged.
 
-## Original executable / game-resource evidence
-- _List authentic source function VAs, asset filenames and SHA verification; do not commit private game bytes._
+## Direct retail USA ELF evidence
 
-## Actual native tests run
-- _List exact compiler/tool versions, command, passed/failed results. Distinguish local isolated tests, complete CMake/CTest and actual native Windows game boot._
+Recovered from the owner-provided original USA ISO, reassembled privately from seven previously supplied parts. **Verified private ISO SHA-256** `5b4c6272c9daf190b3f72081f124edd7ea2af3cc0dafeaef206ded97a022fd09`, size 2,174,091,264. Extracted original `SCUS_975.01` **SHA-256** `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`, size 6,488,148. Neither ISO, ELF nor retail audio data was committed.
 
-## Integration request for Windows Runtime team
-- _List any new .cpp/.hpp, CMake target changes, linking needs and precise expected native API signatures._
-- _Describe required edits to other teams' files without editing them directly._
+| Original USA virtual address | Verified meaning / dependency |
+| --- | --- |
+| `0x512000` | `set_player_weapon` Lua binding compares the original literals `empty`/`net`/`club` at `0x6ECC10`/`0x6ECC18`/`0x6ECC20`, uses selectors 0/1/2 and fallback 3, then JAL `0x266CF4` at `0x512034`. **This is script-directed selection, not proof of gadget-button mappings.** |
+| `0x2191D4` | Source Lua `se` command parser, fields `name` `0x6E0AB8`, `target_name` `0x6E2D90`, `vol` `0x6E2DF0`; original **1.0f** default literal `0x6E2DF4` loaded at `0x219224`; JAL `0x373264` at `0x219264`. The constructor allocates original 0xA0-byte command and writes float to +0x90. Neither the host layout nor audio playback is reconstructed merely from this. |
+| `0x2190D8` | Lua `se_stop` dispatch; JAL original event constructor `0x3732FC` at `0x219138` (0x70-byte command). |
+| `0x219454` | Lua `add_entity_se` parser: original `exdb_se_id`, `entity_name`, `watch_rollerhandle_name`, `sign`, `is_2d`, `is_3d` keys; JAL `0x3738DC` at `0x2195A0`. Detailed semantics and backend remain to be recovered; raw Lua parameter table is preserved in our event. |
+| `0x2195D0` | Original `kick_entity_se` c_ctrl dispatch (verified source dispatch table); event payload and callee still need deeper recovery. |
+| `0x21937C` | Lua `wait` command: key `time` at `0x6E2DF8`, default **1.0f** literal at `0x6E2E00` loaded at `0x21939C`, JAL `0x37321C` at `0x2193CC`. The inherited timeline's erroneous default 0 was corrected to 1.0 without altering explicit times. |
+| `0x1BB9A8` | Original five-field audio resource descriptors and `volume_scale` remain **Assets-owned** (`original_audio_descriptor.hpp`), passed through unchanged as optional original resource values. No invented audio asset parser was introduced. |
 
-## Unfinished source behavior and blockers
-- _List original engine subroutines not yet recovered and evidence missing. Avoid percentages unless measurement is sound._
+`native/tools/verify_original_input_audio_retail.py <private-SCUS_975.01>` validates the original USA ELF hash, original JAL instructions to constructors, 12 original string literals, and original 1.0f loads. Verified it passes against the extracted source. No game binary bytes are emitted.
 
-## Next batch of connected native implementation
-- _Identify a substantial remaining subsystem and how its original data/control flow will be tested._
+**Important controller provenance limit:** Initial host physical DualShock-style button indexes and XInput-to-pad transport are a platform adapter only. The original PS2 retail pad reader, its game-state button masking/dead-zone/pressure curves, menu/gameplay transition handling, the actual per-frame input consumer and player gadget-action call chain are **not yet verified**. `PadRecorder` retail string at `0x6ED0A0` and button label strings do **not** establish action bindings. The adapter intentionally has **no default invented keyboard control map** and never injects movement commands.
 
-## Rules
-No PS2/EE/IOP emulation, no substitute gameplay, no copyrighted ELF/ISO/PCK/Lua checked in, no manually triggered GitHub Actions and no direct changes to the baseline or default main. Commit only source/tests/docs to `parallel/input-audio`.
+## Actual delivered APIs
+
+- `ae3::OriginalPadObservation` preserves connection, positive pressed-mask transport, full LX/LY/RX/RY byte samples, and L2/R2 host trigger observations. `OriginalPadFrameRuntime::advance(gameFrame, observation)` yields **newlyPressed/newlyReleased** edges once per externally supplied increasing native frame; handles pad loss/reconnection/reset without fake repeat. The host frame scheduler determines timing; these edge rules are adapter behavior, not a claim about original PS2 frame filtering.
+- `ae3::pollWin32OriginalGamepad(void* hwnd, unsigned index)`: XInput dynamic-library loading; physical XInput face, shoulder, d-pad, sticks and triggers. `ae3::pollWin32OriginalKeyboard(void* hwnd, const OriginalKeyboardBindings&)`: explicitly supplied Windows VK mappings only (defaults unbound); focus restricted. Neither maps physical controls onto fabricated gameplay actions. No Windows device run was available here.
+- `ae3::originalSetPlayerWeaponSelection_512000(name)` faithfully returns original 0/1/2/3 choices; `forwardOriginalGadgetSelection(optional selection, frame, sink)` delivers only an **explicit game-script** selection and never synthesizes an activation. Native Lua script binding already stores a selection separately; Gameplay/Runtime must select source of truth.
+- `ae3::originalSoundRoute(opcode)` accepts only verified original sound commands: `se`, `se_stop`, `add_entity_se`, `kick_entity_se`. `ae3::OriginalSoundEventRuntime::enqueue(original NativeControllerEvent, entityName, optional OriginalAudioDescriptorValues)` retains **the entire original event/payload/time** and optional Assets-provided descriptor. `pump(OriginalSoundEventSink&, limit)` delivers in order, stops on backend rejection and does not emit fake samples; `clearOnOriginalStageTeardown()` clears a departing stage's commands. Original backend/playback is **not implemented**.
+- `ae3::originalSeLuaFields_2191d4(event)` extracts original recognized `name`, `target_name`, `vol`; an absent `vol` uses verified source 1.0f. Non-numeric coercion via `0x3E5BD0` is still unresolved and all raw script parameters remain available.
+
+## Local tests — what actually ran
+
+Host: Debian Linux, `g++ (Debian 14.2.0-19) 14.2.0`, Python 3.13.5. Native C++ boundary tests compiled with **local API-equivalent trimmed header mirrors** of existing shared headers (not the entire real CMake dependency tree); the tested `original_pad_runtime.cpp`, `original_pad_win32.cpp`, `original_audio_runtime.cpp`, `original_input_audio_runtime_test.cpp` were the submitted implementation sources. Ran **and passed** both:
+
+```bash
+g++ -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -I native/include \
+  native/src/original_pad_runtime.cpp native/src/original_pad_win32.cpp \
+  native/src/original_audio_runtime.cpp native/tests/original_input_audio_runtime_test.cpp \
+  -o /tmp/ae3_original_input_audio_test && /tmp/ae3_original_input_audio_test
+
+g++ -std=c++20 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -I native/include \
+  native/src/original_pad_runtime.cpp native/src/original_pad_win32.cpp \
+  native/src/original_audio_runtime.cpp native/tests/original_input_audio_runtime_test.cpp \
+  -o /tmp/ae3_original_input_audio_asan && /tmp/ae3_original_input_audio_asan
+
+python native/tools/verify_original_input_audio_retail.py /private/SCUS_975.01
+```
+
+Result: `ORIGINAL_INPUT_AUDIO_BOUNDARY_TEST_PASSED` in optimized build and ASan+UBSan; `ORIGINAL_INPUT_AUDIO_RETAIL_EVIDENCE_PASSED` from authenticated USA ELF. Tests cover frame transitions/unplug/replug/reset, script gadget mapping, source sound route VAs and order, queue backpressure, raw Lua field preservation, volume-default interpretation, and optional asset descriptor pass-through.
+
+The **additional `controller_timeline_test.cpp` retail default-wait test is committed but not locally run**: it needs the full original Lua 5.0 CMake build. The **Win32/XInput code path, real audio device/decoder, full CMake/CTest, game boot, input-to-original-actor integration and audible in-game source sound have not been compiled/run/verified**. No GitHub Actions were launched.
+
+## Exact integration request — Windows Runtime / Assets / Gameplay
+
+Integrator only: add to `Getchu3Assets` in `native/CMakeLists.txt`:
+
+```cmake
+target_sources(Getchu3Assets PRIVATE
+  src/original_pad_runtime.cpp
+  src/original_pad_win32.cpp
+  src/original_audio_runtime.cpp)
+add_executable(Getchu3OriginalInputAudioTests
+  tests/original_input_audio_runtime_test.cpp)
+target_link_libraries(Getchu3OriginalInputAudioTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalInputAudioSourceBoundaries
+  COMMAND Getchu3OriginalInputAudioTests)
+```
+
+The Win32 adapter loads XInput dynamically and does not require a new import library; `user32` is already linked to the app. Keep original `Getchu3ControllerTimelineTests` to verify corrected wait semantics.
+
+Windows Runtime should sample native gamepad once per native game frame, call `OriginalPadFrameRuntime::advance()`, and **do not feed button edges into the experimental `NativeWalkingController`** as real Ape Escape 3 movement. Gameplay needs to finish the original pad-reader-to-player/gadget call chain to consume the physical state. Use `NativeStageWorld::playerWeaponSelection()` only when the real script executes, not to fabricate an input-driven gadget state.
+
+Original stage controller events should be enqueued to `OriginalSoundEventRuntime` by the integration owner **in addition to** all unrelated events continuing to Gameplay/Stage. Assets team supplies decoded source resource descriptors; playback sink must return false until original asset formats and sound event implementation are verified, rather than playing fake tones or discarding commands. Full engine must restore proper stage teardown and backpressure handling.
+
+## Remaining critical original-code recovery
+
+1. Identify exact original retail pad acquisition, sample layout, event/hold/edge timing and per-game-state processing via authenticated ELF; recover original gameplay gadget selection/activation rather than binding buttons by guesswork.
+2. Trace `0x373264`, `0x3732FC`, `0x3738DC` and `kick_entity_se` to actual source sound manager, resource lookup and renderer; distinguish `se` from BGM and reverb.
+3. Work with Assets to connect **source-backed** `*.mid`/`*.hd`/`*.bd` descriptors to decoded original audio resource objects; separately recover original sequencing, gain, speaker output and track transitions. No original sound assets are published.
+4. After original gameplay callback chain is recovered, integrate native button samples with authentic player action transitions; conduct full Windows device tests (multiple controllers, disconnect/reconnect, menu focus, native frame timing) and real-game audible verification.
+
+**Completion status:** source-backed Lua command boundaries and host transport exist, private ELF audit and isolated C++ tests pass, **not integrated/playable**. No PS2 emulation, fake gameplay/sound, copyrighted game bytes, cross-owner edits or manually dispatched workflows.
