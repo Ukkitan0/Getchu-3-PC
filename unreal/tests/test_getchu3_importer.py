@@ -16,6 +16,7 @@ sys.path.insert(0, str(FILE.parent))
 import getchu3_media
 import getchu3_collision
 import getchu3_stage_catalog
+import getchu3_asset_registry
 sys.modules[spec.name] = module
 spec.loader.exec_module(module)
 
@@ -85,6 +86,7 @@ class ImporterTests(unittest.TestCase):
                  patch.object(module,'recover_original',return_value={"original_vfi_files_extracted":3994,"original_lua_scripts":168}), \
                  patch.object(module,'convert_original_models',return_value={"original_i3d_bin_files":12}), \
                  patch('getchu3_stage_catalog.build_original_stage_catalog',return_value={"stage_count":168,"stage_scripts":168}), \
+                 patch('getchu3_asset_registry.build_asset_registry',return_value={"original_stages":[{}] * 168}), \
                  patch.object(module,'import_glbs_in_editor',return_value=['/Game/Original/Mesh']):
                 outcome=module.run(str(disk),ue=FakeUE(),repo=base,private_root=base/'saved')
                 self.assertFalse(outcome['gameplay_ready'])
