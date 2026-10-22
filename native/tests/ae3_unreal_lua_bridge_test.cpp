@@ -12,6 +12,12 @@ int rejectParams(void*, const char*) { return 0; }
 int acceptEntity(void*, const char*, const char*, const char*,
                  const char*, const char*) { return 1; }
 int acceptParams(void*, const char*) { return 1; }
+int rejectPackedProgress(void*, void*, size_t bytes) { return bytes == 1033 ? 0 : 0; }
+int acceptTestPackedProgress(void*, void* destination, size_t bytes) {
+    if (!destination || bytes != 1033) return 0;
+    std::memset(destination, 0, bytes); // Test fixture only, never a game save.
+    return 1;
+}
 Ae3LuaManagerV2 callbacks() {
     Ae3LuaManagerV2 manager{};
     manager.api_version = AE3_LUA_BRIDGE_API_VERSION;
@@ -73,6 +79,20 @@ int main() {
     assert(runtime != nullptr);
     assert(!ae3_lua_execute_original_chunk(runtime, source,
              sizeof(source) - 1, "area.luc"));
+    ae3_lua_destroy(runtime);
+
+    // Missing original save state must not be replaced by a synthetic save.
+    manager.read_original_player_progress = rejectPackedProgress;
+    runtime = ae3_lua_create(&manager);
+    assert(runtime != nullptr);
+    assert(!ae3_lua_execute_original_chunk(runtime, source,
+             sizeof(source) - 1, "area.luc"));
+    ae3_lua_destroy(runtime);
+    // Only the exact 1033-byte source-backed ABI can be supplied by a manager.
+    manager.read_original_player_progress = acceptTestPackedProgress;
+    runtime = ae3_lua_create(&manager);
+    assert(runtime != nullptr);
+    assert(ae3_lua_reset(runtime));
     ae3_lua_destroy(runtime);
     return 0;
 }
