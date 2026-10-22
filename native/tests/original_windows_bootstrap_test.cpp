@@ -67,6 +67,17 @@ void check(){
     for(std::size_t i=0;i<globals.counters.size();++i)
         if(i!=6)require(globals.counters[i]==3,
                          "original registration updates other counters incorrectly");
+    OriginalNumericGlobals_417c58 numeric;
+    require(originalNumericCtor_417c58(numeric) && numeric.initialized,
+            "Original 0x417C58 fixed finite IEEE constructor failed");
+    require(numeric.first_69e678==UINT64_C(0x40294c583ada5b53) &&
+            numeric.second_69e680==UINT64_C(0x4021e3779b97f4a8),
+            "0x417B50 must store original correctly rounded sqrt products");
+    const auto previous=numeric;
+    require(originalNumericCtor_417c58(numeric) &&
+            numeric.first_69e678==previous.first_69e678 &&
+            numeric.second_69e680==previous.second_69e680,
+            "Original repeated second constructor must preserve constant globals");
     OriginalNativeTerminationRegistry registry;
     require(!registry.register_428b80({}),"original exit callback registry accepted absent function");
     std::vector<int> calls;
