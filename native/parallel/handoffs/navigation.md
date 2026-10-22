@@ -327,3 +327,24 @@ This routes the caller's **actual recovered result of `0x21EF3C`** to the alread
 
 **Verification:** Source and tests were added to `parallel/navigation`; the full native C++ test has **not** been compiled or executed in this environment, and the real `0x21EF3C` callback has not been recovered. This is an integration boundary improvement, not a claim that navrange eligibility or NPC navigation has become accurate or playable. Source runtime and VU0 teams must still supply real executable-verified `0x21EF3C` behavior; no files in those workstreams were changed.
 
+
+## 2026-10-22 continuation: source-frame-exact eligibility boundary and decoder correctness
+
+**Starting branch head:** `8dea744824da0d20e82a71e423e97e9475ed3aa8`.
+
+The original `0x21EF3C` navrange polygon test requires the **original group key, source polygon/centroid, AND resource-header input vectors**. The prior `originalRegisterRangeWithSourcePredicate_4e4060` only forwarded the first three arguments. This continuation adds `OriginalNavStageGroupSession::originalRegisterRangeWithSourceFrame_4e4060(const OriginalNavGroupSource&, OriginalNavrangeSourceEligibility&)` in `original_nav_stage_groups.hpp/.cpp`. It invokes the **existing** recovered `originalNavBuildGroupsSourceAware_4e4060` (`0x4E4060`, `0x4E4110`, `0x4E4118`, `0x4E4120`) and ultimately source group `0x21F6D4` and route query `0x2207D0`. That source-aware callback receives actual `+0x20` and `+0x30` quaternion and `+0x40` half-extent vectors with each keyed polygon. Original native group revision, partial-registration fail-closed state, no-op dedup and stage graph invalidation all remain in one common implementation. This is a handoff interface to a **future genuine recovered 0x21EF3C**; no substitute game predicate or VU0 logic was invented.
+
+Additional original-format C++ fixtures in `native/tests/original_nav_stage_groups_test.cpp` verify both distinct original 32-byte keys choosing different polygon groups with resource-frame forwarded bit-for-bit (header `+0x20`, `+0x34`, `+0x40`), original front-insertion order, original `0x2207D0` keyed route decisions, duplicate key registration retaining group routes, error-induced partial registration invalidation, and explicit reset. **C++ fixture committed but not executed**: the native repo is only available via GitHub connector and the container cannot resolve `github.com`. No original game PCK/ELF bytes were mounted. The fixture eligibility choices are synthetic **tests only**, not an asserted retail navrange algorithm.
+
+In the SHA-pinned original `0x57BCB8` read-only MIPS CFG tool, the `annul_delay_on_not_taken` heuristic incorrectly used `.endswith('l')`, classifying non-likely `BLTZAL`/`BGEZAL` as branch-likely (because their *link* mnemonic ends with `l`). Replaced it with explicit likely-branch mnemonics: `BEQL/B(N)EL/BLEZL/BGTZL/BLTZL/BGEZL/BLTZALL/BGEZALL/BC1FL/BC1TL`. A new synthetic REGIMM test verifies link versus likely variants; **all nine** Python decoder tests actually passed locally:
+
+```
+python -m unittest discover -s /mnt/data/nav_continuation/native/tools -p test_analyze_original_nav_controller_57bcb8.py -v
+# Ran 9 tests in 0.001s: OK
+```
+
+This does **not** mean original `0x57BCB8` has been recovered: actual full body still requires the owner-private SHA-pinned USA `SCUS_975.01`, especially original COP1/COP2 operand and branch control flow. No native game boot, full native CMake/CTest or retail binary parity test was possible.
+
+**Integrator CMake:** no new translation units (the source-aware `original_navrange_group_binding.cpp` was already in the native project; stage groups registration source additions from earlier passes still need integration). Existing `Getchu3OriginalNavStageGroupsTests` registration must be retained.
+
+**Boundaries:** navigation-only source, tests and handoff; no edits to assets/VU0/actor pipeline, master, CMake, GitHub Actions or original game data.

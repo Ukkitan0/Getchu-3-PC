@@ -53,6 +53,22 @@ class RetailControllerDecoderTests(unittest.TestCase):
         self.assertEqual(report['control_transfers'][0]['kind'],'branch')
         self.assertTrue(report['control_transfers'][0]['annul_delay_on_not_taken'])
 
+    def test_branch_and_link_not_misclassified_as_likely(self):
+        # REGIMM: BLTZAL/BGEZAL link $ra but do not annul delay slots.
+        for rt in (16, 17):
+            op=(1 << 26) | (rt << 16) | 1
+            report=analyze_words([op, 0, 0])
+            self.assertFalse(report['control_transfers'][0]['annul_delay_on_not_taken'])
+        # REGIMM: BLTZALL/BGEZALL are the likely variants.
+        for rt in (18, 19):
+            op=(1 << 26) | (rt << 16) | 1
+            report=analyze_words([op, 0, 0])
+            self.assertTrue(report['control_transfers'][0]['annul_delay_on_not_taken'])
+        for rt in (0,1,2,3):
+            op=(1 << 26) | (rt << 16) | 1
+            report=analyze_words([op, 0, 0])
+            self.assertEqual(report['control_transfers'][0]['annul_delay_on_not_taken'], rt in (2,3))
+
     def test_missing_final_delay_slot_rejected(self):
         with self.assertRaises(ValueError):
             analyze_words([0x03e00008])

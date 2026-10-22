@@ -34,6 +34,9 @@ STORES = {0x28:'sb',0x29:'sh',0x2b:'sw',0x39:'swc1',0x3d:'sdc1',0x3e:'sqc2',0x3f
 IMMEDIATES = {0x08:'addi',0x09:'addiu',0x0a:'slti',0x0b:'sltiu',
               0x0c:'andi',0x0d:'ori',0x0e:'xori',0x0f:'lui',
               0x18:'daddi',0x19:'daddiu'}
+BRANCH_LIKELY = frozenset(('beql', 'bnel', 'blezl', 'bgtzl',
+                          'bltzl', 'bgezl', 'bltzall', 'bgezall',
+                          'bc1fl', 'bc1tl'))
 SPECIAL = {0x00:'sll',0x02:'srl',0x03:'sra',0x04:'sllv',0x06:'srlv',
            0x08:'jr',0x09:'jalr',0x0c:'syscall',0x21:'addu',0x23:'subu',
            0x24:'and',0x25:'or',0x26:'xor',0x27:'nor',0x2a:'slt',
@@ -133,7 +136,7 @@ def analyze_words(words: list[int], start: int = START) -> dict:
             branches.append({'site':item.address,'kind':item.flow,
                              'target':item.target,'delay_slot':ins[i+1].address,
                              'fallthrough':f'0x{start+4*(i+2):08x}' if item.flow in ('branch','call','indirect_call') else None,
-                             'annul_delay_on_not_taken':item.flow=='branch' and item.mnemonic.endswith('l')})
+                             'annul_delay_on_not_taken':item.flow=='branch' and item.mnemonic in BRANCH_LIKELY})
     # Keep branch delay slots IN their predecessor block. Splitting at
     # the instruction immediately after the delay slot avoids inventing
     # a C++ state transition from an MIPS jump's delay instruction.

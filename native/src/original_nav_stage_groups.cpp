@@ -41,16 +41,22 @@ void OriginalNavStageGroupSession::originalRebindSourceGraph() {
 }
 OriginalNavGroupBuildResult OriginalNavStageGroupSession::originalRegisterRange_4e4060(
     const OriginalNavGroupSource& range) {
-    return originalRegisterRangeImpl_4e4060(range,nullptr);
+    return originalRegisterRangeImpl_4e4060(range,nullptr,nullptr);
 }
 OriginalNavGroupBuildResult
 OriginalNavStageGroupSession::originalRegisterRangeWithSourcePredicate_4e4060(
     const OriginalNavGroupSource& range, OriginalNavGroupEligibility& eligibility) {
-    return originalRegisterRangeImpl_4e4060(range,&eligibility);
+    return originalRegisterRangeImpl_4e4060(range,&eligibility,nullptr);
+}
+OriginalNavGroupBuildResult
+OriginalNavStageGroupSession::originalRegisterRangeWithSourceFrame_4e4060(
+    const OriginalNavGroupSource& range, OriginalNavrangeSourceEligibility& eligibility) {
+    return originalRegisterRangeImpl_4e4060(range,nullptr,&eligibility);
 }
 OriginalNavGroupBuildResult OriginalNavStageGroupSession::originalRegisterRangeImpl_4e4060(
     const OriginalNavGroupSource& range,
-    OriginalNavGroupEligibility* eligibility) {
+    OriginalNavGroupEligibility* eligibility,
+    OriginalNavrangeSourceEligibility* sourceFrameEligibility) {
     if(!originalCurrentSourceGraph())
         throw std::logic_error("Stale stage graph: rebind navrange before registration");
     if(registrationFailed_)
@@ -63,9 +69,16 @@ OriginalNavGroupBuildResult OriginalNavStageGroupSession::originalRegisterRangeI
     // even if population throws after a partial mutation.
     OriginalNavGroupBuildResult result{};
     try {
-        if(eligibility) {
-            // Delegate to the already recovered original 0x4E4060 ->
-            // 0x21F6D4 registration, preserving actual source callbacks.
+        if(sourceFrameEligibility) {
+            // Original 0x4E4110/+0x20, 0x4E4118/+0x30 and
+            // 0x4E4120/+0x40 are passed to the same recovered
+            // 0x4E4060 -> 0x21F6D4 polygon population path.
+            result=originalNavBuildGroupsSourceAware_4e4060(
+                registry_,range,live.decodedGraph->records,
+                originalNavBytes(live),*sourceFrameEligibility);
+        } else if(eligibility) {
+            // Legacy keyed callback, when original frame was already
+            // captured and bound by a higher-level recovered caller.
             result=originalNavBuildGroups_4e4060(
                 registry_,range,live.decodedGraph->records,
                 originalNavBytes(live),*eligibility);

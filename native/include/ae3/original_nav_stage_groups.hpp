@@ -46,6 +46,13 @@ public:
         const OriginalNavGroupSource& originalRange,
         OriginalNavGroupEligibility& originalEligibility);
 
+    // Complete source-input boundary for a fully recovered 0x21EF3C:
+    // passes original navrange header+0x20/+0x30/+0x40 on every
+    // polygon and keyed owner without inventing its VU0 result.
+    OriginalNavGroupBuildResult originalRegisterRangeWithSourceFrame_4e4060(
+        const OriginalNavGroupSource& originalRange,
+        OriginalNavrangeSourceEligibility& originalEligibility);
+
     // The caller supplies the group key selected by original stage/
     // script control flow. An absent key is an explicit failure, not
     // guessed membership or an invented alternative destination.
@@ -80,7 +87,8 @@ public:
 private:
     OriginalNavGroupBuildResult originalRegisterRangeImpl_4e4060(
         const OriginalNavGroupSource& originalRange,
-        OriginalNavGroupEligibility* originalEligibility);
+        OriginalNavGroupEligibility* originalEligibility,
+        OriginalNavrangeSourceEligibility* sourceFrameEligibility);
     const OriginalNavStageOwners_21ed30& owners_;
     std::size_t slot_;
     std::uint64_t ownerToken_;

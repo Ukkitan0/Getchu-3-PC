@@ -210,6 +210,96 @@ int main(){
     ck(interrupted.originalRegisterRangeWithSourcePredicate_4e4060(
         resource,exactPredicate).sourcePolygonsInserted==4,
        "Exact source registration failed after clearing a partial original callback");
+    // The REAL 0x21EF3C caller receives header +0x20/+0x30/+0x40
+    // in addition to polygon source and keyed navrange identity.
+    // This fixture verifies forwarding, not fake gameplay eligibility.
+    auto sourceFrameHeader=makeRangeHeader();
+    set32(sourceFrameHeader,0x20,0x12345678);
+    set32(sourceFrameHeader,0x34,0x9abcdef0);
+    const OriginalNavGroupSource sourceFrameResource{sourceFrameHeader,alloc};
+    struct FrameAwarePredicate final : OriginalNavrangeSourceEligibility {
+        unsigned calls=0;
+        float call_original_21ef3c(
+            const OriginalNavGroupKey20& key,
+            const OriginalSpatialRecord70&,
+            const OriginalVU0Vec4& centroid,
+            const OriginalNavrangeResourceFrame& frame) override {
+            ++calls;
+            ck(frame.argumentA0_20[0]==0x12345678 &&
+               frame.quaternionA2_30[1]==0x9abcdef0 &&
+               frame.argumentA1_40[0]==std::bit_cast<std::uint32_t>(2.f),
+               "Original navrange source frame was not forwarded");
+            // Test-only selection: two different original 32-byte keys
+            // choose disjoint subsets of one source stage polygon set.
+            const auto x=static_cast<int>(centroid.x);
+            const auto key0=key.originalBytes[0]==std::byte{0x10};
+            const auto key1=key.originalBytes[0]==std::byte{0x20};
+            ck(key0||key1,"Unrecognized source group key");
+            return (key0 && (x==0||x==2)) ||
+                   (key1 && (x==1||x==3)) ? 0.f : 1.f;
+        }
+    } sourceFramePredicate;
+    OriginalNavStageGroupSession frameOwner(owners,1);
+    const auto sourceAware=frameOwner.originalRegisterRangeWithSourceFrame_4e4060(
+        sourceFrameResource,sourceFramePredicate);
+    ck(sourceAware.sourceGroups==2 && sourceAware.ownersCreated==2 &&
+       sourceAware.sourcePolygonsInserted==4 &&
+       sourceFramePredicate.calls==8,
+       "Original 4-argument resource-aware eligibility lost group scan");
+    const auto* even=frameOwner.originalGroups().originalFind_36d6f4(keys[0]);
+    const auto* odd=frameOwner.originalGroups().originalFind_36d6f4(keys[1]);
+    const auto& sourceRecords=owners.originalAt(1).decodedGraph->records;
+    ck(even && odd && even->originalList()->originalOrderedValues()==
+       std::vector<const OriginalSpatialRecord70*>({
+           &sourceRecords[2],&sourceRecords[0]}) &&
+       odd->originalList()->originalOrderedValues()==
+       std::vector<const OriginalSpatialRecord70*>({
+           &sourceRecords[3],&sourceRecords[1]}),
+       "Source-frame original polygon ordering or group keys changed");
+    OriginalNavDispatchRequest frameQuery{};
+    frameQuery.maximumDistance=100;
+    frameQuery.routeMode=0;
+    frameQuery.originalReference={0,0,0,1};
+    frameQuery.sourceSeedIndex=0;
+    const auto evenRoute=frameOwner.originalBoundRouteByKey_2207d0(
+        keys[0],frameQuery);
+    ck(evenRoute.sourceRoute.originalForwardSourcePolygons==
+       std::vector<std::uint32_t>({0,2}),
+       "Original even-key route missing source directed neighbor");
+    frameQuery.sourceSeedIndex=1;
+    const auto oddRoute=frameOwner.originalBoundRouteByKey_2207d0(
+        keys[1],frameQuery);
+    ck(oddRoute.sourceRoute.originalForwardSourcePolygons==
+       std::vector<std::uint32_t>({1,3}),
+       "Original odd-key route missing source directed neighbor");
+    ck(frameOwner.originalRegisterRangeWithSourceFrame_4e4060(
+        sourceFrameResource,sourceFramePredicate).sourcePolygonsInserted==0 &&
+       frameOwner.originalGroupedRouteCurrent(evenRoute) &&
+       frameOwner.originalGroupedRouteCurrent(oddRoute),
+       "Idempotent 4-argument original registration invalidated routes");
+    struct ThrowingFramePredicate final : OriginalNavrangeSourceEligibility {
+        unsigned called=0;
+        float call_original_21ef3c(
+            const OriginalNavGroupKey20&,
+            const OriginalSpatialRecord70&,
+            const OriginalVU0Vec4&,
+            const OriginalNavrangeResourceFrame&) override {
+            if(++called==3) throw std::runtime_error("Unrecovered original VU0 eligibility");
+            return 0.f;
+        }
+    } throwingFrame;
+    OriginalNavStageGroupSession partialFrame(owners,1);
+    bool frameFailed=false;
+    try {
+        (void)partialFrame.originalRegisterRangeWithSourceFrame_4e4060(
+            sourceFrameResource,throwingFrame);
+    } catch(const std::runtime_error&) {frameFailed=true;}
+    ck(frameFailed && partialFrame.originalRegistrationNeedsReset(),
+       "Original source-frame callback failure did not fail closed");
+    partialFrame.originalClear_4e3fec();
+    ck(partialFrame.originalRegisterRangeWithSourceFrame_4e4060(
+        sourceFrameResource,sourceFramePredicate).sourcePolygonsInserted==4,
+       "Original source-frame owner did not recover after reset");
     // Releasing one original slot invalidates only its stage group
     // session and routes. The other slot is independent.
     owners.originalReleaseSlot_21d7d8(0);
