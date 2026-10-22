@@ -2,6 +2,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <span>
 namespace ae3::runtime {
 constexpr std::uint32_t kStaticLiteralSourceVA_3a6cd0=0x720040;
@@ -19,4 +20,6 @@ bool originalStaticCtor_3a6cd0(std::span<const std::byte> originalSource,
     OriginalStaticResourceGlobals_3a6cd0& destination) noexcept;
 std::uint64_t originalStaticSourceFingerprint_3a6cd0(
     std::span<const std::byte> originalSource) noexcept;
+std::array<std::byte,kStaticLiteralSourceBytes_3a6cd0> originalReadStaticSourceFromElf_3a6cd0(
+    const std::filesystem::path& originalUsaElf);
 }
