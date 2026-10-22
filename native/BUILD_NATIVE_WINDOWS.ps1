@@ -159,6 +159,13 @@ try {
         $start = New-Object System.Diagnostics.ProcessStartInfo
         $start.FileName = $exe
         $start.Arguments = '--boot-original "' + $OriginalIso + '"'
+        if ($OriginalElf) {
+            # Pass the already SHA-256 verified original executable as a
+            # private source-file argument. Do not copy or embed the ELF.
+            $start.Arguments += ' "' + $OriginalElf + '"'
+        } else {
+            Write-Warning 'Original source ELF not provided: native constructor 0x3A6CD0 cannot initialize.'
+        }
         $start.WorkingDirectory = Split-Path -Parent $exe
         $start.UseShellExecute = $false
         $start.EnvironmentVariables['AE3_NATIVE_BOOT_LOG'] = $bootLog
