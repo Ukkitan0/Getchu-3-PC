@@ -1,4 +1,7 @@
 #include "windows_runtime_boot_status.hpp"
+#ifdef NDEBUG
+#undef NDEBUG // CTest Release builds must still exercise assertions.
+#endif
 #include <cassert>
 #include <string>
 int main() {
