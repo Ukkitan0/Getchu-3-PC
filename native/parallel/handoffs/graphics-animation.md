@@ -425,3 +425,49 @@ add_test(NAME OriginalRetailRenderPacketArena COMMAND Getchu3OriginalPacketArena
 Documentation: `native/docs/ORIGINAL_RETAIL_MODEL_DRAW_AND_PACKET_ASSEMBLY.md`
 includes all retail details and updated integration recipe. These commits
 do not touch any other category or shared orchestration files.
+
+
+---
+
+## Graphics continuation: retail transformed packet groups + true model source strides
+
+**Source:** private USA SCUS_975.01, SHA-256 `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`. Do not commit game bytes.
+
+### New graphics-owned files
+
+- `native/include/ae3/original_render_transformed_segments.hpp`
+- `native/src/original_render_transformed_segments.cpp`
+- `native/tests/original_render_transformed_segments_test.cpp`
+- `native/include/ae3/original_render_packet_storage.hpp`
+- `native/src/original_render_packet_storage.cpp`
+- `native/tests/original_render_packet_storage_test.cpp`
+- `native/include/ae3/original_render_model_streams.hpp`
+- `native/src/original_render_model_streams.cpp`
+- `native/tests/original_render_model_streams_test.cpp`
+- `native/docs/ORIGINAL_RETAIL_TRANSFORMED_PACKET_RECOVERY.md`
+
+### Original instructions recovered
+
+`0x3AF478` (packet group 0) has original record size **0x20**, 2 arena units/record and packet count/handle offsets +0x10/+0x14. `0x3AF6F8` (group 2) has original record size **0x40**, 4 units, offsets +0x20/+0x24. `0x3AF530` (group 3) has record size **0x30**, 3 units, offsets +0x28/+0x2C. All three require original `0x3BDF08` VU/packed transformations; native source code refuses to process nonempty records without a source-equivalent VU callback. No guessed memcpy substitution.
+
+Inside group 2, the actual scalar original code `0x3AF7AC–0x3AF858` is ported: two original floats at source record +0x34/+0x30, 1.569796... upper clamp, 0.001... lower clamp, 0.95 relative limit, original math `0x41D3D8` called **twice** and `0x41D490` called **once**, output floats written at +0x30/+0x34/+0x38/+0x3C. Native callbacks for those two original math routines remain mandatory; replacing them with arbitrary std::sin/std::cos is not allowed until source equivalence is demonstrated. Fail-closed host-safe validation for nonfinite sources and invalid denominator.
+
+Original `0x3AF8B8` packet reset and `0x3AF8A8` first-quadword copy are now directly implemented rather than abstract callbacks. Original packet header is **0x40 bytes**, zeroes bytes 0..59 (last word +0x3C undefined), saves original 32-bit context token at +0x38 and copies first 16 bytes of descriptor at +0x00. The packet storage uses the previously recovered original rear allocator `0x3B3CE0` and checks actual allocated-header identities.
+
+Original renderer model conversion `0x27C614` consumes **five separate source streams**, begin/end pointer offset pairs [0x04/08,0x14/18,0x24/28,0x34/38,0x44/48] and authentic original per-record strides **[96,96,112,80,128]**. Actor conversion `0x27C520` additionally iterates `+0x54/+0x58` at 128-byte stride. The recovered decoder returns raw original numeric addresses and counts only, never casts PS2 pointers into Windows pointers. Per-record VU/mesh decoding remains incomplete.
+
+The original executable's exact instruction-region SHA-256 fingerprints and the four original group-2 IEEE-754 constants are now pinned in `native/tools/audit_original_graphics.py`. Original source details and all hashes are in `native/docs/ORIGINAL_RETAIL_TRANSFORMED_PACKET_RECOVERY.md`.
+
+### Actual focused testing and integration
+
+A complete local graphics-focused compile-and-run regression was performed, using the source-equivalent staged C++20 files:
+
+- **GCC 14.2** with `-O2 -Wall -Wextra -Wpedantic -Werror`: **17/17 suites pass**.
+- **Clang 17** with `-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Werror`: **17/17 suites pass**, no sanitizer finding. The first global Clang batch timed out and remaining suites were linked/executed in a second call.
+- The test fixtures use synthetic structural bytes only. This does **not** validate original model rendering or actual game boot.
+
+**Windows integrator action only:** append three source files to `Getchu3Assets` and register the corresponding three `_test.cpp` executables in `native/CMakeLists.txt`, along with all prior graphics-owned modules. Source names: `original_render_transformed_segments.cpp`, `original_render_packet_storage.cpp`, `original_render_model_streams.cpp`. All are C++20 and source-owned.
+
+**Next dependency requests:** Assets team resolve actual original source model ranges/asset bytes to native span; VU0 team provide original `0x3BDF08` quadword processing and `0x26C4B0` bounds; Graphics continue recovery of original `0x27C614/0x27C520` record transforms, `0x41D3D8/0x41D490` math and original render material/VU operations. Windows Runtime must connect this to the true model/stage owner and native Direct3D draw.
+
+**Status:** Source-backed model/packet preparation has meaningfully advanced. Full genuine original model and level draw, animation, shaders, and playable native executable remain **unverified**. No shared CMake, app, or other specialists' paths modified; no GitHub Actions dispatched.
