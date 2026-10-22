@@ -1,4 +1,5 @@
 #include "ae3/original_windows_bootstrap.hpp"
+#include "ae3/original_windows_static_resources.hpp"
 #include <array>
 #include <cstdint>
 #include <iostream>
@@ -16,7 +17,7 @@ public:
         return va!=unresolved;
     }
 };
-void check(){
+void check(int argc,char**argv){
     const auto& source=originalConstructorOrder_428ab8();
     require(source.size()==143,"original retail constructor count");
     require(source.front()==0x41a390&&source.back()==0x10526c,
@@ -95,6 +96,28 @@ void check(){
             startup.allocator.counters[0]==1 &&
             startup.numeric.initialized,
             "native original boot must stop at genuine third constructor");
+    if(argc==2){
+        const auto literal=originalReadStaticSourceFromElf_3a6cd0(argv[1]);
+        class OriginalThreeConstructors final : public OriginalNativeConstructorCalls {
+        public:
+            std::span<const std::byte> source;
+            OriginalAllocatorGlobals_41a390 allocator{};
+            OriginalNumericGlobals_417c58 numeric{};
+            OriginalStaticResourceGlobals_3a6cd0 staticResources{};
+            bool callRecoveredConstructor(std::uint32_t va) override {
+                if(va==0x41a390){originalAllocatorCtor_41a390(allocator);return true;}
+                if(va==0x417c58)return originalNumericCtor_417c58(numeric);
+                if(va==0x3a6cd0)return originalStaticCtor_3a6cd0(source,staticResources);
+                return false;
+            }
+        } startupWithOriginalSource;
+        startupWithOriginalSource.source=literal;
+        const auto result=originalRunConstructors_428ab8(startupWithOriginalSource);
+        require(!result.complete && result.executed==3 &&
+                result.firstUnrecovered==0x39fc78 &&
+                startupWithOriginalSource.staticResources.initialized,
+                "original private-source constructor #3 should advance to #4");
+    }
     OriginalNativeTerminationRegistry registry;
     require(!registry.register_428b80({}),"original exit callback registry accepted absent function");
     std::vector<int> calls;
@@ -121,8 +144,8 @@ void check(){
     require(attempts==1&&registry.count()==0,"native teardown resume lost source callbacks");
 }
 }
-int main() {
-    try {check();std::cout<<"ORIGINAL_WINDOWS_BOOTSTRAP_PASSED original_ctors=143 teardown_callbacks=71\n";return 0;}
+int main(int argc,char**argv) {
+    try {check(argc,argv);std::cout<<"ORIGINAL_WINDOWS_BOOTSTRAP_PASSED original_ctors=143 teardown_callbacks=71\n";return 0;}
     catch(const std::exception& e){
         std::cerr<<"ORIGINAL_WINDOWS_BOOTSTRAP_FAILED "<<e.what()<<"\n";return 1;
     }
