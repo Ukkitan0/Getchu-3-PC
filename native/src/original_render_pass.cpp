@@ -14,9 +14,9 @@ void event(OriginalRetailPassTrace& out,OriginalRenderId id,
     out.events.push_back({id,op,va,index,arg,mode});
 }
 bool cull(OriginalRenderId id,const OriginalRetailDrawProviders& p){
-    if(!p.rejectByOriginalBounds)
+    if(!p.originalBoundsVisible)
         throw std::runtime_error("original bounds cull 0x26C9B8 has no implementation");
-    return p.rejectByOriginalBounds(id);
+    return p.originalBoundsVisible(id);
 }
 bool effect(const OriginalRetailDrawObject& actor,const OriginalRetailDrawProviders& p){
     // Retail 0x26B3D0 checks actor +0x110 and if present calls 0x26A974:
@@ -87,7 +87,7 @@ OriginalRetailPassTrace traceOriginalSecondaryRenderPass(
         // Retail 0x280E48-0x280E74: unlike primary, neither group mask
         // nor object byte 0x32 is tested. Both enable bytes gate culling.
         if(!actor.flag30||!actor.flag35)continue;
-        if(cull(actor.id,p))continue;
+        if(!cull(actor.id,p))continue;
         ++out.accepted;
         out.acceptedIds.push_back(actor.id);
         if(actor.flag33)
