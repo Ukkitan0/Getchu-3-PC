@@ -77,8 +77,35 @@ def reconcile(lua_report: dict, elf_report: dict, host_names: list[str]) -> dict
         else:
             row['priority'] = 'informational'
         rows.append(row)
+    # Exact Lua 5.0 GETGLOBAL/LOADK register evidence. These literal
+    # strings are possible actor types/controller opcodes and flag names,
+    # never proof of successful gameplay instantiation or all dynamic types.
+    literal_inputs = lua_report.get('literal_first_arguments', {})
+    if not isinstance(literal_inputs, dict) or any(
+            not isinstance(name, str) or not isinstance(values, list) or
+            any(not isinstance(value, str) for value in values)
+            for name, values in literal_inputs.items()):
+        raise ValueError('invalid original Lua literal argument evidence')
+    stage_inputs = []
+    for source in lua_report['scripts']:
+        stage_literals = source.get('literal_first_arguments', {})
+        stage_inputs.append({
+            'path': source['path'],
+            'observed_actor_class_literals': stage_literals.get('new_ent', []),
+            'observed_controller_command_literals': stage_literals.get('c_ctrl', []),
+            'direct_global_calls': source.get('direct_global_calls', []),
+        })
     return {
         'schema': 'getchu3-original-lua50-binding-evidence/v1',
+        'original_stage_inputs': stage_inputs,
+        'observed_actor_class_literals': sorted(set(literal_inputs.get('new_ent', []))),
+        'observed_controller_command_literals': sorted(set(literal_inputs.get('c_ctrl', []))),
+        'observed_global_flag_key_literals': sorted(set(
+            literal_inputs.get('gw_get_flag', []) + literal_inputs.get('gw_set_flag', []))),
+        'observed_local_flag_key_literals': sorted(set(
+            literal_inputs.get('lw_get_flag', []) + literal_inputs.get('lw_set_flag', []))),
+        'observed_area_flag_key_literals': sorted(set(
+            literal_inputs.get('area_get_flag', []) + literal_inputs.get('area_set_flag', []))),
         'verified_usa_elf_sha256': elf.US_SHA256,
         'retail_scripts_count': len(lua_report['scripts']),
         'original_createbind_names': len(native_names),
