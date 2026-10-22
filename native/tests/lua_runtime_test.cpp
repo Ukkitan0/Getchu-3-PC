@@ -1,4 +1,7 @@
 #include "ae3/lua_stage.hpp"
+extern "C" {
+#include "lua.h"
+}
 #include <cmath>
 #include <iostream>
 #include <stdexcept>
@@ -276,6 +279,86 @@ void nativeBridgeAndCallbackTests(){
     catch(const std::invalid_argument&){failed=true;}
     check(failed,"source-address-less native Lua API was accepted");
 }
+void originalRawLuaValuePreservationTests(){
+    // Original native functions sometimes accept arbitrary Lua values.
+    // The raw binding must preserve an aliased/cyclic table, mixed key
+    // types and a Lua function closure exactly as Lua 5.0 represents them.
+    ae3::NativeStageWorld world;
+    ae3::LuaStage stage(world);
+    int rawInvocations=0;
+    stage.registerOriginalRawFunction("__lua_bridge_raw_test",0x00512004,
+        [&](lua_State* L)->int {
+            ++rawInvocations;
+            check(lua_gettop(L)==2 && lua_istable(L,1) &&
+                  lua_isfunction(L,2),"raw Lua 5.0 stack argument types changed");
+            lua_pushstring(L,"self");
+            lua_gettable(L,1);
+            check(lua_rawequal(L,1,-1)!=0,
+                  "raw Lua table lost self-aliasing and identity");
+            lua_pop(L,1);
+            lua_rawgeti(L,1,1);
+            check(lua_isnumber(L,-1) && lua_tonumber(L,-1)==42,
+                  "raw Lua table lost numeric key");
+            lua_pop(L,1);
+            lua_pushstring(L,"1");
+            lua_gettable(L,1);
+            check(lua_isstring(L,-1) &&
+                  std::string(lua_tostring(L,-1))=="string key",
+                  "raw Lua table numeric/string key collision");
+            lua_pop(L,1);
+            lua_pushvalue(L,1);
+            lua_pushvalue(L,2);
+            return 2;
+        });
+    stage.executeSource(R"LUA(
+        function rawEvent()
+          local tableValue = {[1]=42, ["1"]="string key"}
+          tableValue.self = tableValue
+          local closure = function() return 73 end
+          local t,f = __lua_bridge_raw_test(tableValue,closure)
+          assert(t==tableValue and f==closure and f()==73)
+        end
+    )LUA");
+    check(stage.invokeCallback("rawEvent") && rawInvocations==1,
+          "raw native Lua 5.0 closure/identity callback failed");
+
+    bool typedInvoked=false;
+    stage.registerOriginalFunction("__lua_bridge_typed_test",0x00512008,
+        [&](const auto&)->std::vector<ae3::ScriptValue>{
+            typedInvoked=true;
+            return {};
+        });
+    stage.executeSource(R"LUA(
+        function typedCycle()
+          local a = {}
+          a.self = a
+          __lua_bridge_typed_test(a)
+        end
+        function typedMixed()
+          __lua_bridge_typed_test({[1]=42,["1"]="text"})
+        end
+        function typedFunction()
+          __lua_bridge_typed_test(function() return 1 end)
+        end
+        function typedLargeString()
+          __lua_bridge_typed_test(string.rep("a",70000))
+        end
+    )LUA");
+    for(const char* method:{"typedCycle","typedMixed","typedFunction",
+                            "typedLargeString"}){
+        bool rejected=false;
+        try{stage.invokeCallback(method);}
+        catch(const std::runtime_error& error){
+            rejected=std::string(error.what()).find(
+                "original Lua binding __lua_bridge_typed_test")!=std::string::npos;
+        }
+        check(rejected && !typedInvoked,
+              "unsafe Lua table/function/string was truncated or altered by typed transport");
+    }
+    // Failure of a C++ adapter must not destroy the original Lua VM.
+    check(stage.invokeCallback("rawEvent") && rawInvocations==2,
+          "Lua VM did not recover after rejected binding arguments");
+}
 void errorCases(){
     ae3::NativeStageWorld world;
     ae3::LuaStage lua(world);
@@ -304,6 +387,7 @@ int main(){
         originalProgressBindingTests();
         originalEngineBindingsFromElf();
         nativeBridgeAndCallbackTests();
+        originalRawLuaValuePreservationTests();
         errorCases();
         std::cout<<"NATIVE_REAL_LUA50_EXECUTION_PASSED: "
                     "setupArea,new_ent,lua_param,c_order,c_ctrl,flags,control flow\n";
