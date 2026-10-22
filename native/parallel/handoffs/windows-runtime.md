@@ -7,14 +7,14 @@
 ## Delivered source / commits (2026-10-21 America/New_York)
 
 - `974ea123de02f3cc8bde0489e7e4e51070211a58` — `native/src/app_win32.cpp`: strict `--retail` argument gate; missing/invalid original resource stage exits 3; successfully parsed retail stage still exits **4** instead of reporting a booted original engine. The explicit failure identifies missing original `0x57BCB8` manager setup and Player/Monkey frame dispatch; no substituted GLB workbench fallback. The ordinary asset workbench without `--retail` remains available as non-game diagnostics.
-- `45cc04041db789278b79a0a1d882a8b9dec13662` — `native/BUILD_NATIVE_WINDOWS.ps1`: direct CMake configure/build; optional `-RunTests` CTest, optional `-RunRetail` invoking the existing original retail resource launcher; configurable offline caches for Lua 5.0.3 and cgltf. No GitHub Actions call and no bundled commercial assets.
+- `45cc04041db789278b79a0a1d882a8b9dec13662` — `native/BUILD_NATIVE_WINDOWS.ps1`: direct CMake configure/build; default full CTest (opt out with `-SkipTests`), optional `-RunRetail` invoking the existing original retail resource launcher; configurable offline caches for Lua 5.0.3 and cgltf. No GitHub Actions call and no bundled commercial assets.
 - `fad94b277a949ac559dd4ee6504f92406c0b7764` — `native/BUILD_NATIVE_WINDOWS.bat`: single-command PowerShell entry point forwarding parameters and exit codes.
 
 ## Original engine evidence and first concrete blocker
 
 The current `app_win32.cpp` is a Win32/D3D11 **workbench**. `loadOriginalRetailStage` reads retail ISO `debug/us/stage/<stage>/area.luc`, loads extracted GLB/I3C/PLC data and executes native Lua 5.0 setup, but its `WM_TIMER` frame handler advances debug controller timelines, separate walking code and `NativeActorWorld::tick` for animation. It does **not** construct/run the real Player/Monkey managers nor dispatch the retail engine's frame updates. Report a blocked native boot rather than a successful game boot.
 
-Repository retail opcode audits already pin `0x57BA00` -> `0x57BCB8` (original manager child's genuine initializer, direct original sites `0x57BAE4`/`0x57BB4C`), `0x57B? ` (not asserted) and Monkey lifecycle `0x571904`. The genuine `0x57BCB8` implementation remains unresolved and is delegated to a callback; original startup/main-loop roots are not yet reconstructed. **No new retail instruction source was available to reverse-engineer this turn.** No original executable bytes committed.
+Repository retail opcode audits already pin `0x57BA00` -> `0x57BCB8` (original manager child's genuine initializer, direct original sites `0x57BAE4`/`0x57BB4C`) and Monkey lifecycle `0x571904`. The genuine `0x57BCB8` implementation remains unresolved and is delegated to a callback; original startup/main-loop roots are not yet reconstructed. **No new retail instruction source was available to reverse-engineer this turn.** No original executable bytes committed.
 
 ## Tests / verification — precisely scoped
 
@@ -26,7 +26,7 @@ Repository retail opcode audits already pin `0x57BA00` -> `0x57BCB8` (original m
 
 ## Integration request
 
-The integrator should cherry-pick reviewed commits from `parallel/windows-runtime` onto `native/original-elf-engine-recovery-20261020` only after coordinating, then run `native/BUILD_NATIVE_WINDOWS.bat -RunTests` on owner Windows. Do not interpret exit 4 of `Getchu3Native.exe --retail ...` as game boot; it indicates the specific missing original-engine init/tick path. The existing launcher Python tool treats nonzero as failure. No global `native/CMakeLists.txt` edit was justified by the source-inventory audit; missing build/link errors require an actual Windows compile log.
+The integrator should cherry-pick reviewed commits from `parallel/windows-runtime` onto `native/original-elf-engine-recovery-20261020` only after coordinating, then run `native/BUILD_NATIVE_WINDOWS.bat` on owner Windows (full CTest enabled by default). Do not interpret exit 4 of `Getchu3Native.exe --retail ...` as game boot; it indicates the specific missing original-engine init/tick path. The existing launcher Python tool treats nonzero as failure. No global `native/CMakeLists.txt` edit was justified by the source-inventory audit; missing build/link errors require an actual Windows compile log.
 
 ## Remaining highest-priority real work
 
