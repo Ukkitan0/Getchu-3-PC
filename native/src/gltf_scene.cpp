@@ -59,9 +59,10 @@ void addTriangle(StaticScene& out,Point a,Point b,Point c,
     Point n=cross(diff(b,a),diff(c,a));
     const float length=std::sqrt(dot(n,n));
     if(!std::isfinite(length)||length<1e-8f)return;
-    const Point sunlight={0.35f,0.85f,0.39f};
-    const float irradiance=std::clamp(
-        0.26f+0.74f*std::abs(dot(n,sunlight)/(length*0.99f)),0.26f,1.f);
+    // Preserve exported original asset base-color and vertex-color factors.
+    // The previous hard-coded host sunlight was fabricated, not recovered
+    // from the original ELF; genuine stage lighting belongs to the future
+    // retail-derived material/light runtime and D3D shader pipeline.
     // Flip triangle orientation when changing from glTF RH to D3D LH.
     const std::array<Point,3> coords{a,c,b};
     const std::array<std::array<float,4>,3> colors{ca,cc,cb};
@@ -71,9 +72,9 @@ void addTriangle(StaticScene& out,Point a,Point b,Point c,
         const auto& col=colors[i];
         out.triangles.push_back({
             pos[0],pos[1],pos[2],
-            materialColor(material.data(),0)*materialColor(col.data(),0)*irradiance,
-            materialColor(material.data(),1)*materialColor(col.data(),1)*irradiance,
-            materialColor(material.data(),2)*materialColor(col.data(),2)*irradiance,
+            materialColor(material.data(),0)*materialColor(col.data(),0),
+            materialColor(material.data(),1)*materialColor(col.data(),1),
+            materialColor(material.data(),2)*materialColor(col.data(),2),
             materialColor(material.data(),3)*materialColor(col.data(),3),
             uvs[i][0],uvs[i][1]
         });
