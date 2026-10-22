@@ -207,6 +207,26 @@ void testRetailBytecodeExecution(){
     check(candidate.invokeCallback("sourceOnlyFlag") &&
           candidateWorld.flag("gw","allowed_source_only"),
           "malformed Lua 5.0 chunk left strict retail binding mode enabled");
+    // A valid retail header/conversion but invalid Lua 5.0 instruction
+    // must not activate retail manager strictness: host verification failed
+    // before any authentic bytecode began executing.
+    ae3::NativeStageWorld verifierWorld;
+    ae3::LuaStage verifier(verifierWorld);
+    broken=originalFormat;
+    check(broken.size()>=4,"original Lua 5.0 fixture missing instructions");
+    broken[broken.size()-4]=static_cast<std::uint8_t>(
+        (broken[broken.size()-4]&~0x3Fu)|0x3Fu); // invalid OP 63
+    bool rejectedOpcode=false;
+    try{verifier.executeSource(std::string_view(
+        reinterpret_cast<const char*>(broken.data()),broken.size()));}
+    catch(const std::runtime_error&){rejectedOpcode=true;}
+    check(rejectedOpcode,"Lua 5.0 bytecode verifier accepted impossible opcode");
+    verifier.executeSource(
+        "function afterInvalidOpcode() gw_set_flag('no_runtime_poison') end");
+    check(verifier.invokeCallback("afterInvalidOpcode") &&
+          verifierWorld.flag("gw","no_runtime_poison"),
+          "a Lua 5.0 verifier failure enabled retail manager requirements");
+
     broken=originalFormat;
     broken.resize(originalFormat.size()-2);
     rejected=false;
