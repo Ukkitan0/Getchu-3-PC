@@ -20,7 +20,7 @@ MAX_BYTES=512*1024*1024
 
 
 def export_models(extracted: Path, output: Path, ae3: str = "ae3",
-                  *, max_models=MAX_MODELS, animations=False,
+                  *, max_models=MAX_MODELS, animations=False, textures=None,
                   runner=subprocess.run) -> dict:
     extracted = extracted.resolve(strict=True)
     output = output.resolve()
@@ -61,7 +61,7 @@ def export_models(extracted: Path, output: Path, ae3: str = "ae3",
             continue
         upgrading=expected.exists()
         command=[ae3,"gltf",str(source),"--out",str(destination),
-                 "--textures",str(extracted)]
+                 "--textures",str(textures if textures is not None else extracted)]
         if animations:
             # MIT ae3-sdk matches I3M named tracks to source skeletons
             # only when its independent match/coverage gates both pass.
