@@ -35,6 +35,7 @@ typedef struct Ae3LuaRuntime Ae3LuaRuntime;
  * successfully accepts the operation. Zero rejects the operation and makes
  * original Lua stop with a genuine binding error.
  *
+ * Entity class/name/tag are also supplied as exact original byte hex.
  * Lua field JSON uses a LOSSLESS typed representation:
  *  nil: {"kind":"nil"}
  *  boolean: {"kind":"boolean","value":true}
@@ -50,8 +51,8 @@ typedef struct Ae3LuaManagerV1 {
     uint32_t struct_size;
     void* user;
 
-    int (*create_entity)(void*, const char* original_class,
-                         const char* original_name, const char* original_tag,
+    int (*create_entity)(void*, const char* original_class_hex,
+                         const char* original_name_hex, const char* original_tag_hex,
                          const char* original_fields_json,
                          const char* original_controllers_json);
     int (*submit_parameters)(void*, const char* original_parameters_json);
