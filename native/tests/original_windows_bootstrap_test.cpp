@@ -98,25 +98,31 @@ void check(int argc,char**argv){
             "native original boot must stop at genuine third constructor");
     if(argc==2){
         const auto literal=originalReadStaticSourceFromElf_3a6cd0(argv[1]);
-        class OriginalThreeConstructors final : public OriginalNativeConstructorCalls {
+        const auto fourthLiteral=originalReadFourthSourceFromElf_39fc78(argv[1]);
+        class OriginalFourConstructors final : public OriginalNativeConstructorCalls {
         public:
             std::span<const std::byte> source;
+            std::span<const std::byte> sourceFourth;
             OriginalAllocatorGlobals_41a390 allocator{};
             OriginalNumericGlobals_417c58 numeric{};
             OriginalStaticResourceGlobals_3a6cd0 staticResources{};
+            OriginalFourthGlobals_39fc78 fourthResources{};
             bool callRecoveredConstructor(std::uint32_t va) override {
                 if(va==0x41a390){originalAllocatorCtor_41a390(allocator);return true;}
                 if(va==0x417c58)return originalNumericCtor_417c58(numeric);
                 if(va==0x3a6cd0)return originalStaticCtor_3a6cd0(source,staticResources);
+                if(va==0x39fc78)return originalFourthCtor_39fc78(sourceFourth,fourthResources);
                 return false;
             }
         } startupWithOriginalSource;
         startupWithOriginalSource.source=literal;
+        startupWithOriginalSource.sourceFourth=fourthLiteral;
         const auto result=originalRunConstructors_428ab8(startupWithOriginalSource);
-        require(!result.complete && result.executed==3 &&
-                result.firstUnrecovered==0x39fc78 &&
-                startupWithOriginalSource.staticResources.initialized,
-                "original private-source constructor #3 should advance to #4");
+        require(!result.complete && result.executed==4 &&
+                result.firstUnrecovered==0x391600 &&
+                startupWithOriginalSource.staticResources.initialized &&
+                startupWithOriginalSource.fourthResources.initialized,
+                "four authenticated original constructors should advance exactly to #5");
     }
     OriginalNativeTerminationRegistry registry;
     require(!registry.register_428b80({}),"original exit callback registry accepted absent function");
