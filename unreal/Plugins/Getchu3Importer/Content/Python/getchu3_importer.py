@@ -234,7 +234,7 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         outcome["original_collision_imported"] = False
         outcome["original_lua_bound_to_runtime"] = False
         outcome["phase"] = "asset_import_finished"
-        outcome["status"] = "original_models_textures_streams_imported_gameplay_not_implemented"
+        outcome["status"] = "original_models_textures_streams_i3c_imported_gameplay_not_implemented"
         outcome["remaining"] = [
             "original actor and Lua callback runtime", "player and monkey simulation",
             "camera and animation runtime", "gadgets and capture gameplay",
