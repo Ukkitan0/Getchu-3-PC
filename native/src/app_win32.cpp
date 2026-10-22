@@ -47,6 +47,7 @@ ae3::runtime::BootJournal gBootJournal;
 // Original allocator global BSS state is PROCESS-owned, never stack-local.
 // It must remain alive after the 0x428AB8 constructor dispatcher returns.
 ae3::runtime::OriginalAllocatorGlobals_41a390 gOriginalAllocatorGlobals;
+ae3::runtime::OriginalNumericGlobals_417c58 gOriginalNumericGlobals;
 bool gBootActive=false;
 bool gDeviceReady=false;
 constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104, kSignalTrigger=105, kOpenGlb=106, kOpenLevel=107, kOriginalCollision=108;
