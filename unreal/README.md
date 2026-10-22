@@ -6,7 +6,7 @@ Unreal Engine 5.6 Windows project and Editor plugin. This folder contains **no r
 
 - A dockable **Ape Escape 3 — Unreal Importer** panel under Unreal Editor's Tools menu supports ISO selection and Windows file drag/drop.
 - The importer verifies the original USA ISO size and full SHA-256, calls the genuine existing `native/tools/extract_retail_iso.py` source extraction code, verifies the source executable hash, and uses `native/tools/convert_models_to_glb.py` with the separately installed `ae3` CLI to convert original model and animation resources. Converted GLB models are imported through Unreal Editor AssetTools with a private status report under `Saved/Getchu3Private`.
-- An installed `ae3-sdk` command is required for model conversion. Missing dependencies or unsupported models report failure; no replacement models are invented.
+- An installed `ae3-sdk` command is required for model, TIM2 and EXST conversion. Missing dependencies or unsupported models report failure; no replacement models are invented.
 - Unported stage behavior, Lua bindings, actor AI, sound playback, cameras, UI and save systems are **not supplied**. The **Play Ape Escape 3** control is intentionally disabled. Asset conversion is not game execution.
 - Imported original resources and generated Unreal assets remain owner-private. Never commit those assets or the extracted ISO, ELF or Lua.
 
@@ -18,6 +18,12 @@ Open `Getchu3.uproject`, build the Editor plugin if the editor prompts, then sel
 
 ## Source and validation
 
-Existing native work, integration PRs and all specialist branches remain unchanged. Import status is in `Saved/Getchu3Private/Getchu3ImportStatus.json`. Offline unit tests: `python -m unittest discover -s unreal/tests -v`. These tests do not prove Unreal Editor compilation, retail model coverage, visual parity, or game playability. A genuine Windows editor + owner ISO run is required before presenting this as an end-user importer.
+Existing native work, integration PRs and all specialist branches remain unchanged. Import status is in `Saved/Getchu3Private/Getchu3ImportStatus.json`. Offline unit tests: `python -m unittest discover -s unreal/tests -v`. A focused local Python media regression of seven cases was run against the equivalent committed conversion logic; this does not substitute for a Windows editor run. These tests do not prove Unreal Editor compilation, retail model coverage, visual parity, or game playability. A genuine Windows editor + owner ISO run is required before presenting this as an end-user importer.
 
 **Do not offer a game executable from this source until original gameplay, rendering, input, audio, menus and progression have been ported and end-to-end verified.**
+
+## Original engine integrations still missing
+
+The current source branch converts assets from the verified USA disc. It does **not** register original Lua game callbacks with Unreal, place actual stage game objects, build original I3C collision actors, run original Player/Monkey updates, or reproduce gadget/capture and stage progression. Stream WAVs are source conversions, not the original interactive sound mix. The original game is not playable. A successful asset import must never flip `gameplay_ready` to true.
+
+No model/animation correctness or full source corpus acceptance has yet been verified inside Unreal 5.6. The original file and all generated binary media remain in private ignored workspace.
