@@ -78,6 +78,17 @@ int CallbackReadSurvival(void* Context, int* Value) {
     return 1;
 }
 
+int CallbackReadOriginalProgress(void* Context, void* Destination, size_t ExactBytes) {
+    auto* Manager = OriginalManager(Context);
+    if (!Manager || !Destination || ExactBytes != 1033) return 0;
+    TArray<uint8> OriginalPackedBytes;
+    if (!Manager->ReadOriginalPlayerProgress(OriginalPackedBytes) ||
+        OriginalPackedBytes.Num() != ExactBytes)
+        return 0;
+    FMemory::Memcpy(Destination, OriginalPackedBytes.GetData(), ExactBytes);
+    return 1;
+}
+
 int CallbackSelectWeapon(void* Context, int Selection) {
     auto* Manager = OriginalManager(Context);
     return Manager && Manager->SelectOriginalPlayerWeapon(Selection) ? 1 : 0;
@@ -163,6 +174,7 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
     Bindings.read_stage_int = &CallbackReadStageInt;
     Bindings.read_survival = &CallbackReadSurvival;
     Bindings.select_weapon = &CallbackSelectWeapon;
+    Bindings.read_original_player_progress = &CallbackReadOriginalProgress;
 
     NativeState = Create(&Bindings);
     if (!NativeState) {
