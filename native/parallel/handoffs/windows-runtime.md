@@ -9,6 +9,7 @@
 - `974ea123de02f3cc8bde0489e7e4e51070211a58` — `native/src/app_win32.cpp`: strict `--retail` argument gate; missing/invalid original resource stage exits 3; successfully parsed retail stage still exits **4** instead of reporting a booted original engine. The explicit failure identifies missing original `0x57BCB8` manager setup and Player/Monkey frame dispatch; no substituted GLB workbench fallback. The ordinary asset workbench without `--retail` remains available as non-game diagnostics.
 - `45cc04041db789278b79a0a1d882a8b9dec13662` — `native/BUILD_NATIVE_WINDOWS.ps1`: direct CMake configure/build; default full CTest (opt out with `-SkipTests`), optional `-RunRetail` invoking the existing original retail resource launcher; configurable offline caches for Lua 5.0.3 and cgltf. No GitHub Actions call and no bundled commercial assets.
 - `fad94b277a949ac559dd4ee6504f92406c0b7764` — `native/BUILD_NATIVE_WINDOWS.bat`: single-command PowerShell entry point forwarding parameters and exit codes.
+- `88c892741d7c892663270abe5aa0aa0a233b6426` — `native/BUILD_NATIVE_WINDOWS.ps1`: test all registered native components by default; `-SkipTests` is the explicit exception.
 
 ## Original engine evidence and first concrete blocker
 
