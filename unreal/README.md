@@ -27,3 +27,16 @@ Existing native work, integration PRs and all specialist branches remain unchang
 The current source branch converts a subset of authentic assets from the verified USA disc; it is not a full engine importer. It does **not** register original Lua game callbacks with Unreal, place actual stage game objects, implement original actor-specific collision response, run original Player/Monkey updates, or reproduce gadget/capture and stage progression. Stream WAVs are source conversions, not the original interactive sound mix. The original game is not playable. A successful asset import must never flip `gameplay_ready` to true.
 
 No model/animation correctness or full source corpus acceptance has yet been verified inside Unreal 5.6. The original file and all generated binary media remain in private ignored workspace.
+
+## Original stage and Unreal source-asset registries
+
+The importer now writes two additional owner-private reports for every verified original ISO import:
+
+- `Saved/Getchu3Private/<import-id>/getchu3_original_stages.json` records genuine `area.luc` identities and SHA-256 values, the source-proven PLC translation fields (raw original XYZ), and unambiguous model-name candidates. Original rotation/scale, dynamic actor creation and source coordinate-conversion semantics are **not** represented as finished.
+- `Saved/Getchu3Private/<import-id>/getchu3_source_asset_registry.json` maps **each original converted model, texture, EXST stream and I3C mesh** to its actual imported Unreal UObject paths. Stage PLC links are resolved only when the original association is unambiguous and the matching model was imported. No synthetic actors or scenes are created. Unknown placements stay unresolved and remain explicit.
+
+Both outputs remain private; neither is bundled with a game or stored in Git. Failed ISO hash validation now records the current error rather than displaying a previous successful import. Unreal Editor import operations display a cancellable progress dialog; cancellation leaves the attempt **blocked** and may leave already-imported assets, never a false success. The editor's **Play Ape Escape 3** button remains disabled.
+
+## Validation boundary
+
+The source tree includes unit/regression tests for PLC record parsing, original Lua source inventory, source-to-Unreal object identity, path collisions, cancellation, and SHA validation. They should be run on a clean checkout with `python -m unittest discover -s unreal/tests -v`. The newest stage/registry changes have **not** been executed in Unreal or in the owner-ISO pipeline here. The project does not yet compile into a verified playable Windows game.
