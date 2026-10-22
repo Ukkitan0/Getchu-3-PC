@@ -133,3 +133,26 @@ On the new source-derived static constructor path, **first missing original cons
 
 ## Continuation: next original initializer
 The second native constructor (0x417C58) is now implemented using source-derived IEEE-754 constants. The next constructor is 0x3A6CD0. Its data-copy semantics were audited locally against the private original executable, but its implementation is not yet integrated into the runtime application.
+
+## Continuation — recovered native second constructor, third source record inventory
+
+**New verified native runtime (committed):**
+- `839bd5795b1cdb228fbca2f89a74e78354ca457b` and `56e2818e966c3e57ba22aa6e741248f6bd1a8ec8`: source-ordered native fixed-constant `originalNumericCtor_417c58` and persistent original globals `0x69E678` and `0x69E680`. Exact source callchain: `0x417C58 -> 0x417B50`, `0x41D6B8 -> 0x41EFD0` for double square root, and `0x4240D8` for float64 multiplication. Real source IEEE inputs `10,16,8`; host native result bits `0x40294C583ADA5B53` and `0x4021E3779B97F4A8`. The implementation refuses non-IEEE hosts or incorrectly rounded fixed outputs. This is **NOT** a generic source soft-float/sqrt replacement.
+- `3e16441826d78de1080f94e0b5b10b86a203078b`, `bf31657bec257c1d30459b31577390d5ec6fd93e`: exact value and original constructor-boundary regressions. Verified actual native completed constructor count is **2 of 143**, first still-untranslated constructor **`0x3A6CD0`**.
+- `d5d7cbb6d7176713d01805e06bbd2894eb84`, `8a83002d0bf5cabcf414a12441c171eb0865dd3e`: process-owned native numeric globals and actual `--boot-original` dispatcher binding for the second original constructor. No game stand-in.
+- `f3796df0cafa74edb706e065f0ee5d8f52d541b9`: extended private USA ELF script audit across original second-constructor opcode ranges and 10 jump/call targets. `14e50ac855ae838c80bc5c717c100f6c7f7295a2`: original third constructor source block/literal region fingerprint check, not a claim of completed integration.
+
+**New source provenance checked directly in the owner's previously supplied private `SCUS_975.01`:**
+- Original second constructor `0x417C58` original code SHA-256 `035a60ed83dc1ceb0893ae3d0ab2949656327f914812efeafe76a7dec6fefd4e`; `0x417B50..0x417C57` SHA-256 `ad45d81525c06e107fa271f6b8f51e678f64e81c25dc267dcad5451e4abbb800`. Square-root trampoline `0x41D6B8` and multiply implementation `0x4240D8` were SHA checked. Four source hardcoded argument sites and 10 direct source edges matched. Original elf overall SHA-256 matched repository.
+- Third constructor `0x3A6CD0` tail-calls source `0x3A6B34`. That original function's 412-byte opcode region SHA-256 is `a7ea32a26e18a2f6baf7e5341a5869caf968c5673a8818cd585473555005b68a`. Original immutable data region VA `0x720040..0x72010F`, 208 bytes, SHA-256 `409f7ce3cbaeb6670123aa8e26359e36f118ec8d784f405ac78f0657ffd4e446`.
+- Original third source performs four native-compatible 16-byte literal copies into original global VAs `0x745F40..0x745F7F` and nine 16-byte literal/type-word records into `0x69A080..0x69A19F`. Defined original type flags `1,1,1,2,1,1,4,3,2`. Original stack SQ also copies unspecified padding; native representation must NOT invent padding meaning. Original data is not embedded in any Git source or test.
+
+**Actual local tests in this continuation (not Windows application):**
+- Debian GNU C++20 optimized `-O2 -Wall -Wextra -Wpedantic -Werror -ffp-contract=off -fno-fast-math`: second-constructor fixed IEEE result and real 2-of-143 dispatch boundary test **PASS**.
+- Same source-equivalent tests under `-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer` **PASS** with no reported sanitizer findings.
+- Private owner original second ctor SHA / 10 direct edge / constant source verification: **PASS**. Private third literal SHA / original opcode-region SHA / mapped LQ/SQ addresses checked: **PASS**.
+- Separate isolated CMake Release bootstrap fixture and original ELF audit: **2/2 CTest passed**. Not the actual combined Windows application or full CMake.
+- The third original record initializer has been drafted and optimized+ASan/UBSan tested on private authentic literal data (**13 literal quadwords, nine typed records; PASS**) in a **separate local unmerged source package**. Those C++ source files could not be added to GitHub during this turn; only the corresponding authentic ELF evidence audit is committed. The private 208-byte resource test input is NOT in this source package or GitHub. Integrator must review and stage the source package before claiming third constructor compiled in the app.
+- No full MSVC compile, no real Windows execution, no gameplay boot, no manual Actions, no external emulator or fabricated game level.
+
+**Next integration:** copy/review local original `0x3A6CD0` typed-resource source module into the native worktree, add CMake source/tests and wire an authenticated owner-private ELF literal reader (or ISO-root ELF lookup) into genuine original startup **without** embedding game bytes. After constructor 3, the next unresolved source constructor is `0x39FC78` (tail-call `0x39FA10` with nontrivial original packed-data writes). Keep `--boot-original` fail-closed until native subsystem ordering and Player/Monkey actual frame update are complete.
