@@ -44,6 +44,7 @@ private:
     // Keep Unreal's STL ABI/allocator and the native Lua allocator separate.
     void* NativeLibrary = nullptr;
     void* NativeState = nullptr;
+    bool bOriginalSetupOpen = false;
     UPROPERTY(Transient)
     TObjectPtr<UGetchu3OriginalManagerProvider> Manager = nullptr;
     FString LastError;
