@@ -61,6 +61,47 @@ class ImporterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             with self.assertRaisesRegex(RuntimeError, 'No converted'):
                 module.import_glbs_in_editor(Path(d), FakeUE())
+    def test_failed_hash_preflight_replaces_stale_success_status(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            disc = base / 'not_original.iso'
+            disc.write_bytes(b'bad')
+            saved = base / 'Saved'
+            saved.mkdir()
+            report_file = saved / 'Getchu3ImportStatus.json'
+            report_file.write_text(json.dumps({'status': 'old_success', 'gameplay_ready': True}))
+            with self.assertRaisesRegex(ValueError, 'size'):
+                module.run(str(disc), ue=FakeUE(), repo=base, private_root=saved)
+            status = json.loads(report_file.read_text(encoding='utf-8'))
+            self.assertEqual(status['status'], 'blocked')
+            self.assertEqual(status['phase'], 'verify_original_disc')
+            self.assertFalse(status['gameplay_ready'])
+
+    def test_editor_progress_cancel_fails_instead_of_partial_success(self):
+        class CancelTask:
+            def __init__(self, count, message):
+                self.count = count
+            def __enter__(self):
+                return self
+            def __exit__(self, exc_type, exc, tb):
+                return False
+            def make_dialog(self, cancellable):
+                pass
+            def should_cancel(self):
+                return True
+            def enter_progress_frame(self, *args):
+                raise AssertionError('Must not import after cancellation')
+
+        class CancelUE(FakeUE):
+            ScopedSlowTask = CancelTask
+
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            (base / "stage").mkdir()
+            (base / "stage" / "original.glb").write_bytes(b"fake header")
+            with self.assertRaisesRegex(InterruptedError, 'cancelled'):
+                module.import_glbs_in_editor(base, CancelUE())
+
     def test_incomplete_gameplay_never_marked_ready(self):
         with tempfile.TemporaryDirectory() as d:
             base=Path(d)
