@@ -8,6 +8,7 @@
 #include "ae3/i3c_collision.hpp"
 #include "ae3/native_skinning.hpp"
 #include "ae3/actor_world.hpp"
+#include "windows_runtime_boot_status.hpp"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -39,6 +40,11 @@ using namespace DirectX;
 namespace fs = std::filesystem;
 
 namespace {
+using ae3::runtime::BootCheckpoint;
+using ae3::runtime::BootResult;
+ae3::runtime::BootJournal gBootJournal;
+bool gBootActive=false;
+bool gDeviceReady=false;
 constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104, kSignalTrigger=105, kOpenGlb=106, kOpenLevel=107, kOriginalCollision=108;
 HWND gMain=nullptr,gList=nullptr,gView=nullptr,gInfo=nullptr;
 std::unique_ptr<ae3::Archive> gArchive;
@@ -464,6 +470,24 @@ std::wstring wide(const std::string& s) {
     out.pop_back();return out;
 }
 void status(const std::wstring& message){gProgress=message;if(gInfo)SetWindowTextW(gInfo,message.c_str());}
+// Machine-readable evidence from genuine owned-game sources, not a game boot.
+// Only stores checkpoint descriptions; never copies commercial game bytes.
+void bootCheckpoint(BootCheckpoint checkpoint,BootResult result,const std::string& detail){
+    if(!gBootActive || !gBootJournal.record(checkpoint,result,detail))return;
+    const auto& last=gBootJournal.observations().back();
+    std::string event="AE3_NATIVE_BOOT|"+std::string(ae3::runtime::BootJournal::label(last.checkpoint));
+    event+=last.result==BootResult::passed?"|PASS|":"|BLOCKED|";
+    event+=last.detail;
+    event+='\n';
+    OutputDebugStringA(event.c_str());
+    wchar_t temp[MAX_PATH]={};
+    const DWORD n=GetTempPathW(MAX_PATH,temp);
+    if(n>0 && n<MAX_PATH){
+        std::ofstream log(fs::path(temp)/L"Getchu3NativeBoot.log",
+                          std::ios::binary|std::ios::trunc);
+        if(log)log<<gBootJournal.trace();
+    }
+}
 void loadArchive(const fs::path& path){
     try{
         auto mounted=std::make_unique<ae3::Archive>(path);
@@ -804,6 +828,7 @@ bool loadOriginalRetailStage(const fs::path& originalIso,
                              const fs::path& originalPlc,
                              const fs::path& originalCollision,
                              const std::string& originalSpawnTag){
+    BootCheckpoint phase=BootCheckpoint::original_disc;
     try{
         if(originalStage.empty()||originalStage.size()>70 ||
            !std::all_of(originalStage.begin(),originalStage.end(),
@@ -811,17 +836,13 @@ bool loadOriginalRetailStage(const fs::path& originalIso,
             throw std::runtime_error("invalid original AE3 retail stage identifier");
         if(!fs::is_regular_file(originalIso))
             throw std::runtime_error("owned original Ape Escape 3 ISO not present");
-        if(!fs::is_directory(localGlb))
-            throw std::runtime_error("original I3D models have not been exported to a real stage GLB directory");
-        if(!originalPlc.empty() && !fs::is_regular_file(originalPlc))
-            throw std::runtime_error("original stage placeholder.plc missing");
-        // The owned-stage launcher passes the ORIGINAL stage collision directory
-        // so every same-stage I3D_I3C member is loaded, not a single guessed file.
-        if(!originalCollision.empty() && !fs::is_regular_file(originalCollision) &&
-           !fs::is_directory(originalCollision))
-            throw std::runtime_error("original stage I3D_I3C collision file/directory missing");
-
+        // Check the owned original game's disc/script BEFORE externally
+        // converted GLBs: source and renderer bootstrap blockers are distinct.
         ae3::Archive game(originalIso);
+        bootCheckpoint(BootCheckpoint::original_disc,BootResult::passed,
+                       "Native host original ISO/VFI archive indexed");
+
+        phase=BootCheckpoint::original_stage_lua;
         const std::string name="debug/us/stage/"+originalStage+"/area.luc";
         const auto found=game.find(name);
         if(!found)throw std::runtime_error("original game disc has no stage "+name);
@@ -830,17 +851,40 @@ bool loadOriginalRetailStage(const fs::path& originalIso,
            raw[0]!=27 || raw[1]!='L' || raw[2]!='u' ||
            raw[3]!='a' || raw[4]!=0x50)
             throw std::runtime_error("stage is not original retail Lua 5.0 bytecode");
+        bootCheckpoint(BootCheckpoint::original_stage_lua,BootResult::passed,
+                       "Original retail area.luc read and Lua 5.0 header verified");
 
+        phase=BootCheckpoint::original_stage_geometry;
+        if(!fs::is_directory(localGlb))
+            throw std::runtime_error("original I3D models have not been exported to a real stage GLB directory");
+        if(!originalPlc.empty() && !fs::is_regular_file(originalPlc))
+            throw std::runtime_error("original stage placeholder.plc missing");
         gPrivateOriginalPlc=originalPlc;
         if(!loadNativeLevel(localGlb))
             throw std::runtime_error("original stage GLB geometry failed: "+std::string(gProgress.begin(),gProgress.end()));
-        if(!originalCollision.empty() && !loadOriginalCollision(originalCollision))
-            throw std::runtime_error("original stage I3C collision failed: "+std::string(gProgress.begin(),gProgress.end()));
+        bootCheckpoint(BootCheckpoint::original_stage_geometry,BootResult::passed,
+                       "Exported original meshes loaded; this is NOT the retail renderer");
+
+        phase=BootCheckpoint::original_collision;
+        if(!originalCollision.empty() && !fs::is_regular_file(originalCollision) &&
+           !fs::is_directory(originalCollision))
+            throw std::runtime_error("original stage I3D_I3C collision file/directory missing");
+        if(!originalCollision.empty()){
+            if(!loadOriginalCollision(originalCollision))
+                throw std::runtime_error("original stage I3C collision failed: "+std::string(gProgress.begin(),gProgress.end()));
+            bootCheckpoint(BootCheckpoint::original_collision,BootResult::passed,
+                           "Original I3C collision data decoded; retail physics scheduler not recovered");
+        }
+
+        phase=BootCheckpoint::original_lua_setup;
         if(!loadNativeStageBytes(std::string(raw.begin(),raw.end()),name,originalSpawnTag))
             throw std::runtime_error("original area.luc setup failed: "+std::string(gProgress.begin(),gProgress.end()));
-        // Only successful resource loading and Lua setup: NOT gameplay verification.
+        bootCheckpoint(BootCheckpoint::original_lua_setup,BootResult::passed,
+                       "Original area.luc setupArea ran on host-native Lua 5.0");
+        // Script and stage assets only: NOT gameplay initialization.
         return true;
     }catch(const std::exception& e){
+        bootCheckpoint(phase,BootResult::blocked,e.what());
         status(L"ACTUAL RETAIL GAME STAGE BLOCKED: "+wide(e.what()));
         return false;
     }
@@ -934,8 +978,17 @@ LRESULT CALLBACK wndProc(HWND wnd,UINT msg,WPARAM w,LPARAM l){
             0,0,1,1,wnd,nullptr,inst,nullptr);
         gInfo=CreateWindowW(L"STATIC",L"Native Windows engine workbench. Debug grid is not the game.",
             WS_CHILD|WS_VISIBLE|SS_LEFT,0,0,1,1,wnd,reinterpret_cast<HMENU>(INT_PTR(kStatus)),inst,nullptr);
-        if(!gRenderer.init(gView))status(L"Native D3D11 hardware device initialization failed.");
-        SetTimer(wnd,1,16,nullptr);
+        gDeviceReady=gRenderer.init(gView);
+        if(!gDeviceReady){
+            status(L"Native D3D11 hardware device initialization failed.");
+            OutputDebugStringA("AE3_NATIVE_BOOT|D3D11_DEVICE|BLOCKED|Host D3D11 initialization failed\n");
+            return -1; // Abort Win32 window creation on actual device failure.
+        }
+        if(!SetTimer(wnd,1,16,nullptr)){
+            status(L"Native Win32 frame timer initialization failed.");
+            OutputDebugStringA("AE3_NATIVE_BOOT|WINDOWS_TIMER|BLOCKED|SetTimer failed\n");
+            return -1;
+        }
         return 0;
     }
     case WM_SIZE: if(gView)layout(wnd);return 0;
@@ -1158,7 +1211,14 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
     if(argv){
         if(argc>=2 && std::wstring(argv[1])==L"--retail"){
             retailLaunchRequested=true;
+            gBootActive=true;
+            gBootJournal.reset();
+            bootCheckpoint(BootCheckpoint::windows_window,BootResult::passed,"Win32 host window created");
+            bootCheckpoint(BootCheckpoint::graphics_device,BootResult::passed,
+                           "Host D3D11 device initialized");
             if(argc<5){
+                bootCheckpoint(BootCheckpoint::original_disc,BootResult::blocked,
+                               "Missing original ISO, stage name or GLB folder argument");
                 status(L"RETAIL BOOT BLOCKED: expected --retail <owned ISO> <stage ID> <original-stage GLB directory> [original PLC] [original I3C] [spawn tag]");
                 retailLaunchFailed=true;
             }else{
@@ -1200,6 +1260,15 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
         return 3;
     }
     if(retailLaunchRequested){
+        if(!gStageActors || gStageActors->actors().empty()){
+            bootCheckpoint(BootCheckpoint::original_actors,BootResult::blocked,
+                           "No complete original actor world; parsed Lua descriptors cannot run game AI");
+        }else{
+            bootCheckpoint(BootCheckpoint::original_actors,BootResult::passed,
+                           "Host Lua model actors bound; original AI and constructors unverified");
+            bootCheckpoint(BootCheckpoint::original_engine_loop,BootResult::blocked,
+                           "Original 0x57BCB8 manager init and Player/Monkey update dispatcher missing");
+        }
         // This branch only proved original resource parsing and Lua setup.
         // It has NOT constructed the original Player/Monkey managers nor called
         // the original retail game engine's initialization/frame dispatcher.
