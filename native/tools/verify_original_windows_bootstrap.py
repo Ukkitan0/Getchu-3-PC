@@ -12,6 +12,9 @@ from pathlib import Path
 EXPECTED_SHA = "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63"
 CTOR_BODY_SHA = "01e600ce72db3b1290949e9f8f772559faa937eb8b034f4e6bae5688115d7b1b"
 CTOR_TABLE_SHA = "a3c5739dcec7d153ee3e72a04b14046ce4e9366d68537258cab6bd168eac99ba"
+FIRST_CTOR_SHA = "75a521c6fd605abeba2de1d1b6880f78ec824dbfe3e4e89a4db567ac669437d9"
+FIRST_CTOR_DEP_SHA = "07cac5712617a817c73f96b849d99560b9bdfefd2b02f23ea94360020694a809"
+SOURCE_NOOP_SHA = "6d64edf91449c1b17746c1ef18afa2eb25c70bdf1322ab3df5a2630993b7e2f1"
 
 class OriginalElf:
     def __init__(self, raw):
@@ -43,6 +46,10 @@ def verify(path):
         raise ValueError('Original 0x428AB8 constructor dispatch opcode mismatch')
     if sha(0x62e660,0x240)!=CTOR_TABLE_SHA:
         raise ValueError('Original 143-entry static constructor table mismatch')
+    if sha(0x41a390,0x1c)!=FIRST_CTOR_SHA or sha(0x41a088,0x304)!=FIRST_CTOR_DEP_SHA:
+        raise ValueError('Native original first constructor/12-counter initializer opcode mismatch')
+    if sha(0x4173b0,0x8)!=SOURCE_NOOP_SHA:
+        raise ValueError('Source-native 0x4173B0 has ceased to be an actual no-op')
     if elf.word(0x62e660)!=0xffffffff or elf.word(0x62e8a0)!=0:
         raise ValueError('Original constructor table sentinel/boundary mismatch')
     functions=[elf.word(0x62e89c-i*4) for i in range(143)]
@@ -68,6 +75,9 @@ def verify(path):
             'first_constructor':f'{functions[0]:#x}',
             'last_constructor':f'{functions[-1]:#x}',
             'verified_startup_calls':len(edges),
+            'native_first_original_constructor':"0x41a390",
+            'first_original_constructor_global_counters':12,
+            'next_unrecovered_original_constructor':"0x417c58",
             'original_callbacks_not_implemented':True,
             'original_windows_gameplay_booted':False}
 
