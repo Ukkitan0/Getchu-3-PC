@@ -50,6 +50,21 @@ static void verify(const std::array<std::array<std::byte,16>,3>& points){
                std::bit_cast<std::uint32_t>(diffController),"controller displacement + Q");
             ck(actual.originalScoreVectorA.x==0 && actual.originalScoreVectorB.x==0,
                "Original PCPYUD must clear VF.x");
+            const float wa=lane(points[0],3)*weights.originalWeightedCoefficients[0];
+            const float wb=lane(points[1],3)*weights.originalWeightedCoefficients[1];
+            const float wc=lane(points[2],3)*weights.originalWeightedCoefficients[2];
+            const float candidateW=(wa+wb)+wc;
+            ck(std::uint32_t(actual.originalPackedTargetHigh64>>32)==
+               std::bit_cast<std::uint32_t>(candidateW),
+               "Original PCPYUD winner W lane must retain first/repeated VMULx order");
+            ck(std::bit_cast<std::uint32_t>(actual.originalScoreVectorA.w)==
+               std::bit_cast<std::uint32_t>((candidateW-lane(owner,3))*q),
+               "Original source owner W displacement or VMULq order differs");
+            ck(std::bit_cast<std::uint32_t>(actual.originalScoreVectorB.w)==
+               std::bit_cast<std::uint32_t>((lane(controller,3)-candidateW)*q),
+               "Original source controller W displacement or VMULq order differs");
+            ck(actual.originalScoreVectorA.y==0 && actual.originalScoreVectorB.y==0,
+               "Original PCPYUD must clear VF.y");
         }
 }
 int main(int argc,char**argv){
