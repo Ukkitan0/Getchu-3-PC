@@ -3,6 +3,8 @@
 #include "ae3/original_actor_target_dispatch.hpp"
 #include "ae3/original_vu0_geometry.hpp"
 #include "ae3/original_actor_random_triangle.hpp"
+#include "ae3/original_polygon_raycast.hpp"
+#include <optional>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -39,7 +41,15 @@ public:
         std::array<std::byte,16> originalControllerVector20,
         bool originalControllerVariant30,
         OriginalActorUntranslatedMath_57c7cc& unresolvedMath,
-        OriginalGameRandom_36f3c0* originalSharedRandom=nullptr);
+        OriginalGameRandom_36f3c0* originalSharedRandom=nullptr,
+        std::span<const OriginalPolygonLinks_21bd3c> originalSourceAdjacency={});
+
+    // Original 0x57C7CC $a1 and controller+0x40. Keep these distinct
+    // from +0x20, which is used only by 0x21B788 eligibility.
+    // Caller refreshes source position each original actor update.
+    void setOriginalProjectionOperands_57c7cc(
+        const OriginalVU0Vec4& originalIncomingA1,
+        const OriginalVU0Vec4& originalControllerVector40);
 
     OriginalActorRouteFollowResult_57c7cc advance(
         OriginalActorRouteFollowerState_57c7cc& originalActorRoute);
@@ -68,6 +78,10 @@ private:
     bool variant30_=false;
     OriginalActorUntranslatedMath_57c7cc& math_;
     OriginalGameRandom_36f3c0* originalSharedRandom_=nullptr;
+    std::span<const OriginalPolygonLinks_21bd3c> originalSourceAdjacency_;
+    std::optional<OriginalVU0Vec4> originalIncomingRayA1_;
+    std::optional<OriginalVU0Vec4> originalController40_;
+    std::optional<OriginalVU0Vec4> latestTargetRayA2_;
     std::vector<OriginalActorTargetResult_57c8ec> targetResults_;
 };
 } // namespace ae3

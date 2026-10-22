@@ -1,4 +1,5 @@
 #include "ae3/original_actor_navigation_pipeline.hpp"
+#include <bit>
 #include <cstring>
 #include <stdexcept>
 
@@ -8,13 +9,22 @@ OriginalActorNavigationPipeline_57c7cc::OriginalActorNavigationPipeline_57c7cc(
     std::span<const OriginalSpatialSourcePolygon> polygons,
     std::array<std::byte,16> controllerVector20,bool variant30,
     OriginalActorUntranslatedMath_57c7cc& math,
-    OriginalGameRandom_36f3c0* originalSharedRandom)
+    OriginalGameRandom_36f3c0* originalSharedRandom,
+    std::span<const OriginalPolygonLinks_21bd3c> originalSourceAdjacency)
     :records_(records),polygons_(polygons),controllerVector20_(controllerVector20),
-     variant30_(variant30),math_(math),originalSharedRandom_(originalSharedRandom) {
+     variant30_(variant30),math_(math),originalSharedRandom_(originalSharedRandom),
+     originalSourceAdjacency_(originalSourceAdjacency) {
+    if(!originalSourceAdjacency_.empty()&&originalSourceAdjacency_.size()!=records_.size())
+        throw std::invalid_argument("Original source actor adjacency/registry count mismatch");
     if(records_.size()!=polygons_.size())
         throw std::invalid_argument("Original stage record/header polygon count mismatch");
     static_assert(sizeof(point_)==16);
     std::memcpy(&point_,controllerVector20_.data(),16);
+}
+void OriginalActorNavigationPipeline_57c7cc::setOriginalProjectionOperands_57c7cc(
+    const OriginalVU0Vec4& incomingA1,const OriginalVU0Vec4& sourceController40) {
+    originalIncomingRayA1_=incomingA1;
+    originalController40_=sourceController40;
 }
 std::size_t OriginalActorNavigationPipeline_57c7cc::sourceIndex(
     const OriginalSpatialRecord70& polygon) const {
@@ -50,14 +60,36 @@ const OriginalSpatialRecord70* OriginalActorNavigationPipeline_57c7cc::call_orig
     const OriginalSpatialRecord70* actorPolygon) {
     if(!actorPolygon)throw std::invalid_argument("Original actor stage polygon is null");
     sourceIndex(*actorPolygon);
+    if(!originalSourceAdjacency_.empty()){
+        if(!originalIncomingRayA1_||!originalController40_)
+            throw std::invalid_argument("Original 0x57C7CC ray operands unavailable");
+        // 0x57C814 uses controller+0x40 for the first projection.
+        // 0x57C890 instead uses packed result from 0x57C8EC
+        // after selecting the next route target.
+        const auto& sourceEnd=latestTargetRayA2_?*latestTargetRayA2_:*originalController40_;
+        const auto ray=originalPolygonRaycast_4c1b3c(
+            records_,originalSourceAdjacency_,
+            static_cast<std::uint32_t>(sourceIndex(*actorPolygon)),
+            *originalIncomingRayA1_,sourceEnd);
+        return ray.originalTraversal.originalLastAcceptedPolygon;
+    }
     return math_.call_original_4c1b3c_projection(*actorPolygon,point_);
 }
 void OriginalActorNavigationPipeline_57c7cc::call_original_57c8ec_update_target(
     const OriginalSpatialRecord70* target) {
     if(!target)throw std::invalid_argument("Original target polygon is null");
     sourceIndex(*target);
-    targetResults_.push_back(originalActorTargetVector_57c8ec(
-        *target,variant30_,controllerVector20_,*this));
+    const auto output=originalActorTargetVector_57c8ec(
+        *target,variant30_,controllerVector20_,*this);
+    targetResults_.push_back(output);
+    // Source 0x57C894 builds $a2 from original 64-bit $v0,
+    // zeroing the high EE GPR half. Do not treat +0x20 as this
+    // generated target; source 0x57C8EC owns its packed result.
+    OriginalVU0Vec4 packed{};
+    const auto bits=output.originalVectorLow64;
+    packed.x=std::bit_cast<float>(std::uint32_t(bits));
+    packed.y=std::bit_cast<float>(std::uint32_t(bits>>32));
+    latestTargetRayA2_=packed;
 }
 OriginalActorRouteFollowResult_57c7cc OriginalActorNavigationPipeline_57c7cc::advance(
     OriginalActorRouteFollowerState_57c7cc& route) {
@@ -68,6 +100,7 @@ OriginalActorRouteFollowResult_57c7cc OriginalActorNavigationPipeline_57c7cc::ad
         throw std::invalid_argument("Original actor stage polygon+0x30 is null");
     sourceIndex(*route.originalStagePolygonAtActor30);
     targetResults_.clear();
+    latestTargetRayA2_.reset();
     return originalActorAdvanceRoute_57c7cc(route,*this);
 }
 } // namespace ae3
