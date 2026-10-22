@@ -1,12 +1,30 @@
 #include "ae3/original_nav_actor_binding.hpp"
+#include "ae3/original_nav_path_integrity.hpp"
+#include <span>
 #include <stdexcept>
 #include <utility>
 
 namespace ae3 {
+namespace {
+void verifyRoute(
+    const OriginalNavStageOwners_21ed30& owners,
+    const OriginalNavStageRouteSnapshot& route) {
+    const auto& slot=owners.originalAt(route.sourceOwnerSlot);
+    if(!slot.decodedGraph)
+        throw std::logic_error("Original navigation route graph no longer active");
+    originalNavValidateNativeSourceRouteIntegrity(
+        std::as_bytes(std::span(slot.originalSourceAllocation)),
+        slot.decodedGraph->records.size(),
+        route.originalAdmittedSourcePolygons,
+        route.originalForwardSourcePolygons,
+        route.originalSelectedSearchIndex);
+}
+} // namespace
 void OriginalNavActorRouteBinding::originalUseStageRoute_2207d0(
     OriginalNavStageRouteSnapshot route) {
     if(!originalNavStageRouteCurrent(owners_,route))
         throw std::invalid_argument("Original actor stage route source owner is stale");
+    verifyRoute(owners_,route);
     // An explicit original 0x2207D0 destination of -1 gives an
     // empty path; no source route exists for 0x57C7CC to follow.
     // Do not synthesize a one-polygon route from actor+0x30.
@@ -27,6 +45,7 @@ void OriginalNavActorRouteBinding::originalUseGroupRoute_2207d0(
     if(!group.originalGroupedRouteCurrent(route) ||
        !originalNavStageRouteCurrent(owners_,route.sourceRoute))
         throw std::invalid_argument("Original actor navrange route identity is stale");
+    verifyRoute(owners_,route.sourceRoute);
     if(route.sourceRoute.originalForwardSourcePolygons.empty()) {
         originalClearForStageTransition();
         return;

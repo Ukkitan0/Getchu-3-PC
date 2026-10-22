@@ -69,6 +69,22 @@ int main(int argc,char**argv){
     check(originalNavStageRouteCurrent(owners,route),"Fresh original graph route invalid");
     check(originalNavStageRoutePolygon(owners,route,1)==
           &owners.originalAt(0).decodedGraph->records[1],"Stage pointer projection");
+    // Native safety only: reject a user-mutated route which points to
+    // source polygon 3 without a genuine directed polygon 0->3 link.
+    auto injected=route;
+    injected.originalForwardSourcePolygons={0,3};
+    bool disconnectedRejected=false;
+    try{(void)originalNavStageRouteEdge_57bd88(owners,injected,0);}
+    catch(const std::invalid_argument&){disconnectedRejected=true;}
+    check(disconnectedRejected,"Foreign route adjacency was interpreted as source slot zero");
+    disconnectedRejected=false;
+    try{(void)originalNavStageFollowerState_57c7cc(owners,injected,0);}
+    catch(const std::invalid_argument&){disconnectedRejected=true;}
+    check(disconnectedRejected,"Original route follower accepted disconnected source path");
+    disconnectedRejected=false;
+    try{(void)originalNavStageRoutePolygon(owners,injected,1);}
+    catch(const std::invalid_argument&){disconnectedRejected=true;}
+    check(disconnectedRejected,"Original polygon accessor accepted a disconnected route");
     const auto edge=originalNavStageRouteEdge_57bd88(owners,route,0);
     check(edge.sourceEdgeSlot==0&&edge.originalActionKind==1 &&
           !edge.originalKindTwoBranch,"Original type-1 edge identity lost");

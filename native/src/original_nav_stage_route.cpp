@@ -1,5 +1,6 @@
 #include "ae3/original_nav_stage_route.hpp"
 #include "ae3/original_nav_type1_route.hpp"
+#include "ae3/original_nav_path_integrity.hpp"
 #include <limits>
 #include <stdexcept>
 
@@ -75,6 +76,14 @@ OriginalNavStageRouteSnapshot originalNavStageDispatch_2207d0(
     snapshot.originalForwardSourcePolygons.reserve(result.forwardPath.size());
     for(const auto* p:result.forwardPath)
         snapshot.originalForwardSourcePolygons.push_back(sourceIndex(graph.records,p));
+    // Validate host source-index materialization against genuine
+    // original 0x1E descriptors BEFORE exporting the borrowed route.
+    // This does not alter 0x221104's original no-match slot-0 rule.
+    originalNavValidateNativeSourceRouteIntegrity(
+        bytes,graph.records.size(),
+        snapshot.originalAdmittedSourcePolygons,
+        snapshot.originalForwardSourcePolygons,
+        snapshot.originalSelectedSearchIndex);
     return snapshot;
 }
 bool originalNavStageRouteCurrent(
@@ -88,6 +97,11 @@ const OriginalSpatialRecord70* originalNavStageRoutePolygon(
     const OriginalNavStageOwners_21ed30& owners,
     const OriginalNavStageRouteSnapshot& route,std::size_t index) {
     const auto& slot=currentSlot(owners,route);
+    originalNavValidateNativeSourceRouteIntegrity(
+        sourceBytes(slot),slot.decodedGraph->records.size(),
+        route.originalAdmittedSourcePolygons,
+        route.originalForwardSourcePolygons,
+        route.originalSelectedSearchIndex);
     if(index>=route.originalForwardSourcePolygons.size())
         throw std::out_of_range("Original navigation route index outside path");
     const auto source=route.originalForwardSourcePolygons[index];
@@ -99,6 +113,11 @@ OriginalActorRouteEdgeDecision_57bd88 originalNavStageRouteEdge_57bd88(
     const OriginalNavStageOwners_21ed30& owners,
     const OriginalNavStageRouteSnapshot& route,std::size_t segment) {
     const auto& slot=currentSlot(owners,route);
+    originalNavValidateNativeSourceRouteIntegrity(
+        sourceBytes(slot),slot.decodedGraph->records.size(),
+        route.originalAdmittedSourcePolygons,
+        route.originalForwardSourcePolygons,
+        route.originalSelectedSearchIndex);
     return originalActorRouteEdgeDecision_57bd88(
         route.originalForwardSourcePolygons,segment,sourceBytes(slot));
 }
@@ -106,6 +125,11 @@ std::optional<OriginalActorType2Target_57bdb8> originalNavStageType2Target_57bdb
     const OriginalNavStageOwners_21ed30& owners,
     const OriginalNavStageRouteSnapshot& route) {
     const auto& slot=currentSlot(owners,route);
+    originalNavValidateNativeSourceRouteIntegrity(
+        sourceBytes(slot),slot.decodedGraph->records.size(),
+        route.originalAdmittedSourcePolygons,
+        route.originalForwardSourcePolygons,
+        route.originalSelectedSearchIndex);
     if(route.originalForwardSourcePolygons.size()<2)return std::nullopt;
     const auto decision=originalActorRouteEdgeDecision_57bd88(
         route.originalForwardSourcePolygons,0,sourceBytes(slot));
@@ -118,6 +142,11 @@ OriginalActorRouteFollowerState_57c7cc originalNavStageFollowerState_57c7cc(
     const OriginalNavStageRouteSnapshot& route,
     std::uint32_t actorSourcePolygon,const OriginalSpatialRecord70* activeTarget) {
     const auto& slot=currentSlot(owners,route);
+    originalNavValidateNativeSourceRouteIntegrity(
+        sourceBytes(slot),slot.decodedGraph->records.size(),
+        route.originalAdmittedSourcePolygons,
+        route.originalForwardSourcePolygons,
+        route.originalSelectedSearchIndex);
     const auto& records=slot.decodedGraph->records;
     if(actorSourcePolygon>=records.size())
         throw std::out_of_range("Original actor current polygon outside stage source");

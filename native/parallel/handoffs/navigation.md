@@ -218,6 +218,37 @@ This specifically prevents an actor from accepting a new route through a partial
 
 The extended `original_nav_stage_groups_test.cpp` and `original_nav_actor_binding_test.cpp` exercise a bad group key allocation, rejected new routes and repeated registrations, explicit reset, subsequent recovery, and actor route invalidation. Tests are committed but **not run against a full native build** here.
 
+## Source-route integrity audit — 0x220994 / 0x221104 native caller boundary
+
+The recovered original `0x221104` source-edge lookup intentionally returns edge slot 0 when a destination does not match any of the three neighbor attempts. That **retail behavior remains unchanged**. But caller-owned `OriginalNavStageRouteSnapshot` is a copyable native data object; malformed paths could otherwise reach `0x57BD88` and incorrectly appear to use source edge slot 0 (including false type-2 classification).
+
+New navigation-owned **host-integrity** (not a newly translated EE routine): `native/include/ae3/original_nav_path_integrity.hpp`. `originalNavValidateNativeSourceRouteIntegrity` validates the exact original `.nav` count and `0x1E` descriptor table, original `0x3800 / 0x38 = 256` admission-workspace cap, unique admitted DFS source IDs, original `0x220994` root and selected-workspace-index correspondence, forward path acyclicity and membership, and each **directed** source neighbor edge before the route is exported or consumed by an actor. Legitimate source-order alternative predecessor paths are retained; no distance calculations, path scoring, edge fallback or A* logic has been changed. Valid original explicit destination `-1` still yields an empty path.
+
+Validation added to `originalNavStageDispatch_2207d0`, public source polygon/edge/follower and type-2 accessors in `original_nav_stage_route.cpp`, and actor route ingestion for both plain and keyed navrange routes in `original_nav_actor_binding.cpp`. A bad candidate is rejected **before** replacing an already valid actor route; the original lowest-score traversal `0x220D5C`, extractor `0x220994`, source `0x221104`, and physics-owned movement are unchanged. This is native validation of host-boundary data, not a claim to have decompiled missing retail movement instructions.
+
+**Tests:** New standalone `native/tests/original_nav_path_integrity_test.cpp` includes genuine descriptor-format fixtures, both allowed paths to the same endpoint, malformed workspace index, cycles, disconnected links, repeated/out-of-range IDs and 20,000 deterministic route mutations. Extended `original_nav_actor_binding_test.cpp` and `original_nav_stage_route_test.cpp` to check that public actor/edge/follower/polygon consumers reject a modified disconnected route. The standalone validator logic was compiled and **executed locally** against its exact new 3,843-byte header in `/mnt/data/nav_integrity_validation` with:
+
+```
+g++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsanitize=address,undefined -fno-omit-frame-pointer -I /mnt/data/nav_integrity_validation /mnt/data/nav_integrity_validation/check.cpp -o /mnt/data/nav_integrity_validation/check
+/mnt/data/nav_integrity_validation/check
+clang++ -std=c++20 -Wall -Wextra -Werror -pedantic -fsanitize=address,undefined -fno-omit-frame-pointer -I /mnt/data/nav_integrity_validation /mnt/data/nav_integrity_validation/check.cpp -o /mnt/data/nav_integrity_validation/check_clang
+/mnt/data/nav_integrity_validation/check_clang
+```
+
+Both reported `PASS 20000 randomized C++20 source-path validator cases; rejected=16004`. This **does not** mean that the new repository integration CTest was built or run: no full checkout is mountable, direct github.com DNS is blocked in the container, and original private `SCUS_975.01` and original stage PCK were not accessible. The isolated sanitizer run covers the header's behavior only. No Actions triggered.
+
+**CMake request (integration owner only):** the header adds no translation unit to Getchu3Assets. Register:
+
+```cmake
+add_executable(Getchu3OriginalNavPathIntegrityTests
+    tests/original_nav_path_integrity_test.cpp)
+target_link_libraries(Getchu3OriginalNavPathIntegrityTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalNavSourceRouteIntegrity
+    COMMAND Getchu3OriginalNavPathIntegrityTests)
+```
+
+The existing handoff's previous instructions for adding `original_nav_actor_binding.cpp`, `original_nav_stage_route.cpp`, `original_nav_stage_groups.cpp`, and stage bridge tests remain required.
+
 ## Remaining original blockers
 
 1. Decompile source `0x57BCB8` original controller post-constructor and subsequent real actor movement/state transitions using original executable input.

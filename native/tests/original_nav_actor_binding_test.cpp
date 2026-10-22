@@ -85,6 +85,19 @@ int main() {
     const auto plain=originalNavStageDispatch_2207d0(stage,0,query);
     ck(plain.originalForwardSourcePolygons==
        std::vector<std::uint32_t>({0,1,3}),"Original source least-cost predecessor incorrect");
+    // Source-derived route snapshots are host-owned and copyable.
+    // A deliberately altered path must NOT be able to make original
+    // 0x221104's no-match slot-0 result look like a genuine edge.
+    auto corruptPath=plain;
+    corruptPath.originalForwardSourcePolygons={0,3};
+    bool invalidSourceRoute=false;
+    try{actor.originalUseStageRoute_2207d0(corruptPath);}
+    catch(const std::invalid_argument&){invalidSourceRoute=true;}
+    ck(invalidSourceRoute&&!actor.originalRouteCurrent(),
+       "Original actor accepted a disconnected or altered path");
+    const auto directed=plain.originalForwardSourcePolygons;
+    ck(directed==std::vector<std::uint32_t>({0,1,3}),
+       "Original recovered route source ordering changed");
     actor.originalUseStageRoute_2207d0(plain);
     ck(actor.originalRouteCurrent()&&actor.originalPathLength()==3 &&
        actor.originalHasMultiplePolygonsAtController1c(),
