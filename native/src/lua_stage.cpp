@@ -162,8 +162,11 @@ int LuaStage::dispatchOriginal(lua_State* L){
         for(const auto& result:results)pushValue(L,result);
         return static_cast<int>(results.size());
     }catch(const std::exception& error){
-        return luaL_error(L,"original Lua binding %s at 0x%08X failed: %s",
-                          name,static_cast<unsigned>(it->second.originalVA),error.what());
+        // Lua 5.0 lua_pushvfstring (used by luaL_error) does NOT implement
+        // C printf width/hex specifiers such as %08X. Keep the source VA
+        // in decimal so this error remains safe under the real Lua 5.0 VM.
+        return luaL_error(L,"original Lua binding %s at VA %d failed: %s",
+                          name,static_cast<int>(it->second.originalVA),error.what());
     }
 }
 bool LuaStage::invokeCallback(const std::string& name,
