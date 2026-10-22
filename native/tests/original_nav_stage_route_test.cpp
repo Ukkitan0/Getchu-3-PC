@@ -107,6 +107,29 @@ int main(int argc,char**argv){
           fallback.originalFallbackSourcePolygon==2 &&
           fallback.originalForwardSourcePolygons==
           std::vector<std::uint32_t>({0,2}),"Original group fallback route mismatch");
+    struct RouteCalls final : OriginalActorRouteFollowerCalls_57c7cc {
+        const OriginalSpatialRecord70* actor=nullptr;
+        const OriginalSpatialRecord70* target=nullptr;
+        unsigned projected=0,applied=0;
+        const OriginalSpatialRecord70* call_original_4c1b3c_project(
+            const OriginalSpatialRecord70* incoming) override {
+            check(incoming==actor,"Original source actor route projection identity");
+            ++projected;
+            return nullptr; // mock VU0/physics result, not a gameplay substitute
+        }
+        void call_original_57c8ec_update_target(
+            const OriginalSpatialRecord70* incoming) override {
+            ++applied;target=incoming;
+        }
+    } callbacks;
+    const auto& sourceRecords=owners.originalAt(0).decodedGraph->records;
+    callbacks.actor=&sourceRecords[0];
+    const OriginalSpatialRecord70* current=nullptr;
+    const auto moved=originalNavStageAdvanceRoute_57c7cc(
+        owners,route,0,current,callbacks);
+    check(current==&sourceRecords[1]&&callbacks.target==&sourceRecords[2] &&
+          moved.sourceTargetsApplied==2 && moved.sourceProjectionsPerformed==1,
+          "Original actor follower route advancement did not preserve call ordering");
     // Detect a group belonging to a different stage before passing its
     // member pointers through the original source membership tests.
     OriginalNavListOwner foreign;foreign.originalCreate_21f604();

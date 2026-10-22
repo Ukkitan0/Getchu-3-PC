@@ -54,6 +54,11 @@ OriginalNavStageRouteSnapshot originalNavStageDispatch_2207d0(
         for(const auto* p:member->originalList()->originalOrderedValues())
             (void)sourceIndex(graph.records,p);
     }
+    // An explicit source-list request is also a borrowed stage pointer
+    // view: reject stale pointers before original 0x4E3DAC sees them.
+    if(!member && request.sourceMembershipListExists)
+        for(const auto* p:request.orderedOriginalMembershipList)
+            (void)sourceIndex(graph.records,p);
     OriginalNavStageType1Costs_220f18 type1(graph);
     const auto result=member
         ? originalNavRouteDispatchOwned_2207d0(graph.records,bytes,request,*member,&type1)
@@ -97,6 +102,17 @@ OriginalActorRouteEdgeDecision_57bd88 originalNavStageRouteEdge_57bd88(
     return originalActorRouteEdgeDecision_57bd88(
         route.originalForwardSourcePolygons,segment,sourceBytes(slot));
 }
+std::optional<OriginalActorType2Target_57bdb8> originalNavStageType2Target_57bdb8(
+    const OriginalNavStageOwners_21ed30& owners,
+    const OriginalNavStageRouteSnapshot& route) {
+    const auto& slot=currentSlot(owners,route);
+    if(route.originalForwardSourcePolygons.size()<2)return std::nullopt;
+    const auto decision=originalActorRouteEdgeDecision_57bd88(
+        route.originalForwardSourcePolygons,0,sourceBytes(slot));
+    if(!decision.originalKindTwoBranch)return std::nullopt;
+    return originalActorType2Target_57bdb8(
+        slot.decodedGraph->records,route.originalForwardSourcePolygons);
+}
 OriginalActorRouteFollowerState_57c7cc originalNavStageFollowerState_57c7cc(
     const OriginalNavStageOwners_21ed30& owners,
     const OriginalNavStageRouteSnapshot& route,
@@ -115,5 +131,17 @@ OriginalActorRouteFollowerState_57c7cc originalNavStageFollowerState_57c7cc(
     state.sourceHasMultiplePolygonsAtController1c=
         route.originalForwardSourcePolygons.size()>=2;
     return state;
+}
+OriginalActorRouteFollowResult_57c7cc originalNavStageAdvanceRoute_57c7cc(
+    const OriginalNavStageOwners_21ed30& owners,
+    const OriginalNavStageRouteSnapshot& route,
+    std::uint32_t actorPolygon,
+    const OriginalSpatialRecord70*& currentTarget,
+    OriginalActorRouteFollowerCalls_57c7cc& sourceCalls) {
+    auto state=originalNavStageFollowerState_57c7cc(
+        owners,route,actorPolygon,currentTarget);
+    const auto result=originalActorAdvanceRoute_57c7cc(state,sourceCalls);
+    currentTarget=state.activePolygonAtController50;
+    return result;
 }
 } // namespace ae3

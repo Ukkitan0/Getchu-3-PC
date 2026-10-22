@@ -3,6 +3,7 @@
 #include "ae3/original_nav_linked_owner.hpp"
 #include "ae3/original_actor_nav_route.hpp"
 #include "ae3/original_actor_route_follower.hpp"
+#include "ae3/original_actor_type2_target.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -67,6 +68,13 @@ OriginalActorRouteEdgeDecision_57bd88 originalNavStageRouteEdge_57bd88(
     const OriginalNavStageOwners_21ed30& owners,
     const OriginalNavStageRouteSnapshot& route, std::size_t segmentIndex);
 
+// Original 0x57BD88 selects the type-2 case; 0x57BDB8 then takes
+// route[1] and copies all three source vertex vectors. No synthesized
+// actor transform or movement instructions are performed here.
+std::optional<OriginalActorType2Target_57bdb8> originalNavStageType2Target_57bdb8(
+    const OriginalNavStageOwners_21ed30& owners,
+    const OriginalNavStageRouteSnapshot& route);
+
 // Build the exact inputs for the recovered 0x57C7CC follower.
 // Returned spans borrow the route snapshot and stage; callers must not
 // cache them across a stage transition or route replacement.
@@ -75,4 +83,14 @@ OriginalActorRouteFollowerState_57c7cc originalNavStageFollowerState_57c7cc(
     const OriginalNavStageRouteSnapshot& route,
     std::uint32_t originalActorStagePolygonIndex,
     const OriginalSpatialRecord70* activeControllerTarget=nullptr);
+// Run recovered 0x57C7CC using the live stage and source route,
+// returning its updated controller+0x50 target. Original 0x4C1B3C
+// VU0 projection and 0x57C8EC calculation remain explicit callbacks
+// owned by the physics/actor pipeline, never replaced by fake motion.
+OriginalActorRouteFollowResult_57c7cc originalNavStageAdvanceRoute_57c7cc(
+    const OriginalNavStageOwners_21ed30& owners,
+    const OriginalNavStageRouteSnapshot& route,
+    std::uint32_t originalActorStagePolygonIndex,
+    const OriginalSpatialRecord70*& liveControllerTarget,
+    OriginalActorRouteFollowerCalls_57c7cc& sourceCalls);
 } // namespace ae3
