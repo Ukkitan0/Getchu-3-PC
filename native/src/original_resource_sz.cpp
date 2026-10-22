@@ -29,7 +29,8 @@ std::uint32_t readSize(std::span<const std::uint8_t> source) {
 }
 }
 std::vector<std::uint8_t> originalDecodeSz(std::span<const std::uint8_t> compressed,
-                                            std::size_t maxOutputBytes) {
+                                            std::size_t maxOutputBytes,
+                                            OriginalSzTrailerPolicy trailerPolicy) {
     const std::uint32_t expanded=readSize(compressed);
     if(expanded>maxOutputBytes)
         throw std::length_error("Original SZ uncompressed member exceeds permitted allocation budget");
@@ -69,7 +70,8 @@ std::vector<std::uint8_t> originalDecodeSz(std::span<const std::uint8_t> compres
         throw std::out_of_range("Original SZ decoded length differs from retail header");
     // zlib may have unread bytes in its current input chunk; no trailing junk
     // is valid after the one original member's deflate stream.
-    if(fed!=data.size() || stream.avail_in!=0)
+    if(trailerPolicy==OriginalSzTrailerPolicy::reject &&
+       (fed!=data.size() || stream.avail_in!=0))
         throw std::invalid_argument("Original SZ member has trailing bytes after DEFLATE stream");
     return original;
 }
