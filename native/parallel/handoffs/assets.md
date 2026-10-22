@@ -356,3 +356,49 @@ The fresh private USA ELF also exposes the previously missing **registration ste
 **Coordinator integration request:** the native stage loader must first establish the original source entry container (upstream `0x25182C` registration, source wildcard `0x6E7380`), THEN perform the four exact-name requests (`0x22D828/0x22D8C0/0x22D8E8/0x22D928`) using the original first-match `0x24D4F0` behavior. Scanning `debug/us/stage/<name>` source files by stem is diagnostic candidate evidence only; do not use candidate selection as a substitute for the real registry. Add the new header-only C++ test to CMake and have runtime/gameplay integration handle upstream registration after its original allocation semantics have been recovered.
 
 No changes to other subsystem files or global CMake; no GitHub Actions dispatched, no proprietary original-game bytes committed.
+
+## October 22, 2026 — Source-verified stage resource registration producer (continuation)
+
+**Newly recovered connected chain:** original 0x25182C directory-owner registration → 0x24D858 16-byte record construction → 0x2519FC type-selector filtering → 0x251A30/0x251A84 vector append → original 0x24D4F0 first exact-name match. This pass used the privately supplied original USA ELF and original woods_c stage data. It does NOT assert that the original directory-owner traversal, complete archive source allocator, stage transition, or Windows gameplay boot is recovered.
+
+### Exact original ELF provenance
+
+The original ELF has SHA-256 5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63. Full original function windows (hex VAs, exclusive high address):
+
+- 0x24D858..0x24D9EC: 101 words, SHA256 154dd26d320162b79f7aa75512afa0a6938b580754e5c473847cb2c18a6b3511.
+- 0x25182C..0x251BC8: 231 words, SHA256 cef6579182e855442ede0b3980a2d3c5c3680ce3f81d02250e8d0e05859d23de.
+- 0x24D4F0..0x24D5FC: 67 words, SHA256 7ec60322e5ae08a2e117a0b4c120837a4a7ac1d3c16fda83a2e6930afe6b20ad.
+
+The 0x24D858 constructor has original string name +0, type suffix +4, original payload pointer +8, original payload length +0xC, each from actual instructions 0x24D894, 0x24D8BC, 0x24D8CC, 0x24D8D4. It finds the FIRST period via 0x24D8DC JAL 0x627CF8 and separates prefix/suffix via 0x24D950 and 0x24D9B0 JAL 0x627038. The source registration worker invokes this constructor at 0x2519AC, compares selector against record TYPE at +4 at 0x2519FC (not registered name +0), and appends a 16-byte record at 0x251A30 or 0x251A84. Original lookup at 0x24D4F0 compares name +0 and returns pointer +8 for the FIRST exact match, else zero.
+
+**Correction to previous handoff:** The optional 0x25182C selector filters the **type suffix**, not the source resource name. Null selector or leading ASCII '*' bypass the comparison. The filename to registered-name/type transformation is now source-proven; the original stage's directory-tree enumeration order is still unknown. Do not guess by sorting VFI files in production.
+
+### New assets-only code and commits
+
+- 2fb09d825187fb10c591ab60d25972a06fce179e: correct original_resource_registration_filter.hpp to type-suffix semantics.
+- a55902e849197bde77351d2c063441a9c30fc067: correct associated unit test values.
+- 9662aba4570ec63ea9bc890fcd7a1d99673758d2: new original_resource_record_registration.hpp, original first-dot filename splitting, source record creation and selection, name lookup, stable borrowed buffers, u32 limit, noncopyable owner.
+- 219aac5f783cef91013f50f6a034c2cbcc1e70ed: new original_resource_record_registration_test.cpp for exact name/type split, duplicate first-match, filter, raw pointer and length.
+- 9fd287e331cfe03b52a5f4d2c292de7ed76aa8ab: new original_resource_stage_registration.hpp connecting exact source paths in OriginalStageResourceScope to the recovered 16-byte registry; callers MUST supply evidence-backed original order.
+- 16eddb1f2ba9ac756698483964dbba3418aff993: extend original_resource_stage_scope_test.cpp for ISO/VFI → SZ/PCK original source → registration/type filter/name lookup.
+- 123b2dfd86fb58e9c8b7afb14a93dc6b6aa6a8ad: new optional original_resource_record_registration_retail_test.cpp. Reads nine owner-private genuine woods_c stage files to check four original startup name lookups, 5 actual PCK files, and original XML type filter. No retail asset bytes committed.
+- 13cf72c8f604a66ed160e4b018c9bf96053f3ad6: native/tools/verify_original_resource_record_registration.py. Source-only SHA verifier: 399 function-window words, 10 exact instruction anchors, 7 source JALs and nine original woods_c SHA-256 file hashes.
+- d02622e6e4b65ed4b8cfe54a1055a79fa81e1133: update original_stage_initialization_resource_chain.json. This expands the cumulative *unique* stage initialization evidence to 543 instruction words across seven code windows and 20 distinct direct call/jump edges (the 399-word detailed audit overlaps and must NOT be added again).
+
+### Actual local verification
+
+A source-equivalent C++20 mirror was compiled on host with GCC optimized -O2 -Wall -Wextra -Wpedantic -Werror, Clang optimized with same strict warnings, and GCC AddressSanitizer+UndefinedBehaviorSanitizer with leak checks. All PASSED against privately supplied nine original woods_c files, including stable original payload source pointers, filename split, 5 PCK type matches and 4 stage init keys.
+
+A generated original-format direct VFI plus synthetic ISO mount integration mirror was built against the native archive.cpp, native SZ raw-DEFLATE implementation and zlib; it PASSED GCC/Clang optimized and GCC ASan+UBSan with registration of area.luc, navigation.pck.sz and exdb.pck. The EXDB parser in this local mirror was deliberately stubbed. This tests resource paths, not real retail attribute decoding.
+
+Private original ELF and nine genuine woods_c files were checked with a local verifier using exact windows and direct MIPS instruction/call checks. Initial audit found/corrected a wrong first-dot-search PC (real 0x24D8DC, not 0x24D8D8); after correcting, PASS: 3 source windows, 399 words, 10 anchors, 7 calls, nine SHA-verified files. The original woods_c file formats produce exact name/type pairs: placeholder/plc, navigation/pck, actionseq/asq, monkeydb/xml; 5 total type pck members among the 9 inspected source files.
+
+**Qualification:** local C++ tests used a mirror of the committed new headers; exact latest GitHub checkout plus full native CMake/CTest/Win32 compilation have NOT run. A local equivalent of the committed Python verifier ran against private game data; the just-committed GitHub copy was not checked out and independently re-executed. The private original ISO itself is unavailable this turn, but prior extracted original files and ELF are genuine and privately mounted. Do not claim full original stage startup or playable Windows game.
+
+### Integrator action and remaining original work
+
+Integrate header-only original_resource_record_registration.hpp / original_resource_stage_registration.hpp into the actual Windows stage owner, retaining OriginalStageResourceScope for the entire consumer lifetime. Register focused tests original_resource_record_registration_test.cpp and updated original_resource_stage_scope_test.cpp. Opt-in private tests should receive owner-controlled woods_c path (original_resource_record_registration_retail_test.cpp) and SCUS_975.01 path (verify_original_resource_record_registration.py); never install or commit game files in public CI.
+
+Recover 0x25182C's actual directory-tree owner traversal through 0x509C10/0x49C150, allocation ownership, wrapper and original stage transitions. Resolve when compressed .sz filenames are converted to source resource logical names, and hook genuine resource records to original stage consumers 0x272294, 0x4F0A5C, 0x30C798 and 0x25BFE0. Do not infer original traversal order from VFI entries or substitute gameplay/graphics routines. All these remain real blockers.
+
+No global CMake or other workstream files modified. No GitHub Actions dispatched. No copyrighted game files committed.
