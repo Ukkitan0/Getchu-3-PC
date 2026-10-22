@@ -123,7 +123,8 @@ private:
     void registerCallback(const char* name,int (*callback)(lua_State*));
     static LuaStage* self(lua_State* L);
     static ScriptValue takeValue(lua_State* L,int stackIndex,int depth=0,
-                                 std::vector<const void*>* activeTables=nullptr);
+                                 std::vector<const void*>* activeTables=nullptr,
+                                 std::size_t* remainingNodes=nullptr);
     static int newEntity(lua_State* L);
     static int luaParam(lua_State* L);
     static int control(lua_State* L);
