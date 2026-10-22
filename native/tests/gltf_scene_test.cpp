@@ -75,6 +75,10 @@ void realSceneParsing(){
                 "host native geometry contains NaN");
         require(v.r>0&&v.g>0&&v.b>0,"material diffuse colors lost");
         require(v.r<=1&&v.g<=1&&v.b<=1,"material RGBA exceeds native range");
+        // Source has no vertex tint; preserve its exact embedded GLB factors.
+        // Never replace original colors with invented CPU sunlight.
+        require(std::abs(v.r-.8f)<1e-6f&&std::abs(v.g-.3f)<1e-6f&&
+                std::abs(v.b-.1f)<1e-6f,"fabricated sunlight modified exported material");
     }
 }
 void invalidInputs(){
