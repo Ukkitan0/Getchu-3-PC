@@ -145,3 +145,43 @@ Also ran the native ray helper and original 0x4C1B3C XYZ math against all 59 ori
 - Commit `9a1f815a538186a931122405f2026291f9562e7f` adds `native/tests/original_actor_fallback_native_selection_test.cpp`, a new repository-owned connected regression. It combines the production `OriginalActorFallbackNativeVU0_57ca68`, the genuine `OriginalGameRandom_36f3c0` stream and `originalActorFallbackSelect_57ca68`. An independent scalar oracle applies each original 0x57CB/CC VU0 Z/W source coefficient in order, Q scaling, original 0x4748AC XYZ scoring and strictly greater winner selection. It checks exact packed high/low winner bits, source RNG cursor and original 12 RINIT/12 RXOR operations over synthetic plus all 59 owner-original woods_c polygon records. No original resource bytes are checked in.
 - **Integration-owner CMake request:** add `native/tests/original_actor_fallback_native_selection_test.cpp` as a focused test linked to the existing native actor fallback, VU0 transform, original RNG, source triangle-weight, spatial-vector accessor, and VU0 dot/R-state implementations. The owner-private `woods_c/navigation.pck` is an optional argument; no checkout fixture may contain its bytes.
 - **Validation distinction:** previous local focused native candidate and ray/packing math passed GCC and Clang+ASan/UBSan across all 59 original polygons. This newly added complete selector regression has not been run against the entire repository in the current restricted checkout. Its full native integration, CMake/CTest and Windows gameplay remain to be confirmed by the integrator. Do not treat this unexecuted test source as proof of successful integration.
+
+## Latest continuation — complete original type-two actor movement transform
+
+The **original `0x57BDCC–0x57BED4` native VU0 transform is now recovered** as a connected operation. The source is the owner's private USA `SCUS_975.01` (SHA-256 `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`). The 67-instruction body has SHA-256 `7974c5e0c777b060f0e55c0c99c8fca7bb0d1df91b84772486d8c49dbe76136b`.
+
+### Committed changes
+
+- `58862811068524a1cd84d0e6165aca98021139b3`: extend the **existing original 0x21EE00 polygon clipping regression** with genuine float32 epsilon `0x358637BD` boundary, sign-of-zero under negative division, strict clipped interval equality and W-lane invariance across all original 177 directed-edge probes. No collision algorithm replacement.
+- `c6e1568719324f58140d886f49f181d1a42a5407`: new category-owned `native/include/ae3/original_actor_type2_vu0_target.hpp`, `native/src/original_actor_type2_vu0_target.cpp`, `native/tests/original_actor_type2_vu0_target_test.cpp` and `native/tools/verify_original_actor_type2_vu0_57bdcc.py`. Original 0x57BDCC/BDDC/BDF0 three vertex reads, 0x57BDD4/BDEC/BDFC PCPYUD extraction, original 0x36F4D4/36F548 two RNG draws, original 0x57BE8C/BEAC/BEC0 three VMULx and 0x57BEC8/BECC two VADD. Original 0x57BED0 branch executes **0x57BED4 SQC2 VF3,+0x40(s4)** in the delay slot, writing the entire result to the original actor controller vector.
+- `8c6942f7915029eae0f63168bae4e3e3511459ef`: source instruction and integration documentation `native/docs/ORIGINAL_ACTOR_TYPE2_VU0_57BDCC.md`.
+- `f3636311a0a277d889c4ca5fdf6fed3b18245fea`: extend the new native regression to feed the actual navigation-workstream `originalActorType2Target_57bdb8` *read-only* polygon selector into native physics writer. Checks actual second route record identity, unmodified original vertex bytes, exact 16-byte stored controller+0x40 and correct game RNG cursor on all **15 kind-two links**.
+
+### Why native reuse is original, not invented
+
+The source VU0 arithmetic in `0x57BE8C–0x57BECC` and original constants `0x708A24/28/2C` are the same as the already recovered native `0x57C98C` random-three-vertex transform and constants `0x708A64/68/6C`. The original code uses the same two RNG calls and the same sequence of three VMULx + two VADD. The new adapter calls `originalActorRandomTriangle_57c98c` **once**, then writes all 16 bytes of the resulting VU0 vector to caller-owned controller storage. No simulator, procedural steering, duplicate RNG draws, or generic physics.
+
+**New native engine interface:**
+
+```cpp
+OriginalVU0Vec4 originalActorType2VU0WriteController40_57bdcc(
+    const std::array<std::array<std::byte,16>,3>& originalSourcePolygonVertices,
+    OriginalGameRandom_36f3c0& originalSharedGameRandom,
+    std::array<std::byte,16>& originalControllerVector40) noexcept;
+```
+
+Navigation-owned `native/src/original_actor_type2_target.cpp` remains unchanged. On original source action-kind == 2, the gameplay/integration owner obtains `OriginalActorType2Target_57bdb8::rawOriginalVertices` from the existing navigation API and passes these to the VU0 writer with the genuine shared game RNG, and the live controller+0x40 vector. This does **not** establish a whole actor tick or gameplay loop.
+
+### Genuine instruction/resource evidence and executed tests
+
+- ELF original SHA verified; 67-instruction block SHA verified; original action-kind == 2 gate `0x57BDA4/A8`; 5 original direct JAL destinations; 3 PCPYUD source vertex extracts; 5 VU0 operation/register/mask encodings; 6 source float constant words and exact SQC2 destination/store at `0x57BED4` audited from owner-private source. `native/tools/verify_original_actor_type2_vu0_57bdcc.py` provides reproducible audits requiring only the owner's private original ELF.
+- Source `woods_c/navigation.pck` owner-private SHA `d2f6809cb9414cf8edfe52bc4c209d526b6247c003fd60856a796f114b422df0`. Focused original-native source-equivalent GCC 14.2 `-std=c++20 -O2 -Wall -Wextra -Werror -ffp-contract=off -fno-fast-math` test and Clang 17 `-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer` test both **passed**. Evaluated all **59 polygons**, **137 source links**, **15 original kind-two action links** with four deterministic RNG seeds; verified independent float32 scalar Z/W coefficient calculation, source X/Y zeros, two RNG draws and exact full-width SQC2 controller storage.
+- An additional connected focused C++ harness included original navigation workstream's unmodified `originalActorType2Target_57bdb8` source with the native VU0 writer; GCC and Clang with ASan/UBSan both **passed** on all 15 genuine type-two source links.
+- Original 0x21EE00 native edge clip plus 0x21BD3C polygon traversal source-equivalent focused GCC and Clang ASan/UBSan tests also **passed** on 59 interior polygon rays, 177 directed-edge exterior rays, and all 137 source links. Exact IEEE signed zero, retail epsilon boundary, strict interval equality and W-lane invariance focused checks passed, with the extra repository test now committed.
+- These are focused native C++ builds with source-equivalent, API-compatible local dependency headers and owner-private resources. **Full repository CMake/CTest and original native Windows gameplay boot were not performed and must not be claimed.** PS2 VU denormal/NaN hardware differential traces and live full actor-controller state remain unverified.
+
+### Integrator-only build request
+
+Add **`native/src/original_actor_type2_vu0_target.cpp`** to the existing original actor math library/executable in `native/CMakeLists.txt` (integrator only), alongside the earlier pending `native/src/original_actor_fallback_vu0_native.cpp`. Register both `native/tests/original_actor_type2_vu0_target_test.cpp` and `native/tests/original_actor_fallback_native_selection_test.cpp` as test targets, linking the genuine `original_actor_random_triangle.cpp`, `original_game_random.cpp`, spatial selector accessor, original navigation-owned `original_actor_type2_target.cpp`, source fallback/math and dependent VU code. Never fabricate owner/controller state or change navigation graph-search code to accommodate the native physics interface.
+
+**Remaining:** actual original actor tick wiring, full native collision world and player/monkey/environment interactions, original live Q/R and source actor-vector capture, float32 VU edge-case differential, full Windows native build and game boot. No proprietary game files were committed, no global CMake/master/navigation modifications or GitHub Actions triggered.
