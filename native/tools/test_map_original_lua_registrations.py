@@ -87,6 +87,30 @@ class RegistrationScanTests(unittest.TestCase):
         self.assertFalse(actual['slots'][3]['points_into_original_text'])
         self.assertFalse(next(x for x in tables if x['name'] == 'gw_set_flag')['available'])
 
+    def test_clobbering_immediate_ops_cannot_reuse_prior_lui(self):
+        ptr = LITERALS + 4
+        for opcode in (10, 11, 12, 14, 24, 25, 32, 35, 36, 37):
+            with self.subTest(opcode=opcode):
+                words = [lui(5, ptr >> 16), ori(5, 5, ptr & 0xffff),
+                         (opcode << 26) | (5 << 21) | (5 << 16),
+                         jal(r.REGISTRY_HELPER), 0]
+                self.assertEqual(scan(words), [], f'false registration after opcode {opcode}')
+
+    def test_clobbering_special_and_coprocessor_ops(self):
+        ptr = LITERALS + 4
+        for word in ((5 << 11) | 32, (16 << 26), (28 << 26), (31 << 26)):
+            with self.subTest(word=word):
+                self.assertEqual(scan([lui(5, ptr >> 16),
+                                       ori(5, 5, ptr & 0xffff), word,
+                                       jal(r.REGISTRY_HELPER), 0]), [])
+
+    def test_noncanonical_lui_cannot_preserve_an_old_pointer(self):
+        ptr = LITERALS + 4
+        words = [lui(5, ptr >> 16), ori(5, 5, ptr & 0xffff),
+                 (15 << 26) | (3 << 21) | (5 << 16),
+                 jal(r.REGISTRY_HELPER), 0]
+        self.assertEqual(scan(words), [])
+
     def test_strict_private_elf_hash(self):
         with self.assertRaisesRegex(ValueError, 'only verified USA'):
             r.inspect(b'not-the-game')
