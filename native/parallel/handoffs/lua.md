@@ -13,6 +13,8 @@ Starting shared commit: `d483436416c14927851853f01c6ad66fe4cfbbf2`.
 - `2bc08990`: `native/src/lua_stage.cpp` implements native callbacks at the real Lua call site, converts original Lua arguments and native return values without replacing Lua logic, and forwards stage entities, parameters, flags, stage variables, mode and weapon selection to provided manager functions.
 - `9f1b2955`, `ffd50212`: preserve unknown `stage_var_get_int` argument shape as the exact Lua value vector (do **not** invent a string-key contract).
 - `1ef49bbf`: expand the existing Lua 5.0 C++ test with the stage setup → manager/flag/provider → Lua event callback chain and missing-provider rejection.
+- `b80c08cf`: reject unrepresentable original native function arguments and restore Lua stack after a rejected argument during callback invocation.
+- `1dc87269`: retail Lua 5.0 C++ regression test for strict flag-manager requirement across consecutive bytecode/source chunks.
 - `cf63d235`, `5c738aa1`: `native/tools/audit_original_lua50_calls.py` and its four test cases for offline owner-private original `area.luc` opcode dependency audit. No game data is included.
 
 All writes are within the Lua workstream's source/header/test/tool area and this handoff. No global CMake edits, GitHub Actions, emulation components, or original resources committed.
@@ -20,7 +22,7 @@ All writes are within the Lua workstream's source/header/test/tool area and this
 ## Original evidence, distinguished from unverified behavior
 
 - The inherited `retail_lua50.cpp` converter already handles the authentic Lua 5.0 USA chunk header, 32-bit size_t, float32 numbers, preserves the original 32-bit instruction words and nested function bodies. **This pass did not decompile/rewrite game script logic.**
-- New offline audit follows Lua **5.0.3** `lopcodes.h`: `OP_GETGLOBAL=5`, `OP_SETGLOBAL=7`, 6-bit opcode and 18-bit Bx at bit 14. Reads/writes are opcode evidence, **not a confirmed native function-call graph**. It recursively traverses nested prototypes and rejects malformed/truncated headers and invalid constant references.
+- New offline audit follows Lua **5.0.3** `lopcodes.h`: `OP_GETGLOBAL=5`, `OP_SETGLOBAL=7`, 6-bit opcode and 18-bit Bx at bit 14 (see [Lua 5.0.3 opcode definition](https://sources.debian.org/src/lua50/5.0.3-6/src/lopcodes.h)). Reads/writes are opcode evidence, **not a confirmed native function-call graph**. It recursively traverses nested prototypes and rejects malformed/truncated headers and invalid constant references.
 - Source-confirmed original callbacks inherited from prior recovery: `get_sex_distinction` at USA ELF VA `0x219C8C` reads `Data.player_type` at `0x649910`; `set_player_weapon` at VA `0x512000` decodes literal weapons then calls setter `0x266CF4`. Costume query functions at `0x617924` and `0x617958` inspect `Data.costume_possess`. Registration helper investigated in `native/tools/map_original_lua_registrations.py`: `0x255BD8`. This pass has **not** reverified these original ELF addresses against the owner's private binary.
 - **No authentic game ISO/ELF/area.luc was accessible in this conversation's container.** Script-binding completeness, authentic stage initialization and the real update/mission callback order remain unverified.
 
@@ -40,12 +42,12 @@ All writes are within the Lua workstream's source/header/test/tool area and this
 
 ## Tests, exact scope
 
-Ran successfully in the local container:
+Ran successfully in the local container against local authored copies of the exact auditor/test logic before pushing to GitHub:
 ```bash
-python3 -m py_compile native/tools/audit_original_lua50_calls.py
-python3 -m unittest -v native/tools/test_audit_original_lua50_calls.py
+python3 -m py_compile /mnt/data/ae3lua/audit_original_lua50_calls.py
+python3 -m unittest -v /mnt/data/ae3lua/test_audit_original_lua50_calls.py
 ```
-Results: **4/4 passed** on synthetic Lua 5.0 serialized header/prototypes/instructions, nested global references, source/global disambiguation and corrupted input. No original scripts executed by this Python test.
+Results: **4/4 passed** on synthetic Lua 5.0 serialized header/prototypes/instructions, nested global references, source/global disambiguation and corrupted input. The committed copies should be re-run after checkout; no original scripts executed by this Python test.
 
 C++ test added but **not executed**:
 ```bash
