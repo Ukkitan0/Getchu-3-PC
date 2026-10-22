@@ -75,7 +75,9 @@ def convert_original_models(source: Path, destination: Path, repo: Path,
     sys.path.insert(0, str(tools))
     try:
         module = importlib.import_module("convert_models_to_glb")
-        outcome = module.export_models(source, destination, ae3_cli, animations=True,
+        # The ae3-sdk --anims auto-pair path is heuristic, NOT original
+        # model-to-clip ownership. Avoid silently attaching wrong animations.
+        outcome = module.export_models(source, destination, ae3_cli, animations=False,
                                        textures=textures)
     finally:
         sys.path.remove(str(tools))
