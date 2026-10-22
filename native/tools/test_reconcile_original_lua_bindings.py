@@ -78,6 +78,24 @@ class CrossReferenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'duplicate'):
             bindings.reconcile(lua_report(), report, [])
 
+    def test_six_published_original_launcher_names_stay_distinct_from_elf_calls(self):
+        report = elf_report()
+        report['published_launcher_vtable_slot_candidates'] = [
+            {'name': 'createFeatureLauncher', 'vtable_address': None,
+             'published_symbol': 's_SetSelectFortune',
+             'available': False, 'slots': []},
+            {'name': 'createMGSGenerator', 'vtable_address': '0x006ADF00',
+             'published_symbol': None, 'available': False, 'slots': []},
+        ]
+        result = bindings.reconcile(lua_report(), report, [])
+        rows = {row['name']: row for row in result['rows']}
+        self.assertFalse(rows['createFeatureLauncher']['registered_at_scanned_original_CreateBind'])
+        self.assertIsNone(rows['createFeatureLauncher']['published_original_vtable']['address'])
+        self.assertEqual(rows['createFeatureLauncher']['published_original_vtable']['published_symbol'],
+                         's_SetSelectFortune')
+        self.assertEqual(rows['createMGSGenerator']['published_original_vtable']['address'],
+                         '0x006ADF00')
+
     def test_refuses_fake_executable_provenance(self):
         bad = elf_report()
         bad['original_verified_elf_sha256'] = '00' * 32
