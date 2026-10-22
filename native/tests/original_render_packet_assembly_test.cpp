@@ -27,6 +27,10 @@ void run(){
     deps.reset3af8b8=[&](std::uintptr_t handle){
         require(handle==0xA123,"wrong packet to original initialization");order+='R';
     };
+    deps.bindGraphicsOwner3af920=[&](std::uintptr_t packet,std::uintptr_t gfx){
+        require(packet==0xA123&&gfx==0x6789,"original packet owner source argument changed");
+        order+='B';
+    };
     deps.setup3af8a8=[&](std::uintptr_t h,std::span<const std::uint8_t> span){
         require(h==0xA123&&span.data()==desc.data(),"source descriptor pointer not forwarded");
         order+='S';
@@ -36,7 +40,7 @@ void run(){
         order+='D';actual.push_back(a);
     };
     auto result=originalAssemblePacket3af8f0(0x6789,desc,deps);
-    require(result==0xA123&&order=="ARSDDD"&&actual.size()==3,
+    require(result==0xA123&&order=="ARBSDDD"&&actual.size()==3,
             "retail 3AF8F0 packet assembly or conditional attachments wrong");
     require(actual[0].kind==0&&actual[0].sourceVa==0x3af478&&
             actual[0].dataToken==0x1000&&actual[0].count==1,
@@ -54,12 +58,12 @@ void run(){
     };
     order.clear();actual.clear();
     auto built=originalBuildDrawPacket280328(context,0x6789,scratch,wrapper);
-    require(built==0xA123&&context.source82c==built&&order=="ARSDDD",
+    require(built==0xA123&&context.source82c==built&&order=="ARBSDDD",
             "original packet builder did not connect to native context+0x82C");
     order.clear();actual.clear();
     for(unsigned i=0;i<5;++i)store32(desc,0x14+i*8,0);
     originalAssemblePacket3af8f0(0x6789,desc,deps);
-    require(order=="ARS"&&actual.empty(),"zero-count retail segments must skip append calls");
+    require(order=="ARBS"&&actual.empty(),"zero-count retail segments must skip append calls");
     bool threw=false;
     try{originalAssemblePacket3af8f0(0x6789,desc,{});}
     catch(const std::runtime_error&){threw=true;}
