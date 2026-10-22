@@ -17,12 +17,14 @@ spec.loader.exec_module(module)
 
 class FakeTask:
     def __init__(self):
-        self.imported_object_paths = []
+        self.objects = []
+    def get_objects(self):
+        return self.objects
 
 class FakeManager:
     def import_asset_tasks(self, tasks):
         for task in tasks:
-            task.imported_object_paths = [task.destination_path + '/SourceMesh']
+            task.objects = [type('FakeObject', (), {'get_path_name': lambda self: task.destination_path + '/SourceMesh'})()]
         return None
 
 class FakeUE:
