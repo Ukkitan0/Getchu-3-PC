@@ -84,6 +84,10 @@ struct NativeLuaStageBindings {
 };
 using OriginalLuaNativeCallback = std::function<
     std::vector<ScriptValue>(const std::vector<ScriptValue>&)>;
+// For recovered original routines requiring real Lua table identity,
+// closures, userdata, non-string numeric keys, or arbitrary argument
+// shapes. This keeps the actual Lua 5.0 stack and values unchanged.
+using OriginalLuaRawCallback = std::function<int(lua_State*)>;
 
 class LuaStage {
 public:
@@ -97,6 +101,8 @@ public:
     // No missing Lua API is fabricated; the caller owns recovered semantics.
     void registerOriginalFunction(std::string name,std::uint32_t originalVA,
                                   OriginalLuaNativeCallback callback);
+    void registerOriginalRawFunction(std::string name,std::uint32_t originalVA,
+                                     OriginalLuaRawCallback callback);
     void executeSource(std::string_view source,const std::string& chunkName="area.lua");
     // Invoke a Lua-defined callback with native data. Missing is reported as
     // false; present but invalid/failing callbacks throw with Lua diagnostics.
@@ -116,6 +122,7 @@ private:
     struct RegisteredOriginal {
         std::uint32_t originalVA;
         OriginalLuaNativeCallback callback;
+        OriginalLuaRawCallback rawCallback;
     };
     std::map<std::string,RegisteredOriginal> originalFunctions_;
     static void pushValue(lua_State* L,const ScriptValue& value,int depth=0);
