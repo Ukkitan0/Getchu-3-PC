@@ -24,6 +24,6 @@ Existing native work, integration PRs and all specialist branches remain unchang
 
 ## Original engine integrations still missing
 
-The current source branch converts assets from the verified USA disc. It does **not** register original Lua game callbacks with Unreal, place actual stage game objects, build original I3C collision actors, run original Player/Monkey updates, or reproduce gadget/capture and stage progression. Stream WAVs are source conversions, not the original interactive sound mix. The original game is not playable. A successful asset import must never flip `gameplay_ready` to true.
+The current source branch converts assets from the verified USA disc. It does **not** register original Lua game callbacks with Unreal, place actual stage game objects, implement original actor-specific collision response, run original Player/Monkey updates, or reproduce gadget/capture and stage progression. Stream WAVs are source conversions, not the original interactive sound mix. The original game is not playable. A successful asset import must never flip `gameplay_ready` to true.
 
 No model/animation correctness or full source corpus acceptance has yet been verified inside Unreal 5.6. The original file and all generated binary media remain in private ignored workspace.
