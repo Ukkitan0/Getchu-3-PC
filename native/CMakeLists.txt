@@ -502,6 +502,14 @@ if(AE3_RETAIL_USA_ELF)
     add_test(NAME OriginalRetailElfLiteralSourceAuthenticated
         COMMAND Getchu3OriginalElfSourceTests "${AE3_RETAIL_USA_ELF}")
 endif()
+add_executable(Getchu3OriginalFourthCtorTests tests/original_windows_fourth_ctor_test.cpp)
+target_link_libraries(Getchu3OriginalFourthCtorTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailFourthConstructorRejectUnverified
+    COMMAND Getchu3OriginalFourthCtorTests)
+if(AE3_RETAIL_USA_ELF)
+    add_test(NAME OriginalRetailFourthConstructorOriginalElf
+        COMMAND Getchu3OriginalFourthCtorTests "${AE3_RETAIL_USA_ELF}")
+endif()
 add_executable(Getchu3OriginalStaticResourceTests tests/original_windows_static_resources_test.cpp)
 target_link_libraries(Getchu3OriginalStaticResourceTests PRIVATE Getchu3Assets)
 add_test(NAME OriginalRetailStaticResourceRejectUnverifiedSource
