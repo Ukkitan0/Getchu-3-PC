@@ -315,13 +315,20 @@ void LuaStage::executeSource(std::string_view source,const std::string& chunkNam
     // A malformed/untrusted chunk must not poison a reusable interpreter.
     if(binaryChunk){
         hostChunk=retargetRetailLua50(source);
-        retailChunk_=true;
         source=std::string_view(
             reinterpret_cast<const char*>(hostChunk.data()),hostChunk.size());
     }
     error_.clear();
+    const int initialTop=lua_gettop(state_);
     int status=luaL_loadbuffer(state_,source.data(),source.size(),chunkName.c_str());
-    if(status==0)status=lua_pcall(state_,0,0,0);
+    if(status==0){
+        // Format validation alone does not establish an executable retail
+        // script: Lua 5.0's undumper/bytecode verifier must also accept it.
+        // Activate authentic manager requirements before executing the
+        // first instruction, and retain them across later source chunks.
+        if(binaryChunk)retailChunk_=true;
+        status=lua_pcall(state_,0,0,0);
+    }
     if(status){
         const char* what=lua_tostring(state_,-1);
         error_=what?what:"unknown Lua 5.0 error";
