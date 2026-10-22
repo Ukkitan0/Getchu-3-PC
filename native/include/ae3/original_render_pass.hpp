@@ -18,7 +18,7 @@ struct OriginalRetailDrawObject {
 // Unrecovered 0x26C9B8 / 0x26C4B0 and 0x26B3D0 resource decisions are
 // delegated to source-backed providers. Never silently guess their return.
 struct OriginalRetailDrawProviders {
-    std::function<bool(OriginalRenderId)> rejectByOriginalBounds;
+    std::function<bool(OriginalRenderId)> originalBoundsVisible;
     std::function<bool(OriginalRenderId)> originalResourceEffectEnabled;
 };
 enum class OriginalRetailDrawOp {
