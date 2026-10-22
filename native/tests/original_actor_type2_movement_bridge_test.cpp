@@ -47,6 +47,23 @@ static void exercise(const std::vector<OriginalSpatialRecord70>& polygons,
     require(pending.outcome==OriginalActorType2BridgeOutcome_57bcb8::OriginalOtherBranchUnrecovered&&
             route8==0xaabbccdd&&routeC==0x01020304&&rng.originalCursor()==startCursor,
             "Non-type-two original movement must not be fabricated");
+    // Original variant enabled but distance >= 2 must proceed to type-2.
+    // Exactly two retail RNG draws; route fields are unchanged.
+    const auto farEnabled=originalActorType2MovementBridge_57bcb8(
+        true,true,2,far,owner,polygons,route,rng,
+        route8,routeC,target40,target);
+    const auto firstTarget=originalActorType2Target_57bdb8(polygons,route);
+    std::array<std::byte,16> firstOracle40{};
+    (void)originalActorType2VU0WriteController40_57bdcc(
+        firstTarget.rawOriginalVertices,oracle,firstOracle40);
+    require(farEnabled.outcome==OriginalActorType2BridgeOutcome_57bcb8::OriginalType2TargetWritten_57bed4 &&
+            farEnabled.originalGate.originalComputedLengthF0.has_value() &&
+            *farEnabled.originalGate.originalComputedLengthF0==30.0f &&
+            route8==0xaabbccdd && routeC==0x01020304 &&
+            target==&polygons[b] &&
+            std::memcmp(target40.data(),firstOracle40.data(),16)==0 &&
+            rng.originalCursor()==oracle.originalCursor(),
+            "Variant-enabled beyond original radius must still select type-two native movement");
     const auto one=originalActorType2MovementBridge_57bcb8(
         false,true,2,far,owner,polygons,route,rng,
         route8,routeC,target40,target);
@@ -59,7 +76,7 @@ static void exercise(const std::vector<OriginalSpatialRecord70>& polygons,
             target==&polygons[b] && target==original.targetPolygonAt50 &&
             std::memcmp(target40.data(),oracleTarget40.data(),16)==0 &&
             std::memcmp(&originalVector,target40.data(),16)==0&&
-            rng.originalCursor()==oracle.originalCursor()&&rng.originalCursor()==1,
+            rng.originalCursor()==oracle.originalCursor()&&rng.originalCursor()==3,
             "Original kind-two movement must match separate authentic NAV+VU0 sequence");
 }
 int main(int argc,char**argv){
