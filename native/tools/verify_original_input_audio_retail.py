@@ -46,6 +46,7 @@ def audit(original_elf: Path) -> list[str]:
         ("se_stop", 0x219138, 0x3732fc),
         ("wait", 0x2193cc, 0x37321c),
         ("add_entity_se", 0x2195a0, 0x3738dc),
+        ("kick_entity_se", 0x2196c0, 0x373960),
     ):
         jal(site, constructor)
         checks.append(f"{name}:0x{site:X}->0x{constructor:X}")
@@ -56,6 +57,7 @@ def audit(original_elf: Path) -> list[str]:
         (0x6E2DF0, "vol"), (0x6E2DF8, "time"),
         (0x6E2E08, "exdb_se_id"), (0x6E2E18, "watch_rollerhandle_name"),
         (0x6E2E30, "sign"), (0x6E2E38, "is_2d"), (0x6E2E40, "is_3d"),
+        (0x6E2E48, "mark_name"), (0x6E1648, "entity_name"),
     ):
         literal(va, key)
     assert scalar(0x6E2DF4) == 1.0, "se volume default differs"
@@ -63,8 +65,16 @@ def audit(original_elf: Path) -> list[str]:
     # Both literals are actually loaded by their retail command parsers.
     assert word(0x219224) == 0xC5D40000, "se f20 volume load changed"
     assert word(0x21939c) == 0xC5F40000, "wait f20 duration load changed"
+    for name, at, size in (
+        ("se",0x37328C,0xA0),
+        ("se_stop",0x373310,0x70),
+        ("add_entity_se",0x3738F0,0xD0),
+        ("kick_entity_se",0x373974,0xB0),
+    ):
+        assert word(at) == (0x24040000 | size), f"{name} original event allocation changed"
+        checks.append(f"{name}_original_object_bytes:{size}")
     checks.extend(["weapon:0x512034->0x266CF4", "se_volume:1.0",
-                   "wait_duration:1.0", "verified_literals:12"])
+                   "wait_duration:1.0", "verified_literals:14"])
     return checks
 
 

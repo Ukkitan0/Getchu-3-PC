@@ -16,6 +16,8 @@ enum class OriginalSoundCommand : std::uint8_t {
 struct OriginalSoundRoute {
     OriginalSoundCommand command;
     std::uint32_t originalDispatchVa;
+    std::uint32_t originalConstructorVa; // source event constructor JAL
+    std::uint32_t originalObjectBytes; // source allocator size
 };
 std::optional<OriginalSoundRoute> originalSoundRoute(std::string_view opcode) noexcept;
 
@@ -30,6 +32,16 @@ struct OriginalSeLuaFields {
 // Numeric Lua conversion is direct; original 0x3E5BD0 string coercion
 // remains an open dependency, so raw event parameters are also kept.
 std::optional<OriginalSeLuaFields> originalSeLuaFields_2191d4(
+    const NativeControllerEvent& event) noexcept;
+
+// Original 0x219454 (add) / 0x2195D0 (kick) parameter names.
+struct OriginalEntitySoundLuaFields {
+    std::optional<std::string> exdbSeId,entityName;
+    std::optional<std::string> watchRollerhandleName,markName;
+    std::optional<float> sign;
+    std::optional<bool> is2d,is3d;
+};
+std::optional<OriginalEntitySoundLuaFields> originalEntitySoundLuaFields(
     const NativeControllerEvent& event) noexcept;
 
 struct OriginalSoundEvent {

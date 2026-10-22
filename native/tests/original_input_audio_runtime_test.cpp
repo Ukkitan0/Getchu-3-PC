@@ -92,10 +92,39 @@ void originalSeParameters(){
     expect(!ae3::originalSeLuaFields_2191d4(event),
            "se_stop incorrectly decoded as se");
 }
+void originalEntitySoundParameters(){
+    ae3::NativeControllerEvent e;
+    e.parameters.kind=ae3::ScriptValue::Kind::object;
+    e.opcode="add_entity_se";
+    e.parameters.object["exdb_se_id"]=fieldString("original.exdb.sound");
+    e.parameters.object["entity_name"]=fieldString("actor");
+    e.parameters.object["watch_rollerhandle_name"]=fieldString("roller");
+    ae3::ScriptValue num;num.kind=ae3::ScriptValue::Kind::number;num.number=-0.5;
+    e.parameters.object["sign"]=num;
+    ae3::ScriptValue b;b.kind=ae3::ScriptValue::Kind::boolean;b.boolean=true;
+    e.parameters.object["is_3d"]=b;
+    auto f=ae3::originalEntitySoundLuaFields(e);
+    expect(f && f->exdbSeId=="original.exdb.sound" &&
+           f->entityName=="actor" && f->watchRollerhandleName=="roller" &&
+           f->sign && *f->sign==-0.5f && f->is3d && *f->is3d &&
+           !f->is2d && !f->markName,"add_entity_se parameters lost");
+    e.opcode="kick_entity_se";
+    e.parameters.object["mark_name"]=fieldString("mark");
+    f=ae3::originalEntitySoundLuaFields(e);
+    expect(f && f->exdbSeId=="original.exdb.sound" &&
+           f->entityName=="actor" && f->markName=="mark" &&
+           !f->sign && !f->is2d && !f->is3d && !f->watchRollerhandleName,
+           "kick_entity_se parameters contaminated by unrelated sound opcode");
+    e.opcode="kick_entity_effect";
+    expect(!ae3::originalEntitySoundLuaFields(e),
+           "effect command misclassified as source audio command");
+}
 void sourceSoundRoutesAndBackpressure(){
-    const struct {const char* op;std::uint32_t va;} known[]={
-        {"se",0x2191d4},{"se_stop",0x2190d8},
-        {"add_entity_se",0x219454},{"kick_entity_se",0x2195d0}};
+    const struct {const char* op;std::uint32_t va,ctor,bytes;} known[]={
+        {"se",0x2191d4,0x373264,0xa0},
+        {"se_stop",0x2190d8,0x3732fc,0x70},
+        {"add_entity_se",0x219454,0x3738dc,0xd0},
+        {"kick_entity_se",0x2195d0,0x373960,0xb0}};
     ae3::OriginalSoundEventRuntime runtime;
     ae3::OriginalAudioDescriptorValues resource;
     resource.sourceStrings={"test_original_name","song.mid","system","bank.bd","bank.hd"};
@@ -106,8 +135,11 @@ void sourceSoundRoutesAndBackpressure(){
         e.opcode=known[i].op;
         e.parameters.kind=ae3::ScriptValue::Kind::object;
         e.parameters.object["name"]=fieldString("untouched_source_name");
-        expect(ae3::originalSoundRoute(e.opcode)->originalDispatchVa==known[i].va,
-               "original route address mismatch");
+        const auto route=ae3::originalSoundRoute(e.opcode);
+        expect(route && route->originalDispatchVa==known[i].va &&
+               route->originalConstructorVa==known[i].ctor &&
+               route->originalObjectBytes==known[i].bytes,
+               "original route/constructor/size mismatch");
         expect(runtime.enqueue(e,"retail_entity",i==0?
             std::optional<ae3::OriginalAudioDescriptorValues>{resource}:std::nullopt),
             "original stage sound command not queued");
@@ -157,6 +189,7 @@ int main(){
         padFramesAndLoss();
         originalGadgetScriptSelection();
         originalSeParameters();
+        originalEntitySoundParameters();
         sourceSoundRoutesAndBackpressure();
         portableWin32AdapterNoInput();
         std::cout<<"ORIGINAL_INPUT_AUDIO_BOUNDARY_TEST_PASSED "
