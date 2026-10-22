@@ -103,8 +103,8 @@ def run(manifest, cmake):
         invoke(cmake, "-S", str(root), "-B", str(build),
                "-DAE3_REQUIRE_PARALLEL_INTEGRATION=ON",
                expected_text="Parallel INPUT_AUDIO: complete source/test file set")
-        invoke(cmake, "--build", str(build), "--parallel", "2")
-        output = invoke("ctest", "--test-dir", str(build), "--output-on-failure",
+        invoke(cmake, "--build", str(build), "--config", "Release", "--parallel", "2")
+        output = invoke("ctest", "--test-dir", str(build), "-C", "Release", "--output-on-failure",
                         expected_text="100% tests passed")
         if "9/9 Test" not in output:
             raise AssertionError("Expected nine native integration test registrations: " + output)
