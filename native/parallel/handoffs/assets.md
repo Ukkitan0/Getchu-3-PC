@@ -247,3 +247,90 @@ The authentic retail engine's stage bundle selection, resource registration, dep
 **Regression additions:** Verify all three action pairs are preserved, count four rejects instead of spilling into vertex fields, a real 0x20-byte indexed extra record resolves to its original 32-bit source VA, and a selector with only one byte left in the source allocation fails. Existing geometry-source, point-count, source owner and missing-vertex checks remain intact. No actor or nav algorithm was added or altered.
 
 **Verification status:** The exact modified existing spatial loader + spatial regression require the coupled VU0/nav library source tree to build. This disconnected local container did **not** run the full new spatial regression after these edits; compile, CTest and original-retail differential checks are still requested from the integrator. The slot constraint is deduced from the already verified descriptor field layout; a new private retail survey of the action-count distribution was **not performed**. Do not interpret the guard as proof all retail gameplay stage action branches are recovered. No changes to global CMake or other workstream files.
+
+
+## Retail-authenticated stage resource and initialization recovery — new private-file evidence (2026-10-21/22)
+
+### Material change in available source evidence
+
+The owner's prior ChatGPT Library uploads became available in this pass: the owner-private `SCUS_975.01` USA original executable and an **extracted genuine `woods_c` stage** including `bg.pck`, `character.pck`, `apelodtex.pck`, `exdb.pck`, `navigation.pck`, `placeholder.plc`, `actionseq.asq`, `monkeydb.xml`, `area.luc`, and other original stage resources. The retail executable was newly SHA-256 verified as `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`. The complete original ISO is still NOT available for fresh original VFI mount testing, but original ELF and the genuine extracted woods_c sample ARE now available to private local analysis.
+
+**These originals remain private. No original ELF/PCK/Lua/texture/model bytes were committed or written into any source/test fixture.**
+
+### Fixed genuine multi-PCK parsing bug — committed
+
+- `4d5d2506127c0fdd5c2d9599b333dc74cef57f86` `native/include/ae3/pck_archive.hpp`: preserve original PCK type string as new `PckMember::originalType`, retain existing raw uint32 type *offset* to avoid breaking callers.
+- `48c5abe2aeb6a4e836f6b7b63ac4ce120555b2ce` `native/src/pck_archive.cpp`: correct the legacy source name parser. **Both the name and type pointers in original metadata are ABSOLUTE PCK-relative byte offsets**, not `0x10 + offset`. Each pointer must be in the source string region [0x10, entry table), at a string beginning, with printable bounded NUL-terminated source text. Previously guessed backward scans accepting middle-of-name or terminator offsets were wrong for ALL FIVE inspected original PCK types. The corrected parser preserves original type strings, raw payload bytes and extension classification.
+- `f9b8c57e74af7bf4fe7ddc29add15e7919d2e596` `native/tests/pck_archive_test.cpp`: original-format absolute-index synthetic metadata fixture and type checks; reject pointers into a string and outside the string pool.
+- `d5f0d5cc0827ba3c24379edd03ef2bba1c67e704` new `native/tests/original_pck_stage_retail_test.cpp`: optional private-retail stage differential checks all five PCKs, validating each row's name, type, payload offset/length, magic classifier and **every member's original payload byte** against the independent PCK source parser. The original assets are read only from an owner-specified local directory and never distributed.
+
+**Fresh actual-retail PCK checks:** the new native host implementation was also locally compiled with strict GCC 14.2.0 C++20 and run against **all five original source PCK files**, independently checking all 160 entries. Counts:
+- `apelodtex.pck` 4 members, all TIM2.
+- `bg.pck` 73 members: 25 I3D_BIN meshes, 27 TIM2 textures, 5 I3D_I3M animations, 9 I3D_I3C collision members and 7 other.
+- `character.pck` 79 members: 11 I3D_BIN meshes, 24 TIM2 textures, 32 I3D_I3M animations and 12 other.
+- `exdb.pck` 2 EDB entries.
+- `navigation.pck` 2 original `nav` entries.
+Five real original source SHA-256 digests, computed independently in this pass:
+  `apelodtex.pck`: `3a6c06d2cf36ce9d3b5b28fd1cb29bff8a0826836a45000bef4ec15d5c1b1d00`
+  `bg.pck`: `e406ff6466f6a930b2f9c9ea8a0f926f3f9352170f2dd41e85d6390c7120352e`
+  `character.pck`: `993c71929259083102c3cb643c4683edb0e6db757cb71106589c35b7745d61b3`
+  `exdb.pck`: `185db8cfd710760d9c715e0d1cce8ac4ecf6b18201673ce00bc6815078ae4615`
+  `navigation.pck`: `d2f6809cb9414cf8edfe52bc4c209d526b6247c003fd60856a796f114b422df0`.
+
+**Important correction of previous handoff:** original `bg.pck` also uses absolute name and type string offsets; prior belief that generic PCK variants need different relative name semantics is refuted by these five directly inspected original packages.
+
+### Recovered a genuine original stage-start resource key selection and native lookup
+
+Source original ELF at **`0x22D7B4..0x22D970`** (111 instructions) contains four ordered string-key resource requests and consumers:
+1. At `0x22D828` lookup `placeholder` (retail literal VA `0x6E7388`) via `0x24DC84`, then consumer `0x272294` (call `0x22D844`).
+2. At `0x22D8C0` lookup `navigation` (`0x6E7398`) via `0x24DC84`, then original `NavGraph::load` `0x4F0A5C` (call `0x22D8C8`) -> previously recovered `0x21D46C`.
+3. At `0x22D8E8` lookup `actionseq` (`0x6E73A8`) via `0x24DC84`, consumer `0x30C798` (call `0x22D904`).
+4. At `0x22D928` lookup `monkeydb` (`0x6E73B8`) via `0x24DC84`, an additional source lookup `0x24DC9C` at `0x22D938`, consumer `0x25BFE0` (call `0x22D95C`).
+
+`0x24DC84` wrapper tail-jumps to **`0x24D4F0`** at `0x24DC94`. This original routine scans begin/end pointers of a vector in 16-byte source strides; compares a requested original whole string against the source entry name at +0; **returns the pointer at source entry+0x08 for the first exact matching record**, or null after exhaustion. It does NOT implement guessed stage extension mapping. The separate original `0x26DF38` wrapper jumps to source typed resource-selection `0x26D24C` at `0x26DF48`.
+
+The original owner-private `woods_c` directory contains source-stem matches for `placeholder.plc`, `navigation.pck`, `actionseq.asq` and `monkeydb.xml`. This is **stage archive evidence of candidate files, not proof that the source lookup key is mapped to that particular extension by the original runtime**.
+
+Four complete original ELF windows SHA-256 verified locally: 
+- `0x22D7B4..0x22D970`: `5bfbc7ed490928ae7283efd43c092448e40a5cd7c26be2dedc73c3db580f4b95`.
+- `0x24DC84..0x24DCB4`: `e534af352ecfee6d28373bfa9cef6759a8c53f0961ed91ca1c18aa9d6c36bd4a`.
+- `0x24D4F0..0x24D5FC`: `7ec60322e5ae08a2e117a0b4c120837a4a7ac1d3c16fda83a2e6930afe6b20ad`.
+- `0x26DF38..0x26DF50`: `1f7d4a0f338b0a7d04366122d34d6c429ce01828b2cf08441b021fc4a4f2c400`.
+
+Total **196 complete source instructions**, **11 independently checked direct original call/jump edges** and original string literals. Private local original ELF audit **actually executed and passed**; `llvm-objdump` verified MIPS branch locations and source allocation control flow.
+
+New commits:
+- `bf0fa303a91bd1523b07df5c62972ee5a7e060cb` `native/tools/verify_original_stage_resource_initialization.py`: separate complete-private-original ELF SHA/window/branch verifier and five SHA-pinned genuine woods_c PCK/nav record audit. Run locally with the owner's `SCUS_975.01` and owner-private extracted `woods_c` stage path. The standalone committed Python tool was created from verified private-source results; an equivalent independent private local audit was executed and passed, but the exact committed Python tool has NOT yet been run as a single script from the GitHub checkout in this environment.
+- `e94570bfc946ce171b810a3cc37499ab1f00501e` `native/include/ae3/original_resource_stage_sequence.hpp`: constant, source-address-preserving original initialization key order, lookup/consumer metadata and a **diagnostic only** list of *actual* original VFI stage-root file candidates sharing exact basename stems. No generated filenames/extensions or invented load order beyond the documented four source calls. Require-unique fails closed if no candidate or several.
+- `30828575e467092ca61d55075d1c35456cc8b473` `native/tests/original_resource_stage_sequence_test.cpp`: original order, source VAs, four source-backed filenames (from synthetic VFI fixture), absent/ambiguous candidate refusal.
+- `54a7baf19f337fb6fadc3d50dea5081478bb7b82` stage-sequence header fix: `std::span` has no `.at()`; compile caught this, replaced with explicit bounds check and operator[]. A mirrored exact C++20 sequence test was compiled/run and passed GCC 14.2.0 and Clang 17.0.0 `-O2 -Wall -Wextra -Wpedantic -Werror` and GCC AddressSanitizer+UBSan.
+- `8d36aabcfbe97f54f31c44ecbeaa73138a05cf54` `native/include/ae3/original_resource_named_lookup.hpp`: portable source-view representation of recovered 0x24D4F0 first exact name lookup loop.
+- `ff941b1a51d0175540229ccaa396d06ab89d8207` `native/tests/original_resource_named_lookup_test.cpp`: exact-case full-string matching, first duplicate hit, source entry payload borrowing, no-match null. Local strict GCC and Clang C++20 compiled and passed.
+
+Additional documentation: `b67126053291e26d22b7d7e35669bdce23ce95ec` `native/reference/original_stage_initialization_resource_chain.json`: genuine recovered branch/stage addresses, source hashes, sample original navigation/layout verification, explicit unknowns. Contains metadata ONLY.
+
+### Source-backed verification of spatial bounds change, using REAL original .nav data
+
+Previous stage-spatial hardening `487336...` and `05be3e4...` is now RETAIL-VALIDATED on the actual original owner-provided `woods_c/navigation.pck`:
+- `nav_monkey.nav` original source payload 2,128 bytes, **39** polygon descriptors; original action counts: 3 actions×20, 2 actions×16, 1 action×3. All 39 source polygons have 3 vertex entries and resolve full referenced 32-byte optional-source records.
+- `nav_enemy.nav` original source payload 1,104 bytes, **20** polygon descriptors; action counts: 2 actions×12, 3 actions×5, 1 action×3. All 20 have 3 vertices and 20 valid full 32-byte optional record references.
+- Total **59** genuine navigation descriptors in this retail stage, all valid under fixed 3 action slots and complete 32-byte optional table checks, all source vertex references within the original allocations. Private audits do not replace missing game-object / nav source allocations or original runtime behavior.
+
+### Actual verification coverage and nonclaims
+Executed this pass in local source environment:
+- Retail original ELF pinned-window / 11-call-edge audit: **PASS**; four SHA-256 windows, 196 words, original source literal strings and MIPS targets.
+- Five retail original woods_c packages SHA and metadata check, C++ parser differential on original files: **PASS**, all 160 names/types/offsets/sizes and every extracted member payload checked against independent parser.
+- Real woods_c source nav records: **PASS**, 59 records, 3-vertex geometry, actions 1/2/3 only, all full +0x20 source selector ranges valid.
+- New source-order C++ synthetic test (GCC, Clang, GCC ASan+UBSan) **PASS** after compiler-found span fix.
+- Original 0x24D4F0 first-name-match source-view C++ test (GCC, Clang) **PASS**.
+- Prior ISO/VFI -> stage scope ownership synthetic/mirror tests **PASS** as recorded above.
+- **Not performed:** complete original USA ISO file reading in this pass (only original ELF and extracted woods_c), complete Windows CMake/CTest, full stage resources registered in original engine, original stage activation/gameplay boot. Do not claim playable/native integrated.
+
+### Integration-owner-only action
+1. The corrected existing `native/src/pck_archive.cpp` and header/test are already in current CMake; compile existing `Getchu3PckProbe`/PCK parser target and run original `native/tests/pck_archive_test.cpp`. Reconcile any third-party expectation that PCK name identifiers are pool-relative: real retail PCKs here are absolute.
+2. Register new header-only tests `native/tests/original_resource_stage_sequence_test.cpp` and `native/tests/original_resource_named_lookup_test.cpp` in global `native/CMakeLists.txt`; only integrator changes it. Run the private `native/tests/original_pck_stage_retail_test.cpp` with an owner-controlled path to the *extracted* woods_c folder; do NOT check that path in.
+3. Execute owner-only `python native/tools/verify_original_stage_resource_initialization.py <path-to-private-SCUS_975.01> <path-to-private-vfi/debug/us/stage/woods_c>` to independently confirm pinned code windows, original stage-init string names, call targets, PCK SHA, nav source layout.
+4. Connect original stage initialization `0x22D7B4` four name-key requests and source 0x24D4F0 lookup to Windows Runtime/Gameplay/Nav team's real allocation/consumers via integrator. No fake 32-bit guest VAs; `OriginalStageResourceScope` must outlive all borrowers.
+5. Owner's source has `placeholder.plc`, `navigation.pck`, `actionseq.asq`, `monkeydb.xml` matching the four stems. But recover upstream resource registry population and source-key-to-file provenance before wiring those candidates as unconditional production behavior. Original consumer `0x272294`, `0x30C798`, `0x25BFE0` and second monkeydb lookup `0x24DC9C` remain to be translated.
+
+No global CMake, Windows runtime/graphics/navigation/gamelogic owned sources, GitHub Actions or master branch edited. No proprietary original data committed.
