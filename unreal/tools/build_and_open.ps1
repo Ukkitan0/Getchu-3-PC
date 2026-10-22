@@ -1,0 +1,104 @@
+#requires -Version 5.1
+<#
+One-click LOCAL Windows build. Builds authentic recovered Lua 5.0 bridge
+and the Unreal Engine game/editor modules. Never bundles original retail data.
+#>
+[CmdletBinding()]
+param(
+    [string]$UnrealEngineRoot = $env:UE_5_6_ROOT,
+    [switch]$SkipSDKBootstrap,
+    [switch]$SkipEditorLaunch
+)
+
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+
+function MustRun {
+    param([string]$Program, [string[]]$Arguments, [string]$Failure)
+    Write-Host "RUN: $Program $($Arguments -join ' ')" -ForegroundColor Cyan
+    & $Program @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "$Failure (exit code $LASTEXITCODE)"
+    }
+}
+
+$UnrealDir = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$Repo = (Resolve-Path (Join-Path $UnrealDir "..")).Path
+$Native = Join-Path $Repo "native"
+$BuildDir = Join-Path $Repo "native\build-unreal-lua"
+$ProjectFile = Join-Path $UnrealDir "Getchu3.uproject"
+if (!(Test-Path -LiteralPath $ProjectFile -PathType Leaf)) {
+    throw "The actual Unreal project is missing: $ProjectFile"
+}
+if (!(Get-Command cmake -ErrorAction SilentlyContinue)) {
+    throw "CMake is required for the original Lua 5.0 host runtime."
+}
+if (-not $UnrealEngineRoot) {
+    foreach ($Candidate in @("$env:ProgramFiles\Epic Games\UE_5.6",
+                              "C:\Program Files\Epic Games\UE_5.6")) {
+        if (Test-Path -LiteralPath (Join-Path $Candidate "Engine\Build\BatchFiles\Build.bat")) {
+            $UnrealEngineRoot = $Candidate
+            break
+        }
+    }
+}
+if (!$UnrealEngineRoot) {
+    throw "Unreal Engine 5.6 not found. Set UE_5_6_ROOT or pass -UnrealEngineRoot."
+}
+$EditorBuild = Join-Path $UnrealEngineRoot "Engine\Build\BatchFiles\Build.bat"
+$EditorBinary = Join-Path $UnrealEngineRoot "Engine\Binaries\Win64\UnrealEditor.exe"
+if (!(Test-Path -LiteralPath $EditorBuild -PathType Leaf)) {
+    throw "Not an Unreal Engine 5.6 installation: $EditorBuild"
+}
+if (!(Test-Path -LiteralPath $EditorBinary -PathType Leaf)) {
+    throw "UnrealEditor.exe missing: $EditorBinary"
+}
+
+# Pinned MIT ae3-sdk tools, installed to an owner-local virtual environment.
+# No original PlayStation data is fetched or distributed by this step.
+if (-not $SkipSDKBootstrap) {
+    $Venv = Join-Path $Repo ".getchu3\ae3sdk-venv"
+    $SdkPython = Join-Path $Venv "Scripts\python.exe"
+    $SdkCli = Join-Path $Venv "Scripts\ae3.exe"
+    if (!(Test-Path -LiteralPath $SdkCli -PathType Leaf)) {
+        if (Get-Command py -ErrorAction SilentlyContinue) {
+            MustRun "py" @("-3", "-m", "venv", $Venv) "Failed to create Python environment"
+        } elseif (Get-Command python -ErrorAction SilentlyContinue) {
+            MustRun "python" @("-m", "venv", $Venv) "Failed to create Python environment"
+        } else {
+            throw "Python 3 is needed to install the MIT ae3-sdk resource converter."
+        }
+        $PinnedTools = "git+https://github.com/pxdl/ae3-sdk.git@5b2207e3580ae4cc1d588641f4fe3f898350e501#subdirectory=tools"
+        MustRun $SdkPython @("-m", "pip", "install", "--disable-pip-version-check",
+                            "Pillow", $PinnedTools) "Pinned MIT ae3-sdk installation failed"
+        if (!(Test-Path -LiteralPath $SdkCli -PathType Leaf)) {
+            throw "Pinned ae3-sdk did not create its ae3 converter."
+        }
+    }
+    $env:PATH = (Join-Path $Venv "Scripts") + [IO.Path]::PathSeparator + $env:PATH
+}
+
+MustRun "cmake" @("-S", $Native, "-B", $BuildDir, "-G", "Visual Studio 17 2022",
+                  "-A", "x64") "Native Lua 5.0 bridge configuration failed"
+MustRun "cmake" @("--build", $BuildDir, "--config", "Release",
+                  "--target", "Getchu3OriginalLuaBridge", "Getchu3OriginalUnrealLuaBridgeTests",
+                  "--parallel") "Native Lua 5.0 bridge compilation failed"
+MustRun "ctest" @("--test-dir", $BuildDir, "-C", "Release",
+                  "-R", "^OriginalLua50UnrealHostBridgeFailClosed$",
+                  "--output-on-failure") "Native Lua 5.0 bridge tests failed"
+
+$OriginalDll = Join-Path $BuildDir "Release\Getchu3OriginalLuaBridge.dll"
+if (!(Test-Path -LiteralPath $OriginalDll -PathType Leaf)) {
+    throw "Original native Lua bridge DLL missing: $OriginalDll"
+}
+$RuntimeDir = Join-Path $UnrealDir "Binaries\Win64"
+New-Item -ItemType Directory -Path $RuntimeDir -Force | Out-Null
+Copy-Item -LiteralPath $OriginalDll -Destination (Join-Path $RuntimeDir "Getchu3OriginalLuaBridge.dll") -Force
+
+MustRun $EditorBuild @("Getchu3Editor", "Win64", "Development",
+                      "-Project=$ProjectFile", "-WaitMutex", "-NoHotReload") "Unreal project compilation failed"
+
+Write-Host "Native source bridge and Unreal project compiled. Game playability NOT established." -ForegroundColor Yellow
+if (-not $SkipEditorLaunch) {
+    Start-Process -FilePath $EditorBinary -ArgumentList ('"' + $ProjectFile + '"')
+}
