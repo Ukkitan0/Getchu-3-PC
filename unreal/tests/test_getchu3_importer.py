@@ -14,6 +14,7 @@ import sys
 module = importlib.util.module_from_spec(spec)
 sys.path.insert(0, str(FILE.parent))
 import getchu3_media
+import getchu3_collision
 sys.modules[spec.name] = module
 spec.loader.exec_module(module)
 
@@ -78,6 +79,8 @@ class ImporterTests(unittest.TestCase):
             with patch.object(module,'verify_disc',return_value=module.VerifiedDisc(disk,'b'*64)), \
                  patch('getchu3_media.convert_textures',return_value={"converted_png_files":2}), \
                  patch('getchu3_media.convert_stream_audio',return_value={"source_exst":0,"wav_files":[]}), \
+                 patch('getchu3_collision.convert_collision',return_value={"original_i3c_files":3}), \
+                 patch.object(module,'import_collision_in_editor',return_value=['/Game/Original/Collision']), \
                  patch.object(module,'recover_original',return_value={"original_vfi_files_extracted":3994,"original_lua_scripts":168}), \
                  patch.object(module,'convert_original_models',return_value={"original_i3d_bin_files":12}), \
                  patch.object(module,'import_glbs_in_editor',return_value=['/Game/Original/Mesh']):
