@@ -5,7 +5,7 @@ Unreal Engine 5.6 Windows project and Editor plugin. This folder contains **no r
 ## Current scope (not a game release)
 
 - A dockable **Ape Escape 3 — Unreal Importer** panel under Unreal Editor's Tools menu supports ISO selection and Windows file drag/drop.
-- The importer verifies the original USA ISO size and full SHA-256, calls the genuine existing `native/tools/extract_retail_iso.py` source extraction code, verifies the source executable hash, and uses `native/tools/convert_models_to_glb.py` with the separately installed `ae3` CLI to convert original model and animation resources. GLBs are imported through Unreal Editor AssetTools with a private status report under `Saved/Getchu3Private`.
+- The importer verifies the original USA ISO size and full SHA-256, calls the genuine existing `native/tools/extract_retail_iso.py` source extraction code, verifies the source executable hash, and uses `native/tools/convert_models_to_glb.py` with the separately installed `ae3` CLI to convert original model and animation resources. Converted GLB models are imported through Unreal Editor AssetTools with a private status report under `Saved/Getchu3Private`.
 - An installed `ae3-sdk` command is required for model conversion. Missing dependencies or unsupported models report failure; no replacement models are invented.
 - Unported stage behavior, Lua bindings, actor AI, sound playback, cameras, UI and save systems are **not supplied**. The **Play Ape Escape 3** control is intentionally disabled. Asset conversion is not game execution.
 - Imported original resources and generated Unreal assets remain owner-private. Never commit those assets or the extracted ISO, ELF or Lua.
