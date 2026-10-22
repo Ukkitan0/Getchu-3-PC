@@ -249,6 +249,15 @@ add_test(NAME OriginalNavSourceRouteIntegrity
 
 The existing handoff's previous instructions for adding `original_nav_actor_binding.cpp`, `original_nav_stage_route.cpp`, `original_nav_stage_groups.cpp`, and stage bridge tests remain required.
 
+## Navigation specialist checkpoint — 2026-10-21
+
+Two commits on `parallel/navigation` since `252f8342469f074a40a00eecd34ad22ba87d0739`:
+
+- `4d1d9714cd766965ff276f9904a0e747f6609b40`: host-only original circular-list generation and weak lifetime tracking integrated with original `0x2207D0` stage routes and original actor binding, preserving retail list order and link decisions.
+- `6d3e8853c89ec22081506f59f3fb1d2cad15ea44`: distinguish untracked temporary source membership spans from durable original list owners; reject only the former when installing long-lived native actor routes.
+
+**CMake:** no new translation units were added, because both changes modify already existing navigation files. No global `native/CMakeLists.txt` edit or GitHub Actions execution. Local native C++ isolated list model was tested with GCC and Clang + ASan/UBSan; full original navigation and game binaries **remain uncompiled/unexecuted in this workspace**.
+
 ## Direct original membership-owner route lifetime — 0x21F604 / 0x21F82C / 0x21F804
 
 A remaining native ownership defect existed in `originalNavStageDispatch_2207d0(..., OriginalNavListOwner*)`: it preserved the source member-list ordering during the original `0x2207D0` search but returned a route snapshot tracked only by the **graph's** revision. When `0x21F82C` inserted a newly eligible polygon, `0x21F804` erased one, `0x4E4154` cleared the list, or `0x21F64C`/`0x21F690` destroyed the sentinel, a previously selected actor route could remain marked current despite having been generated from obsolete member candidates. The keyed navrange group session tracked group registration, but generic original membership owners did not.
