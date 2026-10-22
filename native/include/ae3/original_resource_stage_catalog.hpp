@@ -31,10 +31,11 @@ inline bool originalResourceIsSz(std::string_view name) noexcept {
     return suffix==".sz"||suffix==".SZ"||suffix==".sZ"||suffix==".Sz";
 }
 inline bool originalResourceValidStageName(std::string_view name) noexcept {
-    if(name.empty() || name.size()>70)return false;
+    // Real VFI directory names are authoritative. A launcher UI's identifier
+    // alphabet is not evidence of the retail archive's filename rules.
+    if(name.empty() || name.size()>255 || name=="." || name=="..")return false;
     for(unsigned char c:name)
-        if(!((c>='A'&&c<='Z')||(c>='a'&&c<='z')||
-             (c>='0'&&c<='9')||c=='_'))return false;
+        if(c<' '||c==127||c==':'||c=='/'||c=='\\')return false;
     return true;
 }
 inline bool originalResourceValidStageRelativeName(std::string_view path) noexcept {
