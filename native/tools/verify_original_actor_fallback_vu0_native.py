@@ -93,6 +93,31 @@ def verify(path: Path) -> None:
     assert word(0x57C988)==0x48a20800,"Original full-width QMTC2 changed"
     assert word(0x57C894)==0x700234a9,"Original subsequent PCPYUD changed"
     assert word(0x57CA60)==0x1000ffb9,"Variant-0 return branch changed"
+    # Exact retail VU0 operand ledger: (source VA, VF destination, VF fs,
+    # VF ft, xyzw mask). This is verified against genuine instruction bits,
+    # not a replacement vector algorithm or game code bytes.
+    source_ops=(
+      (0x57CB4C,1,3,1,15),(0x57CB58,2,4,2,15),
+      (0x57CB68,1,1,2,15),(0x57CB6C,3,4,5,15),
+      (0x57CB70,3,1,3,15),(0x57CB80,3,1,3,15),
+      (0x57CB84,1,3,3,15),(0x57CB88,1,1,1,13),
+      (0x57CB8C,1,1,1,15),(0x57CB9C,3,3,0,15),
+      (0x57CBA0,2,2,4,15),(0x57CBA4,1,2,2,15),
+      (0x57CBA8,1,1,1,13),(0x57CBAC,1,1,1,15),
+      (0x57CBB8,2,2,0,15),
+      (0x57CC48,2,4,1,15),(0x57CC58,1,5,3,15),
+      (0x57CC64,2,2,1,15),(0x57CC68,3,4,5,15),
+      (0x57CC70,2,2,3,15),(0x57CC74,3,1,2,15),
+      (0x57CC7C,1,3,3,15),(0x57CC80,1,1,1,13),
+      (0x57CC84,1,1,1,15),(0x57CC94,3,3,0,15),
+      (0x57CC98,2,2,4,15),(0x57CC9C,1,2,2,15),
+      (0x57CCA0,1,1,1,13),(0x57CCA4,1,1,1,15),
+      (0x57CCB0,2,2,0,15),
+    )
+    for at,fd,fs,ft,mask in source_ops:
+        x=word(at)
+        assert ((x>>6)&31,(x>>11)&31,(x>>16)&31,
+                (x>>21)&15)==(fd,fs,ft,mask),hex(at)
     # VMOVE is special2, so its destination is FT (bits 20..16), not FD.
     assert word(0x57CB74)==0x4be21b3c
     # Four masked VADDy.xyW instructions preserve Z, unlike VADDz.xyzw.
