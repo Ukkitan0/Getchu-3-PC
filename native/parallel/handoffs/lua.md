@@ -119,3 +119,56 @@ Result: **6/6 PASS**, including Lua 5.0 bit-position regression, nested prototyp
 3. Gameplay and Windows/runtime: use the new raw Lua stack callback only for original engine routines whose semantics actually require Lua identity/closures; keep stage actor instantiation in gameplay and save/flag storage in game state, not in this Lua adapter.
 4. Original script-load order and stage event schedule remain blocked on authentic executable/resource evidence. Never infer an `updateArea` callback from generic Lua conventions.
 
+
+## Continuation — 2026-10-21: verified ELF registration scan and bytecode call-site correlation
+
+**Branch:** `parallel/lua`, built on `7db7179d744c6de90c4036d84f4b9aa2b1ab2531`.
+This checkpoint adds **static original-engine recovery tooling**, not a fabricated native implementation of undocumented Lua functions.
+
+### Git commits and source
+
+- `fca7444d`: replace `native/tools/map_original_lua_registrations.py`'s naive backwards-nearest-LUI heuristic with a conservative register-constant chain: actual MIPS32 `LUI`, signed `ADDIU/ADDI`, unsigned `ORI`, zero-register `MOVE`, caller-saved register invalidation at `JAL`, and original MIPS delay-slot execution. Reject chains across branches and excessive lookback. ELF32 MIPS PT_LOAD bounds, short strings at segment ends, strict `SCUS_975.01` SHA256 check and helper `0x255BD8` are retained.
+- `63286fee`: eight synthetic MIPS tests for delay slots, low-half sign extension, register copies, call-clobber barriers, branches, malformed ELF, short segment literal and wrong helpers.
+- `a7872882`: new `native/tools/reconcile_original_lua_bindings.py` combines three evidentiary layers: authentic Lua 5.0 global loads and *conservative* direct call candidates; verified ELF `CreateBind` registration names and source code site VAs; and current host `registerCallback` names. It identifies candidate direct calls confirmed by scanned original registrations but absent from the host, without inventing C++ behavior or treating dynamically defined globals as missing.
+- `512a3c7b`: four evidence-correlation unit tests, including source-defined Lua functions, absent registration helper families, fake ELF provenance, and invalid original call evidence.
+- `f3391447`: original `SetupBindFlag` pseudocode from [Byaidu's published retail reverse engineering](https://www.cnblogs.com/algonote/p/15678057.html) identifies eleven *vtable object addresses*: `gw_set_flag 0x6B70F0`, `gw_get_flag 0x6B70D8`, `gw_get_string 0x6B70C0`, `lw_set_flag 0x6B7090`, `lw_get_flag 0x6B7078`, `area_set_flag 0x6B7060`, `area_get_flag 0x6B7048`, `get_costume_possess 0x6B7018`, `get_costume_possess_ninja 0x6B7000`, `stage_var_get_int 0x6B70A8`, `is_survival_mode 0x6B7030`. Scan the *verified ELF* at these addresses to report 24 raw bytes/six pointer slots per table, marking values inside the original text range as candidates. **No virtual slot is currently identified as the Lua implementation, and no C++ engine callback is fabricated**.
+- `0cd00bb4`: ninth registration scanner unit test for vtable pointer extraction and missing PT_LOAD mapping.
+
+### Tests actually executed
+
+On the current local test sources (equivalent to committed Python tools) in this environment:
+
+```bash
+cd /mnt/data/ae3lua
+python3 -m unittest -v test_map_original_lua_registrations.py \
+  test_audit_original_lua50_calls.py test_reconcile_original_lua_bindings.py
+```
+
+**19/19 pass** on local synthetic MIPS ELF segment fixtures, bytecode prototypes and fake cross-reference reports. No original game binary or original game script data was present; therefore **zero verified real registration counts, zero authenticated new callback VAs, zero original stage execution tests**, and no C++ native app build are claimed.
+
+For reproducing the committed test suite after checkout:
+
+```bash
+python3 -m unittest -v native/tools/test_map_original_lua_registrations.py \
+  native/tools/test_audit_original_lua50_calls.py \
+  native/tools/test_reconcile_original_lua_bindings.py
+```
+
+Owner-private original asset evidence pass (run only where verified original resources are available):
+
+```bash
+python3 native/tools/reconcile_original_lua_bindings.py \
+  --elf C:/AE3_PRIVATE/SCUS_975.01 \
+  --scripts C:/AE3_PRIVATE/debug/us/stage \
+  --host-source native/src/lua_stage.cpp \
+  --out C:/AE3_PRIVATE/lua_original_binding_evidence.json
+```
+
+The report includes exact source registration JAL VAs and separate published flag-vtable pointer candidates; **the report itself and source bytes stay owner-private**.
+
+### Integration requests, blockers, next pass
+
+- Assets/Runtime team: make privately extracted `area.luc` and verified original `SCUS_975.01` accessible to the native integration test environment, without ever committing original bytes. Run the combined report and publish only independently verified callback interface facts to the handoff.
+- Gameplay team: once individual Lua callback target semantics are recovered from the real ELF, implement gameplay-facing native manager functions under Gameplay ownership; Lua can forward calls via `registerOriginalFunction` or `registerOriginalRawFunction`. No gameplay behavior is duplicated.
+- Lua team: use vtable candidate pointers to identify actual virtual callback methods, arguments, and object state; only then implement source-matched bindings and a complete original stage callback lifecycle.
+- Global CMake, workflow, executable entry point, resource parsers, and other subsystem code remain untouched. Existing C++ tests from previous pass remain **not executed**, as pinned Lua 5.0.3 dependencies are missing locally; no real game boot or original-stage behavior claimed.
