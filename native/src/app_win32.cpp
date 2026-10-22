@@ -1279,6 +1279,10 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
                                 gOriginalAllocatorGlobals);
                             return true;
                         }
+                        if(va==0x417c58){
+                            return ae3::runtime::originalNumericCtor_417c58(
+                                gOriginalNumericGlobals);
+                        }
                         // Remaining constructor methods must be ported from
                         // their actual original instruction sequences.
                         return false;
