@@ -3,7 +3,7 @@
 
 #include "Containers/StringConv.h"
 #include "HAL/PlatformProcess.h"
-#include "HAL/PlatformFileManager.h"
+#include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "UObject/UObjectGlobals.h"
