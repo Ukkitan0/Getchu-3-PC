@@ -182,3 +182,14 @@ The second native constructor (0x417C58) is now implemented using source-derived
 
 ### Integration follow-up
 Run `native/BUILD_NATIVE_WINDOWS.ps1 -RunOriginalBoot -OriginalIso <private-USA-iso> -OriginalElf <private-SCUS_975.01>` on the owner Windows machine, with `-RequireIntegratedWorkstreams` only after full specialist source merges. Check new per-attempt `AE3_NATIVE_BOOT` log for `0x38AA18`; an actual Windows launch is required before claiming that precise runtime boundary was reached. Then recover source-backed `0x44E420`, `0x101584`, `0x44E280` allocator semantics and the `0x38A978` sentinel owner initialization. Do not use arbitrary host heap stand-ins to skip original gameplay startup.
+
+### Additional local Release-mode integration compilation (this pass)
+Created an **isolated native CMake** host regression using source-equivalent versions of the new source-literal translation, ELF source reader and fifth/sixth original reset code (not a full GitHub checkout). GCC C++20 `Release` build completed successfully; `ctest --output-on-failure` results:
+```text
+ThirdSourceWithPrivateOriginal     Passed
+FourthSourceWithPrivateOriginal    Passed
+ElfMappingWithPrivateOriginal      Passed
+FifthSixthSourceFields             Passed
+4/4 passed, 0 failures
+```
+The owner-private original ELF/208-byte source sample remained in the container only. **Do not describe this as a full native Windows build, full master-branch CTest, or game boot.**
