@@ -52,6 +52,7 @@ ae3::runtime::OriginalAllocatorGlobals_41a390 gOriginalAllocatorGlobals;
 ae3::runtime::OriginalNumericGlobals_417c58 gOriginalNumericGlobals;
 ae3::runtime::OriginalStaticResourceGlobals_3a6cd0 gOriginalStaticGlobals;
 ae3::runtime::OriginalFourthGlobals_39fc78 gOriginalFourthGlobals;
+ae3::runtime::OriginalResetGlobals_38abfc gOriginalResetGlobals;
 bool gBootActive=false;
 bool gDeviceReady=false;
 constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104, kSignalTrigger=105, kOpenGlb=106, kOpenLevel=107, kOriginalCollision=108;
@@ -1315,6 +1316,12 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
                         if(va==0x39fc78){
                             return ae3::runtime::originalFourthCtor_39fc78(
                                 originalFourthLiterals,gOriginalFourthGlobals);
+                        }
+                        if(va==0x391600)
+                            return ae3::runtime::originalNoOpCtor_391600();
+                        if(va==0x38abfc){
+                            ae3::runtime::originalResetCtor_38abfc(gOriginalResetGlobals);
+                            return true;
                         }
                         // Remaining constructor methods must be ported from
                         // their actual original instruction sequences.
