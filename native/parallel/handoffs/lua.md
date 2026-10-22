@@ -172,3 +172,34 @@ The report includes exact source registration JAL VAs and separate published fla
 - Gameplay team: once individual Lua callback target semantics are recovered from the real ELF, implement gameplay-facing native manager functions under Gameplay ownership; Lua can forward calls via `registerOriginalFunction` or `registerOriginalRawFunction`. No gameplay behavior is duplicated.
 - Lua team: use vtable candidate pointers to identify actual virtual callback methods, arguments, and object state; only then implement source-matched bindings and a complete original stage callback lifecycle.
 - Global CMake, workflow, executable entry point, resource parsers, and other subsystem code remain untouched. Existing C++ tests from previous pass remain **not executed**, as pinned Lua 5.0.3 dependencies are missing locally; no real game boot or original-stage behavior claimed.
+
+
+## Continuation — 2026-10-21: verified Lua 5.0 opcode and MIPS provenance corrections
+
+**Baseline:** previous Lua checkpoint `fefc3d4ff62239d1252e6bd075a0b801f6035911`.
+
+### Actual changes committed on `parallel/lua`
+
+- `59a7e150`, `93856be1` — original **Lua 5.0.3 `OP_CLOSURE = 35`** is now valid in `audit_original_lua50_calls.py` (the prior scanner rejected it with `op > 34`). Added a regression case constructing a valid nested `setupArea` prototype containing `OP_CLOSURE`, then asserting malformed opcode 63 is still rejected. This is a real correctness fix for scripts declaring functions. Authoritative Lua 5.0.3 opcode enumeration: <https://sources.debian.org/src/lua50/5.0.3-6/src/lopcodes.h/>.
+- `8b4cab6d`, `2d449ef2` — MIPS registration scanner now kills constant provenance for clobbering immediate instructions, register loads, noncanonical LUI, SPECIAL R-type destinations and uncertain coprocessor/SPECIAL2/SPECIAL3 instructions. An earlier `LUI/ORI` should not continue to identify a Lua name after a distinct instruction overwrites register `$a1`. Added three parameterized regression tests covering multiple opcodes and the noncanonical LUI case. Retains original executable SHA-256 gate and branch/delay-slot barriers. Some genuine registrations may not be found because the scanner intentionally prefers false negatives over false positives.
+- `42a9a1f8`, `1fd4800e` — fixed `lua_stage.cpp` error propagation for failing raw/typed native Lua callbacks: **Lua 5.0 `lua_pushvfstring` does not support C printf `%08X`** (only `%%`, `%s`, `%f`, `%d`, `%c`). The binding error message now uses supported `%d` for original VA, and C++ regression test asserts the exact decimal VA and original exception. Official Lua 5.0 C API: <https://www.lua.org/manual/5.0/manual.html>. **This C++ test is committed but was NOT compiled/executed in the current runtime.**
+- `dbdc141f`, `c6bd6256` — the combined private `reconcile_original_lua_bindings.py` report now includes published retail vtable evidence as a **separate provenance category**, distinct from a verified registration JAL VA and from a verified C++ callback entrypoint. For example, original `gw_get_string` with only the published vtable and a Lua global call is tagged `original_direct_call_has_published_vtable_not_bound`, never an invented implementation. Adds tests for vtable-only correlation, mapped text pointers, duplicate identities and proper claim limits.
+
+### Tests run
+
+Executed locally on source files with the same semantic edits as the committed GitHub modules, from `/mnt/data/ae3lua`:
+
+```bash
+python3 -m py_compile audit_original_lua50_calls.py map_original_lua_registrations.py reconcile_original_lua_bindings.py test_audit_original_lua50_calls.py test_map_original_lua_registrations.py test_reconcile_original_lua_bindings.py
+python3 -m unittest -v test_audit_original_lua50_calls.py test_map_original_lua_registrations.py test_reconcile_original_lua_bindings.py
+```
+
+**25 / 25 Python tests passed** (previously 19). All inputs were authored synthetic Lua 5.0 and MIPS fixture records. **No original copyrighted script/binary was accessible in the current working directory; no real original Lua callback or stage was executed.** This is static-analysis reliability, not proof of an original stage boot.
+
+A fresh checkout should repeat the same commands from `native/tools`. The C++ `Getchu3LuaRuntimeTests` and `Getchu3RetailLua50Tests` remain unexecuted here: Lua 5.0.3 FetchContent is network-dependent and unavailable from the container. Native Windows game build/boot not attempted or verified. No workflows were dispatched.
+
+### Integrator dependencies and next original-function recovery
+
+No new `.cpp` targets, global CMake edits, actor/gameplay rewrites, asset parser changes, proprietary data or copyrighted script copies.
+
+The largest genuine next runtime step remains: run `reconcile_original_lua_bindings.py` on owner-private verified SHA-256 original USA `SCUS_975.01` and real extracted `area.luc` corpus. Inspect actual candidate method code for `gw_get_string`, `stage_var_get_int` and flag storage, determine exact original Lua callback argument/result contracts, and only then register actual bindings in `LuaStage`. The Assets team must supply original bytes privately; Gameplay must own actual actor/mission implementation; Windows/runtime must connect lifecycle and run C++ tests. Do **not** introduce guessed Lua methods or stage-update schedules.
