@@ -9,6 +9,7 @@
 #include "ae3/native_skinning.hpp"
 #include "ae3/actor_world.hpp"
 #include "windows_runtime_boot_status.hpp"
+#include "ae3/original_windows_bootstrap.hpp"
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
@@ -1225,8 +1226,61 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
     LPWSTR* argv=CommandLineToArgvW(GetCommandLineW(),&argc);
     bool retailLaunchFailed=false;
     bool retailLaunchRequested=false;
+    bool originalBootRequested=false;
+    std::wstring originalBootFailure;
     if(argv){
-        if(argc>=2 && std::wstring(argv[1])==L"--retail"){
+        if(argc>=2 && std::wstring(argv[1])==L"--boot-original"){
+            // Original executable 0x100134 -> original static constructors
+            // 0x428AB8. This path deliberately cannot run the diagnostic
+            // Lua/GLB viewer as if it were the retail game.
+            retailLaunchRequested=true;
+            originalBootRequested=true;
+            gBootActive=true;
+            gBootJournal.reset();
+            bootCheckpoint(BootCheckpoint::windows_window,BootResult::passed,
+                           "Win32 native host window initialized");
+            bootCheckpoint(BootCheckpoint::graphics_device,BootResult::passed,
+                           "D3D11 native host device initialized");
+            if(argc<3 || !fs::is_regular_file(fs::path(argv[2]))){
+                bootCheckpoint(BootCheckpoint::original_disc,BootResult::blocked,
+                               "Owned original USA ISO path is missing");
+                originalBootFailure=L"Original game ISO not provided";
+                retailLaunchFailed=true;
+            }else{
+                bootCheckpoint(BootCheckpoint::original_disc,BootResult::passed,
+                               "Owned original ISO file path exists (not yet indexed)");
+                class SourceVerifiedNativeConstructorCalls final:
+                    public ae3::runtime::OriginalNativeConstructorCalls {
+                public:
+                    bool callRecoveredConstructor(std::uint32_t) override {
+                        // No original constructors are registered yet. Their
+                        // source VAs are authentic; do not execute MIPS bytes,
+                        // guess original global state or silently skip them.
+                        return false;
+                    }
+                } callbacks;
+                const auto outcome=
+                    ae3::runtime::originalRunConstructors_428ab8(callbacks);
+                if(!outcome.complete){
+                    std::ostringstream location;
+                    location<<"First unported original static constructor VA 0x"
+                            <<std::hex<<std::uppercase<<outcome.firstUnrecovered
+                            <<"; "<<std::dec<<outcome.executed
+                            <<" of 143 original constructors executed";
+                    bootCheckpoint(BootCheckpoint::original_static_constructors,
+                                   BootResult::blocked,location.str());
+                    originalBootFailure=wide(location.str());
+                }else{
+                    bootCheckpoint(BootCheckpoint::original_static_constructors,
+                                   BootResult::passed,
+                                   "All 143 actual original native constructors executed");
+                    bootCheckpoint(BootCheckpoint::original_engine_loop,
+                                   BootResult::blocked,
+                                   "Original post-constructor startup sequence and 0x1037E8 main loop not yet recovered");
+                    originalBootFailure=L"Original post-constructor startup dispatcher still unresolved";
+                }
+            }
+        }else if(argc>=2 && std::wstring(argv[1])==L"--retail"){
             retailLaunchRequested=true;
             gBootActive=true;
             gBootJournal.reset();
@@ -1277,6 +1331,13 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
         return 3;
     }
     if(retailLaunchRequested){
+        if(originalBootRequested){
+            status(L"ORIGINAL USA ENGINE STARTUP BLOCKED: "+originalBootFailure);
+            OutputDebugStringW(gProgress.c_str());
+            DestroyWindow(window);
+            if(SUCCEEDED(com))CoUninitialize();
+            return 4;
+        }
         if(!gStageActors || gStageActors->actors().empty()){
             bootCheckpoint(BootCheckpoint::original_actors,BootResult::blocked,
                            "No complete original actor world; parsed Lua descriptors cannot run game AI");
