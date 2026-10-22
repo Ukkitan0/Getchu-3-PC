@@ -68,7 +68,7 @@ std::uint64_t OriginalActorNavigationPipeline_57c7cc::call_original_57ca68_geome
         const auto selected=originalActorFallbackSelect_57ca68(
             target,*originalOwner14Vector40_,controllerVector20_,
             *originalFallbackQBits_,*originalSharedRandom_,sourceTransform,
-            originalFallbackR_);
+            originalFallbackR_?originalFallbackR_:&localSourceVu0R_);
         latestFallbackHigh64_=selected.originalWinningPackedTargetHigh64;
         return selected.originalWinningPackedTargetLow64;
     }

@@ -69,6 +69,12 @@ public:
     void setOriginalFallbackRState_57ca68(OriginalActorFallbackVu0R_57ca68* state) noexcept {
         originalFallbackR_=state;
     }
+    // Genuine VRINIT/VRXOR effects are retained even if the owning
+    // engine has not bound its shared global VU0 R yet. Binding external
+    // state is still required for whole-engine VI[R] synchronization.
+    const OriginalActorFallbackVu0R_57ca68& sourceFallbackRState_57ca68() const noexcept {
+        return originalFallbackR_?*originalFallbackR_:localSourceVu0R_;
+    }
 
     OriginalActorRouteFollowResult_57c7cc advance(
         OriginalActorRouteFollowerState_57c7cc& originalActorRoute);
@@ -110,6 +116,7 @@ private:
     std::optional<std::array<std::byte,16>> originalOwner14Vector40_;
     std::optional<std::uint32_t> originalFallbackQBits_;
     OriginalActorFallbackVu0R_57ca68* originalFallbackR_=nullptr;
+    OriginalActorFallbackVu0R_57ca68 localSourceVu0R_{};
     std::uint64_t latestTriangleHigh64_=0;
     std::optional<OriginalVU0Vec4> originalIncomingRayA1_;
     std::optional<OriginalVU0Vec4> originalController40_;

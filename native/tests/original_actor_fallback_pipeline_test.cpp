@@ -119,6 +119,23 @@ static void runPolygon(const OriginalSpatialRecord70& original,
             originalR.sourceVRINITCalls==12 &&
             originalR.sourceVRXORCalls==12,
             "Connected native VU0 R source effects lost during actor advance");
+    require(&originalNative.sourceFallbackRState_57ca68()==&originalR,
+            "Connected VU0 R state did not alias the owner-provided global");
+    // Independently test no explicit R binding: retail VRINIT/VRXOR
+    // still execute and update the native pipeline's R register.
+    OriginalGameRandom_36f3c0 unboundRandom(5489);
+    OriginalActorNavigationPipeline_57c7cc unbound(
+        records,geometry,veryFarOutside,true,missing,&unboundRandom);
+    unbound.setOriginalFallbackOwnerVector_57ca68(ownerVector);
+    unbound.setOriginalFallbackQBits_57ca68(0x3fc90fdau);
+    OriginalActorRouteFollowerState_57c7cc unboundState{
+        records,route,&records[0],nullptr,true};
+    (void)unbound.advance(unboundState);
+    const auto& retained=unbound.sourceFallbackRState_57ca68();
+    require(retained.rawR==0x3f800000u &&
+            retained.sourceVRINITCalls==12 &&
+            retained.sourceVRXORCalls==12,
+            "Native actor fallback skipped original R instructions when not externally bound");
 }
 static unsigned u16(std::span<const std::byte> b,std::size_t at){
     require(at+2<=b.size(),"Original source u16 bounds");
