@@ -1,5 +1,13 @@
 #include "Getchu3OriginalManagerProvider.h"
 
+// Original game manager transactions are mandatory, not visual/UI stubs.
+// They must stage changes until commit and undo every pending operation on abort.
+bool UGetchu3OriginalManagerProvider::BeginOriginalStageSetup_Implementation(
+    const FString&, const FString&) { return false; }
+bool UGetchu3OriginalManagerProvider::CommitOriginalStageSetup_Implementation()
+{ return false; }
+void UGetchu3OriginalManagerProvider::AbortOriginalStageSetup_Implementation() {}
+
 // The original game manager MUST supply source-recovered implementations.
 // Deliberately no automatic Unreal actor factory, synthetic stage parameters,
 // invented progression values, or plausible-but-incorrect gadget behavior.
