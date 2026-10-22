@@ -83,3 +83,39 @@ Audit output remains **private**; do not commit original symbol inventories or s
 ## Next coherent pass
 
 Run the opcode dependency audit on the owner's **original 168 area.luc** samples, match all discovered non-library references against verified ELF Lua registration structures and native callback target addresses, implement a connected group of exact original flag/stage-event/mission bindings, then test complete real stage creation and callbacks under Lua 5.0 on Windows. No replacement gameplay.
+
+
+## Continuation pass — 2026-10-21: exact Lua 5.0 stack dispatch and corrected bytecode evidence
+
+### Source changes
+
+- `675030ea`, `e82a0e65`, `479c1bbd`, `20002339`: `lua_stage.hpp/.cpp` makes typed Lua-to-C++ marshaling **reject** unsupported function/userdata/thread values, cyclic tables, mixed numeric/string-key maps, nonfinite numbers, oversized strings/nested tables and excessive nodes instead of silently rewriting them. Catches descriptor conversion errors at the `new_ent` Lua boundary. Original Lua values are never rewritten by those explicit rejects.
+- `08bb1e56`, `c23b87e3`: `registerOriginalRawFunction(name,VA, std::function<int(lua_State*)>)` and raw callback dispatch for independently recovered original engine functions that need unmodified Lua 5.0 stacks (closures, Lua object identity, non-string keys, userdata); retains the existing typed bridge for simpler values. Runtime registration still requires a confirmed callback implementation and source VA; **no new original game function behavior was invented**.
+- `2e80b68a`: adds C++ Lua runtime regressions verifying a cyclic table, same-string/different-numeric key, function closure round trip, failure of lossy typed conversion, and continued VM use after binding errors. **Not compiled/executed yet: Lua 5.0.3 FetchContent dependency unavailable locally**.
+- `66d9849a`, `fd8fdb29`: fixes retail-mode poisoning: malformed bytecode cannot enable retail strict flags in a subsequent nonretail Lua chunk; adds C++ negative test. Pending C++ execution.
+- `c5067982`, `9776e9f2`: repairs the original Lua 5.0 bytecode auditor's **significant opcode bug**: `iABx Bx` occupies bits 6..23, NOT bits 14..31. Previously passing synthetic fixtures inadvertently encoded an incorrect instruction format, so earlier dependency reports must be rerun. Source proof: exact Lua 5.0.3 `lopcodes.h` defines `POS_Bx=POS_C=6`, `POS_A=24`, `OP_GETGLOBAL=5` and `OP_SETGLOBAL=7` (<https://sources.debian.org/src/lua50/5.0.3-6/src/lopcodes.h>). Both parser and fixtures now use this layout.
+- `da3d215f`, `737c21ef`, `802860f4`: further audits real Lua 5.0 **candidate direct global calls** via conservative per-basic-block register provenance: `GETGLOBAL R(A)` → `MOVE` aliases → `CALL/TAILCALL`. Calls across branches and unclassified indirect/upvalue/table invocations are intentionally omitted. Reports `direct_global_calls`, `prototype_calls` (prototype index, line number, candidates) and `unresolved_direct_global_calls` alongside raw loads/writes. These are **candidate direct call sites**, not verified original C++ bindings. Rejects unknown Lua 5.0 opcodes. Output remains private to source owner.
+
+### Source-backed Lua registration leads (not yet implemented)
+
+Published decompilation of `SetupBindFlag` includes **`gw_get_string`** with original binding vtable pointer `0x6B70C0`. This name is absent from the current Lua runtime registration. The same original registration table contains `gw_set_flag`, `gw_get_flag`, `lw_set_flag`, `lw_get_flag`, `area_set_flag`, `area_get_flag`, `get_costume_possess`, `get_costume_possess_ninja`, `stage_var_get_int`, and `is_survival_mode`. Source: <https://www.cnblogs.com/algonote/p/15678057.html>. The vtable pointer is **not** the Lua C++ method implementation VA. Do not register a guessed `gw_get_string` implementation until original callback body and manager semantics are recovered.
+
+### Executed tests and limitations
+
+Ran in this container on local authored copies of the committed Python script/tests (reproducing the revised script and fixtures):
+```bash
+cd /mnt/data/ae3lua
+python3 -m py_compile audit_original_lua50_calls.py test_audit_original_lua50_calls.py
+python3 -m unittest -v test_audit_original_lua50_calls.py
+```
+Result: **6/6 PASS**, including Lua 5.0 bit-position regression, nested prototype scans, GETGLOBAL/SETGLOBAL references, direct-call tracing, branch-barrier rejection, malformed bytecode and exact opcode-index bounds. Synthetic chunks only; original private `area.luc` not accessible. The corresponding GitHub versions have been committed; verification of a fresh checkout remains for the integration owner.
+
+**C++ tests NOT run:** native Lua 5.0.3 headers/library not available locally and repository FetchContent cannot be reached. The new `originalRawLuaValuePreservationTests`, `nativeBridgeAndCallbackTests` and `testRetailBytecodeExecution` cases need to be compiled against the pinned original Lua 5.0.3 library and executed. No successful real Windows build, authentic retail-stage callback execution or boot is claimed.
+
+### Immediate integrator actions
+
+1. Build `Getchu3LuaRuntimeTests` and `Getchu3RetailLua50Tests` with the existing global CMake source list (no CMake file additions required); fix any issues reported by the actual target/toolchain.
+2. Use a privately extracted original USA `area.luc` from the owner to run `audit_original_lua50_calls.py`, compare candidate direct calls against **real** `SCUS_975.01` register/vtable and callback code, and verify `gw_get_string` semantics.
+3. Gameplay and Windows/runtime: use the new raw Lua stack callback only for original engine routines whose semantics actually require Lua identity/closures; keep stage actor instantiation in gameplay and save/flag storage in game state, not in this Lua adapter.
+4. Original script-load order and stage event schedule remain blocked on authentic executable/resource evidence. Never infer an `updateArea` callback from generic Lua conventions.
+
