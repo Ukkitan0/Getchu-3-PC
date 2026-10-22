@@ -1252,10 +1252,17 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
                 class SourceVerifiedNativeConstructorCalls final:
                     public ae3::runtime::OriginalNativeConstructorCalls {
                 public:
-                    bool callRecoveredConstructor(std::uint32_t) override {
-                        // No original constructors are registered yet. Their
-                        // source VAs are authentic; do not execute MIPS bytes,
-                        // guess original global state or silently skip them.
+                    ae3::runtime::OriginalAllocatorGlobals_41a390 allocatorGlobals;
+                    bool callRecoveredConstructor(std::uint32_t va) override {
+                        if(va==0x41a390){
+                            // Real original 0x41A390->0x41A088 updates twelve
+                            // native global counters. Source 0x4173B0 no-op.
+                            ae3::runtime::originalAllocatorCtor_41a390(
+                                allocatorGlobals);
+                            return true;
+                        }
+                        // Remaining constructor methods must be ported from
+                        // their actual original instruction sequences.
                         return false;
                     }
                 } callbacks;
