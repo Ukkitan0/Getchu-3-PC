@@ -25,5 +25,9 @@ bool UGetchu3OriginalManagerProvider::ReadOriginalSurvivalMode_Implementation(
     bool& OutValue)
 { OutValue = false; return false; }
 
+bool UGetchu3OriginalManagerProvider::ReadOriginalPlayerProgress_Implementation(
+    TArray<uint8>& PackedSourceBytes)
+{ PackedSourceBytes.Reset(); return false; }
+
 bool UGetchu3OriginalManagerProvider::SelectOriginalPlayerWeapon_Implementation(
     int32) { return false; }
