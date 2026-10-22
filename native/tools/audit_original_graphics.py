@@ -116,7 +116,24 @@ def verify_and_audit(elf: bytes) -> dict:
             "va_end_exclusive": f"0x{end:08x}",
             "sha256": actual,
         })
+    # Retail owner scheduler and modulo selection. '0x4233F8' writes the
+    # division remainder through a stack output argument and returns it.
+    owner_ranges = [
+        (0x280B7C, 0x280C80, "69dc32f2de97a12e4ee3a7a0c0cd4d35f38990c7434ba26d7c1d95f75289b190"),
+        (0x4233F8, 0x423418, "a70c622eefdea82e7f22aa193ffa23caa2fe4a23e6aff2dde2e04cb011ff0e2c"),
+        (0x26A974, 0x26A980, "e1370cb89f6e17b9fc6f89479d8d1eb39fb7129817893a16fd6de4b85116b75e"),
+    ]
+    owner_evidence = []
+    for first, end, expected in owner_ranges:
+        span = elf[first - TEXT_VA + TEXT_FILE:end - TEXT_VA + TEXT_FILE]
+        actual = hashlib.sha256(span).hexdigest()
+        if actual != expected:
+            raise ValueError(f"retail render owner source mismatch at {first:#x}")
+        owner_evidence.append({"va_start":f"0x{first:08x}",
+                               "va_end_exclusive":f"0x{end:08x}",
+                               "sha256":actual})
     report = {
+        "source_verified_render_owner": owner_evidence,
         "source_verified_draw_traversal": render_evidence,
         "retail_selector_instruction_ranges": selector_evidence,
         "retail_gate_va_range": ["0x00280838", "0x00280884"],
