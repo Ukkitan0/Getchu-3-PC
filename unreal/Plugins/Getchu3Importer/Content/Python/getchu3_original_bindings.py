@@ -37,9 +37,10 @@ def create_original_binding_report(
         raise ValueError("Original ELF and Lua source tree cannot contain the binding report")
     if output == repo / "native" / "src" / "lua_stage.cpp":
         raise ValueError("Original native host source cannot be overwritten")
-    scripts = [p for p in scripts_root.rglob("area.luc") if p.is_file() and not p.is_symlink()]
-    if not scripts or len(scripts) > MAX_STAGES:
-        raise ValueError("No bounded original area.luc stage corpus found")
+    scripts = [p for p in scripts_root.rglob("*.luc") if p.is_file() and not p.is_symlink()]
+    areas = [p for p in scripts if p.name.casefold() == "area.luc"]
+    if not areas or len(scripts) > MAX_STAGES:
+        raise ValueError("Original stage area.luc is missing or Lua corpus exceeds bounded capacity")
     # Import the original/native parsers, rather than approximate their ABI.
     # The caller's sys.path is not changed permanently.
     sys.path.insert(0, str(tools))
@@ -79,7 +80,8 @@ def create_original_binding_report(
     output.write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")
     return {
         "schema": "getchu3-unreal-original-binding-audit/v1",
-        "retail_area_scripts_analyzed": evidence["retail_scripts_count"],
+        "retail_lua_chunks_analyzed": evidence["retail_scripts_count"],
+        "retail_area_scripts_found": len(areas),
         "verified_original_elf_sha256": evidence["verified_usa_elf_sha256"],
         "unresolved_original_bindings": actionable,
         "missing_by_priority": dict(sorted(priority.items())),
