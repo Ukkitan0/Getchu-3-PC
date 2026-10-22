@@ -45,6 +45,39 @@ class CrossReferenceTests(unittest.TestCase):
         self.assertEqual(rows['new_ent']['priority'],
                          'present_name_semantics_not_verified')
 
+    def test_published_vtable_only_is_separate_evidence_not_confirmed_callback(self):
+        report = elf_report()
+        report['registrations'] = [r for r in report['registrations']
+                                   if r['name'] != 'gw_get_string']
+        report['published_flag_vtable_slot_candidates'] = [{
+            'name': 'gw_get_string', 'vtable_address': '0x006B70C0',
+            'available': True,
+            'slots': [
+                {'index': 0, 'pointer': '0x006175E8',
+                 'points_into_original_text': True},
+                {'index': 1, 'pointer': '0x00000000',
+                 'points_into_original_text': False},
+            ],
+        }]
+        result = bindings.reconcile(lua_report(), report, ['new_ent'])
+        row = next(r for r in result['rows'] if r['name'] == 'gw_get_string')
+        self.assertFalse(row['registered_at_scanned_original_CreateBind'])
+        self.assertEqual(row['priority'],
+                         'original_direct_call_has_published_vtable_not_bound')
+        self.assertEqual(row['published_original_vtable']['address'], '0x006B70C0')
+        self.assertEqual(row['published_original_vtable']['candidate_text_pointers'],
+                         ['0x006175E8'])
+        self.assertEqual(result['published_vtable_names'], 1)
+        self.assertIn('NOT identified native Lua callback', result['critical_caveat'])
+
+    def test_rejects_duplicate_published_vtable_identity(self):
+        report = elf_report()
+        record = {'name': 'gw_get_string', 'vtable_address': '0x006B70C0',
+                  'available': False, 'slots': []}
+        report['published_flag_vtable_slot_candidates'] = [record, record]
+        with self.assertRaisesRegex(ValueError, 'duplicate'):
+            bindings.reconcile(lua_report(), report, [])
+
     def test_refuses_fake_executable_provenance(self):
         bad = elf_report()
         bad['original_verified_elf_sha256'] = '00' * 32
