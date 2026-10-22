@@ -41,7 +41,8 @@ public:
         if (!index) throw std::out_of_range("Original file not present in USA VFI index");
         auto stored=archive_.read(archive_.entries().at(*index));
         if (isOriginalSzName(archive_.entries().at(*index).path))
-            return originalDecodeSz(stored);
+            return originalDecodeSz(stored,OriginalSzMaxOutputBytes,
+                OriginalSzTrailerPolicy::permit);
         return stored;
     }
     // Byte-exact VFI source read for SHA validation and differential decoding.
