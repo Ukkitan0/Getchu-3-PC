@@ -27,6 +27,7 @@ bool OriginalNavCircularList::originalInsertUnique_21f82c(
     node->next->prev=node.get();
     node->prev->next=node.get();
     nodes_.push_back(std::move(node));
+    noteNativeMutation();
     return true;
 }
 std::size_t OriginalNavCircularList::originalErase_21f804(
@@ -40,9 +41,11 @@ std::size_t OriginalNavCircularList::originalErase_21f804(
         i=nodes_.erase(i);
         ++removed;
     }
+    if(removed)noteNativeMutation();
     return removed;
 }
 void OriginalNavCircularList::originalClear_4e4154() noexcept {
+    if(!nodes_.empty())noteNativeMutation();
     nodes_.clear();
     sentinel_->next=sentinel_.get();
     sentinel_->prev=sentinel_.get();

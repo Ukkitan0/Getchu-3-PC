@@ -123,6 +123,33 @@ int main(int argc,char**argv){
           fallback.originalFallbackSourcePolygon==2 &&
           fallback.originalForwardSourcePolygons==
           std::vector<std::uint32_t>({0,2}),"Original group fallback route mismatch");
+    check(fallback.hostMembershipBound&&originalNavStageRouteCurrent(owners,fallback),
+          "Direct linked-owner route does not retain source membership version");
+    check(!group.originalList()->originalInsertUnique_21f82c(
+        &owners.originalAt(0).decodedGraph->records[2]),"Duplicate original source member inserted");
+    check(originalNavStageRouteCurrent(owners,fallback),
+          "Duplicate source-list insertion spuriously invalidated original route");
+    check(group.originalList()->originalInsertUnique_21f82c(
+        &owners.originalAt(0).decodedGraph->records[1]),"New original source member was rejected");
+    check(!originalNavStageRouteCurrent(owners,fallback) &&
+          originalNavStageRouteCurrent(owners,route),
+          "Direct membership list mutation did not invalidate only its own routes");
+    bool staleMemberBlocked=false;
+    try{(void)originalNavStageRoutePolygon(owners,fallback,0);}
+    catch(const std::logic_error&){staleMemberBlocked=true;}
+    check(staleMemberBlocked,"Stale original membership route still exposes source polygons");
+    const auto renewed=originalNavStageDispatch_2207d0(owners,0,q,&group);
+    check(originalNavStageRouteCurrent(owners,renewed),
+          "Renewed source membership route failed after mutation");
+    check(group.originalList()->originalErase_21f804(
+        &owners.originalAt(0).decodedGraph->records[1])==1,
+          "Original member erase did not run");
+    check(!originalNavStageRouteCurrent(owners,renewed),
+          "Member erase did not invalidate a previously live actor route");
+    const auto toDispose=originalNavStageDispatch_2207d0(owners,0,q,&group);
+    group.originalDispose_21f64c();
+    check(!originalNavStageRouteCurrent(owners,toDispose),
+          "Disposing original membership list revived a dangling route");
     struct RouteCalls final : OriginalActorRouteFollowerCalls_57c7cc {
         const OriginalSpatialRecord70* actor=nullptr;
         const OriginalSpatialRecord70* target=nullptr;

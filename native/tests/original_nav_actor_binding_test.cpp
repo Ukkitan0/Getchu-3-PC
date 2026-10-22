@@ -170,6 +170,27 @@ int main() {
     requery.routeMode=0;
     ck(actor.originalRetargetStage_2207d0(0,requery),
        "Original actor failed to regenerate route after no-route response");
+    // Direct original 0x21F604 membership owner routes must also
+    // expire when 0x21F82C inserts or 0x21F64C releases that list.
+    OriginalNavListOwner direct;
+    direct.originalCreate_21f604();
+    ck(direct.originalList()->originalInsertUnique_21f82c(&records[0]),
+       "Direct original membership seed not inserted");
+    requery.sourceSeedIndex=0;requery.routeMode=0;
+    ck(actor.originalRetargetStage_2207d0(0,requery,&direct) &&
+       actor.originalPathLength()==1,
+       "Original direct-list actor source route not established");
+    ck(direct.originalList()->originalInsertUnique_21f82c(&records[1]),
+       "Original direct membership mutation not applied");
+    ck(!actor.originalRouteCurrent() && actor.originalDropInvalidRoute(),
+       "Actor failed to drop invalidated direct membership route");
+    ck(actor.originalRetargetStage_2207d0(0,requery,&direct) &&
+       actor.originalPathLength()==2,
+       "Actor route not renewed after original direct member insertion");
+    direct.originalDispose_21f64c();
+    ck(!actor.originalRouteCurrent()&&actor.originalCurrentTargetAt50()==nullptr &&
+       actor.originalDropInvalidRoute(),
+       "Disposed original membership list left active actor route");
     auto hdr=navrange(2.f);
     std::array<std::byte,0x20> groupKeyBytes{};
     groupKeyBytes[0]=std::byte{0x35};

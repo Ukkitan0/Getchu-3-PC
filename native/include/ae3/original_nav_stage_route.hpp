@@ -6,6 +6,7 @@
 #include "ae3/original_actor_type2_target.hpp"
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <span>
 #include <vector>
@@ -34,6 +35,13 @@ struct OriginalNavStageRouteSnapshot {
     std::size_t sourceOwnerSlot=0;
     std::uint64_t hostStageOwnerToken=0;
     std::uint64_t hostOwnerRevision=0;
+    // Native-only lifetime of optional original 0x21F604 membership
+    // owner. A raw source member pointer is never dereferenced after
+    // the dispatch returns. Weak state invalidates list mutation and
+    // destruction even when the stage graph itself is unchanged.
+    bool hostMembershipBound=false;
+    std::uint64_t hostMembershipGeneration=0;
+    std::weak_ptr<const OriginalNavNativeListRevision> hostMembershipState;
     bool originalFallbackUsed=false;
     std::optional<std::uint32_t> originalFallbackSourcePolygon;
     std::int32_t originalSelectedSearchIndex=-1;

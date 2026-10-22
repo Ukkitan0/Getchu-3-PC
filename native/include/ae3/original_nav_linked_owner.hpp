@@ -7,6 +7,13 @@
 #include <vector>
 
 namespace ae3 {
+// Native-only weak state for actor route invalidation when the original
+// 0x21F82C / 0x21F804 circular membership list changes or is destroyed.
+// NOT an R5900/EE list field. A weak ref also rejects allocation ABA.
+struct OriginalNavNativeListRevision {
+    std::uint64_t generation=1;
+};
+
 // Original 0x4E3EB4 allocates a 12-byte sentinel, with next and prev
 // pointing to itself. Actual source 32-bit pointer offsets are 0/4/8.
 // This host-native class preserves circular list semantics, not guest ABI.
@@ -30,7 +37,17 @@ public:
     std::vector<const OriginalSpatialRecord70*> originalOrderedValues() const;
     std::size_t size() const noexcept {return nodes_.size();}
     bool debugOriginalSentinelValid() const noexcept;
+    std::weak_ptr<const OriginalNavNativeListRevision>
+        originalHostRevisionState() const noexcept { return revision_; }
+    std::uint64_t originalHostGeneration() const noexcept {
+        return revision_->generation;
+    }
 private:
+    void noteNativeMutation() noexcept {
+        if(++revision_->generation==0)++revision_->generation;
+    }
+    std::shared_ptr<OriginalNavNativeListRevision> revision_=
+        std::make_shared<OriginalNavNativeListRevision>();
     std::unique_ptr<Node> sentinel_;
     std::vector<std::unique_ptr<Node>> nodes_;
 };

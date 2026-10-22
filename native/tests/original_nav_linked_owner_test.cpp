@@ -32,19 +32,31 @@ int main(){
     membership.originalCreate_21f604();fallback.originalCreate_21f604();
     auto* list=membership.originalList();
     ck(list->debugOriginalSentinelValid(),"original circular sentinel invalid");
+    auto originalLifetime=list->originalHostRevisionState();
+    ck(!originalLifetime.expired(),"New original list lacks native lifetime state");
+    const auto born=list->originalHostGeneration();
     ck(list->originalInsertUnique_21f82c(&records[0]),"new polygon insertion failed");
+    ck(list->originalHostGeneration()==born+1,"Original source insert revision not incremented");
     ck(!list->originalInsertUnique_21f82c(&records[0]),"source dedup failed");
+    ck(list->originalHostGeneration()==born+1,"Source dedup changed list revision");
     ck(list->originalInsertUnique_21f82c(&records[2]),"second polygon insert");
     ck(list->originalInsertUnique_21f82c(&records[3]),"third polygon insert");
     ck(list->originalOrderedValues()==std::vector<const OriginalSpatialRecord70*>({&records[3],&records[2],&records[0]}),
        "original 0x21F82C inserts before first link, not after");
     ck(list->debugOriginalSentinelValid(),"original next/prev links invalid");
+    const auto beforeErase=list->originalHostGeneration();
     ck(list->originalErase_21f804(&records[2])==1,"original erase failed");
+    ck(list->originalHostGeneration()==beforeErase+1,"Source erase did not invalidate native list version");
     ck(list->originalErase_21f804(&records[2])==0,"duplicate erase changed topology");
+    ck(list->originalHostGeneration()==beforeErase+1,"Absent source erase changed list version");
     ck(list->originalOrderedValues()==std::vector<const OriginalSpatialRecord70*>({&records[3],&records[0]}),
        "original source list erasure order");
+    const auto beforeClear=list->originalHostGeneration();
     list->originalClear_4e4154();
     ck(list->size()==0&&list->debugOriginalSentinelValid(),"original list clear invalid sentinel");
+    ck(list->originalHostGeneration()==beforeClear+1,"Source list clear missed mutation");
+    list->originalClear_4e4154();
+    ck(list->originalHostGeneration()==beforeClear+1,"Idempotent clear changed list version");
     Eligibility predicate;
     ck(originalNavPopulateList_21f6d4(membership,records,data,predicate)==3,"original float-zero admission");
     ck(predicate.positions==std::vector<float>({0,1,2,3}),"original 0x21F6D4 sequential scan order");
@@ -62,6 +74,12 @@ int main(){
     ck(result.selectedEndpoint>=0,"original owner dispatcher produced no endpoint");
     membership.originalDispose_21f64c();
     ck(!membership.originalList(),"original 0x21F64C owner retained destroyed sentinel");
+    ck(originalLifetime.expired(),"Disposed original list left a live route lifetime token");
+    membership.originalCreate_21f604();
+    ck(!membership.originalList()->originalHostRevisionState().expired(),
+       "Recreated original list missing lifetime token");
+    ck(originalLifetime.expired(),"Recreated source list revived stale token");
+    membership.originalDispose_21f690();
     fallback.originalDispose_21f690();
     ck(!fallback.originalList(),"original 0x21F690 owner retained destroyed sentinel");
     bool error=false;

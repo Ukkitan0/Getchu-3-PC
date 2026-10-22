@@ -68,6 +68,12 @@ OriginalNavStageRouteSnapshot originalNavStageDispatch_2207d0(
     snapshot.sourceOwnerSlot=ownerSlot;
     snapshot.hostStageOwnerToken=owners.originalHostOwnerToken();
     snapshot.hostOwnerRevision=slot.hostRevision;
+    if(member) {
+        const auto* list=member->originalList();
+        snapshot.hostMembershipBound=true;
+        snapshot.hostMembershipGeneration=list->originalHostGeneration();
+        snapshot.hostMembershipState=list->originalHostRevisionState();
+    }
     snapshot.originalFallbackUsed=result.fallbackUsed;
     snapshot.originalSelectedSearchIndex=result.selectedEndpoint;
     snapshot.originalAdmittedSourcePolygons=result.originalAdmittedRecordIndices;
@@ -89,9 +95,14 @@ OriginalNavStageRouteSnapshot originalNavStageDispatch_2207d0(
 bool originalNavStageRouteCurrent(
     const OriginalNavStageOwners_21ed30& owners,
     const OriginalNavStageRouteSnapshot& route) noexcept {
-    return route.hostOwnerRevision!=0 && route.hostStageOwnerToken!=0 &&
-           owners.originalHostOwnerToken()==route.hostStageOwnerToken &&
-           owners.originalSlotRevision(route.sourceOwnerSlot)==route.hostOwnerRevision;
+    if(!route.hostOwnerRevision || !route.hostStageOwnerToken ||
+       owners.originalHostOwnerToken()!=route.hostStageOwnerToken ||
+       owners.originalSlotRevision(route.sourceOwnerSlot)!=route.hostOwnerRevision)
+        return false;
+    if(!route.hostMembershipBound)return true;
+    const auto version=route.hostMembershipState.lock();
+    return version && route.hostMembershipGeneration!=0 &&
+           version->generation==route.hostMembershipGeneration;
 }
 const OriginalSpatialRecord70* originalNavStageRoutePolygon(
     const OriginalNavStageOwners_21ed30& owners,
