@@ -29,6 +29,15 @@ struct OriginalConstructorProgress {
 OriginalConstructorProgress originalRunConstructors_428ab8(
     OriginalNativeConstructorCalls& dispatch);
 
+// Original 0x41A390 -> 0x41A088(1,0xFFFF) updates twelve independent
+// global 64-bit constructor counters. Source 0x4173B0 is a *true no-op*;
+// every special first-increment branch calls that method and returns.
+// Native C++ globals replace EE BSS addresses, not EE memory emulation.
+struct OriginalAllocatorGlobals_41a390 {
+    std::array<std::uint64_t,12> counters{};
+};
+void originalAllocatorCtor_41a390(OriginalAllocatorGlobals_41a390&) noexcept;
+
 // 0x428B80: original host-independent registration of 32 termination
 // callbacks per 0x88-byte source descriptor. We do not copy guest pointers.
 class OriginalNativeTerminationRegistry {
