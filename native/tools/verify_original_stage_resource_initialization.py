@@ -104,7 +104,7 @@ def original_elf(elf_path: Path) -> dict:
     # The original stage resource container is populated BEFORE its
     # four named queries: '*' at 0x6E7380 is A3 of 0x22D7F8,
     # wrapper 0x252BC4 calls registration worker 0x25182C.
-    check(view(0x6E7380, 2) == b"*\\x00", "stage source wildcard literal mismatch")
+    check(view(0x6E7380, 2) == b"*\x00", "stage source wildcard literal mismatch")
     jump(0x22D7F8, 0x252BC4, 3)
     jump(0x252BCC, 0x25182C, 3)
     check(le32(view(0x2519D8, 4), 0) == 0x240F002A,
