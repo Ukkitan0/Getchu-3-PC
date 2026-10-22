@@ -56,6 +56,42 @@ void hostObservationToActualRetailChannels(){
     check(bridge.queryOriginalPadChannel_4059e8(0x14)==-1,
           "fabricated unsupported original pad channel");
 }
+void retailDirectPacketAndTwoPortState(){
+    OriginalRetailDirectPacket p0{{0x02,0x41,248,128,8,128}};
+    OriginalRetailDirectPacket p1{{0x10,0x00,128,8,128,248}};
+    OriginalRetailTwoPortReader_26eb34 ports;
+    auto first=ports.sampleDirect({&p0,&p1});
+    check(first.port[0].originalButtonBits==0x4102 &&
+          first.port[1].originalButtonBits==0x10,
+          "direct six-byte packet little-endian decoding wrong");
+    check(first.port[0].originalNewPressBits==0x4102 &&
+          first.port[1].originalNewPressBits==0x10,
+          "independent first port press transition lost");
+    check(first.originalGameRecords[0].originalButtonBits==0x4102 &&
+          first.originalGameRecords[1].originalNewPressBits==0x10,
+          "original two-port 0x18-byte global records mismatched");
+    close(first.port[0].right.x,1,"direct packet RX missing");
+    close(first.port[0].left.x,-1,"direct packet LX missing");
+    close(first.port[1].right.y,-1,"direct packet RY missing");
+    close(first.port[1].left.y,1,"direct packet LY missing");
+    auto second=ports.sampleDirect({nullptr,&p1});
+    check(second.port[0].hostReleasedBits==0x4102 &&
+          second.port[0].originalButtonBits==0 &&
+          second.port[0].originalAxisBytes==std::array<std::uint8_t,4>{128,128,128,128},
+          "direct input disconnect should zero only port 0");
+    check(second.port[1].originalButtonBits==0x10 &&
+          second.port[1].originalNewPressBits==0,
+          "independent port 1 held press should not repeat");
+    auto third=ports.sampleDirect({&p0,&p1});
+    check(third.port[0].originalNewPressBits==0x4102 &&
+          third.port[1].originalNewPressBits==0,
+          "reconnect must affect only reconnected port");
+    ports.reset();
+    auto reset=ports.sampleDirect({&p0,&p1});
+    check(reset.port[0].originalNewPressBits==0x4102 &&
+          reset.port[1].originalNewPressBits==0x10,
+          "two-port original input reset retained previous state");
+}
 void originalChannelSequenceAndEdges(){
     constexpr std::array<std::uint32_t,16> ids{
         0,3,4,6,7,5,12,14,15,13,10,8,1,11,9,2};
@@ -108,7 +144,7 @@ void originalChannelSequenceAndEdges(){
 }
 }
 int main(){
-    try{sourceAxes();originalChannelSequenceAndEdges();hostObservationToActualRetailChannels();
+    try{sourceAxes();originalChannelSequenceAndEdges();hostObservationToActualRetailChannels();retailDirectPacketAndTwoPortState();
         std::cout<<"ORIGINAL_RETAIL_PAD_517788_5179B0_51785C_PASSED "
                     "analog=1 channel_sequence=20 edge=1 disconnect=1\n";
         return 0;

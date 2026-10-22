@@ -54,6 +54,23 @@ OriginalRetailPadSample OriginalRetailPadReader::sample(
         out.left=originalRetailAnalog_517788(
             out.originalAxisBytes[2],out.originalAxisBytes[3]);
     }
+    return finish(out);
+}
+OriginalRetailPadSample OriginalRetailPadReader::sampleDirect(
+    const OriginalRetailDirectPacket* packet) {
+    OriginalRetailPadSample out;
+    if(packet){
+        out.connected=true;
+        const auto& b=packet->bytes;
+        out.originalButtonBits=static_cast<std::uint16_t>(
+            std::uint16_t(b[0]) | (std::uint16_t(b[1])<<8));
+        for(std::size_t i=0;i<4;++i)out.originalAxisBytes[i]=b[2+i];
+        out.right=originalRetailAnalog_517788(b[2],b[3]);
+        out.left=originalRetailAnalog_517788(b[4],b[5]);
+    }
+    return finish(out);
+}
+OriginalRetailPadSample OriginalRetailPadReader::finish(OriginalRetailPadSample out) noexcept {
     // Retail 0x517898..0x5178AC: new press = now & ~last held;
     // on disconnect 0x5178EC..0x517900 the button mask is zero,
     // and the axis bytes are all 0x80.
@@ -62,6 +79,15 @@ OriginalRetailPadSample OriginalRetailPadReader::sample(
     out.hostReleasedBits=static_cast<std::uint16_t>(
         previous_ & ~out.originalButtonBits);
     previous_=out.originalButtonBits;
+    return out;
+}
+OriginalRetailGameFrame_26eb34 OriginalRetailTwoPortReader_26eb34::sampleDirect(
+    const std::array<const OriginalRetailDirectPacket*,2>& packets) {
+    OriginalRetailGameFrame_26eb34 out;
+    for(std::size_t i=0;i<2;++i){
+        out.port[i]=ports_[i].sampleDirect(packets[i]);
+        out.originalGameRecords[i]=originalRetailGamePadState_26eb34(out.port[i]);
+    }
     return out;
 }
 } // namespace ae3

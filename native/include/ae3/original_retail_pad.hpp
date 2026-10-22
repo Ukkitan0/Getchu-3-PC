@@ -45,6 +45,13 @@ private:
     OriginalPadObservation snapshot_;
 };
 
+// Retail 0x517880..0x517894 direct six-byte source packet:
+// bytes 0..1: little-endian positive pressed bits; bytes 2..5: RX RY LX LY.
+// This is the already-decoded direct-data pathway, NOT a PS2 SIO packet.
+struct OriginalRetailDirectPacket {
+    std::array<std::uint8_t,6> bytes{0,0,128,128,128,128};
+};
+
 struct OriginalRetailPadSample {
     bool connected=false;
     std::uint16_t originalButtonBits=0; // source 0x5179B0 bit position i
@@ -73,8 +80,27 @@ public:
     // original device state resolver; no guessed timeout or autoconnect.
     OriginalRetailPadSample sample(OriginalRetailPadChannelSource& source,
                                   bool connected);
+    // Retail 0x517878 branch with non-null source pointer. No PAD-library
+    // calls; consumes exactly the six original source bytes. Null means
+    // disconnected/neutral, using the source pad state reset path.
+    OriginalRetailPadSample sampleDirect(const OriginalRetailDirectPacket* packet);
     void reset() noexcept {previous_=0;}
 private:
+    OriginalRetailPadSample finish(OriginalRetailPadSample current) noexcept;
     std::uint16_t previous_=0;
+};
+// 0x26EB34 updates two ports independently before copying each six-word
+// record to the game input globals 0x6496F8 and 0x649710.
+struct OriginalRetailGameFrame_26eb34 {
+    std::array<OriginalRetailPadSample,2> port{};
+    std::array<OriginalRetailGamePadState_26eb34,2> originalGameRecords{};
+};
+class OriginalRetailTwoPortReader_26eb34 {
+public:
+    OriginalRetailGameFrame_26eb34 sampleDirect(
+        const std::array<const OriginalRetailDirectPacket*,2>& packets);
+    void reset() noexcept {for(auto& p:ports_)p.reset();}
+private:
+    std::array<OriginalRetailPadReader,2> ports_{};
 };
 } // namespace ae3
