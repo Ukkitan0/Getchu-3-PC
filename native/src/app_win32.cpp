@@ -51,6 +51,7 @@ ae3::runtime::BootJournal gBootJournal;
 ae3::runtime::OriginalAllocatorGlobals_41a390 gOriginalAllocatorGlobals;
 ae3::runtime::OriginalNumericGlobals_417c58 gOriginalNumericGlobals;
 ae3::runtime::OriginalStaticResourceGlobals_3a6cd0 gOriginalStaticGlobals;
+ae3::runtime::OriginalFourthGlobals_39fc78 gOriginalFourthGlobals;
 bool gBootActive=false;
 bool gDeviceReady=false;
 constexpr int kList=100, kOpen=101, kExport=102, kStatus=103, kLuaStage=104, kSignalTrigger=105, kOpenGlb=106, kOpenLevel=107, kOriginalCollision=108;
@@ -1276,10 +1277,14 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
                 // No copyrighted literal bytes are ever compiled into exe.
                 std::optional<std::array<std::byte,
                     ae3::runtime::kStaticLiteralSourceBytes_3a6cd0>> sourceLiterals;
+                std::optional<std::array<std::byte,
+                    ae3::runtime::kFourthCtorLiteralBytes_39fc78>> fourthLiterals;
                 std::string originalLiteralError="original USA SCUS_975.01 not supplied";
                 if(argc>=4){
                     try{
                         sourceLiterals=ae3::runtime::originalReadStaticSourceFromElf_3a6cd0(
+                            fs::path(argv[3]));
+                        fourthLiterals=ae3::runtime::originalReadFourthSourceFromElf_39fc78(
                             fs::path(argv[3]));
                         originalLiteralError.clear();
                     }catch(const std::exception& e){
@@ -1290,6 +1295,7 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
                     public ae3::runtime::OriginalNativeConstructorCalls {
                 public:
                     std::span<const std::byte> originalLiterals{};
+                    std::span<const std::byte> originalFourthLiterals{};
                     bool callRecoveredConstructor(std::uint32_t va) override {
                         if(va==0x41a390){
                             // Real original 0x41A390->0x41A088 updates twelve
@@ -1306,12 +1312,17 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
                             return ae3::runtime::originalStaticCtor_3a6cd0(
                                 originalLiterals,gOriginalStaticGlobals);
                         }
+                        if(va==0x39fc78){
+                            return ae3::runtime::originalFourthCtor_39fc78(
+                                originalFourthLiterals,gOriginalFourthGlobals);
+                        }
                         // Remaining constructor methods must be ported from
                         // their actual original instruction sequences.
                         return false;
                     }
                 } callbacks;
                 if(sourceLiterals)callbacks.originalLiterals=*sourceLiterals;
+                if(fourthLiterals)callbacks.originalFourthLiterals=*fourthLiterals;
                 const auto outcome=
                     ae3::runtime::originalRunConstructors_428ab8(callbacks);
                 if(!outcome.complete){
@@ -1320,7 +1331,8 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
                             <<std::hex<<std::uppercase<<outcome.firstUnrecovered
                             <<"; "<<std::dec<<outcome.executed
                             <<" of 143 original constructors executed";
-                    if(outcome.firstUnrecovered==0x3a6cd0 && !sourceLiterals)
+                    if((outcome.firstUnrecovered==0x3a6cd0 && !sourceLiterals) ||
+                       (outcome.firstUnrecovered==0x39fc78 && !fourthLiterals))
                         location<<"; missing original ELF source: "<<originalLiteralError;
                     bootCheckpoint(BootCheckpoint::original_static_constructors,
                                    BootResult::blocked,location.str());
