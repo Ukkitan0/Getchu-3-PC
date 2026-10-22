@@ -334,3 +334,25 @@ Executed this pass in local source environment:
 5. Owner's source has `placeholder.plc`, `navigation.pck`, `actionseq.asq`, `monkeydb.xml` matching the four stems. But recover upstream resource registry population and source-key-to-file provenance before wiring those candidates as unconditional production behavior. Original consumer `0x272294`, `0x30C798`, `0x25BFE0` and second monkeydb lookup `0x24DC9C` remain to be translated.
 
 No global CMake, Windows runtime/graphics/navigation/gamelogic owned sources, GitHub Actions or master branch edited. No proprietary original data committed.
+
+
+### Newly recovered upstream original resource registration — precise source call/selector, same retail pass
+
+The fresh private USA ELF also exposes the previously missing **registration step before the four name-key requests**:
+
+- Retail `0x22D7F8` JAL `0x252BC4`, with `A3` pointing to actual literal `"*"\\0` at `0x6E7380`. This call occurs before `placeholder` lookup `0x22D828`.
+- Source wrapper `0x252BC4..0x252BE0` loads the owner's native member pointer and calls **`0x25182C`** (JAL site `0x252BCC`); 7 original instruction words, SHA-256 `98aaf670fb9b5e6c962826cd08d323020e2f3793296c19445a0e28b629c29dfa`.
+- Original registration worker source window `0x25182C..0x251BE8`: 239 original instruction words, SHA-256 `2a4161e0a137a893b4322492fb004cf44b95e7af1c2f018b618c5d639e5da857`.
+- Original MIPS instructions at `0x2519D4..0x2519E0` check nullable selector `A3`, its leading byte against ASCII `0x2A` (`'*'`), and branch past string comparison when null/wildcard. Otherwise `0x2519FC` JAL to `0x42C44C` performs the name equality comparison. Pinning verified exact source words `0x2519D8:0x240F002A`, `0x2519DC:0x82CE0000`, `0x2519E0:0x11CF000A`.
+- Combined source evidence now **six complete private-USA-ELF windows, 442 verified machine instruction words and 14 direct J/JAL call edges**, plus the exact wildcard and four stage resource-key literals. Actual owner-private original MIPS source audit **passed**. Do not claim full container traversal/insertion reconstructed: deeper `0x25182C` registry ownership and `0x24D858` source registration callback remain unresolved.
+
+**New source commits**:
+- `5a46c3778e80885c451e3ae09b3953cac8e7951e` adds genuine wildcard registration VAs/literal metadata to the owned stage sequence header.
+- `ff158043cebcb91473878d83083d2e4c3c43b773` adds `native/include/ae3/original_resource_registration_filter.hpp` faithfully translating ONLY the null/first-byte-asterisk/full-name match boundary of source `0x25182C`. No original registry/asset bytes simulated or invented.
+- `ea30282aae09148892b648556b6de1abb75c7d32` adds `native/tests/original_resource_registration_filter_test.cpp` covering null selector, `*` wildcard, source-exact first-byte wildcard behavior (`*suffix`), full-name vs prefix/case mismatch, and empty selector. **GCC 14.2 and Clang 17 strict optimized C++20 both compiled and passed.**
+- `427504e215939ef959f67bce88666520167e4a4a` extends `native/tools/verify_original_stage_resource_initialization.py` with the two additional original-source windows, wildcard literal and selector opcodes, registration wrapper/core JAL sites. `7dbd834f10def96a8aafedd59e4a7e9f68d63da8` corrects the literal NUL escape in that newly added check.
+- `0b6c1ee0afff357f189bfe9efef632355b23c177` updates `native/reference/original_stage_initialization_resource_chain.json` to include registration provenance and the increased authenticated instruction/call total.
+
+**Coordinator integration request:** the native stage loader must first establish the original source entry container (upstream `0x25182C` registration, source wildcard `0x6E7380`), THEN perform the four exact-name requests (`0x22D828/0x22D8C0/0x22D8E8/0x22D928`) using the original first-match `0x24D4F0` behavior. Scanning `debug/us/stage/<name>` source files by stem is diagnostic candidate evidence only; do not use candidate selection as a substitute for the real registry. Add the new header-only C++ test to CMake and have runtime/gameplay integration handle upstream registration after its original allocation semantics have been recovered.
+
+No changes to other subsystem files or global CMake; no GitHub Actions dispatched, no proprietary original-game bytes committed.
