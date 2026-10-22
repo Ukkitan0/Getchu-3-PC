@@ -474,6 +474,20 @@ target_link_libraries(Getchu3OriginalWindowsBootstrapTests PRIVATE Getchu3Assets
 add_test(NAME OriginalRetailStaticConstructorsAndTerminationBlocks
          COMMAND Getchu3OriginalWindowsBootstrapTests)
 
+# Optional offline source-proof CTest. Uses only an owner-supplied executable,
+# refuses a wrong-region/version ELF, never stores game bytes in the repository.
+set(AE3_RETAIL_USA_ELF "" CACHE FILEPATH "PRIVATE original USA SCUS_975.01 for startup opcode verification")
+if(AE3_RETAIL_USA_ELF)
+  if(NOT EXISTS "${AE3_RETAIL_USA_ELF}")
+    message(FATAL_ERROR "AE3_RETAIL_USA_ELF points to an absent owner-private original executable")
+  endif()
+  find_package(Python3 COMPONENTS Interpreter REQUIRED)
+  add_test(NAME OriginalUSAExecutableStaticConstructorOpcodeAudit
+      COMMAND "${Python3_EXECUTABLE}"
+              "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_windows_bootstrap.py"
+              "${AE3_RETAIL_USA_ELF}")
+endif()
+
 # Host-native startup checkpoint test; successful Lua setup does not imply a game boot.
 add_executable(Getchu3WindowsBootStatusTests tests/windows_runtime_boot_status_test.cpp)
 target_include_directories(Getchu3WindowsBootStatusTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
