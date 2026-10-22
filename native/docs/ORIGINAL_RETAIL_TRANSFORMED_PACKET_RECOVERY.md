@@ -26,8 +26,20 @@ Group 2 original `.rodata` float bits at `0x7206D8/DC/E0/E4`: `3FC8EF16`, `3F733
 
 ## Tests and integration
 
-Three new source-owned test suites: `original_render_transformed_segments_test.cpp`, `original_render_packet_storage_test.cpp`, `original_render_model_streams_test.cpp`. The **complete graphics-focused suite** was compiled using GCC 14.2 `-O2 -Werror` and Clang 17 `-O1 -g -fsanitize=address,undefined -Werror`: **17/17 suites passed under each compiler, 34/34 executions total**. Clang's first batch timed out and was resumed; all runs finished without sanitizer errors. Tests use structural fixtures, not original game assets.
+Three new source-owned test suites: `original_render_transformed_segments_test.cpp`, `original_render_packet_storage_test.cpp`, `original_render_model_streams_test.cpp`. The **complete graphics-focused suite** was compiled using GCC 14.2 `-O2 -Werror` and Clang 17 `-O1 -g -fsanitize=address,undefined -Werror`: **18/18 suites passed under each compiler, 36/36 executions total**. Clang's first batch timed out and was resumed; all runs finished without sanitizer errors. Tests use structural fixtures, not original game assets.
 
 Only the Windows Runtime owner should add new `.cpp` files to the shared `Getchu3Assets` CMake target, register corresponding tests and connect actual stage render ownership. Assets must provide authentic model data and original token-to-buffer mapping; VU0/Physics must help recover `0x3BDF08` and visibility; Graphics must still recover genuine original `0x27C614/0x27C520` per-record conversions and `0x41D3D8/0x41D490` math functions.
 
 **No real level rendered, no Windows D3D11 test, no full CMake/CTest boot, no PS2 emulator or replacement model implementation.** Original packet VU functions and stage/actor source integration remain blockers.
+
+## Source-call correctness follow-up: packet owner write
+
+A joined graphics test exposed a gap in the earlier `originalAssemblePacket3af8f0` port: original `0x3AF920` executes `sw $s0,0x38($s2)` after packet reset `0x3AF8B8` and before descriptor setup `0x3AF8A8`.
+
+This now has the mandatory `OriginalPacketAssemblyDependencies::bindGraphicsOwner3af920(packet,originalGraphics)` callback. Original source call ordering is **allocate A → reset R → bind owner B → setup S → conditional original material handlers**, not A-R-S. The callback is mandatory because a missing write leaves packet `+0x38` invalid. Native `OriginalNativeRenderPacketStorage::reservePacketHeader()` allocates only, allowing these verified operations to occur in the correct order.
+
+New `native/tests/original_render_model_packet_bridge_test.cpp` connects model-source stream decoding, original packet descriptor preparation, arena packet reservation, actual header reset/owner bind/quadword copy, original group 2 transformed-data preparation and group 4 native fixed-record copying, and original D3D context slot `+0x82C`. The VU and math callbacks used by this structural test are **deliberate test stubs**, not production implementations; original game visuals remain unverified.
+
+Updated local GCC 14.2 `-O2 -Werror` pass **18/18**, Clang 17 `-fsanitize=address,undefined -Werror` **18/18**, no sanitizer findings. Total **36/36** source-focused test executions. An initial Clang object build rejected an unused linker-only flag under `-Werror`; the corrected command compiled and executed all 18 tests.
+
+**Integrators:** all callers of `originalAssemblePacket3af8f0` must populate the new `bindGraphicsOwner3af920` callback in addition to existing source callbacks. Add `tests/original_render_model_packet_bridge_test.cpp` as one additional CTest target. Do not bypass it or silently leave packet `+0x38` zero.
