@@ -77,7 +77,24 @@ def verify_and_audit(elf: bytes) -> dict:
     gate_hash = hashlib.sha256(elf[file_start:file_end]).hexdigest()
     if gate_hash != "a2ed3f2062ea0d0f7de6d252dd468d1f8345833d57a950cf1f5eb67b64a9fa00":
         raise ValueError("retail render early-gate MIPS instructions changed")
+    selector_ranges = [
+        (0x26AEB4, 0x26AEEC, "1967c1dcdba937f708d2a81d196be87b1bc5e0a75f5dd3488738e7662402d128"),
+        (0x26B550, 0x26B594, "6c54314ffd23bb3971c0a9f8742d58895114a1825c376c97c8843ce463a061ab"),
+        (0x280884, 0x2808D4, "2489a7a7aad1da59f40bc6e84e31c095ec42c7812325bd1d5ff10e53b53af311"),
+    ]
+    selector_evidence = []
+    for first, end, expected in selector_ranges:
+        span = elf[first - TEXT_VA + TEXT_FILE:end - TEXT_VA + TEXT_FILE]
+        digest_span = hashlib.sha256(span).hexdigest()
+        if digest_span != expected:
+            raise ValueError(f"retail selector instructions changed at {first:#x}")
+        selector_evidence.append({
+            "va_start": f"0x{first:08x}",
+            "va_end_exclusive": f"0x{end:08x}",
+            "source_sha256": digest_span,
+        })
     report = {
+        "retail_selector_instruction_ranges": selector_evidence,
         "retail_gate_va_range": ["0x00280838", "0x00280884"],
         "retail_gate_instruction_sha256": gate_hash,
         "retail_gate_ported_gate_only": True,
