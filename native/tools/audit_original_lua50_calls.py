@@ -17,7 +17,7 @@ HEADER = bytes.fromhex('1b4c756150010404040608090904')
 MAX_CHUNK = 16 * 1024 * 1024
 MAX_COUNT = 2_000_000
 # Lua 5.0.3 lopcodes.h: GETGLOBAL=5, SETGLOBAL=7, 6-bit opcode,
-# iABx operand Bx at bit 14. NOT the Lua 5.1+ or modern opcode table.
+# iABx operand Bx at bit 6 (A at bit 24). NOT the Lua 5.1+ or modern opcode table.
 OP_GETGLOBAL = 5
 OP_SETGLOBAL = 7
 
@@ -108,7 +108,7 @@ class Reader:
             operation = opcode & 0x3F
             if operation not in (OP_GETGLOBAL, OP_SETGLOBAL):
                 continue
-            index = (opcode >> 14) & 0x3FFFF
+            index = (opcode >> 6) & 0x3FFFF
             if index >= len(constants) or not isinstance(constants[index], bytes):
                 raise InvalidChunk(f'Lua global opcode refers to invalid constant {index}')
             name = self.symbol(constants[index])
