@@ -82,17 +82,13 @@ std::uint64_t OriginalActorNavigationPipeline_57c7cc::call_original_57c98c_three
     // actor owns its original game-global RNG state.
     latestTriangleHigh64_=0;
     if(originalSharedRandom_) {
-        std::array<OriginalVU0Vec4,3> source{};
-        for(std::size_t i=0;i<3;++i)
-            std::memcpy(&source[i],vertices[i].data(),sizeof(source[i]));
-        // 0x57C994/0x57C9A8/0x57C9B8 PCPYUD source vertices:
-        // original source math only uses upper z/w lanes.
-        const auto result=originalActorRandomTriangle_57c98c(source,*originalSharedRandom_);
-        latestTriangleHigh64_=
-            std::uint64_t(std::bit_cast<std::uint32_t>(result.z))|
-            (std::uint64_t(std::bit_cast<std::uint32_t>(result.w))<<32);
-        return std::uint64_t(std::bit_cast<std::uint32_t>(result.x))|
-            (std::uint64_t(std::bit_cast<std::uint32_t>(result.y))<<32);
+        // 0x57C994/C9A8/C9B8 PCPYUD masks original vertices.
+        // This source-native helper returns the same FULL QMFC2 result,
+        // with no fabricated source vector and one genuine RNG sequence.
+        const auto target=originalActorRandomTrianglePacked_57c98c(
+            vertices,*originalSharedRandom_);
+        latestTriangleHigh64_=target.originalHigh64;
+        return target.originalLow64;
     }
     return math_.call_original_57c98c_random_vertex_transform(target,vertices);
 }

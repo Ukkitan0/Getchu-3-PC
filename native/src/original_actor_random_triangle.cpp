@@ -40,14 +40,23 @@ OriginalVU0Vec4 originalActorRandomTriangle_57c98c(
             blend(src[0].z,src[1].z,src[2].z),
             blend(src[0].w,src[1].w,src[2].w)};
 }
-std::uint64_t originalActorRandomTriangleLow64_57c98c(
+OriginalActorRandomTrianglePacked_57c98c originalActorRandomTrianglePacked_57c98c(
     const std::array<std::array<std::byte,16>,3>& bytes,
     OriginalGameRandom_36f3c0& originalRandom) noexcept {
     std::array<OriginalVU0Vec4,3> source{};
     for(std::size_t i=0;i<3;++i)
         std::memcpy(&source[i],bytes[i].data(),16);
     const auto result=originalActorRandomTriangle_57c98c(source,originalRandom);
-    return std::uint64_t(std::bit_cast<std::uint32_t>(result.x)) |
-         (std::uint64_t(std::bit_cast<std::uint32_t>(result.y))<<32);
+    return {
+        std::uint64_t(std::bit_cast<std::uint32_t>(result.x)) |
+            (std::uint64_t(std::bit_cast<std::uint32_t>(result.y))<<32),
+        std::uint64_t(std::bit_cast<std::uint32_t>(result.z)) |
+            (std::uint64_t(std::bit_cast<std::uint32_t>(result.w))<<32)
+    };
+}
+std::uint64_t originalActorRandomTriangleLow64_57c98c(
+    const std::array<std::array<std::byte,16>,3>& bytes,
+    OriginalGameRandom_36f3c0& originalRandom) noexcept {
+    return originalActorRandomTrianglePacked_57c98c(bytes,originalRandom).originalLow64;
 }
 } // namespace ae3

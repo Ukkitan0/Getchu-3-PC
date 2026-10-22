@@ -20,8 +20,16 @@ OriginalActorTriangleWeights_57c98c originalActorTriangleWeights_57c98c(
 OriginalVU0Vec4 originalActorRandomTriangle_57c98c(
     const std::array<OriginalVU0Vec4,3>& sourceVertices,
     OriginalGameRandom_36f3c0& originalRandom) noexcept;
-// Source 0x57C948 QMFC2 returns 128 bits; the low 64 is zero here.
-// For the entire result, use originalActorRandomTriangle_57c98c.
+// 0x57C948 QMFC2 transfers all 128 bits. These two GPR halves
+// are the *full* source actor target returned to 0x57C894.
+struct OriginalActorRandomTrianglePacked_57c98c {
+    std::uint64_t originalLow64=0;
+    std::uint64_t originalHigh64=0;
+};
+OriginalActorRandomTrianglePacked_57c98c originalActorRandomTrianglePacked_57c98c(
+    const std::array<std::array<std::byte,16>,3>& originalSourceVertexBytes,
+    OriginalGameRandom_36f3c0& originalSharedRandom) noexcept;
+// Compatibility function: source low 64 bits are zero after PCPYUD.
 std::uint64_t originalActorRandomTriangleLow64_57c98c(
     const std::array<std::array<std::byte,16>,3>& sourceVertexBytes,
     OriginalGameRandom_36f3c0& originalRandom) noexcept;
