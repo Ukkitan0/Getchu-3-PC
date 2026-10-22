@@ -38,6 +38,18 @@ struct OriginalAllocatorGlobals_41a390 {
 };
 void originalAllocatorCtor_41a390(OriginalAllocatorGlobals_41a390&) noexcept;
 
+// Original second constructor 0x417C58 -> 0x417B50(1,0xffff).
+// Verified original 0x41D6B8 -> 0x41EFD0 is the double sqrt, and
+// 0x4240D8 is the double multiply. ONLY this constructor's three
+// hardcoded positive finite inputs have been source-recovered here.
+// Values correspond to original global 0x69E678 and 0x69E680.
+struct OriginalNumericGlobals_417c58 {
+    std::uint64_t first_69e678=0;
+    std::uint64_t second_69e680=0;
+    bool initialized=false;
+};
+bool originalNumericCtor_417c58(OriginalNumericGlobals_417c58&) noexcept;
+
 // 0x428B80: original host-independent registration of 32 termination
 // callbacks per 0x88-byte source descriptor. We do not copy guest pointers.
 class OriginalNativeTerminationRegistry {
