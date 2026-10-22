@@ -161,3 +161,12 @@ Compare native SZ and PCK outputs byte-for-byte with existing originalNavReadPac
 Original package load-order/ownership call chain and stage transitions; identification of all background/model/texture/animation/audio dependencies on real source bytes; per-stage resource lifetime; real source VA allocation and 0x36EDAC graph/grid allocator; integration of original input/Lua/gameplay/graphics and Windows boot. Stage VFI inventory is not itself an original runtime stage-loader or a playable game.
 
 Only assets-owned source/tests and native/parallel/handoffs/assets.md were modified on parallel/assets. No shared CMake or other categories changed.
+
+
+### Stage-name authenticity correction (same pass)
+
+Additional commits:
+- e73d1b5c7b0f6c2deffb6cd0ba137c3f9859a9a9 — original_resource_stage_catalog.hpp now validates a stage folder as an actual source VFI path component, rather than imposing the existing Win32 launcher application's unrelated 70-character alphanumeric/underscore identifier restriction. This prevents silently excluding genuine source archive folders containing other printable names. Traversal, slash/backslash, control characters and unsafe separators remain rejected.
+- ff708ff3fb7cadcaeedbd467f8deed6c79cc8d5a — stage catalog regression now includes a printable non-launcher-style source stage folder. The updated strict optimized GCC 14.2.0 C++20 test passed: ORIGINAL_RESOURCE_STAGE_CATALOG_TEST_PASSED stages=3 members=7 malicious=6. The original retail ISO was not mounted so whether a stage named this way actually exists is NOT asserted; this regression only protects source-fidelity of the filename rules.
+
+The earlier handoff test summary (stages=2 members=6) refers to the earlier commit, not the updated test.
