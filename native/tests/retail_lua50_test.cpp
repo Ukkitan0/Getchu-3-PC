@@ -168,6 +168,24 @@ void testRetailBytecodeExecution(){
     check(pos && pos->array.size()==3 &&
           std::abs(pos->array[0].number-1.5)<1e-7,
           "native Lua50 numerical argument changed during original PS2 float conversion");
+    // Original bytecode followed by a source chunk must preserve strict
+    // retail manager requirements, not silently re-enable test defaults.
+    ae3::NativeStageWorld noFlagManagerWorld;
+    ae3::LuaStage strictRetail(noFlagManagerWorld,&actualNewGameProgress);
+    strictRetail.executeSource(std::string_view(
+        reinterpret_cast<const char*>(originalFormat.data()),
+        originalFormat.size()),"@original_owner_area.luc");
+    strictRetail.executeSource(
+        "function originalFlagWrite() gw_set_flag('stage_started') end",
+        "@additional_stage_callbacks.lua");
+    bool refusedMirror=false;
+    try{strictRetail.invokeCallback("originalFlagWrite");}
+    catch(const std::runtime_error& error){
+        refusedMirror=std::string(error.what()).find(
+            "requires real game flag-manager write binding")!=std::string::npos;
+    }
+    check(refusedMirror,
+          "loading a second Lua chunk downgraded original retail flag semantics");
     auto broken=originalFormat;
     broken[13]=7;
     bool rejected=false;
