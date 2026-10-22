@@ -6,6 +6,8 @@
 
 ## Commits and implementation
 
+- Continuation: actor-bound navigation route lifecycle, typed source action/target integration and group weak-lifetime safety (new commit; inspect branch head).
+
 - `b77a5fd741ab0c1359fa73fc91b5998380dc7e0f`: connect original stage graph owner, type-1 route costs, original path dispatcher, native stable polygon index route snapshots, actor route/follower adapters.
 - `cbd03b0af81725a421aebf4612e57870d5896295`: strengthen stage-instance/revision checks, expand synthetic and optional original-PCK tests, initial integration recipe.
 - `8040c9fa40d22c7d222cec8213c03ea6d60dafc4`: add keyed navrange-to-live-graph group binding; connect original class-2 destination vectors and in-place actor route advancement.
@@ -100,6 +102,57 @@ if(groups.originalGroupedRouteCurrent(bound)) {
 ```
 
 `OriginalNavStageGroupSession` is a native **single-owner-slot** borrowing view and must not outlive `owners`. Call `originalClear_4e3fec()` before dropping the owner or `originalRebindSourceGraph()` after its generation changes, and re-register the original group source. The keyed session deliberately rejects unknown keys instead of inventing default eligibility or graph choice. If the genuine original runtime shares one group key across multiple source-owner slots, the integrator must audit source owner routing before expanding this contract; do not force mixed graphs into one slot.
+
+
+## Actor route binding / recovered caller integration — current pass
+
+This continuation introduces a host-native, single-actor `OriginalNavActorRouteBinding` in:
+
+- `native/include/ae3/original_nav_actor_binding.hpp`
+- `native/src/original_nav_actor_binding.cpp`
+- `native/tests/original_nav_actor_binding_test.cpp`
+
+The adapter does **not** implement a substitute navigation search or pretend to be the original EE actor controller. It owns the lifetime of a previously recovered source route snapshot or a navrange-group-bound route, and invokes the existing original-code-derived `0x221104`/`0x21B444`/`0x57BD88` action classification, `0x57BDB8` type-2 target lookup, and `0x57C7CC` route follower, requiring VU0/physics callbacks for original `0x4C1B3C` and `0x57C8EC`. Original actor controller `0x57BCB8` remains unrecovered.
+
+The bridge clears current target (+0x50 semantic pointer) on source route replacement or stage transition. A released/rebound stage or changed `navrange` membership makes the actor route invalid and returns no exposed stale polygon target. Foreign stage routes are rejected. The stage-owner lifetime must extend beyond the actor binding. A **host-only weak lifetime token** in `OriginalNavStageGroupSession` rejects a group session that has already been destroyed, without dereferencing its stale pointer. These protections are native integration safety rules, not invented claims about EE fields.
+
+New focused test exercises original search tie/predecessor ordering, class-0 and class-2 edges, actual three source vectors for `0x57BDB8`, `0x57C7CC` callback ordering and unchanged-target early return, source-group admission, invalidation after membership growth, safe group session destruction, stage unload, and stage reattach. It contains no private game data.
+
+### Additional CMake request (integrator only)
+
+Append to the native assets translation units:
+
+```cmake
+src/original_nav_actor_binding.cpp
+```
+
+Register the test:
+
+```cmake
+add_executable(Getchu3OriginalNavActorBindingTests tests/original_nav_actor_binding_test.cpp)
+target_link_libraries(Getchu3OriginalNavActorBindingTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalNavActorBindingRouteLifecycle
+         COMMAND Getchu3OriginalNavActorBindingTests)
+```
+
+Example native caller:
+
+```cpp
+ae3::OriginalNavActorRouteBinding actor(owners);
+auto bound=groups.originalBoundRouteByKey_2207d0(selectedOriginalKey,originalRouteQuery);
+actor.originalUseGroupRoute_2207d0(groups,std::move(bound));
+if(actor.originalRouteCurrent()) {
+    auto firstEdge=actor.originalCurrentEdge_57bd88(0);
+    auto originalType2=actor.originalInitialType2Target_57bdb8();
+    auto follow=actor.originalAdvance_57c7cc(actorSourcePolygonIndex,physicsCalls);
+}
+if(actor.originalDropInvalidRoute()) {
+    // Caller must handle source route replacement as required by
+    // original 0x575EC0; this adapter does NOT free game allocations.
+}
+```
+
+**Verification:** GitHub connector commit/write verification only. No local native build, CTest, original private ELF/PCK audit or Windows game boot was run. The isolated container lacks GitHub network resolution, and the private executable/resource files were not accessible. No GitHub Actions were triggered.
 
 ## Remaining original blockers
 

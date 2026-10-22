@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
 namespace ae3 {
 
@@ -58,6 +59,11 @@ public:
     std::size_t originalRegisteredGroupCount() const noexcept {
         return registry_.size();
     }
+    // Borrowed actor bindings can observe destruction without touching
+    // an invalid group-session pointer. Host-only lifecycle sentinel.
+    std::weak_ptr<const std::uint8_t> originalLifetimeToken() const noexcept {
+        return lifetime_;
+    }
     const OriginalNavGroupRegistry& originalGroups() const noexcept {
         return registry_;
     }
@@ -74,6 +80,8 @@ private:
     const std::uint64_t groupSessionToken_=
         nextSessionToken_.fetch_add(1,std::memory_order_relaxed);
     std::uint64_t groupRevision_=1;
+    std::shared_ptr<const std::uint8_t> lifetime_=
+        std::make_shared<const std::uint8_t>(0);
     OriginalNavGroupRegistry registry_{};
 };
 } // namespace ae3
