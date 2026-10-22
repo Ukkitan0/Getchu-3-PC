@@ -1154,8 +1154,14 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
     int argc=0;
     LPWSTR* argv=CommandLineToArgvW(GetCommandLineW(),&argc);
     bool retailLaunchFailed=false;
+    bool retailLaunchRequested=false;
     if(argv){
-        if(argc>=5 && std::wstring(argv[1])==L"--retail"){
+        if(argc>=2 && std::wstring(argv[1])==L"--retail"){
+            retailLaunchRequested=true;
+            if(argc<5){
+                status(L"RETAIL BOOT BLOCKED: expected --retail <owned ISO> <stage ID> <original-stage GLB directory> [original PLC] [original I3C] [spawn tag]");
+                retailLaunchFailed=true;
+            }else{
             const fs::path iso=argv[2];
             const std::string stageId=fs::path(argv[3]).string();
             const fs::path glbDir=argv[4];
@@ -1164,6 +1170,7 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
             const std::string spawn=argc>=8?
                 fs::path(argv[7]).string():"spawn_default";
             retailLaunchFailed=!loadOriginalRetailStage(iso,stageId,glbDir,plc,i3c,spawn);
+            }
         }else if(argc>=2){
             const fs::path file=fs::path(argv[1]);
             std::wstring extension=file.extension().wstring();
@@ -1186,12 +1193,24 @@ int WINAPI wWinMain(HINSTANCE inst,HINSTANCE,PWSTR,int show){
         LocalFree(argv);
     }
     if(retailLaunchFailed){
-        // Automation must see a nonzero exit; do not leave a normal-looking
-        // asset workbench running after a retail game-stage failure.
+        // Genuine retail stage loading failed. A workbench is not a fallback game.
         OutputDebugStringW(gProgress.c_str());
         DestroyWindow(window);
         if(SUCCEEDED(com))CoUninitialize();
         return 3;
+    }
+    if(retailLaunchRequested){
+        // This branch only proved original resource parsing and Lua setup.
+        // It has NOT constructed the original Player/Monkey managers nor called
+        // the original retail game engine's initialization/frame dispatcher.
+        // In particular controller initializer 0x57BCB8 and original actor
+        // update scheduling are still unresolved. Never return game-boot
+        // success, or silently expose the GLB workbench as a playable game.
+        status(L"RETAIL ENGINE BOOT BLOCKED (exit 4): original 0x57BCB8 manager initialization and Player/Monkey gameplay frame dispatch are not integrated. Original stage resources/Lua are not a game boot.");
+        OutputDebugStringW(gProgress.c_str());
+        DestroyWindow(window);
+        if(SUCCEEDED(com))CoUninitialize();
+        return 4;
     }
     MSG message{};
     while(GetMessageW(&message,nullptr,0,0)>0){
