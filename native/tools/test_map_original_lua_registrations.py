@@ -111,6 +111,24 @@ class RegistrationScanTests(unittest.TestCase):
                  jal(r.REGISTRY_HELPER), 0]
         self.assertEqual(scan(words), [])
 
+    def test_published_launcher_registration_evidence_does_not_invent_symbols(self):
+        expected = {'BindTester', 'createFeatureLauncher',
+                    'createWarpGateLauncher', 'createTutorialExit',
+                    'createMGSGenerator', 'LocaleInfo_getID'}
+        self.assertEqual(set(r.PUBLISHED_LAUNCHER_VTABLES), expected)
+        va = r.PUBLISHED_LAUNCHER_VTABLES['createMGSGenerator'][0]
+        blob = struct.pack('<6I', 0x512000, 0, 0, 0, 0, 0)
+        records = {v['name']: v for v in
+                   r.launcher_vtable_candidates(blob, [(va, 0, len(blob))])}
+        self.assertTrue(records['createMGSGenerator']['available'])
+        self.assertEqual(records['createMGSGenerator']['slots'][0]['pointer'],
+                         '0x00512000')
+        self.assertEqual(records['createFeatureLauncher']['published_symbol'],
+                         's_SetSelectFortune')
+        self.assertIsNone(records['createFeatureLauncher']['vtable_address'])
+        self.assertFalse(records['createFeatureLauncher']['available'])
+        self.assertEqual(records['createFeatureLauncher']['slots'], [])
+
     def test_strict_private_elf_hash(self):
         with self.assertRaisesRegex(ValueError, 'only verified USA'):
             r.inspect(b'not-the-game')
