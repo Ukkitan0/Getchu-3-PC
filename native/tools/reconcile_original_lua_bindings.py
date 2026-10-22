@@ -32,13 +32,15 @@ def reconcile(lua_report: dict, elf_report: dict, host_names: list[str]) -> dict
     # from actual CreateBind registration calls. A six-word table is only a
     # candidate list, not a confirmed callback implementation address.
     vtables = {}
-    for record in elf_report.get('published_flag_vtable_slot_candidates', []):
+    for record in (elf_report.get('published_flag_vtable_slot_candidates', []) +
+                   elf_report.get('published_launcher_vtable_slot_candidates', [])):
         name = record['name']
         if name in vtables:
             raise ValueError('duplicate original vtable identity')
         candidates = [slot['pointer'] for slot in record.get('slots', [])
                       if slot.get('points_into_original_text')]
         vtables[name] = {'address': record['vtable_address'],
+                         'published_symbol': record.get('published_symbol'),
                          'mapped': bool(record['available']),
                          'candidate_text_pointers': sorted(set(candidates))}
     native_names = set(sites)
