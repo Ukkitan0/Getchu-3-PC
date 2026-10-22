@@ -22,5 +22,5 @@ OriginalActorXZProximity_57c080 originalActorXZProximity_57c080(
 // Only the original route-present case, 0x57C07C PCPYUD s3,zero,v0.
 // The result of 0x21B854 is required; it is not synthesized here.
 std::array<std::byte,16> originalActorPack21B854Return_57c07c(
-    const std::array<std::byte,16>& originalOriginalResultV0) noexcept;
+    const std::array<std::byte,16>& originalResultV0) noexcept;
 }
