@@ -120,6 +120,46 @@ def import_assets_in_editor(folder: Path, ue: Any, suffix: str,
     return imported
 
 
+def import_collision_in_editor(folder: Path, ue: Any) -> list[str]:
+    """Import real I3C mesh triangles; static physics may collide per polygon.
+
+    Dynamic player rules, stage placement, slopes and capture/gameplay are NOT reconstructed.
+    """
+    files = sorted(folder.rglob("*.obj"))
+    if not files:
+        raise RuntimeError("No original I3C collision meshes available to import")
+    if not hasattr(ue, "StaticMesh") or not hasattr(ue, "CollisionTraceFlag"):
+        raise RuntimeError("Unreal StaticMesh collision editing is unavailable")
+    manager = ue.AssetToolsHelpers.get_asset_tools()
+    result = []
+    for source in files:
+        relative = source.relative_to(folder)
+        parts = ["".join(c if c.isascii() and (c.isalnum() or c == "_") else "_"
+                         for c in part) for part in relative.parent.parts if part not in (".", "")]
+        dest = "/Game/ApeEscape3/Original/Collision" + ("/" + "/".join(parts) if parts else "")
+        task = ue.AssetImportTask()
+        task.filename = str(source)
+        task.destination_path = dest
+        task.automated = True
+        task.async_ = False
+        task.replace_existing = True
+        task.save = True
+        manager.import_asset_tasks([task])
+        original_meshes = [obj for obj in task.get_objects() if isinstance(obj, ue.StaticMesh)]
+        if not original_meshes:
+            raise RuntimeError(f"No Unreal StaticMesh was created from original I3C mesh {relative}")
+        for obj in original_meshes:
+            body = obj.get_editor_property("body_setup")
+            if body is None:
+                raise RuntimeError(f"Original collision StaticMesh has no BodySetup: {relative}")
+            body.set_editor_property("collision_trace_flag",
+                                     ue.CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE)
+            if not ue.EditorAssetLibrary.save_loaded_asset(obj):
+                raise RuntimeError(f"Could not save original I3C collision asset: {relative}")
+            result.append(obj.get_path_name())
+    return result
+
+
 def import_glbs_in_editor(folder: Path, ue: Any,
                           destination: str = "/Game/ApeEscape3/Original/Models") -> list[str]:
     return import_assets_in_editor(folder, ue, ".glb", destination)
@@ -172,6 +212,11 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         streams = convert_stream_audio(extracted / "vfi", converted / "audio", ae3_cli)
         outcome["streams_decoded"] = streams["source_exst"]
+        outcome["phase"] = "decode_original_i3c"
+        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        from getchu3_collision import convert_collision
+        collision = convert_collision(extracted / "vfi", converted / "collision", ae3_cli)
+        outcome["original_i3c_files"] = collision["original_i3c_files"]
         outcome["phase"] = "unreal_editor_asset_import"
         report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         base = "/Game/ApeEscape3/Original"
@@ -184,6 +229,8 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         outcome["unreal_model_assets"] = assets
         outcome["unreal_texture_assets"] = pngs
         outcome["unreal_stream_audio_assets"] = wavs
+        outcome["unreal_collision_mesh_assets"] = import_collision_in_editor(converted / "collision", ue)
+        outcome["source_collision_mesh_assets_imported"] = True
         outcome["original_collision_imported"] = False
         outcome["original_lua_bound_to_runtime"] = False
         outcome["phase"] = "asset_import_finished"
