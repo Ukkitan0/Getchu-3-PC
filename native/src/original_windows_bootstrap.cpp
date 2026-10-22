@@ -1,4 +1,7 @@
 #include "ae3/original_windows_bootstrap.hpp"
+#include <bit>
+#include <cmath>
+#include <limits>
 #include <stdexcept>
 #include <utility>
 
@@ -58,6 +61,38 @@ void originalAllocatorCtor_41a390(OriginalAllocatorGlobals_41a390& globals) noex
     // A first transition to 1 calls genuine 0x4173B0 which is JR RA/NOP,
     // so the complete observable native result is exactly increment-by-one.
     for(auto& value:globals.counters)++value;
+}
+bool originalNumericCtor_417c58(OriginalNumericGlobals_417c58& out) noexcept {
+    // Source 0x417C58 tail-jumps to 0x417B50(1,0xFFFF).
+    // 0x417B84 and 0x417BA8 invoke original no-op 0x4173B0.
+    // 0x417BC8/0x417BD4: 0x1009 << 50 = IEEE double 10, then 16.
+    // 0x417C10/0x417C1C: the same 10 and 0x201 << 53 = double 8.
+    // Original 0x41D6B8 -> 0x41EFD0 performs double square root;
+    // original 0x4240D8 performs the subsequent float64 multiplication.
+    // This is a fixed-input native translation of the two real global
+    // initializers only, NOT an implementation of generic 41EFD0/4240D8.
+    if(!std::numeric_limits<double>::is_iec559 || sizeof(double)!=8)
+        return false;
+    const double a=std::bit_cast<double>(UINT64_C(0x4024000000000000));
+    const double b=std::bit_cast<double>(UINT64_C(0x4030000000000000));
+    const double d=std::bit_cast<double>(UINT64_C(0x4020000000000000));
+    const double sqrtA=std::sqrt(a);
+    const double sqrtB=std::sqrt(b);
+    const double first=sqrtA*sqrtB;
+    const double sqrtD=std::sqrt(d);
+    const double second=sqrtA*sqrtD;
+    const std::uint64_t firstBits=std::bit_cast<std::uint64_t>(first);
+    const std::uint64_t secondBits=std::bit_cast<std::uint64_t>(second);
+    // Fail closed if the host floating implementation doesn't produce the
+    // required correctly-rounded IEEE results for the source constants.
+    // The real retail numeric caller never accepts approximate substitutes.
+    if(firstBits!=UINT64_C(0x40294c583ada5b53) ||
+       secondBits!=UINT64_C(0x4021e3779b97f4a8))
+        return false;
+    out.first_69e678=firstBits;
+    out.second_69e680=secondBits;
+    out.initialized=true;
+    return true;
 }
 bool OriginalNativeTerminationRegistry::register_428b80(Callback callback){
     if(!callback)return false;
