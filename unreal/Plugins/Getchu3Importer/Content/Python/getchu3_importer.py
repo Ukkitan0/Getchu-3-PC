@@ -148,7 +148,7 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         outcome["models_detected"] = models["original_i3d_bin_files"]
         assets = import_glbs_in_editor(converted, ue)
         outcome["unreal_asset_paths"] = assets
-        outcome["status"] = "original_assets_imported_gameplay_not_implemented"
+        outcome["status"] = "converted_models_imported_gameplay_not_implemented"
         outcome["remaining"] = [
             "original actor and Lua callback runtime", "player and monkey simulation",
             "camera and animation runtime", "gadgets and capture gameplay",
