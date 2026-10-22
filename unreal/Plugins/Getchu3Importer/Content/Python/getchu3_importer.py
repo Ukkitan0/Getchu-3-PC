@@ -174,25 +174,29 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
     """
     if ue is None:
         import unreal as ue  # Only available in the actual Unreal Editor.
-    source = verify_disc(Path(iso_file))
-    repo = Path(repo) if repo else locate_repo()
     saved = Path(private_root) if private_root else Path(ue.Paths.project_saved_dir()) / "Getchu3Private"
     saved = saved.expanduser().resolve()
-    if saved == source.path.parent or saved in source.path.parents:
-        raise ValueError("Private destination cannot be inside the source ISO path")
+    iso_path = Path(iso_file).expanduser().resolve()
+    if saved == iso_path or saved == iso_path.parent or saved in iso_path.parents:
+        raise ValueError("Private destination cannot overwrite or contain the source disc")
     saved.mkdir(parents=True, exist_ok=True)
-    # Unique per attempt; a failed extraction never poisons a later retry.
-    folder = Path(tempfile.mkdtemp(prefix=source.digest[:16] + "-", dir=saved))
     report_file = saved / "Getchu3ImportStatus.json"
-    outcome: dict[str, Any] = {"schema": "ae3-unreal-owner-import/v1", "disc_sha256": source.digest,
-                               "status": "running", "phase": "extract_source",
-                               "gameplay_ready": False, "workspace": str(folder),
+    outcome: dict[str, Any] = {"schema": "ae3-unreal-owner-import/v1", "disc_sha256": None,
+                               "status": "running", "phase": "verify_original_disc",
+                               "gameplay_ready": False,
                                "animation_parity_verified": False,
                                "original_collision_imported": False,
                                "original_lua_bound_to_runtime": False,
                                "sound_engine_verified": False}
-    report_file.write_text(json.dumps(outcome, indent=2), encoding="utf-8")
+    report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
     try:
+        source = verify_disc(iso_path)
+        repo = Path(repo) if repo else locate_repo()
+        # Unique owner-private staging on each verified attempt.
+        folder = Path(tempfile.mkdtemp(prefix=source.digest[:16] + "-", dir=saved))
+        outcome.update({"disc_sha256": source.digest, "workspace": str(folder),
+                        "phase": "extract_source"})
+        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         extracted = folder / "original"
         recovery = recover_original(source.path, extracted, repo)
         outcome["original_files"] = recovery["original_vfi_files_extracted"]
