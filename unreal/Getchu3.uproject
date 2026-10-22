@@ -15,6 +15,10 @@
     {
       "Name": "Interchange",
       "Enabled": true
+    },
+    {
+      "Name": "EditorScriptingUtilities",
+      "Enabled": true
     }
   ]
 }
