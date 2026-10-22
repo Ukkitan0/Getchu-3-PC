@@ -1,5 +1,6 @@
 #include "ae3/original_resource_stage_scope.hpp"
 #include "ae3/original_resource_stage_registration.hpp"
+#include "ae3/original_resource_stage_directory_registration.hpp"
 #include <array>
 #include <algorithm>
 #include <cstddef>
@@ -131,6 +132,24 @@ static void exercise(const fs::path& source) {
  try{OriginalStageScopedRegistration_25182c bad(stage,missingSource,"*");}
  catch(const std::out_of_range&){registrationRejected=true;}
  check(registrationRejected,"Stage registration invented absent VFI resource");
+ // The original directory map is iterated through 0x49C150 after
+ // ordered byte-key lookup 0x509C10/0x627E60; this differs from source
+ // VFI enumeration order (area, navigation, exdb) in this fixture.
+ OriginalStageDirectoryRegistration_251958 directoryRegistered(stage,"","*");
+ const auto sorted=directoryRegistered.actualDirectorySourceOrder();
+ check(sorted.size()==3 &&
+       sorted[0].originalLeafFilename=="area.luc" &&
+       sorted[1].originalLeafFilename=="exdb.pck" &&
+       sorted[2].originalLeafFilename=="navigation.pck.sz",
+       "Original 0x49C150 ordered source directory enumeration");
+ check(directoryRegistered.registeredRecords().size()==3 &&
+       directoryRegistered.originalFind_24d4f0("navigation")->borrowedOriginalPayload[0]==std::byte{'P'},
+       "Original directory order->stage VFI->SZ->registration->name lookup");
+ OriginalStageDirectoryRegistration_251958 filteredDir(stage,"","pck");
+ check(filteredDir.registeredRecords().size()==1 &&
+       filteredDir.originalFind_24d4f0("exdb")!=nullptr,
+       "Original directory type-selection uses source suffix from 0x24D858");
+
 
  bool rejected=false;
  try{stage.file("not_a_real_original_asset.pck");}catch(const std::out_of_range&){rejected=true;}
