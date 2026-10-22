@@ -198,6 +198,40 @@ FLAG_VTABLES = {
 }
 
 
+# Published retail SetupBindLauncher pseudocode (USA executable VA 0x21A93C).
+# Symbolic aliases have no numeric virtual-table address in that excerpt:
+# keep the original symbol and never fill in a fabricated pointer.
+# Source: https://www.cnblogs.com/algonote/p/15678057.html
+PUBLISHED_LAUNCHER_VTABLES = {
+    'BindTester': (0x6ADF78, None),
+    'createFeatureLauncher': (None, 's_SetSelectFortune'),
+    'createWarpGateLauncher': (None, 's_SetSelectStage'),
+    'createTutorialExit': (None, 's_SetSelectTutorial'),
+    'createMGSGenerator': (0x6ADF00, None),
+    'LocaleInfo_getID': (0x6ADF18, None),
+}
+
+
+def launcher_vtable_candidates(blob: bytes,
+                               segments: list[tuple[int, int, int]]) -> list[dict]:
+    result = []
+    for name, (va, symbol) in sorted(PUBLISHED_LAUNCHER_VTABLES.items()):
+        raw = read_va(blob, segments, va, 24) if va is not None else None
+        slots = struct.unpack('<6I', raw) if raw is not None else ()
+        result.append({
+            'name': name,
+            'vtable_address': f'0x{va:08X}' if va is not None else None,
+            'published_symbol': symbol,
+            'available': raw is not None,
+            'slots': [{'index': i, 'pointer': f'0x{pointer:08X}',
+                       'points_into_original_text':
+                           pointer % 4 == 0 and
+                           TEXT_START <= pointer < TEXT_START + TEXT_BYTES}
+                      for i, pointer in enumerate(slots)],
+        })
+    return result
+
+
 def flag_vtable_candidates(blob: bytes, segments: list[tuple[int, int, int]]) -> list[dict]:
     result = []
     for name, address in sorted(FLAG_VTABLES.items()):
@@ -226,12 +260,14 @@ def inspect(blob: bytes) -> dict:
     segments = segments_from_elf(blob)
     registrations = scan_calls(blob, segments)
     flag_tables = flag_vtable_candidates(blob, segments)
+    launcher_tables = launcher_vtable_candidates(blob, segments)
     return {
         'original_verified_elf_sha256': sha,
         'source': 'Static SCUS_975.01 MIPS instruction data; no guest execution',
         'api_names_found': len(registrations),
         'registrations': registrations,
         'published_flag_vtable_slot_candidates': flag_tables,
+        'published_launcher_vtable_slot_candidates': launcher_tables,
         'limits': 'Only a1 literal construction within 64 bytes of calls to 0x255BD8; '
                   'indirect calls and other registration helpers are intentionally omitted. '
                   'Published flag vtable addresses are treated as six raw 32-bit pointer '
