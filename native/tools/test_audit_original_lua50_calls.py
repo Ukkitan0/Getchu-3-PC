@@ -31,8 +31,8 @@ def function(reads=(), writes=(), nested=()):
     result += u32(len(nested))
     for child in nested:
         result += child
-    ins = [((names.index(name) << 14) | 5) for name in reads]
-    ins += [((names.index(name) << 14) | 7) for name in writes]
+    ins = [((names.index(name) << 6) | 5) for name in reads]
+    ins += [((names.index(name) << 6) | 7) for name in writes]
     result += u32(len(ins))
     for op in ins:
         result += u32(op)
@@ -75,7 +75,7 @@ class RetailLua50AuditTests(unittest.TestCase):
         with self.assertRaises(audit.InvalidChunk):
             audit.inspect(b'\x1bLua\x51' + chunk(body)[5:])
         invalid = bytearray(chunk(body))
-        invalid[-4:] = u32((2 << 14) | 5)
+        invalid[-4:] = u32((2 << 6) | 5)
         with self.assertRaises(audit.InvalidChunk):
             audit.inspect(bytes(invalid))
 
