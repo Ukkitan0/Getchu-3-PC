@@ -7,7 +7,7 @@
 
 namespace ae3::runtime {
 enum class BootCheckpoint {
-    windows_window, graphics_device, original_disc, original_stage_lua,
+    windows_window, graphics_device, original_disc, original_static_constructors, original_stage_lua,
     original_stage_geometry, original_collision, original_lua_setup,
     original_actors, original_engine_loop
 };
@@ -46,6 +46,7 @@ public:
         case BootCheckpoint::windows_window: return "WINDOWS_WINDOW";
         case BootCheckpoint::graphics_device: return "D3D11_DEVICE";
         case BootCheckpoint::original_disc: return "RETAIL_DISC";
+        case BootCheckpoint::original_static_constructors: return "RETAIL_STATIC_CONSTRUCTORS";
         case BootCheckpoint::original_stage_lua: return "RETAIL_STAGE_LUA";
         case BootCheckpoint::original_stage_geometry: return "STAGE_GEOMETRY";
         case BootCheckpoint::original_collision: return "STAGE_COLLISION";
