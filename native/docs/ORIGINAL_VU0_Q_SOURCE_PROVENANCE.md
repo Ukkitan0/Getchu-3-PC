@@ -16,8 +16,8 @@ This is separate from both the EE game RNG and VU0
 `R` register side effects previously recovered.
 
 The source-auditor `native/tools/audit_original_vu0_Q_state.py`
-scans all original 1,618,292 .text machine words:
-- 786 in-text VU0 `VMULq` sites.
+scans all original 1,351,830 .text machine words:
+- 781 in-text VU0 `VMULq` sites.
 - Exactly two direct `CTC2 Q` writers at
   `0x41DB9C` and `0x41DBB0`, in a different subsystem.
   Their surrounding immediate loads correspond to

@@ -21,7 +21,7 @@ def scan(path):
   if w>>26!=18 or ((w>>21)&31)<16 or (w&63)!=0x1c:
    raise ValueError('Source VMULq not where claimed '+hex(addr))
  writes=[];reads=[];vdiv=[];vsqrt=[];vmulq=[]
- lo=0x100000;size=0x62c5d0
+ lo=0x100000;size=0x528258
  for a in range(lo,lo+size,4):
   w=word(a)
   if w>>26!=18:continue
@@ -36,7 +36,7 @@ def scan(path):
    if sp==0x35:vsqrt.append(a)
  if writes!=[0x41db9c,0x41dbb0] or reads!=[0x41dbbc]:
   raise ValueError('Original COP2 Q writer/reader inventory changed')
- if vdiv!=[0x3ba4f0] or vsqrt!=[0x3ba3dc] or len(vmulq)!=786:
+ if vdiv!=[0x3ba4f0] or vsqrt!=[0x3ba3dc] or len(vmulq)!=781:
   raise ValueError('Original VU Q arithmetic inventory changed')
  if any(0x57ca68<=a<0x57cd1c for a in writes+vdiv+vsqrt):
   raise ValueError('Fallback unexpectedly initializes Q itself')
