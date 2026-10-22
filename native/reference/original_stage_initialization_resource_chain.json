@@ -37,10 +37,25 @@
       "lo": "0x24d858",
       "hi": "0x24d9ec",
       "sha256": "154dd26d320162b79f7aa75512afa0a6938b580754e5c473847cb2c18a6b3511"
+    },
+    {
+      "lo": "0x509c10",
+      "hi": "0x509cc8",
+      "sha256": "c463623742c0eb132a357a7c1cf962c2aeb407512ea79e3a0613ea3e5b24ec4d"
+    },
+    {
+      "lo": "0x49c150",
+      "hi": "0x49c1e4",
+      "sha256": "62c9bb3452dbba43fe960a06cf7db796556c3074cfaf097326bc7d948bd051f6"
+    },
+    {
+      "lo": "0x627e60",
+      "hi": "0x627eb0",
+      "sha256": "663aa53699355ffdb17cd9f61fde1b9882cad56c43a6d06b3ec3ad5bf6663e70"
     }
   ],
-  "verified_source_instruction_words": 543,
-  "verified_direct_jump_edges": 20,
+  "verified_source_instruction_words": 646,
+  "verified_direct_jump_edges": 24,
   "original_key_lookup_wrapper_va": "0x24dc84",
   "original_key_lookup_core_va": "0x24d4f0",
   "original_lookup_algorithm": "source vector [begin,end) of 0x10-byte entries; full string equality on entry+0, return entry+8 pointer; first source match wins, no match yields null",
@@ -111,7 +126,7 @@
   },
   "source_provenance": "private owner-supplied USA ELF and extracted woods_c PCK/resources; SHA and structure rechecked 2026-10-21/22; commercial bytes not committed",
   "limitations": [
-    "Source first-dot filename name/type mapping recovered in 0x24D858; stage archive enumeration order and wrapper directory-object semantics unproven",
+    "Stage directory comparator and in-order tree traversal recovered; actual DirInfo object acquisition, complete file lifecycle and stage-directory selection are not fully translated",
     "Stage source-name/type record construction and filtered append recovered; upstream directory enumeration and allocation/transition lifetime not fully translated",
     "original consumer 0x272294/0x30c798/0x25bfe0 internals not yet fully translated",
     "runtime stage lifetimes/original VA ownership unverified",
@@ -156,6 +171,22 @@
         "type_suffix": "pck"
       },
       "proof_status": "complete 101-instruction original constructor window and 231-instruction original registration-prefix window SHA verified; source directory traversal not yet fully translated"
+    },
+    "directory_tree": {
+      "original_directory_lookup_va": "0x509c10",
+      "caller_va": "0x251928",
+      "original_directory_iterator_next_va": "0x49c150",
+      "caller_va_next": "0x251a6c",
+      "original_bytewise_source_name_comparator_va": "0x627e60",
+      "comparison_calls": [
+        "0x509c50",
+        "0x509c8c"
+      ],
+      "source_key_comparison": "unsigned bytewise first difference; length comparison for equal prefix",
+      "source_nodes": "original red-black tree; parent at +0x04, left at +0x08, right at +0x0c for iterator",
+      "host_native_view": "original_resource_directory_order.hpp",
+      "connected_stage_adapter": "original_resource_stage_directory_registration.hpp",
+      "qualification": "Observed comparator and in-order directory iteration translated to a host VFI-backed view; original DirInfo allocation/which directory is selected remains unresolved"
     }
   }
 }
