@@ -386,10 +386,13 @@ int LuaStage::getStageInt(lua_State* L){
     if(!stage->nativeBindings_.readStageInteger)
         return luaL_error(L,"original stage_var_get_int has no recovered native provider");
     try{
-        const char* key=luaL_checkstring(L,1);
-        const auto value=stage->nativeBindings_.readStageInteger(key);
+        std::vector<ScriptValue> arguments;
+        const int count=lua_gettop(L);
+        if(count>64)return luaL_error(L,"original stage_var_get_int argument budget exceeded");
+        for(int i=1;i<=count;++i)arguments.push_back(takeValue(L,i));
+        const auto value=stage->nativeBindings_.readStageInteger(arguments);
         if(!value)
-            return luaL_error(L,"original stage_var_get_int value unavailable: %s",key);
+            return luaL_error(L,"original stage_var_get_int value unavailable");
         lua_pushnumber(L,static_cast<double>(*value));
         return 1;
     }catch(const std::exception& error){
