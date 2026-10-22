@@ -88,3 +88,45 @@ Original stage controller events should be enqueued to `OriginalSoundEventRuntim
 4. After original gameplay callback chain is recovered, integrate native button samples with authentic player action transitions; conduct full Windows device tests (multiple controllers, disconnect/reconnect, menu focus, native frame timing) and real-game audible verification.
 
 **Completion status:** source-backed Lua command boundaries and host transport exist, private ELF audit and isolated C++ tests pass, **not integrated/playable**. No PS2 emulation, fake gameplay/sound, copyrighted game bytes, cross-owner edits or manually dispatched workflows.
+
+
+---
+
+## Pass 2 — original retail pad reader and analog control (2026-10-21)
+
+**Commit:** 9e40e4a67575018e610456f5f8f2d9921393fd0c, branch parallel/input-audio only.
+
+### Original ELF source recovery
+
+Source: private original USA SCUS_975.01, SHA-256 5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63. Verified directly using original executable. No source binaries were committed.
+
+- **0x26EAA0..0x26EAE8:** game-owned input manager initialization. Calls pad library setup 0x4054F8, allocates a 0x50-byte manager and initializes via 0x517C1C. Native adapter does NOT emulate this pad library.
+- **0x5179B0..0x517A90:** reads 16 original pad channels through function 0x4059E8. Immutable retail channel table at 0x6ED0C8 is [0,3,4,6,7,5,12,14,15,13,10,8,1,11,9,2]. Fetches four analog bytes with channel codes [0x12,0x13,0x10,0x11], ordered RX, RY, LX, LY. These are source channel IDs, NOT presumed host XInput bit positions.
+- **0x51785C..0x5179B0:** source device read and state transition: newly pressed = current & ~previous. On unavailable controller, current digital mask resets to 0 and all four stick bytes to 0x80. Released-mask value in the native adapter is host convenience, not an established original field.
+- **0x517788..0x51785C:** source analog axis normalization: (byte-128) * float32(0x3C088888) (~1/120). Below squared magnitude 0.140625 (radial deadzone 0.375), outputs zero. Otherwise r=sqrt(x*x+y*y), multiply by (r-0.375)/(r*0.625), then clamp each component to [-1,+1]. Original constants at 0x6ED0AC/0x6ED0B0/0x6ED0B4/0x6ED0B8/0x6ED0BC/0x6ED0C0. Recovered original MIPS floating operations and branch, not guessed host stick settings.
+- **0x26EB34..0x26ED54:** game tick polls each of two controller ports with 0x51785C, computes axes with 0x517788, exports two 0x18-byte game input records at original memory 0x6496F8 (port 0), 0x649710 (port 1). Record slots: +0 u32 held bits, +4 u32 new-press bits, +8/+12 float right X/Y, +16/+20 float left X/Y.
+
+### Files and actual native APIs committed
+
+- native/include/ae3/original_retail_pad.hpp
+- native/src/original_retail_pad.cpp
+- native/tests/original_retail_pad_test.cpp
+- native/tools/verify_original_retail_pad.py
+
+Integration: instantiate ae3::OriginalRetailPadReader and call reader.sample(OriginalRetailPadChannelSource&, deviceConnected) once per native game input tick. Pass the resulting sample to ae3::originalRetailGamePadState_26eb34(sample) to obtain an original-layout **0x18-byte** game controller record. Implement OriginalRetailPadChannelSource::queryOriginalPadChannel_4059e8(channel) with a host device mapping matching the original *query channel*, rather than treating the original query code as an arbitrary XInput mask or inventing gadget controls. Hand the record into the authentic original game input consumer when recovered; do not route it through the temporary native walking prototype. Other teams own the app/gameplay integration.
+
+**Integrator-only CMake recipe:** Append src/original_retail_pad.cpp to Getchu3Assets. Define a Getchu3OriginalRetailPadTests executable with tests/original_retail_pad_test.cpp, link Getchu3Assets, add CTest OriginalUSAControllerReaderAndAnalog. This subsystem did not edit CMake or app_win32.cpp.
+
+### Actual tests
+
+Locally compiled the **exact SHA-matching committed source/header/test blobs** with g++ 14.2.0 on Debian Linux:
+
+- Optimized: g++ -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -I native/include native/src/original_retail_pad.cpp native/tests/original_retail_pad_test.cpp -o /tmp/retail_pad && /tmp/retail_pad — PASSED.
+- Sanitizers: g++ -std=c++20 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -I native/include native/src/original_retail_pad.cpp native/tests/original_retail_pad_test.cpp -o /tmp/retail_pad_asan && /tmp/retail_pad_asan — PASSED.
+- Private executable: python native/tools/verify_original_retail_pad.py /private/SCUS_975.01 — ORIGINAL_RETAIL_PAD_ELF_AUDIT_PASSED. Checks 4 exact original function-body hashes, 16 source channel entries, 6 float constants, 9 JAL callsites, and controller edge/clear instruction words.
+
+Tests cover neutral and dead-zone values, nontrivial radial scaling, component clamping, all 20 query-channel calls in original order, held/pressed/released transitions, disconnect/reconnect, and original-size game state records. All test invocations passed.
+
+### Remaining blockers (do not claim working Windows input yet)
+
+Still must resolve original per-game-state button interpretation and gadget action call tree, controller channel mapping from physical Windows input, hardware controller device connection semantics, direct original game-state consumer, genuine SoundSys mixing/streaming/resource lookup and original music system. The original Win32 app was not linked or booted and live input/audio were not tested. No GitHub Actions triggered and no game data published.
