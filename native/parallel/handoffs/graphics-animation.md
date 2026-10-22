@@ -3,7 +3,7 @@
 **Specialist branch:** `parallel/graphics-animation`
 **Starting commit:** `d483436416c14927851853f01c6ad66fe4cfbbf2`
 **Integrator target:** `native/original-elf-engine-recovery-20261020`
-**Status:** Native scene-instancing and original early visibility gate implemented and unit tested; original USA executable evidence verified. Full retail stage/actor rendering is **NOT integrated or demonstrated**.
+**Status:** Native render traversal, original context register stores, actor resource/clock/effect wrapper recovered and tested; a previous cull polarity error is corrected. Original stage/character drawing is **NOT yet integrated or demonstrated**.
 
 ## Delivered graphics commits and source
 
@@ -28,7 +28,7 @@ Owner-private original USA `SCUS_975.01` was recovered from previously uploaded 
 - Matrix array labels: local `0x6ECE40` referenced `0x268F38/0x269164`; model `0x6ECE58` referenced `0x268F58/0x269184`.
 - `calc render` label `0x6EDC40` references `0x2807B8/0x280A48`; `calc render sub` `0x6EDC60` references `0x280D90/0x281070`.
 - `camera data` `0x6C3FD0` references `0x114EAC/0x114F54`.
-- **Recovered first render gate `0x280838–0x280884`**: 64-bit `object+0x20 & scene+0x58` group overlap; enabled source object flags at byte `+0x30` and `+0x35`; if byte `+0x32` is nonzero, call spatial rejection `0x26C9B8(context+0x2C, object+0x50, object+0xC0)` and skip when nonzero. Branch target skip `0x280958`; next source call `0x26B550`. This is an **early eligibility gate only**, not the complete original visibility/culling, render ordering or scene renderer.
+- **Recovered first render gate `0x280838–0x280884`**: 64-bit `object+0x20 & scene+0x58` group overlap; enabled source object flags at byte `+0x30` and `+0x35`; if byte `+0x32` is nonzero, call spatial rejection `0x26C9B8(context+0x2C, object+0x50, object+0xC0)` and skip when **ZERO** (actual original `beqzl $v0` at `0x28087C`; previous opposite statement corrected in pass 3). Branch target skip `0x280958`; next source call `0x26B550`. This is an **early eligibility gate only**, not the complete original visibility/culling, render ordering or scene renderer.
 - Exact `0x280838–0x280884` instruction-region SHA-256 `a2ed3f2062ea0d0f7de6d252dd468d1f8345833d57a950cf1f5eb67b64a9fa00` (verified against private retail input). All details and limitations are in the dedicated source audit document.
 
 ## Actual tests completed
@@ -210,3 +210,97 @@ target_link_libraries(Getchu3OriginalRenderPipelineTests PRIVATE Getchu3Assets)
 add_test(NAME OriginalRenderOwnerThroughNativeScenePipeline COMMAND Getchu3OriginalRenderPipelineTests)
 ```
 
+
+---
+
+## Graphics specialist continuation — Original context, actor state and effect pipeline (pass 3)
+
+**Latest source:** owner-private retail USA `SCUS_975.01` verified SHA-256 `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`. Primary source cross-check used the original executable's MIPS disassembly (`llvm-objdump`) and a direct 10-region SHA-256 audit. No copyrighted data added to Git.
+
+### Crucial functional correction from actual retail instructions
+
+At `0x28087C` original MIPS **`beqzl $v0,0x280958`** skips the first-pass actor when `0x26C9B8` returns **ZERO**. At `0x280E6C`, the secondary pass also **skips on ZERO**. The older graphics branch mistakenly treated a nonzero return as rejection; that logic could hide genuinely visible actors.
+
+**Fixed at the public API:** `rejectByOriginalBounds` renamed to `originalBoundsVisible` in `original_render_visibility.hpp/.cpp`, `original_render_pass.hpp/.cpp`, and their tests. Both passes now advance on a nonzero source result and skip on zero; the first invokes the callback only when source actor byte `+0x32` is set, whereas the second invokes it for every eligible actor. Source VU0 callback is mandatory when needed. Tested under GCC/Clang.
+
+### Exact original graphics state and actor lifecycle delivered
+
+- `native/include/ae3/original_render_context.hpp`
+- `native/src/original_render_context.cpp`
+- `native/tests/original_render_context_test.cpp`
+
+  Original renderer context setters `0x3B76D0` / `0x3B76E8` / `0x3B76F8` / `0x3B7708` store native resource handles in source offsets `+0x828`, `+0x82C`, `+0x830`, `+0x834`; the first additionally copies source `+0x0C` into context `+0x818`. Original getters `0x3B7718–0x3B773C` read the corresponding slots. `applyOriginalRetailRenderTrace` now executes those recovered state changes in original event order, with a resource resolver and **mandatory actual drawing callbacks**. This is not a PS2 graphics emulator nor a finished GPU draw.
+  
+- `native/include/ae3/original_render_resource.hpp`
+- `native/src/original_render_resource.cpp`
+- `native/tests/original_render_resource_test.cpp`
+
+  Actor render resource `0x26A854` allocates only when original actor `+0x110` is null. `0x26A510` initializes inner resource bytes `+0x00/+0x08/+0x10` and pointer fields `+0x40–0x50`; uninitialized retail float/index fields `+0x04/+0x0C/+0x14` stay marked unset in host state, not invented. Original wrappers `0x26AFAC`/`0x26B3D0`/`0x26B550` return zero without resource handle; original setters `0x26A8DC`/`0x26A968` and scalar activation `0x26A8AC`/`0x26A938` are recovered. Existing selector set/clear +0x10/+0x14 semantics are reused.
+
+- `native/include/ae3/original_render_actor_entry.hpp`
+- `native/src/original_render_actor_entry.cpp`
+- `native/tests/original_render_actor_entry_test.cpp`
+
+  Recovered entry `0x26831C–0x268424`: always call `0x23C9CC` and `0x23CAA4` with original owner `+0xFC`; call `0x23CAE8` if the second result is nonnegative; when actor U32 `+0xF8==1`, update float actor `+0xF0` by the separate multiply/add of runtime float `[0x635488]` and actor float `+0xF4`. Early return when actor `+0x30==0` or original global byte `[0x6496F0]!=0`. Callbacks for the three unknown `0x23Cxxx` routines are mandatory. Source global delta is runtime data, **not** the zero stored in the file.
+
+- `native/include/ae3/original_render_effect.hpp`
+- `native/src/original_render_effect.cpp`
+- `native/tests/original_render_effect_test.cpp`
+
+  Recovered the `0x2804F4–0x280540` preparation chain: ensure actor render resource via `0x26A854`, source wrapper `0x26A4AC` delegates into original `0x269F7C` descriptor converter, `0x3AE900` produces packet handle and `0x3B76F8` writes it to resource context `+0x830`. Since the original converter and packet body are not yet decompiled, their callbacks must be supplied or the call throws. This **does not implement a replacement effect**.
+
+Detailed original instruction provenance: `native/docs/ORIGINAL_RETAIL_RENDER_CONTEXT_AND_ACTOR_ENTRY.md`.
+
+### Source fingerprints and local tests
+
+- `native/tools/audit_original_graphics.py` now adds **10 original executable SHA-256 instruction span checks** for the context stores, actor resource initialization, actor render clock, draw setup and packet/effect wrapper. Direct private-ELF SHA-256 checks in this session: **10/10 match**; additional earlier scan spans were not changed. Full executable hash matches project reference.
+- Focused C++20 test suites:
+  `original_render_visibility_test.cpp`,
+  `original_render_selector_test.cpp`,
+  `original_render_owner_schedule_test.cpp`,
+  `original_render_instances_test.cpp`,
+  `original_render_pass_test.cpp`,
+  `original_render_pipeline_test.cpp`,
+  `original_render_context_test.cpp`,
+  `original_render_resource_test.cpp`,
+  `original_render_actor_entry_test.cpp`,
+  `original_render_effect_test.cpp`.
+- Local **GCC 14.2.0**: all **10/10 PASS** with `-std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror`.
+- Local **Clang 17.0.0**: all **10/10 PASS** with `-std=c++20 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Werror`; no sanitizer errors. One global batch timed out during its final build, so that test was recompiled and rerun separately and passed. **20/20 focused executions passed**.
+- No bundled private original stage art was available for 3D scene visual verification; no full project CMake/CTest, Windows application build, actual D3D11 draw, game boot or playable milestone was claimed. The committed complete audit Python script itself was not run from a freshly checked-out Git clone (only equivalent raw-byte SHA checks on its source ranges were run).
+
+### Windows Runtime integration request (Windows owner only)
+
+Do **not** edit `app_win32.cpp` / `native/CMakeLists.txt` on this specialist branch. In shared CMake append:
+
+```cmake
+target_sources(Getchu3Assets PRIVATE
+  src/original_render_context.cpp
+  src/original_render_resource.cpp
+  src/original_render_actor_entry.cpp
+  src/original_render_effect.cpp)
+
+add_executable(Getchu3OriginalRenderContextTests tests/original_render_context_test.cpp)
+target_link_libraries(Getchu3OriginalRenderContextTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailRenderContextRegisters COMMAND Getchu3OriginalRenderContextTests)
+
+add_executable(Getchu3OriginalRenderResourceTests tests/original_render_resource_test.cpp)
+target_link_libraries(Getchu3OriginalRenderResourceTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailActorRenderResources COMMAND Getchu3OriginalRenderResourceTests)
+
+add_executable(Getchu3OriginalRenderActorEntryTests tests/original_render_actor_entry_test.cpp)
+target_link_libraries(Getchu3OriginalRenderActorEntryTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailActorRenderEntryAndClock COMMAND Getchu3OriginalRenderActorEntryTests)
+
+add_executable(Getchu3OriginalRenderEffectTests tests/original_render_effect_test.cpp)
+target_link_libraries(Getchu3OriginalRenderEffectTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailRenderEffectPreparation COMMAND Getchu3OriginalRenderEffectTests)
+```
+
+Use previously handed-off graphics modules/tests as well. `OriginalRetailDrawProviders::originalBoundsVisible(id)` **must return true only when the original 0x26C9B8 returns nonzero**. This API rename is required for any new integration wiring. Draw traces now have a native renderer-resource state executor, but real draw callbacks for `0x26831C` downstream geometry, `0x2803B4` VU0 transform/render-resource packet, and `0x2804F4` genuine descriptor/packet conversion remain necessary. Connect source-owned actor instance IDs/transform/animation state from Gameplay, stage data from Assets and original VU0 math from Physics.
+
+### Blockers and next source-backed subsystem
+
+**Next graphics-owned batch:** recover original `0x26841C` actor geometry draw path and `0x2803B4` transformation state production, then `0x269F7C` material descriptor conversion and `0x3AE900` packet values to native renderer-facing data. Ask VU0/Physics for real `0x26C4B0` visibility math; never replace it with a generic frustum. Integrate real I3D mesh data, I3M animation, material ordering and original camera before visual-validation claims.
+
+No original copyrighted models/ELF/PCK/ISO bytes committed, no emulation, no changed shared build/launch/gameplay files, no GitHub Actions dispatched.
