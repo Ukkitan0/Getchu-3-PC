@@ -7,9 +7,10 @@ OriginalActorNavigationPipeline_57c7cc::OriginalActorNavigationPipeline_57c7cc(
     std::span<const OriginalSpatialRecord70> records,
     std::span<const OriginalSpatialSourcePolygon> polygons,
     std::array<std::byte,16> controllerVector20,bool variant30,
-    OriginalActorUntranslatedMath_57c7cc& math)
+    OriginalActorUntranslatedMath_57c7cc& math,
+    OriginalGameRandom_36f3c0* originalSharedRandom)
     :records_(records),polygons_(polygons),controllerVector20_(controllerVector20),
-     variant30_(variant30),math_(math) {
+     variant30_(variant30),math_(math),originalSharedRandom_(originalSharedRandom) {
     if(records_.size()!=polygons_.size())
         throw std::invalid_argument("Original stage record/header polygon count mismatch");
     static_assert(sizeof(point_)==16);
@@ -39,6 +40,10 @@ std::uint64_t OriginalActorNavigationPipeline_57c7cc::call_original_57c98c_three
     const OriginalSpatialRecord70& target,
     const std::array<std::array<std::byte,16>,3>& vertices) {
     sourceIndex(target);
+    // Original source 0x57C98C is now fully recovered when the
+    // actor owns its original game-global RNG state.
+    if(originalSharedRandom_)
+        return originalActorRandomTriangleLow64_57c98c(vertices,*originalSharedRandom_);
     return math_.call_original_57c98c_random_vertex_transform(target,vertices);
 }
 const OriginalSpatialRecord70* OriginalActorNavigationPipeline_57c7cc::call_original_4c1b3c_project(

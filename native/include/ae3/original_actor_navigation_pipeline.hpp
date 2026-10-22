@@ -2,6 +2,7 @@
 #include "ae3/original_actor_route_follower.hpp"
 #include "ae3/original_actor_target_dispatch.hpp"
 #include "ae3/original_vu0_geometry.hpp"
+#include "ae3/original_actor_random_triangle.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -37,7 +38,8 @@ public:
         std::span<const OriginalSpatialSourcePolygon> originalStagePolygons,
         std::array<std::byte,16> originalControllerVector20,
         bool originalControllerVariant30,
-        OriginalActorUntranslatedMath_57c7cc& unresolvedMath);
+        OriginalActorUntranslatedMath_57c7cc& unresolvedMath,
+        OriginalGameRandom_36f3c0* originalSharedRandom=nullptr);
 
     OriginalActorRouteFollowResult_57c7cc advance(
         OriginalActorRouteFollowerState_57c7cc& originalActorRoute);
@@ -65,6 +67,7 @@ private:
     OriginalVU0Vec4 point_{};
     bool variant30_=false;
     OriginalActorUntranslatedMath_57c7cc& math_;
+    OriginalGameRandom_36f3c0* originalSharedRandom_=nullptr;
     std::vector<OriginalActorTargetResult_57c8ec> targetResults_;
 };
 } // namespace ae3
