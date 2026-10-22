@@ -42,13 +42,18 @@ public:
         std::uint32_t originalSourceVA=0;
         std::uint32_t originalOwnerVA=0;
         std::size_t decodedRecordCount=0;
+        // Native route-handle invalidation, not a guest 0x28-byte field.
+        std::uint64_t hostRevision=0;
         bool active() const noexcept {return decodedGraph.has_value();}
     };
     // Original stage init 0x21ED30 calls owner constructor 0x21D3D0
     // in ascending slot order, installing all three owners.
     void originalInitialize_21ed30() {
         originalTeardown_21ed94();
-        for(auto& slot:slots_)slot=std::make_unique<Slot>();
+        for(auto& slot:slots_) {
+            slot=std::make_unique<Slot>();
+            slot->hostRevision=nextRevision();
+        }
     }
     bool initialized() const noexcept {
         for(const auto& s:slots_)if(!s)return false;
@@ -58,6 +63,11 @@ public:
         if(slot>=slots_.size()||!slots_[slot])
             throw std::out_of_range("Original nav owner slot not initialized");
         return *slots_[slot];
+    }
+    // A route snapshot is valid only while its specific slot has the
+    // same revision. Revision is not a retail EE object field.
+    std::uint64_t originalSlotRevision(std::size_t slot) const noexcept {
+        return slot<slots_.size() && slots_[slot] ? slots_[slot]->hostRevision : 0;
     }
     // 0x4F0A5C uses the source name to select its 0..2 slot and then
     // passes the source data and that slot's owner into 0x21D46C.
@@ -107,14 +117,26 @@ public:
         s.originalSourceVA=s.originalOwnerVA=0;
         s.decodedRecordCount=0;
         s.sourceFields=OriginalNavOwnerFields_21d3d0{};
+        s.hostRevision=nextRevision();
     }
     // 0x21ED94 calls 0x21D43C -> 0x21D7D8 for all three owners,
     // frees their 0x28-byte allocations and clears 0x647B80 slots.
     void originalTeardown_21ed94() noexcept {
-        for(auto& slot:slots_)slot.reset();
+        for(auto& slot:slots_) {
+            if(slot)(void)nextRevision();
+            slot.reset();
+        }
     }
     ~OriginalNavStageOwners_21ed30()=default;
 private:
+    // Native-only monotonically increasing identity across release,
+    // stage teardown, and reinitialization. Prevents stale route ABA.
+    std::uint64_t nextRevision() noexcept {
+        ++revisionClock_;
+        if(!revisionClock_)++revisionClock_;
+        return revisionClock_;
+    }
+    std::uint64_t revisionClock_=0;
     std::array<std::unique_ptr<Slot>,3> slots_{};
 };
 } // namespace ae3
