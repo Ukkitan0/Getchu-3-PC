@@ -15,6 +15,11 @@ CTOR_TABLE_SHA = "a3c5739dcec7d153ee3e72a04b14046ce4e9366d68537258cab6bd168eac99
 FIRST_CTOR_SHA = "75a521c6fd605abeba2de1d1b6880f78ec824dbfe3e4e89a4db567ac669437d9"
 FIRST_CTOR_DEP_SHA = "07cac5712617a817c73f96b849d99560b9bdfefd2b02f23ea94360020694a809"
 SOURCE_NOOP_SHA = "6d64edf91449c1b17746c1ef18afa2eb25c70bdf1322ab3df5a2630993b7e2f1"
+NUMERIC_CTOR_SHA = "035a60ed83dc1ceb0893ae3d0ab2949656327f914812efeafe76a7dec6fefd4e"
+NUMERIC_INIT_SHA = "ad45d81525c06e107fa271f6b8f51e678f64e81c25dc267dcad5451e4abbb800"
+MATH_SQRT_WRAPPER_SHA = "d448df6f0659e171eabf325fdd8d52171a72e1fe13dbea6e14971dc99952d961"
+MATH_MULTIPLY_SHA = "20c3dba4cc2eae7fd3cffd8c89650db4fc6958dcadf5381fcb3fb9075068c633"
+
 
 class OriginalElf:
     def __init__(self, raw):
@@ -50,6 +55,34 @@ def verify(path):
         raise ValueError('Native original first constructor/12-counter initializer opcode mismatch')
     if sha(0x4173b0,0x8)!=SOURCE_NOOP_SHA:
         raise ValueError('Source-native 0x4173B0 has ceased to be an actual no-op')
+    for addr,n,digest in (
+        (0x417c58,0x1c,NUMERIC_CTOR_SHA),
+        (0x417b50,0x108,NUMERIC_INIT_SHA),
+        (0x41d6b8,0x14,MATH_SQRT_WRAPPER_SHA),
+        (0x4240d8,0x54,MATH_MULTIPLY_SHA),
+    ):
+        if sha(addr,n)!=digest:
+            raise ValueError(f'Original retail constructor numeric dependency changed at {addr:#x}')
+    numeric_edges={
+        0x417b84:0x4173b0, 0x417ba8:0x4173b0,
+        0x417bcc:0x41d6b8, 0x417bdc:0x41d6b8,
+        0x417be8:0x4240d8, 0x417c14:0x41d6b8,
+        0x417c24:0x41d6b8, 0x417c30:0x4240d8,
+    }
+    for site,target in numeric_edges.items():
+        op=elf.word(site)
+        observed=((site+4)&0xf0000000)|((op&0x3ffffff)<<2)
+        if op>>26!=3 or observed!=target:
+            raise ValueError(f'Original second constructor call dependency changed at {site:#x}')
+    for site,target in {0x417c6c:0x417b50,0x41d6c4:0x41efd0}.items():
+        op=elf.word(site)
+        observed=((site+4)&0xf0000000)|((op&0x3ffffff)<<2)
+        if op>>26!=2 or observed!=target:
+            raise ValueError(f'Original second constructor trampoline changed at {site:#x}')
+    for va,value in ((0x417bc8,0x24041009),(0x417bd4,0x24040403),
+                     (0x417c10,0x24041009),(0x417c1c,0x24040201)):
+        if elf.word(va)!=value:
+            raise ValueError(f'Original constructor hardcoded float argument changed at {va:#x}')
     if elf.word(0x62e660)!=0xffffffff or elf.word(0x62e8a0)!=0:
         raise ValueError('Original constructor table sentinel/boundary mismatch')
     functions=[elf.word(0x62e89c-i*4) for i in range(143)]
@@ -77,7 +110,10 @@ def verify(path):
             'verified_startup_calls':len(edges),
             'native_first_original_constructor':"0x41a390",
             'first_original_constructor_global_counters':12,
-            'next_unrecovered_original_constructor':"0x417c58",
+            'native_second_original_constructor':"0x417c58",
+            'original_numeric_call_edges':len(numeric_edges)+2,
+            'original_numeric_source_inputs':[10,16,8],
+            'next_unrecovered_original_constructor':"0x3a6cd0",
             'original_callbacks_not_implemented':True,
             'original_windows_gameplay_booted':False}
 
