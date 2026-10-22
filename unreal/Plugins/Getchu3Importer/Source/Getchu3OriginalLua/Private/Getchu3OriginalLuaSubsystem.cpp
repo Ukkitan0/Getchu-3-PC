@@ -166,7 +166,16 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
         return false;
     }
 
+    // The real managers must provide atomic stage setup. Failed Lua bindings
+    // must never leave a partially constructed Player/Monkey world behind.
+    if (!SourceManager->BeginOriginalStageSetup(
+            OriginalLuaFilePath, OriginalSpawnTag)) {
+        LastError = TEXT("Original actor/parameter manager does not support source-backed atomic stage setup");
+        StopOriginalStage();
+        return false;
+    }
     Manager = SourceManager; // Strong UPROPERTY retained through native callbacks.
+    bOriginalSetupOpen = true;
     Ae3LuaManagerV2 Bindings{};
     Bindings.api_version = AE3_LUA_BRIDGE_API_VERSION;
     Bindings.struct_size = sizeof(Bindings);
@@ -197,13 +206,27 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
         StopOriginalStage();
         return false;
     }
+    if (!SourceManager->CommitOriginalStageSetup()) {
+        LastError = TEXT("Original stage managers refused commit; original Lua stage setup was rolled back");
+        StopOriginalStage();
+        return false;
+    }
+    bOriginalSetupOpen = false;
     UE_LOG(LogGetchu3OriginalLua, Log,
-        TEXT("Original source Lua stage ran against explicit game manager bindings; gameplay fidelity not certified."));
+        TEXT("Original source Lua stage and game manager transaction finished; original gameplay parity remains unverified."));
     return true;
 #endif
 }
 
 void UGetchu3OriginalLuaSubsystem::StopOriginalStage() {
+    if (bOriginalSetupOpen) {
+        // This must undo every previously accepted original entity, flag,
+        // stage parameter and equipment change in reverse operation order.
+        if (IsValid(Manager)) {
+            Manager->AbortOriginalStageSetup();
+        }
+        bOriginalSetupOpen = false;
+    }
     if (NativeState && NativeLibrary) {
         const auto Destroy = GetOriginalLuaFunction<decltype(&ae3_lua_destroy)>(
             NativeLibrary, TEXT("ae3_lua_destroy"));
