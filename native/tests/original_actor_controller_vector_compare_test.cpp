@@ -13,8 +13,22 @@ static std::array<std::byte,16> packWords(std::array<std::uint32_t,4> words){
     std::array<std::byte,16> output{};
     std::memcpy(output.data(),words.data(),16);return output;
 }
+// Independent oracle for retail 0x57C1E8 PCEQW, 0x57C1EC PPACH,
+// 0x57C1F0 NOR and 0x57C1F4 SLTIU. This does not use memcmp.
+static bool sourcePackedEqual(const std::array<std::byte,16>& a,
+                              const std::array<std::byte,16>& b) {
+    std::uint64_t compressed=0;
+    for(unsigned i=0;i<4;++i){
+        std::uint32_t left{},right{};
+        std::memcpy(&left,a.data()+4*i,4);
+        std::memcpy(&right,b.data()+4*i,4);
+        const std::uint32_t word=left==right?0xffffffffu:0u;
+        compressed|=std::uint64_t(word&0xffffu)<<(i*16);
+    }
+    return (~compressed)==0;
+}
 static void trial(const std::array<std::byte,16>& a,const std::array<std::byte,16>& b){
-    const bool expected=std::memcmp(a.data(),b.data(),16)==0;
+    const bool expected=sourcePackedEqual(a,b);
     const auto result=originalActorControllerCompare_57c1d4(true,a,b);
     ck(result.originalBitwiseEqual==expected&&result.originalReturnV0==(expected?2u:1u),
        "Original PCEQW/PPACH/SLTIU return is not bitwise exact");
