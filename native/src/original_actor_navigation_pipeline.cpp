@@ -10,9 +10,11 @@ OriginalActorNavigationPipeline_57c7cc::OriginalActorNavigationPipeline_57c7cc(
     std::array<std::byte,16> controllerVector20,bool variant30,
     OriginalActorUntranslatedMath_57c7cc& math,
     OriginalGameRandom_36f3c0* originalSharedRandom,
-    std::span<const OriginalPolygonLinks_21bd3c> originalSourceAdjacency)
+    std::span<const OriginalPolygonLinks_21bd3c> originalSourceAdjacency,
+    OriginalActorFallbackVU0Transform_57ca68* originalFallbackTransform)
     :records_(records),polygons_(polygons),controllerVector20_(controllerVector20),
      variant30_(variant30),math_(math),originalSharedRandom_(originalSharedRandom),
+     originalFallbackTransform_(originalFallbackTransform),
      originalSourceAdjacency_(originalSourceAdjacency) {
     if(!originalSourceAdjacency_.empty()&&originalSourceAdjacency_.size()!=records_.size())
         throw std::invalid_argument("Original source actor adjacency/registry count mismatch");
@@ -44,6 +46,13 @@ bool OriginalActorNavigationPipeline_57c7cc::call_original_21b788_eligibility(
 std::uint64_t OriginalActorNavigationPipeline_57c7cc::call_original_57ca68_geometry(
     const OriginalSpatialRecord70& target) {
     sourceIndex(target);
+    // Original 0x57CA68 outer game RNG and best-of-six loop is
+    // now recovered when the caller supplies the original VU0
+    // candidate transform. The latter is still untranslated.
+    if(originalSharedRandom_ && originalFallbackTransform_)
+        return originalActorFallbackSelect_57ca68(
+            target,controllerVector20_,*originalSharedRandom_,
+            *originalFallbackTransform_).originalWinningPackedTargetLow64;
     return math_.call_original_57ca68_fallback(target);
 }
 std::uint64_t OriginalActorNavigationPipeline_57c7cc::call_original_57c98c_three_vertex_transform(

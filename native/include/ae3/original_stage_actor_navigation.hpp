@@ -20,7 +20,8 @@ public:
         std::array<std::byte,16> originalControllerVector20,
         bool originalControllerVariant30,
         OriginalActorUntranslatedMath_57c7cc& remainingSourceMath,
-        OriginalGameRandom_36f3c0* originalGameRandom=nullptr);
+        OriginalGameRandom_36f3c0* originalGameRandom=nullptr,
+        OriginalActorFallbackVU0Transform_57ca68* originalFallbackTransform=nullptr);
 
     OriginalStageActorNavigation_57c7cc(const OriginalStageActorNavigation_57c7cc&)=delete;
     OriginalStageActorNavigation_57c7cc& operator=(const OriginalStageActorNavigation_57c7cc&)=delete;

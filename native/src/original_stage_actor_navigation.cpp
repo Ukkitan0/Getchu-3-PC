@@ -8,12 +8,13 @@ OriginalStageActorNavigation_57c7cc::OriginalStageActorNavigation_57c7cc(
     std::array<std::byte,16> controller20,
     bool variant30,
     OriginalActorUntranslatedMath_57c7cc& pending,
-    OriginalGameRandom_36f3c0* sharedRandom)
+    OriginalGameRandom_36f3c0* sharedRandom,
+    OriginalActorFallbackVU0Transform_57ca68* originalFallbackTransform)
     :stage_(stage),
      sourceGeometry_(stage.records,stage.polygonHeaders),
      adjacency_(originalStagePolygonLinks_21bd3c(source,stage)),
      pipeline_(stage.records,sourceGeometry_.polygons(),controller20,
-               variant30,pending,sharedRandom,adjacency_) {
+               variant30,pending,sharedRandom,adjacency_,originalFallbackTransform) {
     // Source geometry/polygon spans are owned by this instance, and
     // original stage record identity remains stable while it lives.
 }

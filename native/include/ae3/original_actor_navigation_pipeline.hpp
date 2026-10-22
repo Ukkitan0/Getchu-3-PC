@@ -3,6 +3,7 @@
 #include "ae3/original_actor_target_dispatch.hpp"
 #include "ae3/original_vu0_geometry.hpp"
 #include "ae3/original_actor_random_triangle.hpp"
+#include "ae3/original_actor_fallback_sampler.hpp"
 #include "ae3/original_polygon_raycast.hpp"
 #include <optional>
 #include <array>
@@ -42,7 +43,8 @@ public:
         bool originalControllerVariant30,
         OriginalActorUntranslatedMath_57c7cc& unresolvedMath,
         OriginalGameRandom_36f3c0* originalSharedRandom=nullptr,
-        std::span<const OriginalPolygonLinks_21bd3c> originalSourceAdjacency={});
+        std::span<const OriginalPolygonLinks_21bd3c> originalSourceAdjacency={},
+        OriginalActorFallbackVU0Transform_57ca68* originalFallbackTransform=nullptr);
 
     // Original 0x57C7CC $a1 and controller+0x40. Keep these distinct
     // from +0x20, which is used only by 0x21B788 eligibility.
@@ -78,6 +80,7 @@ private:
     bool variant30_=false;
     OriginalActorUntranslatedMath_57c7cc& math_;
     OriginalGameRandom_36f3c0* originalSharedRandom_=nullptr;
+    OriginalActorFallbackVU0Transform_57ca68* originalFallbackTransform_=nullptr;
     std::span<const OriginalPolygonLinks_21bd3c> originalSourceAdjacency_;
     std::optional<OriginalVU0Vec4> originalIncomingRayA1_;
     std::optional<OriginalVU0Vec4> originalController40_;
