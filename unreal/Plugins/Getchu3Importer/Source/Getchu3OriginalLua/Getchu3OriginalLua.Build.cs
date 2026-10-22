@@ -18,5 +18,16 @@ public class Getchu3OriginalLua : ModuleRules
         if (!Directory.Exists(NativeInclude))
             throw new BuildException("Original native Lua bridge headers are missing from this checkout: " + NativeInclude);
         PrivateIncludePaths.Add(NativeInclude);
+
+        if (Target.Platform == UnrealTargetPlatform.Win64)
+        {
+            string BridgeDll = Path.GetFullPath(Path.Combine(ModuleDirectory,
+                "..", "..", "..", "..", "Binaries", "Win64",
+                "Getchu3OriginalLuaBridge.dll"));
+            if (!File.Exists(BridgeDll))
+                throw new BuildException("Original Lua 5.0 DLL missing; run unreal\\BuildAndOpen.bat before building. Expected: " + BridgeDll);
+            RuntimeDependencies.Add("$(TargetOutputDir)/Getchu3OriginalLuaBridge.dll",
+                BridgeDll, StagedFileType.NonUFS);
+        }
     }
 }
