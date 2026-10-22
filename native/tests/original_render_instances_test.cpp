@@ -49,10 +49,28 @@ void run(){
     expect(frame.submissions.front().id==44&&frame.animatedObjects==1,
            "animated draw layer/source identity lost");
     expect(frame.scene.textures.size()==1,"animated/static source texture duplicated");
+    frame=world.composeFrameInOriginalOrder({43,44,42});
+    expect(frame.submissions.size()==3 && frame.submissions[0].id==43 &&
+           frame.submissions[1].id==44 && frame.submissions[2].id==42,
+           "retail render list order must override host-layer sort");
+    expect(frame.scene.textures.size()==1 && frame.animatedObjects==1,
+           "original-order compositor lost shared texture or animation");
+    bool orderRejected=false;
+    try{world.composeFrameInOriginalOrder({42,42});}
+    catch(const std::invalid_argument&){orderRejected=true;}
+    expect(orderRejected,"duplicated retail actor was rendered twice");
+    orderRejected=false;
+    try{world.composeFrameInOriginalOrder({909});}
+    catch(const std::out_of_range&){orderRejected=true;}
+    expect(orderRejected,"missing retail actor did not fail closed");
     world.find(42)->visible=false;
     frame=world.composeFrame();
     expect(frame.visibleObjects==2&&frame.scene.triangles.size()==6,
            "game-supplied actor visibility ignored");
+    frame=world.composeFrameInOriginalOrder({43,44,42});
+    expect(frame.submissions.size()==2 && frame.submissions[0].id==43 &&
+           frame.submissions[1].id==44,
+           "retail list inclusion must respect original actor visibility");
     expect(world.remove(43)&&!world.remove(43),"remove/identity state wrong");
     bool rejected=false;
     try{world.addStatic(a,shared);}catch(const std::invalid_argument&){rejected=true;}
