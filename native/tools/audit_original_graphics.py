@@ -208,7 +208,46 @@ def verify_and_audit(elf: bytes) -> dict:
         arena_evidence.append({"start_va": f"0x{first:08x}",
                                "end_va_exclusive": f"0x{end:08x}",
                                "sha256": digest_arena})
+    # Graphics pass 5: transformed packet groups 0/2/3, exact first
+    # quadword packet reset/setup and authentic 0x27C614 model-source
+    # stream strides. Original VU transforms remain unresolved.
+    packet_transform_ranges = [
+        (0x3AF530, 0x3AF600, "fedad04fff370aa0a04de775f25b1b276bdd372723d493b5e046e25f5635d4e7"),
+        (0x3AF6F8, 0x3AF8A8, "b5a2188e40abe227e04fb5539458d2174a3a0894e5a3ebbd3eff7819f54c6bd6"),
+        (0x3AF8A8, 0x3AF8F0, "5c2780ae654bc3a47e5cea167ff5b3e3bd49863b4e7e362983c1b4bb2ffcd61e"),
+        (0x27C520, 0x27C614, "43ff04e5d8ac631b306215e26890db9a971758b57645dad3a5c2bf72d4b43154"),
+        (0x27C614, 0x27C780, "546c3b911b941eac4fe5d157b070f3f35892a5e20c04b5f6b1d9c7d293a9a760"),
+        (0x27C8F4, 0x27C9E0, "434d499187d6cdc3553fb78b9dbb8a76875d02931824801eb1cc185509f5f4b1"),
+    ]
+    transform_evidence = []
+    for first, end, expected in packet_transform_ranges:
+        data = elf[first - TEXT_VA + TEXT_FILE:end - TEXT_VA + TEXT_FILE]
+        digest_transform = hashlib.sha256(data).hexdigest()
+        if digest_transform != expected:
+            raise ValueError(f"retail model/packet transform source differs at {first:#x}")
+        transform_evidence.append({
+            "start_va": f"0x{first:08x}",
+            "end_va_exclusive": f"0x{end:08x}",
+            "source_sha256": digest_transform,
+        })
+    # Four float constants used by 0x3AF6F8 at source rodata VAs;
+    # compare the actual IEEE-754 bits, not rounded textual floats.
+    group2_float_words = {
+        0x7206D8: 0x3FC8EF16,  # upper angle 1.569796323...
+        0x7206DC: 0x3F733333,  # angle scale 0.949999988...
+        0x7206E0: 0x3F800000,  # 1.0
+        0x7206E4: 0x3A83126F,  # lower angle 0.00100000005...
+    }
+    for original_va, expected_word in group2_float_words.items():
+        offset = RODATA_FILE + original_va - RODATA_VA
+        if u32(elf, offset) != expected_word:
+            raise ValueError(f"retail packet angle constant mismatch at {original_va:#x}")
     report = {
+        "retail_group2_float_bits": [
+            {"original_va": f"0x{addr:08x}", "ieee754_word": f"0x{bits:08x}"}
+            for addr, bits in group2_float_words.items()
+        ],
+        "source_verified_model_stream_and_transformed_groups": transform_evidence,
         "source_verified_original_packet_arena": arena_evidence,
         "source_verified_native_packet_copies": copy_evidence,
         "source_verified_original_model_packet_pipeline": packet_evidence,
