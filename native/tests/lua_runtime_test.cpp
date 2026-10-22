@@ -162,6 +162,120 @@ void originalEngineBindingsFromElf(){
     catch(const std::runtime_error&){blocked=true;}
     check(blocked,"game sex query did not reject missing original Data");
 }
+void nativeBridgeAndCallbackTests(){
+    ae3::NativeStageWorld world;
+    ae3::LuaStage script(world);
+    int created=0, parameters=0, written=0, selected=-1, nativeCalls=0;
+    ae3::NativeLuaStageBindings bindings;
+    bindings.createEntity=[&](const ae3::StageEntity& e){
+        check(e.entityClass=="Monkey","native entity integration lost class");
+        ++created;
+    };
+    bindings.submitParameters=[&](const ae3::ScriptValue& v){
+        check(v.member("kind")!=nullptr,"native parameter integration lost table");
+        ++parameters;
+    };
+    bindings.writeFlag=[&](std::string_view scope,std::string_view key,bool value){
+        check(scope=="gw" && key=="retail_flag" && value,
+              "native flag manager did not receive original arguments");
+        ++written;
+    };
+    bindings.readFlag=[](std::string_view,std::string_view){
+        // Real manager is authoritative, NOT the separate stage mirror.
+        return std::optional<bool>(false);
+    };
+    bindings.readStageInteger=[](const std::vector<ae3::ScriptValue>& args){
+        if(args.size()==1 && args[0].numberOr(-1)==25)return std::optional<int>(77);
+        return std::optional<int>{};
+    };
+    bindings.readSurvival=[](){return std::optional<bool>(true);};
+    bindings.selectWeapon=[&](int code){selected=code;};
+    script.setNativeBindings(std::move(bindings));
+    script.registerOriginalFunction("__integration_test_native",0x00512000u,
+        [&](const std::vector<ae3::ScriptValue>& args){
+            check(args.size()==2 && args[0].member("value") &&
+                  args[0].member("value")->numberOr()==9 &&
+                  args[1].numberOr()==25,
+                  "Lua-to-host original-function arguments changed");
+            ++nativeCalls;
+            ae3::ScriptValue result;
+            result.kind=ae3::ScriptValue::Kind::array;
+            ae3::ScriptValue v;
+            v.kind=ae3::ScriptValue::Kind::text;
+            v.text="native result";
+            result.array.push_back(v);
+            ae3::ScriptValue count;
+            count.kind=ae3::ScriptValue::Kind::number;
+            count.number=77;
+            return std::vector<ae3::ScriptValue>{result,count};
+        });
+    script.executeSource(R"LUA(
+        function setupArea(o)
+          lua_param({kind="retail_parameters"})
+          gw_set_flag("retail_flag")
+          if gw_get_flag("retail_flag") then error("flag mirror used in place of provider") end
+          local values, count = __integration_test_native({value=9},25)
+          assert(values[1]=="native result" and count==77)
+          assert(stage_var_get_int(25)==77)
+          assert(is_survival_mode())
+          set_player_weapon("net")
+          new_ent("Monkey",{name="original_script_actor",tag_name=o.spawn_tag})
+        end
+        function onNativeEvent(e)
+          if e[1]=="event" and e[2]==42 then
+            new_ent("Monkey",{name="script_event_actor",tag_name="event"})
+          end
+        end
+    )LUA");
+    script.callSetupArea("original_spawn");
+    check(created==1 && parameters==1 && written==1 && selected==1 &&
+          nativeCalls==1,"original call chain did not reach every native manager");
+    check(world.entities().size()==1 &&
+          world.entities()[0].tagName=="original_spawn",
+          "stage setup failed to preserve retail tag");
+    ae3::ScriptValue event;
+    event.kind=ae3::ScriptValue::Kind::array;
+    ae3::ScriptValue text;
+    text.kind=ae3::ScriptValue::Kind::text;text.text="event";
+    ae3::ScriptValue number;
+    number.kind=ae3::ScriptValue::Kind::number;number.number=42;
+    event.array={text,number};
+    check(script.invokeCallback("onNativeEvent",{event}),
+          "script-defined callback was not invoked");
+    check(created==2 && world.entities().size()==2 &&
+          world.entities()[1].name=="script_event_actor",
+          "native event callback did not produce original script side effect");
+    check(!script.invokeCallback("unregisteredOriginalEvent"),
+          "missing script event incorrectly reported as implemented");
+
+    bool failed=false;
+    try{script.registerOriginalFunction("new_ent",0x00512000u,
+                     [](const auto&){return std::vector<ae3::ScriptValue>{};});}
+    catch(const std::invalid_argument&){failed=true;}
+    check(failed,"external registration silently replaced an existing retail global");
+    ae3::NativeStageWorld missingWorld;
+    ae3::LuaStage missing(missingWorld);
+    missing.executeSource("function query() return stage_var_get_int(2) end");
+    failed=false;
+    try{missing.invokeCallback("query");}
+    catch(const std::runtime_error& e){
+        failed=std::string(e.what()).find("no recovered native provider")!=std::string::npos;
+    }
+    check(failed,"stage variable API returned a fabricated value without engine");
+    missing.executeSource("function survivalQuery() return is_survival_mode() end");
+    failed=false;
+    try{missing.invokeCallback("survivalQuery");}
+    catch(const std::runtime_error& e){
+        failed=std::string(e.what()).find("no recovered native provider")!=std::string::npos;
+    }
+    check(failed,"survival API returned fabricated state without engine");
+    // Reject a "successful" native callback based only on a placeholder VA.
+    failed=false;
+    try{missing.registerOriginalFunction("bad",0,[](const auto&){
+        return std::vector<ae3::ScriptValue>{};});}
+    catch(const std::invalid_argument&){failed=true;}
+    check(failed,"source-address-less native Lua API was accepted");
+}
 void errorCases(){
     ae3::NativeStageWorld world;
     ae3::LuaStage lua(world);
@@ -189,6 +303,7 @@ int main(){
         runRealScriptSample();
         originalProgressBindingTests();
         originalEngineBindingsFromElf();
+        nativeBridgeAndCallbackTests();
         errorCases();
         std::cout<<"NATIVE_REAL_LUA50_EXECUTION_PASSED: "
                     "setupArea,new_ent,lua_param,c_order,c_ctrl,flags,control flow\n";
