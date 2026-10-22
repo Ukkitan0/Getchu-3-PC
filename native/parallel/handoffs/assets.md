@@ -116,3 +116,48 @@ The revised mount header also passed strict C++20 compile-only testing with the 
 Additional commit `002c4391ea7928b83ba18097f9d5b2dd5e31967b`: `native/tests/original_resource_package_retail_test.cpp` reads the **owner's own** original `vfi/debug/us/stage/woods_c/exdb.pck`; checks the documented 0x1660-byte source length, both exact name/type/offset/size records, EDB payload signatures, original 0x26D24C `exdb` type filter and correct absence of `bgm_desc.exdb`. It commits NO resource bytes. The new test was compiled with GCC 14.2.0 using `-std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror`. Its real-data execution remains **unverified** because the private file is not available in this session (the nonexistent-path check produced the expected error).
 
 Integrator: optionally configure this test only if `AE3_RETAIL_WOODS_C_EXDB_PCK` points to the private original file; use the **existing** `native/tools/verify_original_exdb_retail.py` first to assert the pinned PCK SHA-256 `185db8cfd710760d9c715e0d1cce8ac4ecf6b18201673ce00bc6815078ae4615` and USA ELF SHA-256. Do not install, upload or commit either private file. The native differential test is not evidence of a fresh original-file run until the integrator/owner actually performs it.
+
+
+## Continuation — retail navigation SZ compatibility and genuine stage resource inventory
+
+### Evidence and new source recovery
+Review of existing original navigation source audits (native/docs/ORIGINAL_NAVGRAPH_AND_RETAIL_ASSETS.md and original_navgraph_loader.cpp) confirms: retail NavGraph::load = 0x4F0A5C; direct call to original 0x21D46C at 0x4F0B14. Original resource dispatch is 0x26D120 / 0x26D214 / 0x26D24C. Original nav member names at ELF VAs 0x6E7470, 0x6E7480 and 0x6E7490 select nav_monkey.nav, nav_enemy.nav, and nav_extra0.nav.
+
+Earlier private-USA-ISO research, NOT re-run in this session, counted 3,994 original VFI files, 168 navigation.pck.sz packages, 290 genuine navigation PCK members and 19,377 real three-vertex polygon descriptors. The prior originalNavInflateSZ loader allows trailing raw source bytes; its regression includes four trailer bytes. The assets-owned initial SZ reader was stricter and rejected any trailer. We now provide both strict source-integrity policy and original-compatible permissive mode. No unsupported guess about trailer bytes is substituted for the decompressed payload.
+
+Original navigation PCK and real woods_c/exdb.pck both use package-absolute PCK string offsets. The older generic pck_archive.cpp uses pool-relative offsets. This incompatibility has NOT been silently overwritten; real bg.pck differential testing remains necessary. Original stage directory prefix debug/us/stage/<stage>/ is also evidenced by the existing genuine area.luc load path and the documented private woods_c extraction.
+
+### Committed changes on parallel/assets
+- c8bff2b4fa1344c2d6c6809410686a00daa8f805: original_resource_sz.hpp supports OriginalSzTrailerPolicy reject/permit; default strict.
+- 88281e6922b832c622f403b7885a037512e8e712: original_resource_sz.cpp respects chosen trailing-source policy.
+- 1fb67144408b0b4826af97a36e2a40c85edcde35: original_resource_vfi_mount.hpp uses original-compatible policy for indexed .sz members.
+- be910d7d1013b1053552779791c21602e38b34b1: SZ tests cover both policies.
+- 2a338aec7a1e115a922f4afb6f83c042ba755f9b: new native/include/ae3/original_resource_stage_catalog.hpp inventories only genuine VFI stage resource names, preserving original relative DATA.BIN offsets, compressed source names, stage ownership, original enumeration order, and exact source lookups. Rejects duplicate case-folded names and unsafe identifiers.
+- ce5570a8904b6c7953f75c4292730d607cbc2fc6: native/tests/original_resource_stage_catalog_test.cpp tests two synthetic-stage directory inventories, six stage source members, valid source offsets, source SZ naming, six invalid/traversal/duplicate cases.
+- da91925eb3743e675839d8d0459642eb7dd99ee8: new native/src/original_resource_stage_probe.cpp inventories actual private-owner USA ISO/DATA.BIN stages, original VFI members and offsets, optional --inspect-pck typed resource details and source signatures. It writes no original game bytes.
+- ecd085b02ecbd0411ac224e1dbf1c82578177403: SZ regression adds a synthetic but original-format navigation SZ -> PCK absolute string name -> nav_monkey.nav type nav -> original header +0x24 count path, permitting a four-byte trailer, without touching navigation-owned files.
+
+### Actual local checks
+Host: Debian, GCC 14.2.0 and Clang 17.0.0. These standalone commands were run and passed with C++20 -O2 -Wall -Wextra -Wpedantic -Werror:
+- Build tests/original_resource_package_test.cpp with native/include; output ORIGINAL_RESOURCE_PACKAGE_TEST_PASSED members=2 malformed=7 signatures=5.
+- Build tests/original_resource_sz_test.cpp with src/original_resource_sz.cpp and -lz; output ORIGINAL_RESOURCE_SZ_TEST_PASSED sizes=9 guards=length,truncation,trailing,budget. Tests include trailing-compatible original-nav resource chain.
+- Build tests/original_resource_stage_catalog_test.cpp with native/include; output ORIGINAL_RESOURCE_STAGE_CATALOG_TEST_PASSED stages=2 members=6 malicious=6.
+- Syntax-only compile of src/original_resource_stage_probe.cpp with native/include passed.
+- Equivalent resource-package/SZ/catalog tests passed under Clang 17.0.0 strict optimized builds.
+- AddressSanitizer + UndefinedBehaviorSanitizer with -O1, leak checks enabled: SZ test passed; stage catalog test passed.
+
+These are locally executed synthetic-format tests, not proof of retail original-file compatibility, a complete Windows build or original gameplay. Neither the original USA ISO nor the original executable is available for new tests in this session. No GitHub Actions manually triggered.
+
+### Integrator-only CMake and validation request
+Already requested: add src/original_resource_sz.cpp to Getchu3Assets, which already links native zlib. Add target Getchu3OriginalStageResourceProbe from src/original_resource_stage_probe.cpp linked to Getchu3Assets. Add tests for new tests/original_resource_stage_catalog_test.cpp and original_resource_sz_test.cpp with C++20, native/include, plus zlib linkage for SZ (directly or through Getchu3Assets). Optional tests/original_resource_package_retail_test.cpp requires owner-private woods_c/exdb.pck and prior pinned SHA-256 validation.
+
+Once compiled, private-owner sample invocation:
+  Getchu3OriginalStageResourceProbe.exe "C:\AE3_PRIVATE\Ape Escape 3 (USA).iso"
+  Getchu3OriginalStageResourceProbe.exe "C:\AE3_PRIVATE\Ape Escape 3 (USA).iso" woods_c --inspect-pck
+
+Compare native SZ and PCK outputs byte-for-byte with existing originalNavReadPackage and Python owner-local extractor. Report actual archived filenames, real source SHA-256s, and any PCK variant rejected by strict parsing rather than fabricating an alternative layout.
+
+### Genuine stage blockers left
+Original package load-order/ownership call chain and stage transitions; identification of all background/model/texture/animation/audio dependencies on real source bytes; per-stage resource lifetime; real source VA allocation and 0x36EDAC graph/grid allocator; integration of original input/Lua/gameplay/graphics and Windows boot. Stage VFI inventory is not itself an original runtime stage-loader or a playable game.
+
+Only assets-owned source/tests and native/parallel/handoffs/assets.md were modified on parallel/assets. No shared CMake or other categories changed.
