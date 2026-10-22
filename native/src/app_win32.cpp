@@ -480,11 +480,28 @@ void bootCheckpoint(BootCheckpoint checkpoint,BootResult result,const std::strin
     event+=last.detail;
     event+='\n';
     OutputDebugStringA(event.c_str());
-    wchar_t temp[MAX_PATH]={};
-    const DWORD n=GetTempPathW(MAX_PATH,temp);
-    if(n>0 && n<MAX_PATH){
-        std::ofstream log(fs::path(temp)/L"Getchu3NativeBoot.log",
-                          std::ios::binary|std::ios::trunc);
+    // The one-click Windows runner supplies a per-attempt log path so
+    // an older/stale retail failure cannot be confused with this run.
+    // Without it, retain the documented temporary-directory fallback.
+    fs::path destination;
+    const DWORD required=GetEnvironmentVariableW(L"AE3_NATIVE_BOOT_LOG",nullptr,0);
+    if(required>1 && required<32768){
+        std::wstring path(required,L'\0');
+        const DWORD copied=GetEnvironmentVariableW(
+            L"AE3_NATIVE_BOOT_LOG",path.data(),required);
+        if(copied>0 && copied<required){
+            path.resize(copied);
+            destination=fs::path(path);
+        }
+    }
+    if(destination.empty()){
+        wchar_t temp[MAX_PATH]={};
+        const DWORD n=GetTempPathW(MAX_PATH,temp);
+        if(n>0 && n<MAX_PATH)
+            destination=fs::path(temp)/L"Getchu3NativeBoot.log";
+    }
+    if(!destination.empty()){
+        std::ofstream log(destination,std::ios::binary|std::ios::trunc);
         if(log)log<<gBootJournal.trace();
     }
 }
