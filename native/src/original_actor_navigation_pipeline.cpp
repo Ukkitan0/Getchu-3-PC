@@ -126,12 +126,7 @@ void OriginalActorNavigationPipeline_57c7cc::call_original_57c8ec_update_target(
     // Retail QMFC2 and QMTC2 transfer all 128 bits; the target's
     // *upper* 64-bit GPR half feeds subsequent 0x4C1B3C projection.
     // Its lower 64 bits MUST NOT become the projection X/Y lanes.
-    const auto hi=output.originalVectorHigh64;
-    latestTargetRayA2_={
-        0.0f,0.0f,
-        std::bit_cast<float>(std::uint32_t(hi)),
-        std::bit_cast<float>(std::uint32_t(hi>>32))
-    };
+    latestTargetRayA2_=originalActorTargetProjectionOperand_57c894(output);
 }
 OriginalActorRouteFollowResult_57c7cc OriginalActorNavigationPipeline_57c7cc::advance(
     OriginalActorRouteFollowerState_57c7cc& route) {

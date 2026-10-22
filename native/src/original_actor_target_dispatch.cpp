@@ -2,6 +2,15 @@
 #include <bit>
 
 namespace ae3 {
+OriginalVU0Vec4 originalActorTargetProjectionOperand_57c894(
+    const OriginalActorTargetResult_57c8ec& result) noexcept {
+    // 0x57C894: PCPYUD a2,zero,v0.
+    // EE a2[63:0]=0, a2[127:64]=v0[127:64].
+    const auto hi=result.originalVectorHigh64;
+    return {0.0f,0.0f,
+            std::bit_cast<float>(std::uint32_t(hi)),
+            std::bit_cast<float>(std::uint32_t(hi>>32))};
+}
 OriginalActorTargetResult_57c8ec originalActorTargetVector_57c8ec(
     const OriginalSpatialRecord70& target,
     bool variant30,

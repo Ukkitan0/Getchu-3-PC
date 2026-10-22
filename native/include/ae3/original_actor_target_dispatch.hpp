@@ -1,5 +1,6 @@
 #pragma once
 #include "ae3/original_spatial_index.hpp"
+#include "ae3/original_vu0_geometry.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -40,6 +41,11 @@ public:
         const std::array<std::array<std::byte,16>,3>& vertices)=0;
     virtual std::uint64_t call_original_57c98c_geometry_high64() const { return 0; }
 };
+
+// Native rendering of original 0x57C894 PCPYUD a2,zero,v0 before
+// 0x57C890's JAL delay slot; preserves only the original GPR upper 64.
+OriginalVU0Vec4 originalActorTargetProjectionOperand_57c894(
+    const OriginalActorTargetResult_57c8ec& sourceGPR) noexcept;
 
 OriginalActorTargetResult_57c8ec originalActorTargetVector_57c8ec(
     const OriginalSpatialRecord70& target,
