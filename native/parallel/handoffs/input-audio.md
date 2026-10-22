@@ -171,3 +171,81 @@ Integration call sequence: OriginalPadObservation physical = pollWin32OriginalGa
 **Focused tests:** physical original Cross/Start observations map to actual retail output bit positions 7/1, RX/RY/LX/LY reorder is correct, analog source normalization preserves right/left stick identity, and unsupported 0x14 channel is rejected. Source/header/test Git blob hashes verified identical to locally executed optimized C++20 and ASan/UBSan source. BOTH tests passed. Only portable non-Windows branch compiled; actual XInput/Windows hardware is still untested.
 
 This is a source-backed channel interface and original polling transformation, NOT PS2 emulation or a fully integrated player gadget controller. Original menu/gameplay button consumers, active gadget actions, and actual game-loop integration still need recovery. No CMake or app entry changes and no GitHub Actions.
+
+---
+
+## Pass 3: Retail six-byte direct pad packets, two-port copy, and actuator commands (2026-10-22)
+
+**Implementation commit:** `21f0b09b50d9fafc86e80bcfb40552757d481e5a` on `parallel/input-audio` ONLY.
+
+### Source-backed original USA ELF evidence
+
+Source: SHA-pinned privately provided USA `SCUS_975.01` (SHA-256 `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`). Verified by disassembly and retained digest-only audit. No original binary bytes or audio copied into GitHub.
+
+- **Direct input path `0x517878..0x5178AC`:** original `0x51785C` detects a nonnull six-byte decoded input pointer (third argument). Two bytes of button bits (little endian) are copied into pad object at +0x0C, followed by four analog bytes in RX/RY/LX/LY order at +0x0E..+0x11; original code then computes newly pressed mask as `now & ~previous`, writes +0x08. Null source falls into original pad-library read path or disconnected/neutral handling. `sampleDirect` implements only the **already-decoded six-byte source** branch with null representing unavailable/neutral; it is not a PS2 SIO packet reader.
+- **Two-port main game frame `0x26EB34..0x26ED54`:** original game updates port 0 and port 1 separately and exports two adjacent **0x18-byte** records at `0x6496F8` and `0x649710`, with held/new-pressed masks followed by right X/Y and left X/Y. New `OriginalRetailTwoPortReader_26eb34` maintains separate per-port prior state and returns two original-layout records, without changing other teams' actor input.
+- **Original actuator command `0x51790C..0x5179A8`:** original reader compares requested mode byte and intensity float against its saved values at +0x14/+0x18, and only on change sends a two-byte command to the PAD library function **`0x405E30`**, with original arguments: control code 1, selector byte 3, payload size 2. Original **float constant 255.0** at `0x6ED0C4` scales intensity, `MUL.S` then `CVT.W.S` quantizes, low byte encodes `((w << 1) & 255) | (mode != 0)`, high byte `(w >> 7) & 255`. Initial mode +0x14 and float +0x18 are zeroed at `0x517C1C..0x517C40`. This is a source **pad actuator request**, not a claim that a Windows motor actually vibrated. The physical host haptics backend is not supplied here; no fabricated rumble from gadget events.
+- The exact original function-byte windows SHA-256 hashes for actuator `0x51790C..0x5179B0` and original initializer `0x517C1C..0x517D38` are enforced by newly added `native/tools/verify_original_pad_actuator.py`. It also checks the retail 255.0f constant, **17 source instruction words** (branch and payload construction), and the JAL to `0x405E30`.
+
+### Changes and exported interfaces
+
+Edited only owned input/audio files:
+
+- `native/include/ae3/original_retail_pad.hpp`: `OriginalRetailDirectPacket` (six bytes), `OriginalRetailPadReader::sampleDirect(const OriginalRetailDirectPacket*)`, `OriginalRetailGameFrame_26eb34`, `OriginalRetailTwoPortReader_26eb34`.
+- `native/src/original_retail_pad.cpp`: direct-byte interpretation without making 20 PAD-library queries, shared source-button transition bookkeeping for both original input sources, independent two-port game record export.
+- `native/tests/original_retail_pad_test.cpp`: two-port raw packet byte order/analog vectors, independent press edges, disconnect/reconnect/reset, and 0x18-byte copied globals.
+- New `native/include/ae3/original_pad_actuator.hpp`, `native/src/original_pad_actuator.cpp`: original request-change detection, source two-byte actuator encoding, typed output packet. Out-of-range/nonfinite `CVT.W.S` / original FCSR behavior explicitly unsupported rather than guessed; regular finite values use current host rounding mode (the Windows integrator must verify R5900 FCSR mode before claiming complete bit-exact parity).
+- New `native/tests/original_pad_actuator_test.cpp`: zero initialization, repeat suppression, scaled full/half intensity, mode-only updates, reset, and unsupported NaN behavior.
+- New `native/tools/verify_original_pad_actuator.py`: original ELF SHA/source opcode and function-range verification, as described above.
+
+### Actual tests and proof
+
+Local host: Debian Linux, `g++ 14.2.0`, with source exactly matching the committed Git blob hashes, compiled the **complete actual local headers/source** rather than a generated stub.
+
+```bash
+# Original direct packet + two ports; release configuration
+g++ -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -I native/include \
+ native/src/original_pad_runtime.cpp native/src/original_pad_win32.cpp \
+ native/src/original_retail_pad.cpp native/tests/original_retail_pad_test.cpp \
+ -o /tmp/retail_direct && /tmp/retail_direct
+# PASS: ORIGINAL_RETAIL_PAD_517788_5179B0_51785C_PASSED
+
+# Same four files with sanitizers:
+g++ -std=c++20 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer \
+ -I native/include native/src/original_pad_runtime.cpp native/src/original_pad_win32.cpp \
+ native/src/original_retail_pad.cpp native/tests/original_retail_pad_test.cpp \
+ -o /tmp/retail_direct_asan && /tmp/retail_direct_asan
+# PASS
+
+# Newly recovered actuator
+g++ -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror -I native/include \
+ native/src/original_pad_actuator.cpp native/tests/original_pad_actuator_test.cpp \
+ -o /tmp/actuator && /tmp/actuator
+# PASS: ORIGINAL_RETAIL_ACTUATOR_51790C_405E30_PASSED
+
+# Same actuator pair with -O1 -g -fsanitize=address,undefined
+# PASS: ORIGINAL_RETAIL_ACTUATOR_51790C_405E30_PASSED
+
+python native/tools/verify_original_pad_actuator.py /private/SCUS_975.01
+# PASS: ORIGINAL_RETAIL_ACTUATOR_ELF_AUDIT_PASSED
+
+# Regressions:
+python native/tools/verify_original_retail_pad.py /private/SCUS_975.01
+python native/tools/verify_original_input_audio_retail.py /private/SCUS_975.01
+# BOTH PASS
+```
+
+### Integrator-only CMake/build request
+
+Prior CMake request for `original_retail_pad.cpp` and `original_retail_pad_test.cpp` still applies. ADD the new input-owned `src/original_pad_actuator.cpp` to the `Getchu3Assets` target; create `Getchu3OriginalPadActuatorTests` from `tests/original_pad_actuator_test.cpp`, link `Getchu3Assets`, register with CTest. Do not modify `native/CMakeLists.txt` in this specialist branch.
+
+At the input seam, `OriginalRetailPadReader::sampleDirect(&packet)` consumes six bytes in **RX,RY,LX,LY** order with little-endian digital mask; `OriginalRetailTwoPortReader_26eb34::sampleDirect({port0OrNull,port1OrNull})` exposes the two independent retail 0x18-byte records. The existing Windows keyboard/XInput sampling adapters may continue to use channel-based `sample(...)`; do NOT run both reading paths per frame unless the authentic engine flow requires both. Physical host motor output must consume `OriginalPadActuatorPacket_517940` using original semantics and only after the game has emitted a verified request; the input subsystem does not translate arbitrary game actions into rumble.
+
+**Outstanding original-game action consumers discovered but NOT yet labeled as gadget mappings:**
+- `0x3439A0` / `0x343D74` read original input at `0x6496F8` and alternate port `0x649710`, testing `0x2000` and `0x4000` masks in condition-dependent branches. Their calling context and effect remain to be reconstructed before claiming gameplay semantics.
+- `0x35D98C` inspects newly-pressed mask `0x6496FC` bit `0x0800`; `0x36A888` inspects newly-pressed bit `0x0004`; `0x36B7EC` tests held bit `0x0004`.
+- `0x3976A8`, `0x39E9C8` read the two analog pairs from `0x649700..0x64970C` in original gameplay code. Do not rewrite gameplay/animation based solely on these xrefs. The game actor action handlers, gadget transitions, and original sound manager remain separate recovery dependencies.
+
+### Scope and verification limits
+
+No modification to `app_win32.cpp`, CMake, source of other teams, global coordination docs, workflow files, or any other branch. No copyrighted original executable/ISO/audio/script assets committed; no GitHub Actions manually launched. **Native Linux isolated tests and owner-ELF audits passed. Full Windows compilation/hardware feedback, audible SE playback and genuine integrated retail gameplay are still unverified.**
