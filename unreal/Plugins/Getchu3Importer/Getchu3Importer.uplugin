@@ -3,12 +3,17 @@
   "Version": 1,
   "VersionName": "0.1.0",
   "FriendlyName": "Ape Escape 3 — Unreal Importer",
-  "Description": "Editor importer of owner-original assets; gameplay unavailable until source-backed implementation.",
+  "Description": "Authentic original-disc importer and recovered Lua 5.0 native engine bridge; gameplay remains blocked until source-backed managers are implemented.",
   "Category": "Importers",
   "CanContainContent": true,
   "IsBetaVersion": true,
   "Installed": false,
   "Modules": [
+    {
+      "Name": "Getchu3OriginalLua",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    },
     {
       "Name": "Getchu3Importer",
       "Type": "Editor",
