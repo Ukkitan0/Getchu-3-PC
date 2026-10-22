@@ -11,7 +11,13 @@
 - `54470c4`, `021624c`: `native/src/gltf_scene.cpp` and `native/tests/gltf_scene_test.cpp`. Removed invented directional sunlight; preserve source-exported baseColorFactor times COLOR_0 and assert exact unmodified color.
 - `d437cf0`, `a91d4c5`, `03a1eac`: `native/tools/audit_original_graphics.py`. Read-only SHA-gated retail ELF analysis of six string-xref groups and a source instruction fingerprint. No executable bytes checked in.
 - `bc982c6`, `7eafa46`, `4402270`: `native/include/ae3/original_render_visibility.hpp`, `native/src/original_render_visibility.cpp`, `native/tests/original_render_visibility_test.cpp`: source-derived first-pass mask/flag/optional bounds-check gate.
-- `b8cf7a7`: `native/docs/ORIGINAL_RETAIL_RENDER_GATE_AND_INSTANCING.md`: detailed VA evidence, MIPS branches, semantics and downstream dependencies.
+- `b8cf7a7`, `bb7841a`: `native/docs/ORIGINAL_RETAIL_RENDER_GATE_AND_INSTANCING.md`: detailed VA evidence, MIPS branches, source-derived renderer selector fields, semantics and downstream dependencies.
+- `1b928ff`, `f4b29df`, `b836070`: `native/include/ae3/original_render_selector.hpp`, `native/src/original_render_selector.cpp`, `native/tests/original_render_selector_test.cpp`: recovered original `0x26AEB4/0x26AEC8/0x26AED4/0x26AEE0` set/read/clear selector lifecycle, `0x26B550` optional actor resource wrapper, route flags at `0x280888–0x2808D0` controlling the resource-selected pass and independent actor flag `+0x33` secondary pass.
+- `5e50b5f`: ELF audit fingerprints all three selector/dispatch instruction regions; no retail bytes checked in.
+
+## Supplemental original rendering source evidence
+
+The original **render resource selector** is now recovered as data/route behavior (not a host D3D draw implementation). Source routines: `0x26AEB4` sets the nested resource's selector at `+0x14` and enables byte `+0x10`; `0x26AEC8` returns byte `+0x10`; `0x26AED4` returns U32 `+0x14`; `0x26AEE0` clears enable without clearing its selected value. `0x26B550` safely returns zero if object pointer at `+0x110` missing, otherwise forwards the enable query; `0x26B57C` forwards selection without a source null check. In render loop `0x280888–0x2808D0`, resource-selected pass is entered only when enabled, while object byte `+0x33` independently gates another draw path. Local read-only SHA256 fingerprints verified on source at `0x26AEB4–0x26AEEC`, `0x26B550–0x26B594`, and `0x280884–0x2808D4`. Exact tests and reference hashes in graphics audit doc.
 
 ## Original executable / graphics evidence
 
@@ -42,11 +48,17 @@ g++ -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror \
   native/tests/original_render_visibility_test.cpp -o /tmp/render_gate_test
 /tmp/render_gate_test
 # PASS: 64-bit render mask, enable flags, conditional original bounds rejection and missing-callback error
+
+g++ -std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror \\
+  -I native/include native/src/original_render_selector.cpp \\
+  native/tests/original_render_selector_test.cpp -o /tmp/render_selector_test
+/tmp/render_selector_test
+# PASS: source-derived set/read/clear semantics, optional owner, selected/secondary render-path flags
 ```
 
-Executed equivalent source with **GCC 14.2.0**: 2/2 focused tests pass. Rebuilt and ran with **Clang 17.0.0**, `-fsanitize=address,undefined -fno-omit-frame-pointer -Werror`: 2/2 pass, no sanitizer diagnostics. During local test compilation a copy of the repository's public `gltf_scene.hpp` was used, no proprietary data.
+Executed equivalent source with **GCC 14.2.0**: 2/2 initial focused tests pass. Rebuilt and ran with **Clang 17.0.0**, `-fsanitize=address,undefined -fno-omit-frame-pointer -Werror`: 2/2 initial tests pass, no sanitizer diagnostics. Also ran new selector lifecycle/dispatch test with **both GCC and Clang**, `-O2 -Werror` and `-O1 -fsanitize=address,undefined -fno-omit-frame-pointer -Werror`: **4/4 additional compiler/configuration tests pass**, no sanitizer diagnostics. During local test compilation a copy of the repository's public `gltf_scene.hpp` was used, no proprietary data.
 
-Re-ran source-equivalent SHA/xref audit against the private 6,488,148-byte ELF: 6/6 anchors and 12/12 reference VAs match expected; retail gate instruction fingerprint matches. The newly committed Python script was not itself executed from a complete GitHub checkout. Updated GLB color regression test was added but **has not been run** against cgltf in the offline environment. No whole-project CMake/CTest run and no native Windows game boot/actual stage draw occurred in this workstream.
+Re-ran source-equivalent SHA/xref audit against the private 6,488,148-byte ELF: 6/6 anchors and 11/11 reference VAs match expected; retail gate instruction fingerprint matches. The newly committed Python script was not itself executed from a complete GitHub checkout. Updated GLB color regression test was added but **has not been run** against cgltf in the offline environment. No whole-project CMake/CTest run and no native Windows game boot/actual stage draw occurred in this workstream.
 
 ## Precise request for Windows Runtime integrator
 
@@ -55,13 +67,17 @@ Only integration owner should edit `native/CMakeLists.txt` and `app_win32.cpp`.
 ```cmake
 target_sources(Getchu3Assets PRIVATE
   src/original_render_instances.cpp
-  src/original_render_visibility.cpp)
+  src/original_render_visibility.cpp
+  src/original_render_selector.cpp)
 add_executable(Getchu3OriginalRenderInstancesTests tests/original_render_instances_test.cpp)
 target_link_libraries(Getchu3OriginalRenderInstancesTests PRIVATE Getchu3Assets)
 add_test(NAME OriginalRenderInstances COMMAND Getchu3OriginalRenderInstancesTests)
 add_executable(Getchu3OriginalRenderVisibilityTests tests/original_render_visibility_test.cpp)
 target_link_libraries(Getchu3OriginalRenderVisibilityTests PRIVATE Getchu3Assets)
 add_test(NAME OriginalRetailRenderEarlyGate COMMAND Getchu3OriginalRenderVisibilityTests)
+add_executable(Getchu3OriginalRenderSelectorTests tests/original_render_selector_test.cpp)
+target_link_libraries(Getchu3OriginalRenderSelectorTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailRenderSelectorAndDispatch COMMAND Getchu3OriginalRenderSelectorTests)
 ```
 
 To use real owner asset data (illustrative glue to be placed **only** by integrator):
@@ -93,13 +109,13 @@ One **separate NativeSkinnedGlb per animated actor** is required to avoid shared
 ## Outstanding blockers (not disguised as completion)
 
 1. No private full stage/model GLB/PCK assets were available for a real rendering test. Coordination: **Assets team** must surface exact, source-derived texture/material/model and I3M ownership/path mappings; no asset bytes in repo.
-2. Decompile and wire `0x26C9B8` render cull dependency, `0x26B550/0x26B57C` render-state calls, `0x2803B4/0x2804F4` draw paths, second render sub-pass near `0x280D90`. Source behavior and function boundaries currently **partially** recovered.
+2. Decompile and wire `0x26C9B8` render cull dependency, **remaining behavior and tables downstream of already recovered `0x26B550/0x26B57C` selector wrappers**, `0x2803B4/0x2804F4` draw paths, second render sub-pass near `0x280D90`. Source behavior and function boundaries currently **partially** recovered.
 3. **Gameplay and Lua** must supply original object IDs, bone/attachment mappings, per-actor clip indices/pose times, visibility masks/flags, and stage transforms. **Windows Runtime** must connect this queue to the actual game update/draw loop.
 4. Original camera matrices, material render modes, transparency, depth sort/LOD, textures, PS2-specific effects and lighting remain unrecovered. Host-native staging is not proof of visual accuracy.
 5. End-to-end tests still required on real owner-original models, animations, monkey actors, levels, runtime frames, Windows Direct3D device and original game state.
 
 ## Next connected native pass
 
-Reverse engineer the **complete original render traversal** starting at `0x2807xx` and its second pass `0x280Dxx`; recover `0x26C9B8` bounds and `0x26B550` graphics state dispatch, then attach those to render-instance visibility and GPU draw submissions without guessed behavior. Obtain original model inputs from Assets and test original stage and actor scene composition before any playable claim.
+Reverse engineer the **complete original render traversal** starting at `0x2807xx` and its second pass `0x280Dxx`; recover `0x26C9B8` bounds and the remaining graphics dispatch downstream of recovered `0x26B550/0x26B57C`, then attach those to render-instance visibility and GPU draw submissions without guessed behavior. Obtain original model inputs from Assets and test original stage and actor scene composition before any playable claim.
 
 **Boundaries respected:** no original copyrighted ELF/models/Lua/PCK textures committed, no PS2 emulation/replacement scene, no cross-owner CMake/app edits, no manual GitHub Actions.
