@@ -159,7 +159,26 @@ def verify_and_audit(elf: bytes) -> dict:
             "end_va_exclusive": f"0x{end:08x}",
             "source_sha256": computed,
         })
+    # Source-verified original model draw bridge and full five-segment
+    # packet assembler. Do not mistake this proof of instruction provenance
+    # for completion of 0x27C614, 0x27C520 or the VU-assisted actor path.
+    packet_ranges = [
+        (0x280364, 0x2803B4, "e59a2f65148e03ce001d7efd4418e067b8554e7e06237db10450a1f327fefbb9"),
+        (0x3AF8F0, 0x3AF9C4, "203f02462c8b8e43621242b6d67147c0beeaa91aedb52feb990f4a92b08fb7ea"),
+        (0x3AF8B8, 0x3AF8F0, "6fc509515ce05af8fc878d9cc797a9f5028a4abbbf1445700a3fb086d6927b0c"),
+        (0x3AF478, 0x3AF530, "7dfd9036d8b7b34767af38b93d11aa646250b1459e981b5326983920ff9ae40e"),
+    ]
+    packet_evidence = []
+    for first, end, expected in packet_ranges:
+        span = elf[first - TEXT_VA + TEXT_FILE:end - TEXT_VA + TEXT_FILE]
+        actual = hashlib.sha256(span).hexdigest()
+        if actual != expected:
+            raise ValueError(f"retail graphics packet assembler changed at {first:#x}")
+        packet_evidence.append({"start_va": f"0x{first:08x}",
+                                "end_va_exclusive": f"0x{end:08x}",
+                                "sha256": actual})
     report = {
+        "source_verified_original_model_packet_pipeline": packet_evidence,
         "source_verified_render_context_and_actor_entry": recovered_graphics_evidence,
         "source_verified_render_owner": owner_evidence,
         "source_verified_draw_traversal": render_evidence,
