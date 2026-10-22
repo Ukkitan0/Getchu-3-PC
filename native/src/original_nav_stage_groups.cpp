@@ -41,6 +41,16 @@ void OriginalNavStageGroupSession::originalRebindSourceGraph() {
 }
 OriginalNavGroupBuildResult OriginalNavStageGroupSession::originalRegisterRange_4e4060(
     const OriginalNavGroupSource& range) {
+    return originalRegisterRangeImpl_4e4060(range,nullptr);
+}
+OriginalNavGroupBuildResult
+OriginalNavStageGroupSession::originalRegisterRangeWithSourcePredicate_4e4060(
+    const OriginalNavGroupSource& range, OriginalNavGroupEligibility& eligibility) {
+    return originalRegisterRangeImpl_4e4060(range,&eligibility);
+}
+OriginalNavGroupBuildResult OriginalNavStageGroupSession::originalRegisterRangeImpl_4e4060(
+    const OriginalNavGroupSource& range,
+    OriginalNavGroupEligibility* eligibility) {
     if(!originalCurrentSourceGraph())
         throw std::logic_error("Stale stage graph: rebind navrange before registration");
     if(registrationFailed_)
@@ -53,8 +63,18 @@ OriginalNavGroupBuildResult OriginalNavStageGroupSession::originalRegisterRange_
     // even if population throws after a partial mutation.
     OriginalNavGroupBuildResult result{};
     try {
-        result=originalNavBuildGroupsRecovered_4e4060(
-            registry_,range,live.decodedGraph->records,originalNavBytes(live));
+        if(eligibility) {
+            // Delegate to the already recovered original 0x4E4060 ->
+            // 0x21F6D4 registration, preserving actual source callbacks.
+            result=originalNavBuildGroups_4e4060(
+                registry_,range,live.decodedGraph->records,
+                originalNavBytes(live),*eligibility);
+        } else {
+            // Existing opt-in source-derived approximation; still not
+            // proven bit-exact to the retail COP2/MMI predicate.
+            result=originalNavBuildGroupsRecovered_4e4060(
+                registry_,range,live.decodedGraph->records,originalNavBytes(live));
+        }
     } catch(...) {
         // The source registry may already contain a prefix of the
         // original front-inserted polygon nodes. Native callers must

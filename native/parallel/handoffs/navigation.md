@@ -309,3 +309,21 @@ python -m unittest discover -s native/tools -p test_analyze_original_nav_control
 **Local verification, this turn:** the standalone synthetic unit suite was actually executed in the container: 8/8 `unittest` tests passed. It checks original address/branch arithmetic, decoded verified opcode anchors, branch-delay and basic-block metadata, likely-branch delay annulment, unresolved COP2/MMI instructions, and rejection of nonmatching ELF input. The authored test/tool source was SHA-matched to the GitHub blobs using `git hash-object` before committing. **Real `SCUS_975.01` was not mounted here**: the full original `0x57BCB8` report was not produced, its remaining instructions were not recovered, and no actual native gameplay/controller behavior was implemented or tested. This is a source-recovery aid toward completing the blocking actor constructor, not a substitute for it.
 
 **Next mandatory step to recover actual runtime:** run the verifier and new instruction report against the user's SHA-pinned executable, map unknown loads/stores and COP1 comparisons to source actor and route owner fields, implement exact branch behavior in navigation-owned `original_actor_nav_controller.cpp` (and necessary callers), test stage actor runtime together with VU0-owned physics via the integration team. No source files from other teams, global CMake, game bytes, master branch or GitHub Actions were modified in this pass.
+
+
+## 2026-10-22: Exact-eligibility integration path for original navrange registration
+
+New overload in `native/include/ae3/original_nav_stage_groups.hpp` and `native/src/original_nav_stage_groups.cpp`:
+```cpp
+OriginalNavGroupBuildResult
+OriginalNavStageGroupSession::originalRegisterRangeWithSourcePredicate_4e4060(
+    const OriginalNavGroupSource& source,
+    OriginalNavGroupEligibility& exactRecoveredPredicate);
+```
+
+This routes the caller's **actual recovered result of `0x21EF3C`** to the already recovered `originalNavBuildGroups_4e4060` and `originalNavPopulateList_21f6d4`. The original front-insertion and exact-zero acceptance rule are preserved. It uses the same source graph, keyed ownership, registration exception handling, partial-population poisoning and group-version invalidation as the existing `originalRegisterRange_4e4060`. There is no new pathfinder or replacement navrange predicate. The existing convenience overload **still uses non-bit-exact mathematical approximation** `originalNavBuildGroupsRecovered_4e4060`; callers requiring original fidelity should use the new callback overload once `0x21EF3C` is recovered with executable evidence.
+
+`native/tests/original_nav_stage_groups_test.cpp` now supplies a deterministic **test-only** predicate: verifies two source key groups, eight original per-polygon predicate calls, four inserted source polygon pointers, original reversed/front insertion order, keyed route selection through the existing `0x2207D0` dispatcher, duplicate registration retaining route validity, thrown original predicate invalidating partial registration, and explicit clear/rebuild. Test fake predicate is **only** a fixture; never substitute it in gameplay.
+
+**Verification:** Source and tests were added to `parallel/navigation`; the full native C++ test has **not** been compiled or executed in this environment, and the real `0x21EF3C` callback has not been recovered. This is an integration boundary improvement, not a claim that navrange eligibility or NPC navigation has become accurate or playable. Source runtime and VU0 teams must still supply real executable-verified `0x21EF3C` behavior; no files in those workstreams were changed.
+

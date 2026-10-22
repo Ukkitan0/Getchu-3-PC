@@ -147,6 +147,69 @@ int main(){
        "Original type-2 source target vector not preserved");
     ck(!originalNavStageType2Target_57bdb8(owners,unfiltered),
        "Original type-0 edge invoked type-2 target path");
+    // An exact recovered 0x21EF3C callback may now feed original
+    // 0x4E4060 -> 0x21F6D4 directly, without silently using the
+    // mathematically approximate navrange score.
+    struct OriginalPredicate final:OriginalNavGroupEligibility {
+        unsigned calls=0;
+        float call_original_21ef3c(
+            const OriginalNavGroupKey20&,
+            const OriginalSpatialRecord70&,
+            const OriginalVU0Vec4& centroid) override {
+            ++calls;
+            return (centroid.x==0.f || centroid.x==2.f)?0.f:1.f;
+        }
+    } exactPredicate;
+    OriginalNavStageGroupSession sourceExact(owners,1);
+    const auto exactPopulation=sourceExact.originalRegisterRangeWithSourcePredicate_4e4060(
+        resource,exactPredicate);
+    ck(exactPopulation.sourceGroups==2 && exactPopulation.ownersCreated==2 &&
+       exactPopulation.sourcePolygonsInserted==4 && exactPredicate.calls==8,
+       "Original callback-based navrange registration did not preserve polygon scan");
+    for(const auto& key:keys) {
+        const auto* list=sourceExact.originalGroups().originalFind_36d6f4(key);
+        ck(list && list->originalList()->originalOrderedValues()==
+            std::vector<const OriginalSpatialRecord70*>({
+                &owners.originalAt(1).decodedGraph->records[2],
+                &owners.originalAt(1).decodedGraph->records[0]}),
+            "Original source predicate registration changed front-insertion ordering");
+    }
+    OriginalNavDispatchRequest fromOriginalPredicate{};
+    fromOriginalPredicate.sourceSeedIndex=0;
+    fromOriginalPredicate.originalReference={0,0,0,1};
+    fromOriginalPredicate.maximumDistance=100;
+    fromOriginalPredicate.routeMode=0;
+    const auto selected=sourceExact.originalBoundRouteByKey_2207d0(
+        keys[0],fromOriginalPredicate);
+    ck(selected.sourceRoute.originalForwardSourcePolygons==
+       std::vector<std::uint32_t>({0,2}) &&
+       sourceExact.originalGroupedRouteCurrent(selected),
+       "Exact callback navigation list did not feed original route dispatcher");
+    ck(sourceExact.originalRegisterRangeWithSourcePredicate_4e4060(
+        resource,exactPredicate).sourcePolygonsInserted==0 &&
+       sourceExact.originalGroupedRouteCurrent(selected),
+       "Duplicate original callback registration should preserve a route");
+    struct OriginalThrows final:OriginalNavGroupEligibility {
+        unsigned calls=0;
+        float call_original_21ef3c(
+            const OriginalNavGroupKey20&,
+            const OriginalSpatialRecord70&,
+            const OriginalVU0Vec4&) override {
+            if(++calls==2)throw std::runtime_error("original eligibility unresolved");
+            return 0.f;
+        }
+    } throwsPredicate;
+    OriginalNavStageGroupSession interrupted(owners,1);
+    bool rejectedOriginal=false;
+    try{(void)interrupted.originalRegisterRangeWithSourcePredicate_4e4060(
+        resource,throwsPredicate);}
+    catch(const std::runtime_error&){rejectedOriginal=true;}
+    ck(rejectedOriginal && interrupted.originalRegistrationNeedsReset(),
+       "Failed recovered predicate did not invalidate partial group ownership");
+    interrupted.originalClear_4e3fec();
+    ck(interrupted.originalRegisterRangeWithSourcePredicate_4e4060(
+        resource,exactPredicate).sourcePolygonsInserted==4,
+       "Exact source registration failed after clearing a partial original callback");
     // Releasing one original slot invalidates only its stage group
     // session and routes. The other slot is independent.
     owners.originalReleaseSlot_21d7d8(0);

@@ -38,6 +38,14 @@ public:
     OriginalNavGroupBuildResult originalRegisterRange_4e4060(
         const OriginalNavGroupSource& originalRange);
 
+    // Use when the caller has recovered original 0x21EF3C exactly.
+    // Unlike the approximation above, this passes the original
+    // predicate through real 0x21F6D4 polygon population unchanged.
+    // The stage/group owner and exception/lifetime rules are identical.
+    OriginalNavGroupBuildResult originalRegisterRangeWithSourcePredicate_4e4060(
+        const OriginalNavGroupSource& originalRange,
+        OriginalNavGroupEligibility& originalEligibility);
+
     // The caller supplies the group key selected by original stage/
     // script control flow. An absent key is an explicit failure, not
     // guessed membership or an invented alternative destination.
@@ -70,6 +78,9 @@ public:
         return registry_;
     }
 private:
+    OriginalNavGroupBuildResult originalRegisterRangeImpl_4e4060(
+        const OriginalNavGroupSource& originalRange,
+        OriginalNavGroupEligibility* originalEligibility);
     const OriginalNavStageOwners_21ed30& owners_;
     std::size_t slot_;
     std::uint64_t ownerToken_;
