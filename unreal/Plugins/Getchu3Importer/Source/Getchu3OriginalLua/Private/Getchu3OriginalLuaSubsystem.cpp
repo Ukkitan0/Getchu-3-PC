@@ -152,7 +152,7 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
     }
 
     Manager = SourceManager; // Strong UPROPERTY retained through native callbacks.
-    Ae3LuaManagerV1 Bindings{};
+    Ae3LuaManagerV2 Bindings{};
     Bindings.api_version = AE3_LUA_BRIDGE_API_VERSION;
     Bindings.struct_size = sizeof(Bindings);
     Bindings.user = this;
