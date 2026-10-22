@@ -193,3 +193,20 @@ Original ownership integration sequence:
 - **Windows Runtime:** integrate scene queue and original render ownership into its native game loop and update CMake/tests. Full Windows build and D3D11 visual tests are integration-owned.
 - **Graphics itself:** decode `0x2803B4`, `0x26831C`, `0x2804F4`, resource tables/material state, second-pass render effects, actual original camera and matrix hierarchy, then validate genuine levels/monkeys/animation against private assets. Source-driven event order is **not** complete graphics rendering.
 
+
+
+### Joined native render pipeline verification
+
+- Commit `e9b7c15`: `native/tests/original_render_pipeline_test.cpp` exercises the recovered modules **together**, not separately: original owner 64-bit frame modulo selects two stage/animated actor objects across successive frames; primary-pass original visibility checks preserve those IDs; `composeFrameInOriginalOrder` produces correctly translated Direct3D11 `StaticScene` vertices, source color factors, texture batches and the independently sampled actor clip. The secondary pass verifies unconditional original cull calls and unchanged order for both original objects.
+- Test uses an explicitly game-free triangle as a structural unit-test fixture, **not** a runtime game model replacement.
+- Compiled and executed on GCC 14.2.0 `-std=c++20 -O2 -Wall -Wextra -Wpedantic -Werror`: **PASS**.
+- Compiled and executed on Clang 17.0.0 `-std=c++20 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer -Wall -Wextra -Wpedantic -Werror`: **PASS**, no sanitizer findings.
+- Total this continuation: **six source-owned focused suites, twelve successful GCC/Clang test executions**. Real stage rendering and Windows app integration are still unverified.
+- Windows integration owner: include the joined test in `native/CMakeLists.txt`:
+
+```cmake
+add_executable(Getchu3OriginalRenderPipelineTests tests/original_render_pipeline_test.cpp)
+target_link_libraries(Getchu3OriginalRenderPipelineTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRenderOwnerThroughNativeScenePipeline COMMAND Getchu3OriginalRenderPipelineTests)
+```
+
