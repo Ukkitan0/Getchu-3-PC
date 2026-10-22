@@ -68,6 +68,8 @@ OriginalNavStageRouteSnapshot originalNavStageDispatch_2207d0(
     snapshot.sourceOwnerSlot=ownerSlot;
     snapshot.hostStageOwnerToken=owners.originalHostOwnerToken();
     snapshot.hostOwnerRevision=slot.hostRevision;
+    snapshot.hostEphemeralMembershipFilter=
+        !member && request.sourceMembershipListExists;
     if(member) {
         const auto* list=member->originalList();
         snapshot.hostMembershipBound=true;

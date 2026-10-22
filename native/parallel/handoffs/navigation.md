@@ -263,6 +263,14 @@ A remaining native ownership defect existed in `originalNavStageDispatch_2207d0(
 
 The original USA source addresses above remain grounded in the preexisting SHA-pinned verifier scripts; the private `SCUS_975.01` and game PCK were not present to re-disassemble or compare in this turn. No assets, master branch, shared CMake, VU0 code or GitHub Actions were changed.
 
+## Ephemeral original membership-span lifetime guard
+
+The original route helper accepts `OriginalNavDispatchRequest::sourceMembershipListExists` and `orderedOriginalMembershipList` as a caller-supplied `std::span`, even when no real `OriginalNavListOwner` exists. That is a valid immediate native source query, but the supplied view has **no** original `0x21F604` owner, no native circular-list mutation token and no way to observe a subsequent key/source-membership update.
+
+`OriginalNavStageRouteSnapshot::hostEphemeralMembershipFilter` now explicitly labels such temporary-filter results. `originalNavStageDispatch_2207d0` still runs the **same** recovered original search, returns the same route, and permits immediate source edge/polygon diagnostics. `OriginalNavActorRouteBinding::originalUseStageRoute_2207d0` and grouped actor binding reject the ephemeral flag, preserving any earlier actor route instead of storing an untrackable temporary membership selection. Persistent actor routes must use a real `OriginalNavListOwner` (which now carries the weak generation state) or a live keyed `OriginalNavStageGroupSession`. The source `0x2207D0`, `0x4E3DAC` and `0x221104` behavior remains untouched.
+
+Additional assertions in `original_nav_stage_route_test.cpp` and `original_nav_actor_binding_test.cpp` verify that an immediate span-only query stays available, is marked ephemeral, and cannot replace a good actor route. These full native tests were **not run** in this network-isolated workspace; the previous isolated 100,000-case C++20 list fuzz test remains the only executed test for this pass.
+
 ## Remaining original blockers
 
 1. Decompile source `0x57BCB8` original controller post-constructor and subsequent real actor movement/state transitions using original executable input.

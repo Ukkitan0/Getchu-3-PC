@@ -40,6 +40,10 @@ struct OriginalNavStageRouteSnapshot {
     // the dispatch returns. Weak state invalidates list mutation and
     // destruction even when the stage graph itself is unchanged.
     bool hostMembershipBound=false;
+    // Explicit span-only filters are valid for an immediate original
+    // query but have no durable membership owner to observe. Do not
+    // retain this snapshot in a long-lived native actor.
+    bool hostEphemeralMembershipFilter=false;
     std::uint64_t hostMembershipGeneration=0;
     std::weak_ptr<const OriginalNavNativeListRevision> hostMembershipState;
     bool originalFallbackUsed=false;

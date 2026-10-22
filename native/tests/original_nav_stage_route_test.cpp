@@ -182,6 +182,20 @@ int main(int argc,char**argv){
           early.sourceTargetsApplied==0 && callbacks.applied==appliedBefore &&
           current==&sourceRecords[1],
           "Original actor active-target match must not select another route polygon");
+    // A source-list span without a live original 0x21F604 owner may
+    // be used for immediate 0x2207D0 selection, but cannot carry
+    // native list-mutation identity across a later actor update.
+    const std::array<const OriginalSpatialRecord70*,2> ephemeralIds{{
+        &sourceRecords[0],&sourceRecords[2]}};
+    OriginalNavDispatchRequest temporaryRequest=q;
+    temporaryRequest.sourceMembershipListExists=true;
+    temporaryRequest.orderedOriginalMembershipList=ephemeralIds;
+    const auto temporaryRoute=originalNavStageDispatch_2207d0(
+        owners,0,temporaryRequest);
+    check(temporaryRoute.hostEphemeralMembershipFilter &&
+          !temporaryRoute.hostMembershipBound &&
+          originalNavStageRouteCurrent(owners,temporaryRoute),
+          "Original explicit membership filter was silently promoted to owned state");
     // Direct borrowed source filter must reject foreign pointers as
     // rigorously as a registered original navrange list owner.
     OriginalNavDispatchRequest foreignReq=q;

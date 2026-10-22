@@ -170,6 +170,26 @@ int main() {
     requery.routeMode=0;
     ck(actor.originalRetargetStage_2207d0(0,requery),
        "Original actor failed to regenerate route after no-route response");
+    // A raw source-membership span is only a short-lived route query:
+    // changing the external array cannot update a native owner token.
+    const std::array<const OriginalSpatialRecord70*,2> ephemeralMembers{{
+        &records[0],&records[1]}};
+    OriginalNavDispatchRequest ephemeralQuery=requery;
+    ephemeralQuery.sourceSeedIndex=0;
+    ephemeralQuery.sourceMembershipListExists=true;
+    ephemeralQuery.orderedOriginalMembershipList=ephemeralMembers;
+    auto temporaryFiltered=originalNavStageDispatch_2207d0(
+        stage,0,ephemeralQuery);
+    ck(temporaryFiltered.hostEphemeralMembershipFilter &&
+       originalNavStageRouteCurrent(stage,temporaryFiltered),
+       "Original span-only source query lost ephemeral membership classification");
+    actor.originalUseStageRoute_2207d0(plain);
+    bool refusedEphemeral=false;
+    try{actor.originalUseStageRoute_2207d0(temporaryFiltered);}
+    catch(const std::invalid_argument&){refusedEphemeral=true;}
+    ck(refusedEphemeral&&actor.originalRouteCurrent() &&
+       actor.originalPathLength()==3,
+       "Untracked source-membership span replaced a valid long-lived actor route");
     // Direct original 0x21F604 membership owner routes must also
     // expire when 0x21F82C inserts or 0x21F64C releases that list.
     OriginalNavListOwner direct;
