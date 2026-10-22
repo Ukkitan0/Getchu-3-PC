@@ -33,7 +33,9 @@ struct Candidate:OriginalActorFallbackVU0Transform_57ca68 {
        const std::array<std::array<std::byte,16>,3>& bytes,
        const std::array<std::byte,16>& originalOwnerA1,
        const std::array<std::byte,16>& originalControllerA2,
+       std::uint32_t originalQ,
        const OriginalActorTriangleWeights_57c98c&,std::size_t index) override {
+        require(originalQ==0x3fc90fdau,"Original VU0 Q not forwarded into fallback candidate");
         require(originalOwnerA1[0]==std::byte(0xab),
             "Original fallback $a1 not actor owner's +0x14->+0x40 vector");
         require(originalControllerA2[0]==std::byte(0),
@@ -69,6 +71,11 @@ static void runPolygon(const OriginalSpatialRecord70& original,
     std::array<std::byte,16> ownerVector{};
     ownerVector[0]=std::byte(0xab);
     pipeline.setOriginalFallbackOwnerVector_57ca68(ownerVector);
+    bool missingQRejected=false;
+    try{(void)pipeline.advance(state);}
+    catch(const std::invalid_argument&){missingQRejected=true;}
+    require(missingQRejected,"Original VU0 Q was silently guessed or defaulted");
+    pipeline.setOriginalFallbackQBits_57ca68(0x3fc90fdau);
     const auto result=pipeline.advance(state);
     require(result.sourceTargetsApplied==1&&result.sourceProjectionsPerformed==0,
             "Original route[1] initial target must bypass projection");

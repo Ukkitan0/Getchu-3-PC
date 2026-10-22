@@ -32,6 +32,10 @@ void OriginalActorNavigationPipeline_57c7cc::setOriginalFallbackOwnerVector_57ca
     const std::array<std::byte,16>& sourceOwnerVector) {
     originalOwner14Vector40_=sourceOwnerVector;
 }
+void OriginalActorNavigationPipeline_57c7cc::setOriginalFallbackQBits_57ca68(
+    std::uint32_t originalQ) {
+    originalFallbackQBits_=originalQ;
+}
 std::size_t OriginalActorNavigationPipeline_57c7cc::sourceIndex(
     const OriginalSpatialRecord70& polygon) const {
     // Use equality instead of undefined host pointer-range comparisons.
@@ -57,9 +61,11 @@ std::uint64_t OriginalActorNavigationPipeline_57c7cc::call_original_57ca68_geome
         if(!originalOwner14Vector40_)
             throw std::invalid_argument(
                 "Original 0x57CA68 owner+0x14->+0x40 vector missing; cannot reuse controller+0x20");
+        if(!originalFallbackQBits_)
+            throw std::invalid_argument("Original VU0 Q input not supplied for VMULq fallback transform");
         return originalActorFallbackSelect_57ca68(
             target,*originalOwner14Vector40_,controllerVector20_,
-            *originalSharedRandom_,*originalFallbackTransform_)
+            *originalFallbackQBits_,*originalSharedRandom_,*originalFallbackTransform_)
             .originalWinningPackedTargetLow64;
     }
     return math_.call_original_57ca68_fallback(target);

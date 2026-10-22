@@ -26,6 +26,10 @@ void OriginalStageActorNavigation_57c7cc::setOriginalFallbackOwnerVector_57ca68(
     const std::array<std::byte,16>& sourceOwnerVector) {
     pipeline_.setOriginalFallbackOwnerVector_57ca68(sourceOwnerVector);
 }
+void OriginalStageActorNavigation_57c7cc::setOriginalFallbackQBits_57ca68(
+    std::uint32_t sourceQ) {
+    pipeline_.setOriginalFallbackQBits_57ca68(sourceQ);
+}
 void OriginalStageActorNavigation_57c7cc::setOriginalTargetAt50(
     const OriginalSpatialRecord70* target) {
     if(target){

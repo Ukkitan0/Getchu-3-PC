@@ -36,6 +36,7 @@ public:
     // not actor movement input or controller+0x20.
     void setOriginalFallbackOwnerVector_57ca68(
         const std::array<std::byte,16>& originalOwner14Vector40);
+    void setOriginalFallbackQBits_57ca68(std::uint32_t rawOriginalQ);
 
     // The route span belongs to the caller and must remain valid
     // through advance(). Returned polygon identities belong to stage.

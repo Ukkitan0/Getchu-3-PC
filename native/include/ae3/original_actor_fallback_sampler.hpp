@@ -25,6 +25,7 @@ public:
         const std::array<std::array<std::byte,16>,3>& originalSourcePolygonVertices,
         const std::array<std::byte,16>& originalInputA1OwnerVector,
         const std::array<std::byte,16>& originalInputA2Controller20,
+        std::uint32_t originalVU0QBits,
         const OriginalActorTriangleWeights_57c98c& sourceRandomWeights,
         std::size_t sourceCandidateNumber)=0;
 };
@@ -45,6 +46,7 @@ OriginalActorFallbackSelection_57ca68 originalActorFallbackSelect_57ca68(
     const OriginalSpatialRecord70& originalPolygon,
     const std::array<std::byte,16>& originalInputA1OwnerVector,
     const std::array<std::byte,16>& originalInputA2Controller20,
+    std::uint32_t originalVU0QBits,
     OriginalGameRandom_36f3c0& originalSharedRNG,
     OriginalActorFallbackVU0Transform_57ca68& originalVU0,
     OriginalActorFallbackVu0R_57ca68* originalVu0R=nullptr);

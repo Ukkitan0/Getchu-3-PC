@@ -5,6 +5,7 @@ OriginalActorFallbackSelection_57ca68 originalActorFallbackSelect_57ca68(
     const OriginalSpatialRecord70& originalPolygon,
     const std::array<std::byte,16>& originalInputA1OwnerVector,
     const std::array<std::byte,16>& originalInputA2Controller20,
+    std::uint32_t originalVU0QBits,
     OriginalGameRandom_36f3c0& sourceRNG,
     OriginalActorFallbackVU0Transform_57ca68& originalVU0,
     OriginalActorFallbackVu0R_57ca68* originalVu0R) {
@@ -21,7 +22,8 @@ OriginalActorFallbackSelection_57ca68 originalActorFallbackSelect_57ca68(
         // completion until that source routine is ported.
         const auto candidate=originalVU0.call_original_57ca68_candidate_VU0(
             originalVertices,originalInputA1OwnerVector,
-            originalInputA2Controller20,originalWeights,sample);
+            originalInputA2Controller20,originalVU0QBits,
+            originalWeights,sample);
         // Original source emits two VU0 VRINIT(VF0.w) / VRXOR(VF0.x)
         // pairs per candidate, distinct from the two EE game RNG draws.
         // Their final state is observable after the candidate transform;

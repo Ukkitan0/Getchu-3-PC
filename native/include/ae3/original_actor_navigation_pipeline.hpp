@@ -58,6 +58,9 @@ public:
     // distinct from the $a2 loaded at controller+0x20.
     void setOriginalFallbackOwnerVector_57ca68(
         const std::array<std::byte,16>& originalOwner14Vector40);
+    // VU0 Q is caller-owned COP2 state. This original routine invokes
+    // VMULq four times in two source blocks but never writes Q itself.
+    void setOriginalFallbackQBits_57ca68(std::uint32_t rawOriginalQ);
 
     OriginalActorRouteFollowResult_57c7cc advance(
         OriginalActorRouteFollowerState_57c7cc& originalActorRoute);
@@ -89,6 +92,7 @@ private:
     OriginalActorFallbackVU0Transform_57ca68* originalFallbackTransform_=nullptr;
     std::span<const OriginalPolygonLinks_21bd3c> originalSourceAdjacency_;
     std::optional<std::array<std::byte,16>> originalOwner14Vector40_;
+    std::optional<std::uint32_t> originalFallbackQBits_;
     std::optional<OriginalVU0Vec4> originalIncomingRayA1_;
     std::optional<OriginalVU0Vec4> originalController40_;
     std::optional<OriginalVU0Vec4> latestTargetRayA2_;
