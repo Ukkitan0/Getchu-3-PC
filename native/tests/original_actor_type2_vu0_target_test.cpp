@@ -1,4 +1,5 @@
 #include "ae3/original_actor_type2_vu0_target.hpp"
+#include "ae3/original_actor_type2_target.hpp"
 #include "ae3/original_vu0_geometry.hpp"
 #include <array>
 #include <bit>
@@ -77,12 +78,15 @@ int main(int argc,char**argv){
         const unsigned n=u32(b,0x24),hdr=u32(b,0x3c),vbase=u32(b,0x40);
         ck(n==(graph?20u:39u),"Original polygon group count");
         std::vector<std::array<std::array<std::byte,16>,3>> polygonBytes(n);
+        std::vector<OriginalSpatialRecord70> nativeRecords(n);
         for(unsigned id=0;id<n;++id){
             ck(u16(b,hdr+30*id+0x16)==3,"Original triangle vertex count");
             for(unsigned v=0;v<3;++v){
                 const unsigned at=vbase+16*u16(b,hdr+30*id+0x18+2*v);
                 ck(at+16<=b.size(),"Source vertex outside PCK");
                 std::memcpy(polygonBytes[id][v].data(),b.data()+at,16);
+                std::memcpy(nativeRecords[id].originalFields.data()+0x40+16*v,
+                            b.data()+at,16);
             }
             verify(polygonBytes[id],5489u+polygons);
             ++polygons;
@@ -96,6 +100,24 @@ int main(int argc,char**argv){
                 const unsigned kind=u16(b,desc+10+2*edge);
                 ck(dest<n,"Source type-two destination out of range");
                 if(kind==2){
+                    // Connect source 0x57BDB8 native NAV selection to
+                    // the new 0x57BDCC..BED4 type-two VU0/controller write.
+                    // The genuine 2-entry route ends at this action-kind-2
+                    // source destination. Navigation code stays read-only.
+                    const std::array<std::uint32_t,2> sourceRoute{id,dest};
+                    const auto nav=originalActorType2Target_57bdb8(
+                        nativeRecords,sourceRoute);
+                    ck(nav.targetPolygonAt50==&nativeRecords[dest],
+                       "Native original type-two route selected wrong polygon");
+                    ck(nav.rawOriginalVertices==polygonBytes[dest],
+                       "Original navigation source vertex bytes were altered");
+                    OriginalGameRandom_36f3c0 integratedRNG(5489);
+                    std::array<std::byte,16> controller40{};
+                    const auto moved=originalActorType2VU0WriteController40_57bdcc(
+                        nav.rawOriginalVertices,integratedRNG,controller40);
+                    ck(std::memcmp(&moved,controller40.data(),16)==0 &&
+                       integratedRNG.originalCursor()==1,
+                       "Original native route -> VU0 -> SQC2 controller+0x40 chain failed");
                     for(unsigned seed:{0u,1u,5489u,0xffffffffu})
                         verify(polygonBytes[dest],seed);
                     ++kindTwo;
