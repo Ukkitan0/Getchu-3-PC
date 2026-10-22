@@ -34,6 +34,28 @@ if (read_u8(object+0x32) != 0 &&
 
 `native/src/original_render_visibility.cpp` implements only this exact early gate, taking extracted values from original game owner objects. A callback supplies the **unrecovered** `0x26C9B8` spatial rejection; it throws instead of supplying guessed frustum behavior when the callback is needed but missing. Downstream `0x26B550`, `0x26B57C`, `0x2803B4`, `0x2804F4`, `0x3B76F8`, and their draw/visibility consequences remain unported. This gate returning `true` means *eligible for subsequent original routines*, **not guaranteed visible**.
 
+## Source-backed resource selector and render-path dispatch
+
+This newly recovered connected set comes from verified original `SCUS_975.01`:
+
+| Retail VA | Original MIPS field behavior | Native equivalent |
+| --- | --- | --- |
+| `0x26AEB4–0x26AEC4` | `lw inner,0(handle)`; `sw a1,0x14(inner)`; `sb 1,0x10(inner)` | `originalSetRenderSelector` |
+| `0x26AEC8–0x26AED0` | `lbu v0,0x10(inner)` | `originalReadRenderSelectorActive` |
+| `0x26AED4–0x26AEDC` | `lw v0,0x14(inner)` | `originalReadRenderSelectorValue` |
+| `0x26AEE0–0x26AEE8` | `sb zero,0x10(inner)`; **does not clear +0x14** | `originalClearRenderSelector` |
+| `0x26B550–0x26B578` | `object+0x110` optional handle; returns **zero** if absent, otherwise reads enable byte through nested resource | `originalActorRenderSelectorActive` |
+| `0x26B57C–0x26B590` | `object+0x110` handle forwards to `0x26AED4`; has **no** original null check | caller only reads resource selection when active |
+| `0x280888–0x2808D0` | Active resource chooses the slot in the runtime's original render-resource table and dispatches through `0x2802D4`, then `0x3B76F8`; byte at `object+0x33` independently determines whether the next pass via `0x2803B4` runs. | `originalRenderDispatch` **routing decision only**, not equivalent calls. |
+
+The host `OriginalRenderSelector` is intentionally a **decoded data view**, not a copied guest-memory/EE object. It holds the source byte at nested `+0x10` and little-endian u32 at nested `+0x14` as ordinary C++ values. `originalRenderDispatch` returns route flags/index only: it does **not** invent the original resource table, graphics state callbacks, draw commands or effects.
+
+The retail byte-range fingerprints checked by `native/tools/audit_original_graphics.py` are:
+
+- `0x26AEB4–0x26AEEC` (exclusive end): `1967c1dcdba937f708d2a81d196be87b1bc5e0a75f5dd3488738e7662402d128`.
+- `0x26B550–0x26B594`: `6c54314ffd23bb3971c0a9f8742d58895114a1825c376c97c8843ce463a061ab`.
+- `0x280884–0x2808D4`: `2489a7a7aad1da59f40bc6e84e31c095ec42c7812325bd1d5ff10e53b53af311`.
+
 ## Native rendering integration delivered
 
 `original_render_instances.hpp/.cpp` is a native (not PS2/GPU emulation) scene and actor-submission bridge. It consumes the actual `StaticScene` geometry, material batches, UVs and textures, and per-actor `NativeSkinnedGlb::sample` outputs via a callback. For each frame it constructs one D3D-compatible `StaticScene` plus draw records containing stable actor IDs, source names and batch ranges. It preserves separate placements/animation times; it never fabricates world geometry or game behavior. Visibility flags and layers must originate from recovered gameplay/render state. An `OriginalRenderFrame` does **not** implement original camera, blend states, PS2 material microcode or visibility transitions.
