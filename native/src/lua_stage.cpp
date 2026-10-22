@@ -124,7 +124,13 @@ int LuaStage::dispatchOriginal(lua_State* L){
         if(count>64)throw std::runtime_error("too many original Lua call arguments");
         std::vector<ScriptValue> arguments;
         arguments.reserve(static_cast<std::size_t>(count));
-        for(int i=1;i<=count;++i)arguments.push_back(takeValue(L,i));
+        for(int i=1;i<=count;++i){
+            const int kind=lua_type(L,i);
+            if(kind!=LUA_TNIL && kind!=LUA_TBOOLEAN && kind!=LUA_TNUMBER &&
+               kind!=LUA_TSTRING && kind!=LUA_TTABLE)
+                throw std::runtime_error("unsupported original Lua argument type; no substitute conversion");
+            arguments.push_back(takeValue(L,i));
+        }
         auto results=it->second.callback(arguments);
         if(results.size()>64)throw std::runtime_error("too many original Lua results");
         for(const auto& result:results)pushValue(L,result);
@@ -139,6 +145,7 @@ bool LuaStage::invokeCallback(const std::string& name,
     if(name.empty() || name.size()>128 || arguments.size()>64)
         throw std::invalid_argument("invalid original Lua callback name or argument count");
     error_.clear();
+    const int initialTop=lua_gettop(state_);
     lua_getglobal(state_,name.c_str());
     if(lua_isnil(state_,-1)){
         lua_pop(state_,1);
@@ -148,7 +155,14 @@ bool LuaStage::invokeCallback(const std::string& name,
         lua_pop(state_,1);
         throw std::runtime_error("original Lua callback "+name+" is not a function");
     }
-    for(const auto& argument:arguments)pushValue(state_,argument);
+    try{
+        for(const auto& argument:arguments)pushValue(state_,argument);
+    }catch(...){
+        // Do not leave a half-built table/function on Lua's stack when
+        // the host rejects an unsupported result representation.
+        lua_settop(state_,initialTop);
+        throw;
+    }
     const int status=lua_pcall(state_,static_cast<int>(arguments.size()),0,0);
     if(status){
         const char* message=lua_tostring(state_,-1);
