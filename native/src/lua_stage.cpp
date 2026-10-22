@@ -260,13 +260,11 @@ ScriptValue LuaStage::takeValue(lua_State* L,int index,int depth,
             for(auto& [at,entry]:numeric)
                 value.array[static_cast<std::size_t>(at-1)]=std::move(entry);
         }else if(!numeric.empty()){
-            for(auto& [at,entry]:numeric){
-                const std::string key=std::to_string(at);
-                if(value.object.count(key))
-                    throw std::runtime_error(
-                        "original Lua table has colliding string/integer keys");
-                value.object[key]=std::move(entry);
-            }
+            // ScriptValue has either a numeric array OR a string-keyed map.
+            // Converting numbers into string keys would change original
+            // table indexing/identity, even without a direct collision.
+            throw std::runtime_error(
+                "mixed-key original Lua table requires a raw Lua C API binding");
         }
     }else{
         throw std::runtime_error(
