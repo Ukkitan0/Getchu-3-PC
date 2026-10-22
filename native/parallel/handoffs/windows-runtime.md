@@ -52,3 +52,33 @@ The integrator should cherry-pick reviewed commits from `parallel/windows-runtim
 ### Additional locally executed Release-mode checkpoint validation
 - On Linux, configured an isolated CMake harness (CMake 3.31.6; GNU C++ 14.2.0; `CMAKE_BUILD_TYPE=Release`) using a semantically equivalent local copy of the new runtime journal header/test, built its `Getchu3WindowsBootStatusTests` target, and ran `ctest --output-on-failure`: **1/1 passed**.
 - This is explicitly **not** a full configure/build of `native/CMakeLists.txt`, does not verify MSVC/Win32 application compilation, and is not evidence of authentic original gameplay boot. Source in GitHub remains authoritative.
+
+## 2026-10-21/22 continuation — staged native specialist integration and reproducible startup failure reporting
+
+**Owned commits (this continuation):**
+- `560ea8352796120462573a9430bfad1890c5ae76`: add `native/cmake/ParallelIntegration.cmake` with presence-checked original-source integration groups; a complete reviewed source/header/test set is required before activating each group.
+- `92b94b45a8df2836f58cf9423a20175ab7aef360`: include the integration manifest from `native/CMakeLists.txt` after the baseline engine targets/tests.
+- `47a2c1ddccfb188d2ad836349c9bf9ef3c4c5cdf`: original VU0 source translation built with noncontracted strict FP expressions (MSVC `/fp:strict` or GCC/Clang `-ffp-contract=off -fno-fast-math`); link Win32 user32 when source-backed input adapter is present.
+- `5822388591bb74951b0ca2d93697e0d29a3a53da`: `app_win32.cpp` uses `AE3_NATIVE_BOOT_LOG` environment path for distinct boot-attempt checkpoint logs, with existing Windows temporary-path fallback.
+- `dfcb6f41902601ec45eca5c40f888daa55cee0e8`: `native/BUILD_NATIVE_WINDOWS.ps1` gains `-RequireIntegratedWorkstreams`, optional owner-supplied `-OriginalElf` SHA-256 validation and a unique per-attempt retail checkpoint report with first-blocker summary.
+- `cafb7ba9b89db8f920d6b530a6febb8a8bab5f09`, `24c9df74af21473de7428ae2a8c6bc02418d5b73`, `36c2031a2dd532b54c3a49cf70ed7bbdf72968a2`: isolated CMake manifest regression test, CTest registration when Python is available, multi-config Windows correction.
+
+**Specialist source review — file-registration only, NOT a cross-branch merge:**
+- Assets `parallel/assets`: typed original VFI/PCK owner (header-only), SZ raw-DEFLATE decoder (zlib source), two structural tests, optional private EXDB differential fixture. New `original_resource_sz.cpp` registered only after full seven-file group is present.
+- Navigation `parallel/navigation`: stage route/group registry two new sources and two tests, optional owner-private nav-PCK fixture.
+- VU0 `parallel/vu0-physics`: original fallback VU0 source plus one focused test, strict ordered floating-point compiler options.
+- Graphics `parallel/graphics-animation`: original render instances, early render visibility gate, selector sources and three tests.
+- Input/Audio `parallel/input-audio`: original pad/audio runtime, Windows XInput adapter (host transport only, no invented gameplay bindings), one focused test and Win32 user32 link.
+- Lua `parallel/lua` and Gameplay `parallel/gameplay-engine` modify already-registered C++/test targets. Their files **must still be selectively merged by integration owner**; CMake presence cannot prove original callback or actor completeness. No other team source has been copied into this branch.
+
+**Exact local checks this continuation:**
+1. GitHub API inspected current branch/source and seven specialist heads/changed paths/handoffs; branch untouched outside owned CMake, app, launcher, test and this handoff.
+2. Linux host, CMake 3.31.6 / GNU C++ 14.2.0 / Python 3.13.5. **Locally executed source-equivalent CMake manifest fixture**, baseline configure succeeds; strict mode without groups fails; partial navigation (one of six files) fails with explicit missing file list; all five groups staged in temporary CMake-only **placeholder compilation units** and register **9/9 passing CTest fixture targets**. These placeholders only validate CMake's file registration, never ship and never imply working game modules.
+3. Re-ran existing isolated `/mnt/data/native_runtime_test` CMake Release journal build and `NativeRetailStartupCheckpointEvidence` test: **1/1 passed**.
+4. The exact committed cross-team C++ units have **not** been compiled together in this environment. Source-equivalent tooling, not a GitHub checkout of the full project, was executed. Entire Windows/MSVC build, Direct3D run, genuine original-ISO boot and actual frame dispatch remain **NOT TESTED / NOT WORKING**. No owner-private original data is in this runtime workspace. No GitHub Actions manually triggered.
+
+**Integration directions and runtime contract:**
+1. Integrator cherry-picks selected specialist files into `native/original-elf-engine-recovery-20261020`. Newly added source/test groups self-register only when all declared files have landed; partial subsets fail configure rather than silently linking the previous implementation. Request `-DAE3_REQUIRE_PARALLEL_INTEGRATION=ON` after all five new groups are merged. Do not merge blindly; reconcile header/source ABI and run their **actual** unit tests.
+2. Source-verified original engine blockers remain: missing startup hierarchy, factory/manager initialization around `0x57BCB8`, stage resource ownership (real original VFI names and allocated base VAs), genuine Player/Monkey per-frame update dispatch, original render callback and physical-input/audio consumers. **None is supplied by the CMake test fixture.**
+3. On owner Windows, run `native/BUILD_NATIVE_WINDOWS.bat -RunRetail -OriginalIso <private-iso> -Stage <original-stage> -Extracted <private-extracted> -Glb <private-glb> -OriginalElf <private-SCUS_975.01>` after placing original resources locally. Compare the script's first `AE3_NATIVE_BOOT|...|BLOCKED|` checkpoint with `OutputDebugString` and the game's actual startup; failure is expected while original manager/engine loop remains untranslated.
+4. Source authentication: original USA `SCUS_975.01` must SHA-256 `5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`. Optional launcher hash check validates local file bytes but does not authenticate a runnable Windows translation. No ELF/ISO/PCK/Lua/model bytes are committed.
