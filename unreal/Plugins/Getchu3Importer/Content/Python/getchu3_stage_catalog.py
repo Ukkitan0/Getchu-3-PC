@@ -92,7 +92,7 @@ def build_original_stage_catalog(vfi: Path, converted_models: Path, output: Path
     output = Path(output).resolve()
     if not vfi.is_dir() or not converted_models.is_dir():
         raise NotADirectoryError("Original extracted resource and model folders required")
-    if output == vfi or output == converted_models or output in vfi.parents or output in converted_models.parents:
+    if output == vfi or output == converted_models or vfi in output.parents or converted_models in output.parents:
         raise ValueError("Stage registry must be written outside original source trees")
     all_scripts: dict[str, list[dict]] = {}
     all_plc: dict[str, list[dict]] = {}
