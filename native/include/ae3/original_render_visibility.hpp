@@ -18,5 +18,5 @@ struct OriginalRenderEarlyGate {
 // rather than inventing a frustum. True means eligible for *later* gates.
 bool passesOriginalRetailRenderEarlyGate(
     const OriginalRenderEarlyGate& input,
-    const std::function<bool()>& rejectByOriginalBounds);
+    const std::function<bool()>& originalBoundsVisible);
 } // namespace ae3
