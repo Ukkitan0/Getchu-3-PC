@@ -62,8 +62,12 @@ static void oneOriginalPolygon(const OriginalSpatialRecord70& polygon,std::uint3
     geometry.expectedInput=originalInput;
     for(unsigned i=0;i<3;++i)
         geometry.expectedVertices[i]=originalSpatialVector_21b458(polygon,i);
+    OriginalActorFallbackVu0R_57ca68 vuRandom{0xdeadbeefu};
     const auto result=originalActorFallbackSelect_57ca68(
-        polygon,originalInput,sourceRNG,geometry);
+        polygon,originalInput,sourceRNG,geometry,&vuRandom);
+    ck(vuRandom.rawR==0x3f800000u &&
+       vuRandom.sourceVRINITCalls==12 && vuRandom.sourceVRXORCalls==12,
+       "Actual source VU0 VI[R] final state or special-op count changed");
     ck(result.sourceCandidatesEvaluated==6&&geometry.sourceCalls==6,
        "Original 0x57CA68 includes initial and five loop candidates");
     ck(result.sourceWinningCandidate==4&&result.originalBestXYZDot==5.0f&&

@@ -1,5 +1,6 @@
 #pragma once
 #include "ae3/original_actor_random_triangle.hpp"
+#include "ae3/original_actor_fallback_vu0_random.hpp"
 #include "ae3/original_actor_ray_geometry.hpp"
 #include "ae3/original_spatial_index.hpp"
 #include <array>
@@ -43,5 +44,6 @@ OriginalActorFallbackSelection_57ca68 originalActorFallbackSelect_57ca68(
     const OriginalSpatialRecord70& originalPolygon,
     const std::array<std::byte,16>& originalInputA1,
     OriginalGameRandom_36f3c0& originalSharedRNG,
-    OriginalActorFallbackVU0Transform_57ca68& originalVU0);
+    OriginalActorFallbackVU0Transform_57ca68& originalVU0,
+    OriginalActorFallbackVu0R_57ca68* originalVu0R=nullptr);
 } // namespace ae3
