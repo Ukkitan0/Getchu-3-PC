@@ -100,7 +100,9 @@ static void runPolygon(const OriginalSpatialRecord70& original,
         records,geometry,veryFarOutside,true,missing,&genuineRandom);
     originalNative.setOriginalFallbackOwnerVector_57ca68(ownerVector);
     originalNative.setOriginalFallbackQBits_57ca68(0x3fc90fdau);
-    const auto nativeResult=originalNative.advance(state);
+    OriginalActorRouteFollowerState_57c7cc nativeState{
+        records,route,&records[0],nullptr,true};
+    const auto nativeResult=originalNative.advance(nativeState);
     require(nativeResult.sourceTargetsApplied==1,
             "Native original fixed-instruction candidate not dispatched");
     const auto& nativeTarget=originalNative.sourceTargetResults().front();
