@@ -20,6 +20,17 @@ MAX_COUNT = 2_000_000
 # iABx operand Bx at bit 6 (A at bit 24). NOT the Lua 5.1+ or modern opcode table.
 OP_GETGLOBAL = 5
 OP_SETGLOBAL = 7
+OP_MOVE = 0
+OP_LOADBOOL = 2
+OP_LOADNIL = 3
+OP_SELF = 11
+OP_CALL = 25
+OP_TAILCALL = 26
+# Exact Lua 5.0 numbering, not Lua 5.1+. These instructions invalidate
+# linear register tracking because control flow may merge or jump.
+FLOW_BARRIERS = {20, 21, 22, 23, 24, 27, 28, 29, 30}
+# Source-defined instructions that produce a single register A.
+WRITES_A = {1, 4, 6, 10, 12, 13, 14, 15, 16, 17, 18, 19, 34}
 
 
 class InvalidChunk(ValueError):
@@ -36,6 +47,8 @@ class Reader:
         self.instructions = 0
         self.global_reads: set[str] = set()
         self.global_writes: set[str] = set()
+        self.direct_global_calls: set[str] = set()
+        self.prototype_calls: list[dict] = []
 
     def take(self, size: int) -> memoryview:
         if size < 0 or size > len(self.data) - self.pos:
@@ -72,12 +85,70 @@ class Reader:
             return None
         return raw.decode('ascii')
 
+    @staticmethod
+    def direct_calls(instructions: list[int], constants: list[bytes | None]) -> set[str]:
+        """Conservative intra-basic-block Lua 5.0 register provenance.
+
+        Tracks a global loaded into R(A), its MOVE aliases, and the call
+        register of OP_CALL/OP_TAILCALL. A branch drops provenance entirely,
+        avoiding invented call edges across unknown runtime control flow.
+        Indirect table calls and calls through upvalues deliberately remain
+        unclassified, not silently attributed to a guessed native binding.
+        """
+        registers: dict[int, str] = {}
+        called: set[str] = set()
+        for word in instructions:
+            op = word & 63
+            a = (word >> 24) & 255
+            b = (word >> 15) & 511
+            c = (word >> 6) & 511
+            if op in FLOW_BARRIERS:
+                registers.clear()
+            elif op == OP_GETGLOBAL:
+                index = (word >> 6) & 0x3FFFF
+                name = Reader.symbol(constants[index]) if isinstance(constants[index], bytes) else None
+                registers.pop(a, None)
+                if name is not None:
+                    registers[a] = name
+            elif op == OP_MOVE:
+                name = registers.get(b)
+                registers.pop(a, None)
+                if name is not None:
+                    registers[a] = name
+            elif op == OP_LOADNIL:
+                for i in range(a, b + 1):
+                    registers.pop(i, None)
+            elif op in (OP_CALL, OP_TAILCALL):
+                if a in registers:
+                    called.add(registers[a])
+                if c == 0:
+                    registers = {k:v for k,v in registers.items() if k < a}
+                else:
+                    for i in range(a, a + c - 1):
+                        registers.pop(i, None)
+                if op == OP_TAILCALL:
+                    registers.clear()
+            elif op == OP_SELF:
+                registers.pop(a, None)
+                registers.pop(a+1, None)
+            elif op in WRITES_A:
+                registers.pop(a, None)
+            elif op == OP_LOADBOOL:
+                registers.pop(a, None)
+                if c:
+                    registers.clear()
+            elif op > 34:
+                raise InvalidChunk(f'unknown Lua 5.0 opcode {op}')
+        return called
+
     def function(self, depth: int) -> None:
         self.prototypes += 1
+        prototype_id = self.prototypes
         if depth > 90 or self.prototypes > 10000:
             raise InvalidChunk('Lua prototype recursion or count budget reached')
         self.text()                           # function source name
-        self.take(4 + 4)                      # first source line, Lua stack metadata
+        line_defined = self.u32()
+        self.take(4)                          # upvalues, params, vararg, maxstack
         self.take(self.count() * 4)          # original instruction line numbers
         for _ in range(self.count()):         # locals
             self.text()
@@ -103,8 +174,8 @@ class Reader:
         if self.instructions > MAX_COUNT:
             raise InvalidChunk('Lua opcode budget reached')
         instructions = self.take(n * 4)
-        for i in range(n):
-            opcode, = struct.unpack_from('<I', instructions, i * 4)
+        words = [struct.unpack_from('<I', instructions, i * 4)[0] for i in range(n)]
+        for opcode in words:
             operation = opcode & 0x3F
             if operation not in (OP_GETGLOBAL, OP_SETGLOBAL):
                 continue
@@ -115,6 +186,11 @@ class Reader:
             if name is not None:
                 target = self.global_reads if operation == OP_GETGLOBAL else self.global_writes
                 target.add(name)
+        direct = self.direct_calls(words, constants)
+        self.direct_global_calls.update(direct)
+        self.prototype_calls.append({'prototype': prototype_id,
+                                     'line_defined': line_defined,
+                                     'direct_global_calls': sorted(direct)})
 
     def parse(self) -> dict:
         if bytes(self.take(14)) != HEADER:
@@ -128,7 +204,9 @@ class Reader:
             raise InvalidChunk('trailing bytes after Lua 5.0 prototype')
         return {'prototypes': self.prototypes, 'instructions': self.instructions,
                 'global_reads': sorted(self.global_reads),
-                'global_writes': sorted(self.global_writes)}
+                'global_writes': sorted(self.global_writes),
+                'direct_global_calls': sorted(self.direct_global_calls),
+                'prototype_calls': sorted(self.prototype_calls, key=lambda x: x['prototype'])}
 
 
 def inspect(blob: bytes) -> dict:
@@ -156,6 +234,7 @@ def audit(path: Path, host_source: Path | None = None) -> dict:
     registered = host_callbacks(host_source) if host_source else []
     reads: set[str] = set()
     writes: set[str] = set()
+    direct_calls: set[str] = set()
     stages = []
     for source in sources:
         if source.is_symlink():
@@ -166,6 +245,7 @@ def audit(path: Path, host_source: Path | None = None) -> dict:
         result = inspect(source.read_bytes())
         reads.update(result['global_reads'])
         writes.update(result['global_writes'])
+        direct_calls.update(result['direct_global_calls'])
         stages.append({'path': source.relative_to(root).as_posix(), **result})
     # These are unresolved *global loads*, not necessarily direct calls.
     # Lua's dynamically installed functions, table reads, and stage-specific
@@ -175,6 +255,9 @@ def audit(path: Path, host_source: Path | None = None) -> dict:
             'claim': 'opcode global references only; not a call graph or proof of C++ binding semantics',
             'scripts': stages, 'registered_native_names': registered,
             'global_reads': sorted(reads), 'global_writes': sorted(writes),
+            'direct_global_calls': sorted(direct_calls),
+            'unresolved_direct_global_calls': sorted(
+                direct_calls - writes - set(registered)),
             'unresolved_global_reads': unresolved}
 
 
