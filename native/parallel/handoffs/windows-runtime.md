@@ -115,3 +115,10 @@ The integrator should cherry-pick reviewed commits from `parallel/windows-runtim
 ### Updated precise first authentic native game blocker
 
 On the new source-derived static constructor path, **first missing original constructor is now `0x417C58`**. Its own original function tail-calls `0x417B50(1,65535)` and requires original `0x41D6B8` / `0x4240D8` native equivalents and original persistent global result fields. After this constructor and the remaining 141 callbacks, further host adaptations of `0x10031C`, `0x100324`, process startup `0x1037E8` and Player/Monkey manager `0x57BCB8` remain. The previously reported `0x57BCB8` blocker is downstream, not the first original executable startup instruction dependency. Do not change native boot exit code 4 to success until these functions are actually integrated and original gameplay frame scheduling executes.
+
+### First-constructor source and native ownership follow-up
+
+- `2baaabb5e48b14ead2ce1d5593191ccf3763d401`: the `--boot-original` path now **indexes the original ISO9660 DATA.BIN/VFI archive**, refusing arbitrary regular files named `.iso` before dispatching original constructors. A source path merely existing is not an authentic game boot prerequisite.
+- `1ae9e7b202aec277322ec03f70d9388ccdf0dab9`: original native allocator global counter state is now **process lifetime**, rather than tied to the short-lived callback adapter. Preserves original global BSS ownership if future constructors and gameplay are recovered.
+- Offline original ELF verifier negative-control test: flipped one private sample ELF byte locally; the verifier **rejected it on SHA mismatch**. No modified/private binary was committed or distributed.
+- Next authentic function needing native port: original constructor `0x417C58` -> `0x417B50(1,65535)`, requiring original `0x41D6B8` and `0x4240D8`. The first allocator constructor `0x41A390` is real native code and advances execution exactly one entry beyond the formerly completely missing original constructor dispatcher. Original script/asset workbench is not a substitute for this path.
