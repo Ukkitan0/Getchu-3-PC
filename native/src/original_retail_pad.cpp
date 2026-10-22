@@ -3,6 +3,13 @@
 #include <cmath>
 
 namespace ae3 {
+int OriginalHostPadChannels::queryOriginalPadChannel_4059e8(
+    std::uint32_t channel) {
+    if(!snapshot_.connected)return -1;
+    if(channel<16)return (snapshot_.pressedMask>>channel)&1u;
+    if(channel<=0x13)return snapshot_.sticks[channel-0x10];
+    return -1;
+}
 OriginalRetailAnalogVector originalRetailAnalog_517788(
     std::uint8_t x,std::uint8_t y) noexcept {
     // 0x6ED0AC = 0x3C088888 (float 1/120 approx), applied to

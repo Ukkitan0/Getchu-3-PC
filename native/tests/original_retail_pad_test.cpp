@@ -36,6 +36,26 @@ void sourceAxes(){
     check(p.x<=1 && p.y<=1 && p.x>0 && p.y>0,
           "retail componentwise saturation");
 }
+void hostObservationToActualRetailChannels(){
+    OriginalPadObservation physical;
+    physical.connected=true;
+    physical.pressedMask=originalPadBit(OriginalPadButton::cross) |
+                         originalPadBit(OriginalPadButton::start);
+    physical.sticks={248,128,8,128}; // LX LY RX RY
+    OriginalHostPadChannels bridge(physical);
+    OriginalRetailPadReader reader;
+    const auto value=reader.sample(bridge,true);
+    // Original button query table maps index 1->source 3 (Start),
+    // index 7->source 14 (Cross).
+    check(value.originalButtonBits==((1u<<1)|(1u<<7)),
+          "physical PS2 button identities not mapped to retail query order");
+    check(value.originalAxisBytes==std::array<std::uint8_t,4>{8,128,248,128},
+          "physical LX/LY/RX/RY not mapped to source RX/RY/LX/LY");
+    close(value.left.x,1,"physical left stick source channel failed");
+    close(value.right.x,-1,"physical right stick source channel failed");
+    check(bridge.queryOriginalPadChannel_4059e8(0x14)==-1,
+          "fabricated unsupported original pad channel");
+}
 void originalChannelSequenceAndEdges(){
     constexpr std::array<std::uint32_t,16> ids{
         0,3,4,6,7,5,12,14,15,13,10,8,1,11,9,2};
@@ -88,7 +108,7 @@ void originalChannelSequenceAndEdges(){
 }
 }
 int main(){
-    try{sourceAxes();originalChannelSequenceAndEdges();
+    try{sourceAxes();originalChannelSequenceAndEdges();hostObservationToActualRetailChannels();
         std::cout<<"ORIGINAL_RETAIL_PAD_517788_5179B0_51785C_PASSED "
                     "analog=1 channel_sequence=20 edge=1 disconnect=1\n";
         return 0;

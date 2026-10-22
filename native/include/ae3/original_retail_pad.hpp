@@ -1,4 +1,5 @@
 #pragma once
+#include "ae3/original_pad_runtime.hpp"
 #include <array>
 #include <cstdint>
 
@@ -29,6 +30,19 @@ class OriginalRetailPadChannelSource {
 public:
     virtual ~OriginalRetailPadChannelSource()=default;
     virtual int queryOriginalPadChannel_4059e8(std::uint32_t channel)=0;
+};
+
+// Host adapter: the original library's 0..15 channel numbers use the
+// PlayStation digital button bit order; 0x10..0x13 are LX, LY, RX, RY.
+// On-wire PS2 active-low buttons were already decoded by the host
+// observation into positive pressedMask; no PS2 CPU/IOP emulation.
+class OriginalHostPadChannels final : public OriginalRetailPadChannelSource {
+public:
+    explicit OriginalHostPadChannels(OriginalPadObservation snapshot) noexcept
+        : snapshot_(snapshot) {}
+    int queryOriginalPadChannel_4059e8(std::uint32_t channel) override;
+private:
+    OriginalPadObservation snapshot_;
 };
 
 struct OriginalRetailPadSample {
