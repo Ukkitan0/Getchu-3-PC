@@ -147,37 +147,45 @@ def import_collision_in_editor(folder: Path, ue: Any, *,
         raise RuntimeError("Unreal StaticMesh collision editing is unavailable")
     manager = ue.AssetToolsHelpers.get_asset_tools()
     result = []
-    for source in files:
-        relative = source.relative_to(folder)
-        parts = ["".join(c if c.isascii() and (c.isalnum() or c == "_") else "_"
-                         for c in part) for part in relative.parent.parts if part not in (".", "")]
-        dest = "/Game/ApeEscape3/Original/Collision" + ("/" + "/".join(parts) if parts else "")
-        task = ue.AssetImportTask()
-        task.filename = str(source)
-        task.destination_path = dest
-        task.automated = True
-        task.async_ = False
-        task.replace_existing = True
-        task.save = True
-        manager.import_asset_tasks([task])
-        original_meshes = [obj for obj in task.get_objects() if isinstance(obj, ue.StaticMesh)]
-        if not original_meshes:
-            raise RuntimeError(f"No Unreal StaticMesh was created from original I3C mesh {relative}")
-        imported_meshes = []
-        for obj in original_meshes:
-            body = obj.get_editor_property("body_setup")
-            if body is None:
-                raise RuntimeError(f"Original collision StaticMesh has no BodySetup: {relative}")
-            body.set_editor_property("collision_trace_flag",
-                                     ue.CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE)
-            if not ue.EditorAssetLibrary.save_loaded_asset(obj):
-                raise RuntimeError(f"Could not save original I3C collision asset: {relative}")
-            item_path = str(obj.get_path_name())
-            result.append(item_path)
-            imported_meshes.append(item_path)
-        if source_records is not None:
-            source_records.append({"source_relative": relative.as_posix(),
-                                   "unreal_object_paths": imported_meshes})
+    progress = ue.ScopedSlowTask(len(files), "Importing Ape Escape 3 original collision assets") if hasattr(ue, "ScopedSlowTask") and files else None
+    with (progress if progress is not None else nullcontext()):
+        if progress is not None:
+            progress.make_dialog(True)
+        for source in files:
+            if progress is not None:
+                if progress.should_cancel():
+                    raise InterruptedError("Original collision import cancelled; partial assets may remain")
+                progress.enter_progress_frame(1, f"Importing collision: {source.relative_to(folder)}")
+            relative = source.relative_to(folder)
+            parts = ["".join(c if c.isascii() and (c.isalnum() or c == "_") else "_"
+                             for c in part) for part in relative.parent.parts if part not in (".", "")]
+            dest = "/Game/ApeEscape3/Original/Collision" + ("/" + "/".join(parts) if parts else "")
+            task = ue.AssetImportTask()
+            task.filename = str(source)
+            task.destination_path = dest
+            task.automated = True
+            task.async_ = False
+            task.replace_existing = True
+            task.save = True
+            manager.import_asset_tasks([task])
+            original_meshes = [obj for obj in task.get_objects() if isinstance(obj, ue.StaticMesh)]
+            if not original_meshes:
+                raise RuntimeError(f"No Unreal StaticMesh was created from original I3C mesh {relative}")
+            imported_meshes = []
+            for obj in original_meshes:
+                body = obj.get_editor_property("body_setup")
+                if body is None:
+                    raise RuntimeError(f"Original collision StaticMesh has no BodySetup: {relative}")
+                body.set_editor_property("collision_trace_flag",
+                                         ue.CollisionTraceFlag.CTF_USE_COMPLEX_AS_SIMPLE)
+                if not ue.EditorAssetLibrary.save_loaded_asset(obj):
+                    raise RuntimeError(f"Could not save original I3C collision asset: {relative}")
+                item_path = str(obj.get_path_name())
+                result.append(item_path)
+                imported_meshes.append(item_path)
+            if source_records is not None:
+                source_records.append({"source_relative": relative.as_posix(),
+                                       "unreal_object_paths": imported_meshes})
     return result
 
 
