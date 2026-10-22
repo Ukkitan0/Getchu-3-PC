@@ -2,6 +2,32 @@
 
 Unreal Engine 5.6 Windows project and Editor plugin. This folder contains **no retail game data**.
 
+## Recovered Lua 5.0 native runtime integration (new)
+
+This source branch now has a **real Unreal game target**, a packaged-runtime
+Getchu3OriginalLua plugin module and a versioned native C ABI DLL compiled
+from the existing original-game Lua 5.0 interpreter and retail bytecode
+transcoder. See [original Lua engine bridge](docs/ORIGINAL_LUA_NATIVE_RUNTIME.md).
+
+An Unreal GameInstanceSubsystem can pass an owner-extracted original
+area.luc file and spawn tag into the source VM and forward calls to an
+explicit Unreal original-manager provider. The provider refuses absent
+original game functionality rather than guessing the game's mechanics.
+A source-backed, exactly 1033-byte PlayerProgress snapshot may be supplied
+by the future original save/game-state manager.
+
+**Windows build workflow:** double-click [BuildAndOpen.bat](BuildAndOpen.bat)
+with Unreal Engine 5.6, CMake, Visual Studio 2022 and Python 3 installed.
+It installs pinned original asset conversion tools privately, builds the
+Lua DLL and its contract tests, stages the native library, and builds/opens
+the Unreal project. The original game ISO is still selected locally through
+the importer.
+
+The real actor manager, stage parameter manager, player/monkey update
+dispatcher, gadgets, live sound, collision responses, menus and progression
+are **still unimplemented**, and the game remains **not playable**.
+No successful Unreal Editor build or original-game execution is claimed.
+
 ## Current scope (not a game release)
 
 - A dockable **Ape Escape 3 — Unreal Importer** panel under Unreal Editor's Tools menu supports ISO selection and Windows file drag/drop.
