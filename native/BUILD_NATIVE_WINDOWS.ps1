@@ -14,7 +14,9 @@ param(
     [string]$Glb = '',
     [string]$Spawn = 'spawn_default',
     [string]$LocalLua50 = '',
-    [string]$LocalCgltf = ''
+    [string]$LocalCgltf = '',
+    [string]$OriginalElf = '',
+    [switch]$RequireIntegratedWorkstreams
 )
 $ErrorActionPreference = 'Stop'
 $native = (Resolve-Path (Join-Path $PSScriptRoot '.')).Path
@@ -31,6 +33,11 @@ try {
     $cmake = Get-Command 'cmake.exe' -ErrorAction Stop
     $configure = @('-S', $native, '-B', $BuildDirectory,
                    "-DCMAKE_BUILD_TYPE=$Configuration")
+    if ($RequireIntegratedWorkstreams) {
+        # Require all five new native specialist source/test sets for an
+        # integration build; prevent an accidental partial-source success.
+        $configure += '-DAE3_REQUIRE_PARALLEL_INTEGRATION=ON'
+    }
     if ($LocalLua50) {
         if (-not (Test-Path (Join-Path $LocalLua50 'src/lapi.c'))) {
             throw 'LocalLua50 must contain the original unmodified Lua 5.0.3 source tree'
@@ -76,14 +83,51 @@ try {
         if (-not ($OriginalIso -and $Stage -and $Extracted -and $Glb)) {
             throw 'Real retail-stage attempt requires -OriginalIso -Stage -Extracted -Glb'
         }
+        if ($OriginalElf) {
+            if (-not (Test-Path -LiteralPath $OriginalElf -PathType Leaf)) {
+                throw 'Private original USA SCUS_975.01 was not found'
+            }
+            $expectedSha = '5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63'
+            $actualSha = (Get-FileHash -LiteralPath $OriginalElf -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualSha -ne $expectedSha) {
+                throw "Original SCUS_975.01 SHA-256 mismatch: expected $expectedSha, got $actualSha"
+            }
+            Write-Host 'Private original USA SCUS_975.01 SHA-256: VERIFIED'
+        }
         $python = Get-Command 'python.exe' -ErrorAction Stop
         $launcher = Join-Path $native 'tools/launch_owned_retail_stage.py'
         Write-Host 'Attempting original user-owned retail stage (no fake game-scene fallback)'
         $launchArgs = @($launcher, '--iso', $OriginalIso, '--stage', $Stage,
                         '--extracted', $Extracted, '--glb', $Glb,
                         '--exe', $exe, '--spawn', $Spawn)
-        & $python.Source @launchArgs
-        Assert-Success 'Retail-stage/native-original-engine attempt'
+        # The GUI executable does not have a console stdout stream. Capture
+        # its checkpoint journal with a UNIQUE path for this attempt, then
+        # print the first actual blocked subsystem even on failure.
+        $bootLog = Join-Path $BuildDirectory (
+            'retail-native-boot-' + (Get-Date -Format 'yyyyMMdd-HHmmss-fffffff') + '.log')
+        $priorBootLog = [Environment]::GetEnvironmentVariable('AE3_NATIVE_BOOT_LOG','Process')
+        try {
+            $env:AE3_NATIVE_BOOT_LOG = $bootLog
+            & $python.Source @launchArgs
+            $launchExit = $LASTEXITCODE
+        }
+        finally {
+            [Environment]::SetEnvironmentVariable('AE3_NATIVE_BOOT_LOG',$priorBootLog,'Process')
+        }
+        if (Test-Path -LiteralPath $bootLog -PathType Leaf) {
+            Write-Host "NATIVE GAME STARTUP CHECKPOINTS: $bootLog"
+            $steps = @(Get-Content -LiteralPath $bootLog)
+            $steps | ForEach-Object { Write-Host $_ }
+            $firstBlocked = $steps | Where-Object { $_ -like '*|BLOCKED|*' } |
+                Select-Object -First 1
+            if ($firstBlocked) { Write-Host "FIRST ORIGINAL ENGINE BLOCKER: $firstBlocked" }
+        }
+        else {
+            Write-Host 'No native-process checkpoint file: resource preflight or Win32 initialization blocked before logging.'
+        }
+        if ($launchExit -ne 0) {
+            throw "Retail original-engine boot blocked (launch code $launchExit). Not playable."
+        }
     }
     exit 0
 }
