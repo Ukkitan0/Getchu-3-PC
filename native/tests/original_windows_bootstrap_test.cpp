@@ -78,6 +78,23 @@ void check(){
             numeric.first_69e678==previous.first_69e678 &&
             numeric.second_69e680==previous.second_69e680,
             "Original repeated second constructor must preserve constant globals");
+    class RecoveredStartup final:public OriginalNativeConstructorCalls {
+    public:
+        OriginalAllocatorGlobals_41a390 allocator{};
+        OriginalNumericGlobals_417c58 numeric{};
+        bool callRecoveredConstructor(std::uint32_t va) override {
+            if(va==0x41a390) {originalAllocatorCtor_41a390(allocator);return true;}
+            if(va==0x417c58) return originalNumericCtor_417c58(numeric);
+            return false;
+        }
+    } startup;
+    const auto actualBoundary=originalRunConstructors_428ab8(startup);
+    require(actualBoundary.executed==2 &&
+            actualBoundary.firstUnrecovered==0x3a6cd0 &&
+            !actualBoundary.complete &&
+            startup.allocator.counters[0]==1 &&
+            startup.numeric.initialized,
+            "native original boot must stop at genuine third constructor");
     OriginalNativeTerminationRegistry registry;
     require(!registry.register_428b80({}),"original exit callback registry accepted absent function");
     std::vector<int> calls;
