@@ -43,6 +43,7 @@ struct OriginalRetailDrawEvent {
 struct OriginalRetailPassTrace {
     std::vector<OriginalRetailDrawEvent> events;
     std::size_t considered=0,accepted=0;
+    std::vector<OriginalRenderId> acceptedIds; // source traversal order
 };
 // Original first render scan: 0x280810-0x280958 (one original list at a
 // time). Emits exact *calls and their order*, NOT synthesized GPU draws.
