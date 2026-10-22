@@ -6,7 +6,9 @@
 
 namespace ae3 {
 // Host-native semantic fields, not an emulated 0x70-byte EE object.
-// Both retail constructors invoke still-unrecovered 0x57BCB8 afterward.
+// Both retail constructors invoke 0x57BCB8 afterward. Its native translation
+// is in original_manager_initializer; genuine actor/stage owner wiring and
+// general-path projection dependencies remain required.
 struct OriginalActorRouteControllerPrepared_57ba98 {
     const void* originalActor = nullptr;                   // +0x04
     const void* originalRoute = nullptr;                   // +0x18

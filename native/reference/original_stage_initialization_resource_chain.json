@@ -1,0 +1,192 @@
+{
+  "format": "ae3/original-retail-stage-init-resource-chain/v1",
+  "retail_elf_sha256": "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63",
+  "original_stage_initialization_va": "0x22d7b4",
+  "verified_code_windows": [
+    {
+      "lo": "0x22d7b4",
+      "hi": "0x22d970",
+      "sha256": "5bfbc7ed490928ae7283efd43c092448e40a5cd7c26be2dedc73c3db580f4b95"
+    },
+    {
+      "lo": "0x24dc84",
+      "hi": "0x24dcb4",
+      "sha256": "e534af352ecfee6d28373bfa9cef6759a8c53f0961ed91ca1c18aa9d6c36bd4a"
+    },
+    {
+      "lo": "0x24d4f0",
+      "hi": "0x24d5fc",
+      "sha256": "7ec60322e5ae08a2e117a0b4c120837a4a7ac1d3c16fda83a2e6930afe6b20ad"
+    },
+    {
+      "lo": "0x26df38",
+      "hi": "0x26df50",
+      "sha256": "1f7d4a0f338b0a7d04366122d34d6c429ce01828b2cf08441b021fc4a4f2c400"
+    },
+    {
+      "lo": "0x252bc4",
+      "hi": "0x252be0",
+      "sha256": "98aaf670fb9b5e6c962826cd08d323020e2f3793296c19445a0e28b629c29dfa"
+    },
+    {
+      "lo": "0x25182c",
+      "hi": "0x251be8",
+      "sha256": "2a4161e0a137a893b4322492fb004cf44b95e7af1c2f018b618c5d639e5da857"
+    },
+    {
+      "lo": "0x24d858",
+      "hi": "0x24d9ec",
+      "sha256": "154dd26d320162b79f7aa75512afa0a6938b580754e5c473847cb2c18a6b3511"
+    },
+    {
+      "lo": "0x509c10",
+      "hi": "0x509cc8",
+      "sha256": "c463623742c0eb132a357a7c1cf962c2aeb407512ea79e3a0613ea3e5b24ec4d"
+    },
+    {
+      "lo": "0x49c150",
+      "hi": "0x49c1e4",
+      "sha256": "62c9bb3452dbba43fe960a06cf7db796556c3074cfaf097326bc7d948bd051f6"
+    },
+    {
+      "lo": "0x627e60",
+      "hi": "0x627eb0",
+      "sha256": "663aa53699355ffdb17cd9f61fde1b9882cad56c43a6d06b3ec3ad5bf6663e70"
+    }
+  ],
+  "verified_source_instruction_words": 646,
+  "verified_direct_jump_edges": 24,
+  "original_key_lookup_wrapper_va": "0x24dc84",
+  "original_key_lookup_core_va": "0x24d4f0",
+  "original_lookup_algorithm": "source vector [begin,end) of 0x10-byte entries; full string equality on entry+0, return entry+8 pointer; first source match wins, no match yields null",
+  "ordered_stage_initialization_key_lookups": [
+    {
+      "key": "placeholder",
+      "original_literal_va": "0x6e7388",
+      "lookup_call_va": "0x22d828",
+      "consumer_va": "0x272294",
+      "consumer_call_va": "0x22d844"
+    },
+    {
+      "key": "navigation",
+      "original_literal_va": "0x6e7398",
+      "lookup_call_va": "0x22d8c0",
+      "consumer_va": "0x4f0a5c",
+      "consumer_call_va": "0x22d8c8"
+    },
+    {
+      "key": "actionseq",
+      "original_literal_va": "0x6e73a8",
+      "lookup_call_va": "0x22d8e8",
+      "consumer_va": "0x30c798",
+      "consumer_call_va": "0x22d904"
+    },
+    {
+      "key": "monkeydb",
+      "original_literal_va": "0x6e73b8",
+      "lookup_call_va": "0x22d928",
+      "consumer_va": "0x25bfe0",
+      "consumer_call_va": "0x22d95c",
+      "additional_original_lookup_call_va": "0x22d938"
+    }
+  ],
+  "original_woods_c_private_stage": {
+    "verified_pck_files": 5,
+    "verified_pck_items": 160,
+    "retail_navigation_members": [
+      {
+        "name": "nav_monkey.nav",
+        "records": 39,
+        "action_counts": {
+          "1": 3,
+          "2": 16,
+          "3": 20
+        },
+        "polygon_vertex_count_three": 39,
+        "complete_optional_0x20_references": 39
+      },
+      {
+        "name": "nav_enemy.nav",
+        "records": 20,
+        "action_counts": {
+          "1": 3,
+          "2": 12,
+          "3": 5
+        },
+        "polygon_vertex_count_three": 20,
+        "complete_optional_0x20_references": 20
+      }
+    ],
+    "stem_correspondence_candidates": {
+      "placeholder": "placeholder.plc",
+      "navigation": "navigation.pck",
+      "actionseq": "actionseq.asq",
+      "monkeydb": "monkeydb.xml"
+    }
+  },
+  "source_provenance": "private owner-supplied USA ELF and extracted woods_c PCK/resources; SHA and structure rechecked 2026-10-21/22; commercial bytes not committed",
+  "limitations": [
+    "Stage directory comparator and in-order tree traversal recovered; actual DirInfo object acquisition, complete file lifecycle and stage-directory selection are not fully translated",
+    "Stage source-name/type record construction and filtered append recovered; upstream directory enumeration and allocation/transition lifetime not fully translated",
+    "original consumer 0x272294/0x30c798/0x25bfe0 internals not yet fully translated",
+    "runtime stage lifetimes/original VA ownership unverified",
+    "native Windows game boot not verified"
+  ],
+  "original_upstream_registration": {
+    "selector_literal_va": "0x6e7380",
+    "selector": "*",
+    "source_invocation_call_va": "0x22d7f8",
+    "source_wrapper_va": "0x252bc4",
+    "source_worker_va": "0x25182c",
+    "wrapper_worker_call_va": "0x252bcc",
+    "name_comparator_va": "0x42c44c",
+    "name_comparison_call_va": "0x2519fc",
+    "wildcard_compare_va": "0x2519d8",
+    "wildcard_branch_va": "0x2519e0",
+    "source_tested_semantics": "source A3 null or leading ASCII '*' accepts all; otherwise compare A3 against registered entry +0x04 TYPE SUFFIX, not entry +0x00 name",
+    "limitations": "Original resource container enumeration/insertion and allocation are not fully reconstructed; only exact selector boundary implemented",
+    "recovered_constructor": {
+      "original_va": "0x24d858",
+      "original_call_site": "0x2519ac",
+      "source_first_dot_search_call": "0x24d8dc",
+      "source_substr_calls": [
+        "0x24d950",
+        "0x24d9b0"
+      ],
+      "source_name_at": "0x0",
+      "source_type_suffix_at": "0x4",
+      "source_pointer_at": "0x8",
+      "source_size_at": "0xc",
+      "entry_stride": "0x10",
+      "insertion_call_sites": [
+        "0x251a30",
+        "0x251a84"
+      ],
+      "original_type_filter_call": "0x2519fc",
+      "byte_verifier": "native/tools/verify_original_resource_record_registration.py",
+      "stage_scope_adapter": "native/include/ae3/original_resource_stage_registration.hpp",
+      "original_private_stage_example": {
+        "source_file": "navigation.pck",
+        "name": "navigation",
+        "type_suffix": "pck"
+      },
+      "proof_status": "complete 101-instruction original constructor window and 231-instruction original registration-prefix window SHA verified; source directory traversal not yet fully translated"
+    },
+    "directory_tree": {
+      "original_directory_lookup_va": "0x509c10",
+      "caller_va": "0x251928",
+      "original_directory_iterator_next_va": "0x49c150",
+      "caller_va_next": "0x251a6c",
+      "original_bytewise_source_name_comparator_va": "0x627e60",
+      "comparison_calls": [
+        "0x509c50",
+        "0x509c8c"
+      ],
+      "source_key_comparison": "unsigned bytewise first difference; length comparison for equal prefix",
+      "source_nodes": "original red-black tree; parent at +0x04, left at +0x08, right at +0x0c for iterator",
+      "host_native_view": "original_resource_directory_order.hpp",
+      "connected_stage_adapter": "original_resource_stage_directory_registration.hpp",
+      "qualification": "Observed comparator and in-order directory iteration translated to a host VFI-backed view; original DirInfo allocation/which directory is selected remains unresolved"
+    }
+  }
+}

@@ -143,6 +143,10 @@ void testRetailBytecodeExecution(){
     ae3::NativeStageWorld game;
     ae3::PlayerProgress actualNewGameProgress{};
     ae3::LuaStage lua(game,&actualNewGameProgress);
+    // Synthetic bytecode transport fixture, not an original actor manager.
+    ae3::NativeLuaStageBindings fixtureBindings;
+    fixtureBindings.createEntity=[](const ae3::StageEntity&){};
+    lua.setNativeBindings(fixtureBindings);
     lua.executeSource(std::string_view(
         reinterpret_cast<const char*>(originalFormat.data()),
         originalFormat.size()),"@REAL_original_area.luc");
@@ -157,6 +161,7 @@ void testRetailBytecodeExecution(){
     actualNewGameProgress.capture_flag[29]=1;
     ae3::NativeStageWorld capturedWorld;
     ae3::LuaStage captured(capturedWorld,&actualNewGameProgress);
+    captured.setNativeBindings(fixtureBindings);
     captured.executeSource(std::string_view(
         reinterpret_cast<const char*>(originalFormat.data()),
         originalFormat.size()),"@REAL_original_area.luc");
@@ -168,6 +173,43 @@ void testRetailBytecodeExecution(){
     check(pos && pos->array.size()==3 &&
           std::abs(pos->array[0].number-1.5)<1e-7,
           "native Lua50 numerical argument changed during original PS2 float conversion");
+    // Original bytecode followed by a source chunk must preserve strict
+    // retail manager requirements, not silently re-enable test defaults.
+    ae3::NativeStageWorld noFlagManagerWorld;
+    ae3::LuaStage strictRetail(noFlagManagerWorld,&actualNewGameProgress);
+    strictRetail.executeSource(std::string_view(
+        reinterpret_cast<const char*>(originalFormat.data()),
+        originalFormat.size()),"@original_owner_area.luc");
+    strictRetail.executeSource(
+        "function originalFlagWrite() gw_set_flag('stage_started') end",
+        "@additional_stage_callbacks.lua");
+    bool missingActorRejected=false;
+    try{strictRetail.callSetupArea("explicit_fixture_tag");}
+    catch(const std::runtime_error& error){
+        missingActorRejected=std::string(error.what()).find(
+            "requires real actor-manager binding")!=std::string::npos;
+    }
+    check(missingActorRejected && noFlagManagerWorld.entities().empty(),
+          "retail Lua silently fabricated descriptors without an actor manager");
+    strictRetail.executeSource(
+        "function missingParameters() lua_param({}) end\n"
+        "function missingWeapon() set_player_weapon('net') end");
+    for(const char* callback:{"missingParameters","missingWeapon"}){
+        bool rejected=false;
+        try{strictRetail.invokeCallback(callback);}
+        catch(const std::runtime_error&){rejected=true;}
+        check(rejected && noFlagManagerWorld.parameters().empty() &&
+              !noFlagManagerWorld.playerWeaponSelection().has_value(),
+              "retail Lua silently invented parameter or weapon owner state");
+    }
+    bool refusedMirror=false;
+    try{strictRetail.invokeCallback("originalFlagWrite");}
+    catch(const std::runtime_error& error){
+        refusedMirror=std::string(error.what()).find(
+            "requires real game flag-manager write binding")!=std::string::npos;
+    }
+    check(refusedMirror,
+          "loading a second Lua chunk downgraded original retail flag semantics");
     auto broken=originalFormat;
     broken[13]=7;
     bool rejected=false;
@@ -175,6 +217,40 @@ void testRetailBytecodeExecution(){
         reinterpret_cast<const char*>(broken.data()),broken.size()));}
     catch(const std::runtime_error&){rejected=true;}
     check(rejected,"unknown PS2 Lua header was allowed");
+    // Rejecting a corrupt bytecode candidate must not poison an
+    // otherwise reusable source-only Lua 5.0 stage with retail strictness.
+    ae3::NativeStageWorld candidateWorld;
+    ae3::LuaStage candidate(candidateWorld);
+    bool rejectedCandidate=false;
+    try{candidate.executeSource(std::string_view(
+        reinterpret_cast<const char*>(broken.data()),broken.size()));}
+    catch(const std::runtime_error&){rejectedCandidate=true;}
+    check(rejectedCandidate,"invalid original-bytecode header was accepted by LuaStage");
+    candidate.executeSource(
+        "function sourceOnlyFlag() gw_set_flag('allowed_source_only') end");
+    check(candidate.invokeCallback("sourceOnlyFlag") &&
+          candidateWorld.flag("gw","allowed_source_only"),
+          "malformed Lua 5.0 chunk left strict retail binding mode enabled");
+    // A valid retail header/conversion but invalid Lua 5.0 instruction
+    // must not activate retail manager strictness: host verification failed
+    // before any authentic bytecode began executing.
+    ae3::NativeStageWorld verifierWorld;
+    ae3::LuaStage verifier(verifierWorld);
+    broken=originalFormat;
+    check(broken.size()>=4,"original Lua 5.0 fixture missing instructions");
+    broken[broken.size()-4]=static_cast<std::uint8_t>(
+        (broken[broken.size()-4]&~0x3Fu)|0x3Fu); // invalid OP 63
+    bool rejectedOpcode=false;
+    try{verifier.executeSource(std::string_view(
+        reinterpret_cast<const char*>(broken.data()),broken.size()));}
+    catch(const std::runtime_error&){rejectedOpcode=true;}
+    check(rejectedOpcode,"Lua 5.0 bytecode verifier accepted impossible opcode");
+    verifier.executeSource(
+        "function afterInvalidOpcode() gw_set_flag('no_runtime_poison') end");
+    check(verifier.invokeCallback("afterInvalidOpcode") &&
+          verifierWorld.flag("gw","no_runtime_poison"),
+          "a Lua 5.0 verifier failure enabled retail manager requirements");
+
     broken=originalFormat;
     broken.resize(originalFormat.size()-2);
     rejected=false;

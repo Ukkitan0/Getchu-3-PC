@@ -101,12 +101,21 @@ OriginalStageSpatialLoaded originalStageBuildSourceSpatial_21d46c(
                                std::uint64_t(sentinel)*32;
             if(pointer>std::numeric_limits<std::uint32_t>::max())
                 throw std::out_of_range("Original source record extra pointer overflow");
-            checkedOffset(stage,std::uint64_t(fields[4])+std::uint64_t(sentinel)*32,1);
+            // 0x21D610..0x21D640 selects a complete 0x20-byte
+            // original entry; accepting only one trailing byte leaves
+            // an unresolved/truncated original object reference.
+            checkedOffset(stage,std::uint64_t(fields[4])+std::uint64_t(sentinel)*32,32);
             store32(rec,0x1c,static_cast<std::uint32_t>(pointer));
         }
         // Dynamic class/action entries are game-owned. Preserve and
         // report them rather than constructing fake actors/controllers.
         const auto actionCount=read16(stage,originalHeaderOff+2);
+        // The original 0x1E-byte descriptor lays out action types at
+        // +0x0A..+0x0F and arguments at +0x10..+0x15. +0x16 is the
+        // separately recovered polygon vertex count; exceeding three
+        // action pairs would reinterpret other descriptor fields.
+        if(actionCount>3)
+            throw std::out_of_range("Original nav descriptor action count exceeds fixed three-slot layout");
         for(std::uint16_t a=0;a<actionCount;a++) {
             const auto type=read16(stage,originalHeaderOff+0x0a+std::uint64_t(a)*2);
             const auto argument=read16(stage,originalHeaderOff+0x10+std::uint64_t(a)*2);
