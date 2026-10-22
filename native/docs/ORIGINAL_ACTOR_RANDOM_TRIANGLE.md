@@ -30,9 +30,15 @@ confirms five original source calls and five original VU0 operations.
   `0x57CA5C`, `0x57CA64` are two `VADD.xyzw`,
   applied in source vertex order:
   `((vertex0 * wa) + (vertex1 * wb)) + (vertex2 * wc)`.
-- Original `0x57C948` returns the **low 64 bits** of
-  the resulting `VF1`, which the native API returns as
-  the exact x/y bits rather than a platform-dependent struct.
+- `0x57C994/0x57C9A8/0x57C9B8 PCPYUD` retain only
+  each original vertex's upper 64 bits in VF.z/VF.w, clearing
+  VF.x/VF.y before the three VMULx operations.
+- `0x57C948 QMFC2` transfers **all 128 bits** of VF1 to
+  EE `$v0`. The previous low-64-only interpretation is wrong.
+  `0x57C894 PCPYUD $a2,$zero,$v0` extracts the resulting
+  high doubleword (candidate Z/W) into the actor's next ray.
+  The corrected `originalActorRandomTrianglePacked_57c98c`
+  returns both source-GPR doublewords, without synthetic results.
 
 This is the game's original random point-within-triangle calculation,
 including its inset toward the polygon center. It is **not** a generic
@@ -74,3 +80,7 @@ claim the full game runs.
 No game ELF, ISO, Lua or polygon data is committed publicly.
 No emulated PlayStation CPU/memory implementation was added,
 and no GitHub Actions were deliberately invoked.
+
+## 2026-10-21 source-packing correction
+
+Original 0x57C7CC caller flow and the PCSX2 interpreter's MMI/COP2 source independently confirm full-width QMFC2/QMTC2 and PCPYUD semantics. An earlier low-64-bit-only native port was incomplete. Source `0x57C944` also passes the full 16-byte controller+0x20 vector, including its high half. Source `0x57C984/0x57C988` branches through full-width QMTC2 before the shared QMFC2 return. The corrected code preserves the genuine shared RNG state.

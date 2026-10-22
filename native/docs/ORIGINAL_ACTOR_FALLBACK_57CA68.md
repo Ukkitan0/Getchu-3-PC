@@ -103,3 +103,7 @@ original engine. The full Windows game remains unbooted;
 the complete CMake project remains unverified. No game
 ELF/ISO/Lua/assets or emulator code are committed. No
 GitHub Actions were manually run.
+
+## 2026-10-21 recovered VU0 full-width transform
+
+The earlier 'unimplemented' text above describes the **historical** project state; the production native transform now exists in `native/src/original_actor_fallback_vu0_native.cpp`. It uses original owner+0x14->+0x40, controller+0x20, genuine Q and independent RNG state. Importantly, `0x57CCE0 PCPYUD v0,zero,s1` produces a zero low GPR doubleword and a nonzero high candidate doubleword. Source `0x57C988 QMTC2` and shared `0x57C948 QMFC2` are **128-bit** transfers. Source `0x57C894 PCPYUD a2,zero,v0` forwards that upper half into polygon projection as Z/W. A previous low-half-only interpretation was incorrect. Runtime integration and complete Windows boot remain unverified.

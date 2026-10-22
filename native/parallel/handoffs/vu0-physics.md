@@ -45,7 +45,7 @@ The old injectable callback remains available for *tests only* and for unresolve
 - Original `QMTC2` supplies these transformed packed words to the VU0 VF registers. Score passes `VF2,VF3` through original `0x4748AC` XYZ dot at `0x57CBC4/0x57CCBC`. `VMULq` uses **caller-owned Q** at `0x57CB9C/CBB8` and `0x57CC94/CCB0`; no guessed Q initialization.
 - Original `VRINIT/VRXOR` pairs occur twice per candidate. Existing native R-bit-state routines are now caller-accessible via the actor and stage adapter. The source still uses 2 genuine game MT19937 RNG draws for each of 6 candidates, distinct from R state.
 - Original winner packing at `0x57CCD4/CCE0` is `PCPYUD …,zero,source`: low 64 EE GPR bits become zero and upper 64 retain the winning candidate's VF.z/w bits. The native selection/result now expose *both* raw doublewords.
-- **Important follow-on semantics:** Source `0x57C988 DMTC2 $v0,VF1` transfers the **low** GPR doubleword, and `0x57C894` constructs projection operand `$a2` from the source low doubleword. High 64 bits are retained in the native diagnostic/result object, but **must not be interpreted as motion vector Z/W**. The actor pipeline's next ray uses exactly its original low-doubleword source, with upper lanes zero.
+- **Corrected original semantics:** `0x57C988 QMTC2 $v0,VF1` and the shared `0x57C948 QMFC2` transfer **all 128 bits**. Source `0x57C894 PCPYUD $a2,$zero,$v0` clears the low GPR doubleword and forwards the source **upper** doubleword as the projection Z/W lanes. The previous statement above interpreting this as low-only DMTC2 was incorrect and is superseded.
 - Owner-private `woods_c/navigation.pck` SHA-256: `d2f6809cb9414cf8edfe52bc4c209d526b6247c003fd60856a796f114b422df0` (**verified locally**); 59 original polygons (39+20), tested without publishing the resource.
 
 ## Actual native tests run
@@ -81,7 +81,7 @@ In **`native/CMakeLists.txt`**, add **`native/src/original_actor_fallback_vu0_na
 
 Application/actor owner must supply each actor's actual `owner+0x14->+0x40` packed source vector via `setOriginalFallbackOwnerVector_57ca68(...)`, plus actual global/current Q bits through `setOriginalFallbackQBits_57ca68(...)`. If engine-global VI[R] tracking is available, bind its *live* `OriginalActorFallbackVu0R_57ca68` via `setOriginalFallbackRState_57ca68(pointer)` (both pipeline and stage wrapper now expose it). Existing original shared game RNG must be passed to the constructor. None of these original-state dependencies should be replaced with synthetic input or constants.
 
-The result `OriginalActorTargetResult_57c8ec::originalVectorLow64` retains the original post-DMTC2 motion/transfer semantics. The new `originalVectorHigh64` retains packed fallback provenance only; integrator must not blindly concatenate it into the next ray direction.
+The full `OriginalActorTargetResult_57c8ec` carries both source-GPR doublewords. Original `0x57C894` uses `originalVectorHigh64` for projection Z/W; the low two lanes are zero. Integrators should invoke `originalActorTargetProjectionOperand_57c894` instead of using the lower 64 bits as a projection target.
 
 ## Unfinished original behavior / blockers
 
@@ -95,3 +95,16 @@ The result `OriginalActorTargetResult_57c8ec::originalVectorLow64` retains the o
 Use genuine actor memory snapshots for `0x57C8EC` and `0x57CA68`, then trace original `0x4C1B3C` projection / `0x21BD3C` polygon traversal / `0x21EE00` collision selection into the actual player and monkey actor update. Validate scoring, source winner, raw packed result and next-ray operands against original execution, including zero/NaN/denormal cases. Navigation route search and stage format parsing remain exclusively owned by their respective workstreams.
 
 No original game assets, ELF, ISO, private PCK or Lua are committed. No GitHub Actions triggered. No writes to shared CMake, shared docs, navigation branch, integration/master branch or default main.
+
+## Continuation: source-correct 128-bit actor target transfer
+
+**New commits:**
+- `ecd5a8b98c10ad3de6450ff056048acb52fd9f28`: fix all three source `0x57C8EC` targets to carry the full QMFC2 result; original `0x57C98C` vertex shuffle clears X/Y and blends Z/W; source `0x57C894` forwards Z/W into the next polygon ray.
+- `524b63405abfee165227cebd57fa591f90347c66`: new public `originalActorTargetProjectionOperand_57c894` and 128-bit target regression coverage.
+- `fccb9dd272856d9b6937773da2759e72c915130f`: typed full 128-bit `originalActorRandomTrianglePacked_57c98c`, called only once per sample to preserve the original RNG stream.
+
+**Source instruction audit:** owner-private SHA-verified ELF; 14 exact words independently checked at `0x57C944`, `0x57C948`, `0x57C984`, `0x57C988`, `0x57C894`, `0x57C994`, `0x57C9A8`, `0x57C9B8`, `0x57CA28`, `0x57CA40`, `0x57CA54`, `0x57CA5C`, `0x57CA64` and `0x57CA60`. The last branches to shared full-width return `0x57C948`. The earlier Q/R fallback body SHA + all 59 private woods_c geometry cases were also rechecked locally. Full CMake/CTest and native Windows boot were not run.
+
+**External ISA cross-check:** PCSX2 `pcsx2/MMI.cpp` PCPYUD explicitly sets `RD.UD[0]=RS.UD[1]`, `RD.UD[1]=RT.UD[1]`; `pcsx2/VU0.cpp` QMFC2/QMTC2 copy *both* 64-bit halves. This is evidence for direct native translation, **not** a dependency on emulation.
+
+**Integration:** Existing sources/headers are already under source ownership; only the new `original_actor_fallback_vu0_native.cpp` needs integrator-controlled CMake addition, along with registering its focused test. The new actor-target projection helper is available to original gameplay integration. Do not cherry-pick the previous fallback commit without these follow-on corrections.
