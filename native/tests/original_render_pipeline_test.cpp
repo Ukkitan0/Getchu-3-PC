@@ -51,7 +51,7 @@ void run(){
     const std::vector<ae3::OriginalRetailDrawObject> actors{stage,character};
     unsigned culled=0;
     ae3::OriginalRetailDrawProviders providers{
-        [&](ae3::OriginalRenderId id){check(id==101||id==102,"unexpected spatial-cull actor");++culled;return false;},
+        [&](ae3::OriginalRenderId id){check(id==101||id==102,"unexpected spatial-cull actor");++culled;return true;},
         {}
     };
     const auto next=[&]()->ae3::OriginalRenderFrame{
