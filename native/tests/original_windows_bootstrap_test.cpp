@@ -51,6 +51,22 @@ void check(){
     require(finished.complete&&finished.executed==source.size() &&
             !finished.firstUnrecovered && complete.called==std::vector<std::uint32_t>(source.begin(),source.end()),
             "original 143-entry dispatch order changed");
+    OriginalAllocatorGlobals_41a390 globals;
+    for(const auto value:globals.counters)
+        require(value==0,"original constructor globals must start as zeroed CRT BSS");
+    originalAllocatorCtor_41a390(globals);
+    for(const auto value:globals.counters)
+        require(value==1,"original 0x41A088 first allocator/global registration lost");
+    originalAllocatorCtor_41a390(globals);
+    for(const auto value:globals.counters)
+        require(value==2,"original first initializer reentry counter behavior wrong");
+    globals.counters[6]=0xffffffffffffffffull;
+    originalAllocatorCtor_41a390(globals);
+    require(globals.counters[6]==0,
+            "original 64-bit DADDIU accumulator wrapping not preserved");
+    for(std::size_t i=0;i<globals.counters.size();++i)
+        if(i!=6)require(globals.counters[i]==3,
+                         "original registration updates other counters incorrectly");
     OriginalNativeTerminationRegistry registry;
     require(!registry.register_428b80({}),"original exit callback registry accepted absent function");
     std::vector<int> calls;
