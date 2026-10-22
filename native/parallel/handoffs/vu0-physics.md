@@ -108,3 +108,26 @@ No original game assets, ELF, ISO, private PCK or Lua are committed. No GitHub A
 **External ISA cross-check:** PCSX2 `pcsx2/MMI.cpp` PCPYUD explicitly sets `RD.UD[0]=RS.UD[1]`, `RD.UD[1]=RT.UD[1]`; `pcsx2/VU0.cpp` QMFC2/QMTC2 copy *both* 64-bit halves. This is evidence for direct native translation, **not** a dependency on emulation.
 
 **Integration:** Existing sources/headers are already under source ownership; only the new `original_actor_fallback_vu0_native.cpp` needs integrator-controlled CMake addition, along with registering its focused test. The new actor-target projection helper is available to original gameplay integration. Do not cherry-pick the previous fallback commit without these follow-on corrections.
+
+
+## Continuation: first/subsequent actor projection math recovered
+
+- Commit `1672842d5c2cd644589d309b06136b79a9f64b70`: expanded original executable auditor to verify **30 actual VU0 arithmetic register/operand/mask tuples** beyond the two 39-operation opcode sequences and source branch/transfer sites; all 30 verified locally on private original ELF.
+- Commit `9921e54713ca46e87ee0b24138677641907619d6`: original source PCpyud/target propagation assertions expanded for vertex packing and later ray calls.
+- Commit `0e736112572f29ede6edc10f3c3aaa6c8ec890f0`: native `originalActorPackedSubsequentRayStart_57c88c` and distinct initial/follow-up A1 path in actor pipeline. Exact original sources `0x57C7E4`, `0x57C814`, `0x57C88C`, `0x57C890`, `0x57C894` audited; local focused GCC and Clang+ASan/UBSan tests both passed on the 59 source woods_c polygons.
+
+**Commands exercised against private PCK with SHA `d2f6809cb9414cf8edfe52bc4c209d526b6247c003fd60856a796f114b422df0`:**
+
+```bash
+g++ -std=c++20 -O2 -Wall -Wextra -Werror -ffp-contract=off -fno-fast-math -Iinclude \\
+ src/original_actor_fallback_vu0_native.cpp tests/original_actor_128bit_chain_test.cpp -o test_128
+./test_128 /private/woods_c/navigation.pck
+clang++ -std=c++20 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined \\
+ -fno-omit-frame-pointer -ffp-contract=off -fno-fast-math -Iinclude \\
+ src/original_actor_fallback_vu0_native.cpp tests/original_actor_128bit_chain_test.cpp -o test_128_asan
+ASAN_OPTIONS=detect_leaks=1 ./test_128_asan /private/woods_c/navigation.pck
+```
+
+Also ran the native ray helper and original 0x4C1B3C XYZ math against all 59 original polygons using GCC/Clang ASan+UBSan with the same flags. All focused runs passed. These local test harnesses use isolated API-compatible headers and are **not** equivalent to the full repository native build. Existing repository regression `original_actor_ray_geometry_test.cpp` was also extended with private original per-polygon A1 mask checks. The wider gameplay, stage integration, complete CMake/CTest and full Windows executable still require integration-owner testing.
+
+**Integration:** `originalActorPackedSubsequentRayStart_57c88c` lives in the existing source `original_actor_ray_geometry.cpp` (no new CMake file). `original_actor_navigation_pipeline.cpp` now uses it for follow-up rays. New single-file CMake request remains `original_actor_fallback_vu0_native.cpp`. Do not substitute packed A1 for the initial ray: original first ray retains full caller A1.

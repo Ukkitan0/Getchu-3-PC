@@ -58,3 +58,12 @@ GCC Release, Clang Release and UBSan passed locally.
 No original proprietary ELF/ISO/assets are committed.
 No PlayStation emulation, fake gameplay, or workflow dispatch
 is included. Full native Windows boot remains unachieved.
+
+
+## 2026-10-21 — original first vs later ray source A1 provenance
+
+Source `0x57C7E4 PCPYUD s5,zero,a1` saves a 128-bit packed copy of incoming `a1` with **X/Y zero, Z/W retained**. At `0x57C814 JAL 0x4C1B3C`, original `a1` is still *unmodified*: the first ray uses all four incoming lanes. After selecting another target, source `0x57C88C PCPYUD a1,zero,s5` runs before the `0x57C890` second ray call (delay slot `0x57C894 PCPYUD a2,zero,v0`). Therefore subsequent rays use **masked source a1** and **masked target a2**, not the initial full `a1` vector.
+
+The new direct native `originalActorPackedSubsequentRayStart_57c88c` function performs precisely this source packing. `OriginalActorNavigationPipeline_57c7cc::call_original_4c1b3c_project` selects full incoming A1 for the initial ray and the masked version after the first genuine target dispatch. Full 128-bit QMFC2/QMTC2 semantics from the preceding target-vector recovery remain preserved. This is source operand recovery, not replacement steering or collision.
+
+Exact source opcode words `0x57C7E4`, `0x57C814`, `0x57C88C`, `0x57C890`, and `0x57C894` were locally verified against the genuine private USA executable. Standalone GCC 14.2 optimized and Clang 17 ASan/UBSan tests of the VU0 input-packing/projection math passed against **all 59** owner-private `woods_c/navigation.pck` triangles. The full native Windows application remains unbuilt/unbooted.
