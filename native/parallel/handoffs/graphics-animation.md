@@ -119,3 +119,77 @@ One **separate NativeSkinnedGlb per animated actor** is required to avoid shared
 Reverse engineer the **complete original render traversal** starting at `0x2807xx` and its second pass `0x280Dxx`; recover `0x26C9B8` bounds and the remaining graphics dispatch downstream of recovered `0x26B550/0x26B57C`, then attach those to render-instance visibility and GPU draw submissions without guessed behavior. Obtain original model inputs from Assets and test original stage and actor scene composition before any playable claim.
 
 **Boundaries respected:** no original copyrighted ELF/models/Lua/PCK textures committed, no PS2 emulation/replacement scene, no cross-owner CMake/app edits, no manual GitHub Actions.
+
+
+---
+
+## Graphics / Animation continuation — native retail render pipeline pass 2 (2026-10-21)
+
+**Scope:** Continued only on `parallel/graphics-animation`; no edits to shared CMake, `app_win32.cpp`, Assets, Gameplay, VU0/Physics, master/default branches or GitHub Actions.
+
+### New source and commits
+
+- `27eaeae`, `fe3bb61`, `a06ae6e`: `native/include/ae3/original_render_pass.hpp`, `native/src/original_render_pass.cpp`, `native/tests/original_render_pass_test.cpp` — original **two distinct** retail object draw traversals recovered, with source-order call events and original entry/rejection tests.
+- `cd70a9d`, `9042419`, `facb8c6`, `2c1f3f0`, `27a58d0`, `0ed52dc`: extend retail pass trace with admitted actor identities in traversal order, and graphics-owned `OriginalRenderWorld::composeFrameInOriginalOrder(ids)` to select actual original asset GLB instances for the D3D11 scene uploader without host layer resorting. Tests exercise multiple independently positioned actor instances, shared texture resources, per-actor animated samplers, source draw order, omitted visibility, duplicate and missing actor failures. No generic replacement scene is introduced.
+- `9d4fd19`, `0fe7e4c`, `b6a5645`: `native/include/ae3/original_render_owner_schedule.hpp`, `native/src/original_render_owner_schedule.cpp`, `native/tests/original_render_owner_schedule_test.cpp` — original render owner record scan/activation, 64-bit frame counter, 0x90-byte record stride, mode/interval modulo admission, per-record +4/+5 handling. Original initializer at 0x51CDAC remains injectable and mandatory when required.
+- `e0a6340`, `3af740d`: updated SHA-verified original retail ELF source audit with ten additional fingerprinted instruction ranges.
+- `f3ee9e9`: `native/docs/ORIGINAL_RETAIL_RENDER_PASSES.md` provides the exact data layout, source instruction VAs, source control-flow semantics, retail SHA fingerprints, tests and Windows integration recipe.
+
+### Native semantics established from original executable
+
+**Primary object pass:** `0x280810–0x280968`, alternate actor-flag path at `0x280A90`: 64-bit group-mask and +0x30/+0x35 checks; spatial cull `0x26C9B8` only if byte +0x32 set; source selector `0x26B550/0x26B57C`; selected resource `0x2802D4` and bind `0x3B76F8`; actor +0x33 chooses `0x2803B4` versus `0x3B76E8`; actor +0x110 nested resource byte +0x08 checked **twice** using `0x26B3D0`; byte +0x34 controls resource clear/restore and final bind; source actor mode `0x26831C(...,1)`.
+
+**Secondary object pass:** `0x280E20–0x280EB8`: checks bytes +0x30/+0x35, **always** calls `0x26C9B8` for candidate objects (no +0x32/mask check), flag+0x33 chooses draw/restore, actor mode `0x26831C(...,0)`.
+
+**Render-owner outer scheduler:** `0x280B7C–0x280C80`, owner +0x34 stage slot vector, slot stride 0x90, owner +0x40 counter increments as full 64-bit; +0x38 mode selects special mode 1, +0x3C signed interval clamped to 1; byte4 zero invokes `0x51CDAC`, byte4 always reset in branch delay slot; byte5 false skips record; special schedule uses `0x4233F8` remainder of frame counter over interval compared to ordinal among active records. This preserves frame staggering in original stage render ownership.
+
+**Retail input verification:** Re-examined SHA-matching private `SCUS_975.01`, checked original instruction-byte hashes for both complete traversal ranges, effect wrapper, selector resource setting, source fallback branch and owner scheduler. Refer to `native/docs/ORIGINAL_RETAIL_RENDER_PASSES.md` for ten exact VA-range SHA fingerprints. Only SHA checks and source code are committed; original game data remains private.
+
+### Tests actually executed
+
+Local focused test set in `/mnt/data/graphics_work` (the local sandbox is not the whole Git repository; tests use graphics-owned headers, source and synthetic structural fixture only). Compiler commands use C++20, `-Wall -Wextra -Wpedantic -Werror`, with `-I native/include`.
+
+| Suite | GCC 14.2.0 `-O2` | Clang 17.0.0 `-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer` |
+| --- | --- | --- |
+| Original render instances + traversal-order scene composition | PASS | PASS |
+| Original retail early visibility gate | PASS | PASS |
+| Original resource selector & routing | PASS | PASS |
+| Original primary/secondary pass control flow | PASS | PASS |
+| Original render-owner frame scheduler | PASS | PASS |
+
+**10/10 focused test executions pass**; no sanitizer findings. Original ELF retail SHA/range checks also pass. This does NOT constitute a real Windows boot, D3D11 draw, model visual validation or full-project CTest. Existing `gltf_scene_test.cpp` color change still has not been recompiled against cgltf in this offline environment.
+
+### Precise Windows Runtime integration request (integrator only)
+
+Add the existing prior-pass graphics sources and new ones into `Getchu3Assets` if not already present:
+
+```cmake
+target_sources(Getchu3Assets PRIVATE
+  src/original_render_instances.cpp
+  src/original_render_visibility.cpp
+  src/original_render_selector.cpp
+  src/original_render_pass.cpp
+  src/original_render_owner_schedule.cpp)
+add_executable(Getchu3OriginalRenderPassTests tests/original_render_pass_test.cpp)
+target_link_libraries(Getchu3OriginalRenderPassTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailPrimarySecondaryRenderControl COMMAND Getchu3OriginalRenderPassTests)
+add_executable(Getchu3OriginalRenderOwnerTests tests/original_render_owner_schedule_test.cpp)
+target_link_libraries(Getchu3OriginalRenderOwnerTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailRenderOwnerSchedule COMMAND Getchu3OriginalRenderOwnerTests)
+```
+
+Keep previously requested three tests for OriginalRenderInstances, OriginalRenderVisibility and OriginalRenderSelector in CMake as well. No extra third-party library is needed for these new modules.
+
+Original ownership integration sequence:
+1. Convert real loaded game stage render-owner +0x34 records into `OriginalRetailRenderOwner::slots`, with stable actor IDs and real flag byte snapshots; wire source `0x51CDAC` validator (currently missing).
+2. Read original render object +0x20 masks, +0x30/+0x32/+0x33/+0x34/+0x35 flags, +0x110 resource pointers and source animation state. Call `traceOriginalPrimaryRenderPass(list,contextMask58,providers)` or `traceOriginalSecondaryRenderPass(list,providers)` as dictated by actual original engine lifecycle; feed `OriginalRetailDrawProviders` with original bounds (`0x26C9B8`) and resource-effect (`0x26B3D0`) bindings.
+3. Use `OriginalRenderWorld::composeFrameInOriginalOrder(trace.acceptedIds)` to select and transform owner-extracted mesh data for native Direct3D upload, not to replace original shader/effect execution. Track original draw-call events `trace.events` to recover actual `0x2803B4`, `0x26831C`, `0x2804F4`, `0x3B76F8` and `0x3B76E8` operations. Do **not** silently drop resource events if implementing final render output.
+
+### Blocking dependencies and next large pass
+
+- **VU0/Physics:** source `0x26C9B8` dereferences the render-list owner and calls `0x26C4B0`, which contains genuine VU0 vector/polygon/list tests. The current render pass intentionally fails closed when the original spatial-cull function is required but not provided.
+- **Assets:** need real retail PCK/I3D material/mesh payloads and I3M bone/attachment sources, without committing game data.
+- **Gameplay/Lua:** supply real stage owner hierarchy, actor ID/flags/animation time and render owner list activation; no invented stage actors.
+- **Windows Runtime:** integrate scene queue and original render ownership into its native game loop and update CMake/tests. Full Windows build and D3D11 visual tests are integration-owned.
+- **Graphics itself:** decode `0x2803B4`, `0x26831C`, `0x2804F4`, resource tables/material state, second-pass render effects, actual original camera and matrix hierarchy, then validate genuine levels/monkeys/animation against private assets. Source-driven event order is **not** complete graphics rendering.
+
