@@ -20,24 +20,28 @@ std::uint32_t word(const std::vector<std::uint8_t>& data,std::size_t at){
 bool inside(std::uint64_t at,std::uint64_t len,std::uint64_t total){
     return at<=total && len<=total-at;
 }
+// Private authentic USA woods_c/{bg,character,exdb,navigation,apelodtex}.pck
+// records independently confirm name/type are ABSOLUTE source-file
+// string offsets, not pool-relative identifiers.
 std::string nameAt(const std::vector<std::uint8_t>& data,
-                   std::size_t table,std::uint32_t relative){
+                   std::size_t table,std::uint32_t absolute){
     constexpr std::size_t pool=16;
-    if(table<pool || relative>=table-pool)return {};
-    std::size_t at=pool+relative,start=at,end=at;
-    // Some offsets point into a name, and some point ON its trailing NUL.
-    if(data[at]==0){
-        end=at;
-        while(start>pool && data[start-1]!=0)--start;
-    }else{
-        while(start>pool && data[start-1]!=0)--start;
-        while(end<table && data[end]!=0)++end;
+    if(table<pool || absolute<pool || absolute>=table)
+        throw std::runtime_error("original PCK string offset outside absolute pool");
+    const std::size_t at=absolute;
+    if(at>pool && data[at-1]!=0)
+        throw std::runtime_error("original PCK offset does not point to a source string start");
+    std::size_t end=at;
+    while(end<table && data[end]!=0) {
+        if(data[end]<32||data[end]>126)
+            throw std::runtime_error("original PCK has non-printable source identifier");
+        if(end-at>=255)
+            throw std::runtime_error("original PCK source string exceeds bounded identifier length");
+        ++end;
     }
-    if(end<=start||end-start>255)return {};
-    for(std::size_t p=start;p<end;++p){
-        if(data[p]<32||data[p]>126)return {};
-    }
-    return std::string(reinterpret_cast<const char*>(data.data()+start),end-start);
+    if(end==table || end==at)
+        throw std::runtime_error("original PCK source string missing or unterminated");
+    return std::string(reinterpret_cast<const char*>(data.data()+at),end-at);
 }
 PckAssetKind detect(const std::vector<std::uint8_t>& b,std::size_t p,std::size_t n){
     if(n>=8 && std::memcmp(b.data()+p,"I3D_BIN",7)==0)return PckAssetKind::mesh;
@@ -103,7 +107,8 @@ void PckArchive::parse(){
         members_.push_back({static_cast<std::size_t>(i),
                             nameAt(bytes_,static_cast<std::size_t>(table),nameId),
                             type,payload,size,
-                            detect(bytes_,payload,size)});
+                            detect(bytes_,payload,size),
+                            nameAt(bytes_,static_cast<std::size_t>(table),type)});
     }
 }
 std::vector<std::uint8_t> PckArchive::read(const PckMember& entry) const{
