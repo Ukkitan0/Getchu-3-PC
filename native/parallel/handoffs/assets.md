@@ -170,3 +170,5 @@ Additional commits:
 - ff708ff3fb7cadcaeedbd467f8deed6c79cc8d5a — stage catalog regression now includes a printable non-launcher-style source stage folder. The updated strict optimized GCC 14.2.0 C++20 test passed: ORIGINAL_RESOURCE_STAGE_CATALOG_TEST_PASSED stages=3 members=7 malicious=6. The original retail ISO was not mounted so whether a stage named this way actually exists is NOT asserted; this regression only protects source-fidelity of the filename rules.
 
 The earlier handoff test summary (stages=2 members=6) refers to the earlier commit, not the updated test.
+
+Final local verification after source-stage-name correction: updated stage-catalog test (three synthetic stage folders, seven source members, six rejected malformed lookups) passed GCC 14.2.0 strict -O2, Clang 17.0.0 strict -O2, and GCC AddressSanitizer+UndefinedBehaviorSanitizer with ASAN_OPTIONS=detect_leaks=1. Native stage probe remained syntax-only compiled under GCC -Werror; complete binary linkage and original ISO tests still require integrator and private data.
