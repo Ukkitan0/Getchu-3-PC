@@ -48,6 +48,7 @@ OriginalRetailPassTrace traceOriginalPrimaryRenderPass(
         // 0x280838..0x280884; callback only demanded when flag32 != 0.
         if(!passesOriginalRetailRenderEarlyGate(gate,[&]{return cull(actor.id,p);} ))continue;
         ++out.accepted;
+        out.acceptedIds.push_back(actor.id);
         // 0x280888, 0x26B550 and 0x26B57C: resource-specific draw
         // optionally switches current s1; otherwise uses inherited s2.
         std::uint32_t index=0;
@@ -88,6 +89,7 @@ OriginalRetailPassTrace traceOriginalSecondaryRenderPass(
         if(!actor.flag30||!actor.flag35)continue;
         if(cull(actor.id,p))continue;
         ++out.accepted;
+        out.acceptedIds.push_back(actor.id);
         if(actor.flag33)
             event(out,actor.id,OriginalRetailDrawOp::DrawActor,0x2803B4);
         else
