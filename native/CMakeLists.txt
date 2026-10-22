@@ -120,6 +120,10 @@ add_test(NAME OriginalRetailNearestSelectionAndRegistryTeardown COMMAND Getchu3O
 add_executable(Getchu3OriginalSpatialSupportTests tests/original_spatial_support_test.cpp)
 target_link_libraries(Getchu3OriginalSpatialSupportTests PRIVATE Getchu3Assets)
 add_test(NAME OriginalRetailGridPlanePolylineAndChildDestructor COMMAND Getchu3OriginalSpatialSupportTests)
+add_executable(Getchu3OriginalRetailVU0PlaneTests tests/original_vu0_retail_planes_test.cpp)
+target_link_libraries(Getchu3OriginalRetailVU0PlaneTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalVU0RealNavigationPlaneSynthetic
+         COMMAND Getchu3OriginalRetailVU0PlaneTests)
 add_executable(Getchu3OriginalVU0GeometryTests tests/original_vu0_geometry_test.cpp)
 target_link_libraries(Getchu3OriginalVU0GeometryTests PRIVATE Getchu3Assets)
 add_test(NAME OriginalRetailVU0PolygonMeanXYZDistanceAndNearest COMMAND Getchu3OriginalVU0GeometryTests)
@@ -290,6 +294,8 @@ target_link_libraries(Getchu3OriginalNavRetailPckTests PRIVATE Getchu3Assets)
 set(AE3_RETAIL_WOODS_C_NAVIGATION_PCK "" CACHE FILEPATH "Path to owned woods_c/navigation.pck")
 if(AE3_RETAIL_WOODS_C_NAVIGATION_PCK)
   add_test(NAME OriginalRetailNavPck COMMAND Getchu3OriginalNavRetailPckTests "${AE3_RETAIL_WOODS_C_NAVIGATION_PCK}")
+  add_test(NAME OriginalRetailVU0All59PolygonCentroidsAnd177DirectedEdges
+           COMMAND Getchu3OriginalRetailVU0PlaneTests "${AE3_RETAIL_WOODS_C_NAVIGATION_PCK}")
   add_test(NAME OriginalRetailPolygonTraversalSourceGraphs
            COMMAND Getchu3OriginalPolygonTraversalTests "${AE3_RETAIL_WOODS_C_NAVIGATION_PCK}")
   add_test(NAME OriginalRetailActorRayGeometryAll59Polygons

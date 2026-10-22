@@ -43,16 +43,19 @@ bool originalVU0PolygonEligible_21b788(
     // 0x21B7AC VMOVE VF2,VF3, VF3 initialized to final polygon vertex.
     OriginalVU0Vec4 previous=points.back();
     for(const auto& current:points) {
-        // 0x21B7C4 VSUB.xyzw VF5,VF3,VF2. 0x21B7D0..D8:
-        // PEXTLW t6,zero,t7, PCPYUD t7,t7,t7, PCPYUD t7,t7,t6.
-        // This produces packed VF5=[edge.z,edge.w,edge.y,0].
-        // VSUB/VADDw create VF1=(0,1,0,0);
-        // VOPMULA.xyz VF1,VF5; VOPMSUB.xyz VF5,VF1 gives
-        // the original plane normal (edge.y,0,-edge.z).
-        const float edgeY=current.y-previous.y;
+        // 0x21B7C4 loads directed source edge current-previous.
+        // 0x21B7C0 creates original world-up VF1=(0,1,0,0).
+        // 0x21B7D0..0x21B7DC shuffle original EE halfwords
+        // before 0x21B7E0 VOPMULA and 0x21B7E4 VOPMSUB.
+        // The source horizontal plane normal is up CROSS edge,
+        // (edge.z, 0, -edge.x), *not* (edge.y,0,-edge.z).
+        // Verify against authentic woods_c navigation triangles:
+        // all 59 centroids pass and all 177 directed-edge outside
+        // probes fail; the previous implementation passed 0/59.
+        const float edgeX=current.x-previous.x;
         const float edgeZ=current.z-previous.z;
-        const float normalX=edgeY;
-        const float normalZ=-edgeZ;
+        const float normalX=edgeZ;
+        const float normalZ=-edgeX;
         // Original VMUL.xyzw plus VADDy/VADDz dot reduction.
         const float dotPrevious=normalX*previous.x+normalZ*previous.z;
         const float dotQuery=normalX*query.x+normalZ*query.z;

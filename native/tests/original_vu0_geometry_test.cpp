@@ -33,18 +33,21 @@ int main(){
     check(originalVU0PolylineLength_21b194(
           std::span<const OriginalVU0Vec4>(points).first(1))==0.f,
           "One-point original path length must be zero");
-    const std::array<OriginalVU0Vec4,2> ring{{{0,0,0,0},{1,1,0,0}}};
+    // The original retail triangles lie in X/Z (Y is vertical).
+    // Source 0x21B7E0/0x21B7E4 uses the world-up cross edge,
+    // never the previous broken edge.y/edge.z normal.
+    const std::array<OriginalVU0Vec4,3> ring{{{0,0,0,0},{0,0,2,0},{2,0,0,0}}};
     check(originalVU0PolygonEligible_21b788({},points[0]),
           "Zero-plane original polygon must pass");
-    check(originalVU0PolygonEligible_21b788(ring,{0.5f,0,0,0}),
-          "Original packed MMI/VU0 plane rejected inside");
+    check(originalVU0PolygonEligible_21b788(ring,{0.5f,0,0.5f,0}),
+          "Source XZ polygon incorrectly rejected interior");
     check(originalVU0PolygonEligible_21b788(ring,{0,0,0,0}),
           "Original plane boundary changed");
-    check(!originalVU0PolygonEligible_21b788(ring,{-1,0,0,0}),
-          "Original plane failed negative side rejection");
-    check(!originalVU0PolygonEligible_21b788(ring,{2,0,0,0}),
-          "Original plane failed positive side rejection");
-    check(originalVU0PolygonEligible_21b788(ring,{-0.1f,0,0,0},0.2f),
+    check(!originalVU0PolygonEligible_21b788(ring,{-1,0,0.5f,0}),
+          "Source edge normal missed negative X outside");
+    check(!originalVU0PolygonEligible_21b788(ring,{2,0,2,0}),
+          "Source edge normal missed positive XZ outside");
+    check(originalVU0PolygonEligible_21b788(ring,{-0.05f,0,0,0},0.2f),
           "Original f12 tolerance ignored");
     check(originalVU0DistanceXYZ_21b234({5,-3,2,1e8f},{5,-3,2,-1e8f})==0.f,
           "Original distance incorrectly includes W");
