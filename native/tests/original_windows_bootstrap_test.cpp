@@ -21,6 +21,18 @@ void check(){
     require(source.size()==143,"original retail constructor count");
     require(source.front()==0x41a390&&source.back()==0x10526c,
             "original source constructor table endpoints/order");
+    // Original table was extracted from the SHA-256-verified USA ELF;
+    // a full-order fingerprint detects a wrong middle entry that endpoint
+    // and monotonic checks alone would miss.
+    std::uint64_t fingerprint=14695981039346656037ull;
+    for(std::uint32_t va:source){
+        for(unsigned shift=0;shift<32;shift+=8){
+            fingerprint^=(va>>shift)&0xffu;
+            fingerprint*=1099511628211ull;
+        }
+    }
+    require(fingerprint==0xe8da5c252d4839d5ull,
+            "original static constructor addresses/order differ from verified ELF");
     for(std::size_t i=1;i<source.size();++i)
         require(source[i]<source[i-1],"source constructor table must traverse strictly reverse addresses");
     NativeConstructorRecorder incomplete;
