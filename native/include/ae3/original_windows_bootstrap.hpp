@@ -50,6 +50,22 @@ struct OriginalNumericGlobals_417c58 {
 };
 bool originalNumericCtor_417c58(OriginalNumericGlobals_417c58&) noexcept;
 
+// Original fifth constructor 0x391600 -> 0x391148 calls original
+// 0x39117C (JR RA; NOP); it has no observable native side effects.
+bool originalNoOpCtor_391600() noexcept;
+
+// Original sixth constructor 0x38ABFC -> 0x38ABA0 loops twice,
+// passing 0x6A9D38 then 0x6A9D48 to original 0x38AA64.
+// Four DWORDs/bytes are selectively written; bytes +5..+7 remain
+// untouched. These are native-owned original global fields.
+struct OriginalResetRecord_38abfc {
+    std::array<std::byte,16> bytes{};
+};
+struct OriginalResetGlobals_38abfc {
+    std::array<OriginalResetRecord_38abfc,2> records{};
+};
+void originalResetCtor_38abfc(OriginalResetGlobals_38abfc&) noexcept;
+
 // 0x428B80: original host-independent registration of 32 termination
 // callbacks per 0x88-byte source descriptor. We do not copy guest pointers.
 class OriginalNativeTerminationRegistry {
