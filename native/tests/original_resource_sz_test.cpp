@@ -43,6 +43,8 @@ int main() {
    auto bad=sz;writeSize(bad,static_cast<std::uint32_t>(n+1));
    rejected([&]{originalDecodeSz(bad);});
    bad=sz;bad.push_back(0x66);rejected([&]{originalDecodeSz(bad);});
+   ck(originalDecodeSz(bad,OriginalSzMaxOutputBytes,OriginalSzTrailerPolicy::permit)==source,
+      "Original navigation SZ trailing bytes must be accepted by compatible decoder");
    if(sz.size()>5){bad=sz;bad.pop_back();rejected([&]{originalDecodeSz(bad);});}
   }
   rejected([]{originalDecodeSz({});});
