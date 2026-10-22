@@ -6,6 +6,8 @@
 
 ## Commits and implementation
 
+- Direct-to-VU0 original stage actor pipeline bridge (new navigation commit; see branch head) with two-polygon source-backed fixture and local stubbed C++20 sanitizer smoke check.
+
 - Continuation: actor-bound navigation route lifecycle, typed source action/target integration and group weak-lifetime safety (new commit; inspect branch head).
 
 - `b77a5fd741ab0c1359fa73fc91b5998380dc7e0f`: connect original stage graph owner, type-1 route costs, original path dispatcher, native stable polygon index route snapshots, actor route/follower adapters.
@@ -159,6 +161,42 @@ if(actor.originalDropInvalidRoute()) {
 The actor-binding adapter treats an original `0x2207D0` route with an empty `forwardPath` (e.g. route mode selecting explicit original search index `-1`) as **no active actor route**. It clears a previously bound route rather than proceeding through `0x57C7CC`'s no-multiple-polygon branch and accidentally applying actor+0x30 as if a route existed. This is a native caller guard, not a new pathfinding decision.
 
 The stage group binding wraps original recovered `0x4E4060` registration with exception-safe conservative generation invalidation. If a failure occurs after some group nodes were inserted, prior group routes cannot remain valid. A malformed original resource fails and invalidates borrowed route identities even if mutation did not yet start (conservative host safety). The focused actor regression tests both the explicit no-route transition and malformed-resource invalidation. **Not executed in this environment.**
+
+## New direct native stage actor pipeline bridge
+
+**Source files:** `native/include/ae3/original_nav_actor_binding.hpp` (new public member), `native/src/original_nav_actor_stage_bridge.cpp`, and `native/tests/original_nav_actor_stage_bridge_test.cpp`.
+
+The new `OriginalNavActorRouteBinding::originalAdvanceNativeStage_57c7cc` forwards the already recovered original `0x2207D0` route's ordered source polygon IDs and `0x57BA98` signed path-count test (`>=2`) into the **existing** `OriginalStageActorNavigation_57c7cc::advance` owned by VU0/Physics. That class already dispatches original `0x57C7CC` follower, `0x4C1B3C` source ray/collision, `0x57C8EC` target-update and original shared game random. No substitute VU0 movement or authored pathfinding was added, and no VU0/physics code was modified.
+
+Safety: checks active source route/group generation; checks caller-supplied source graph **object identity** against the live stage owner's decoded graph; checks the original actor polygon index, every route polygon index and any current controller+0x50 polygon pointer **before** calling the stage pipeline. The native actor binding reads the real pipeline's updated target pointer afterwards instead of overriding its existing target. The stage/graph pairing **is still a caller precondition**, since the physics-owned stage class does not expose the graph it was originally constructed from. **Request to VU0 team:** expose a const read-only accessor `const OriginalStageSpatialLoaded& originalBoundStageSource() const noexcept` returning its existing private `stage_`; then the navigation bridge can verify the actual pipeline's stage identity directly rather than taking it on faith from the integrator. Only VU0 team should change that file.
+
+New CMake recipe for integrator only:
+
+```cmake
+# Append to Getchu3Assets sources:
+src/original_nav_actor_stage_bridge.cpp
+
+add_executable(Getchu3OriginalNavActorStageBridgeTests
+    tests/original_nav_actor_stage_bridge_test.cpp)
+target_link_libraries(Getchu3OriginalNavActorStageBridgeTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalNavActorStagePipelineBridge
+    COMMAND Getchu3OriginalNavActorStageBridgeTests)
+```
+
+Native integration caller:
+
+```cpp
+if (actor.originalRouteCurrent()) {
+    auto result=actor.originalAdvanceNativeStage_57c7cc(
+        existingOriginalStageActorNavigation,
+        *owners.originalAt(selectedNavOwnerSlot).decodedGraph,
+        actorSourcePolygonIndex);
+}
+```
+
+A focused synthetic original-format two-polygon test creates a genuine `0x1E`-stride source nav descriptor, decodes it through the preexisting retail stage parser, calls the recovered original source pathfinder to produce a path, constructs the real physics-owned `OriginalStageActorNavigation_57c7cc`, and checks target advancement, projection early return, different-graph rejection, invalid actor index, single-polygon mode and stage release. It is a **source-format synthetic test** rather than a claim of original game-level parity.
+
+**Testing this turn:** Real C++20 `g++ -Wall -Wextra -Werror -pedantic -fsanitize=address,undefined` *isolated* adapter and bridge smoke harnesses compiled and ran successfully using minimal locally authored dependency stubs. These exercise source lifetime guards, no-route state, bridge dispatch, wrong stage identity, foreign target and invalid indices. They do **not** compile/link the full repository source tree, and the new repository integration test is not executed here (container DNS cannot resolve github.com for a clone). Original USA executable/PCK verification and native Windows boot are not performed; no Actions triggered.
 
 ## Remaining original blockers
 

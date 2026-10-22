@@ -6,6 +6,7 @@
 #include <memory>
 
 namespace ae3 {
+class OriginalStageActorNavigation_57c7cc;
 
 // Host-native lifetime boundary between recovered original 0x2207D0
 // source routes and original 0x57C7CC actor route following. This
@@ -41,6 +42,16 @@ public:
         std::size_t sourceSegmentIndex) const;
     std::optional<OriginalActorType2Target_57bdb8>
         originalInitialType2Target_57bdb8() const;
+
+    // Directly forwards the ORIGINAL route to the existing physics-owned
+    // original stage actor pipeline, rather than inventing controller
+    // movement. The caller must supply the exact stage source graph from
+    // which that pipeline was constructed; the VU0 team should expose a
+    // read-only identity accessor to make that check intrinsic.
+    OriginalActorRouteFollowResult_57c7cc originalAdvanceNativeStage_57c7cc(
+        OriginalStageActorNavigation_57c7cc& originalActorPipeline,
+        const OriginalStageSpatialLoaded& sourceGraphUsedByPipeline,
+        std::uint32_t originalActorStagePolygonIndex);
 
     // Source callbacks are provided by the VU0/physics implementation;
     // no replacement projection or update target is installed.
