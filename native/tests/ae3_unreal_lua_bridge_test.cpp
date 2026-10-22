@@ -12,8 +12,8 @@ int rejectParams(void*, const char*) { return 0; }
 int acceptEntity(void*, const char*, const char*, const char*,
                  const char*, const char*) { return 1; }
 int acceptParams(void*, const char*) { return 1; }
-Ae3LuaManagerV1 callbacks() {
-    Ae3LuaManagerV1 manager{};
+Ae3LuaManagerV2 callbacks() {
+    Ae3LuaManagerV2 manager{};
     manager.api_version = AE3_LUA_BRIDGE_API_VERSION;
     manager.struct_size = sizeof(manager);
     manager.create_entity = rejectEntity;
