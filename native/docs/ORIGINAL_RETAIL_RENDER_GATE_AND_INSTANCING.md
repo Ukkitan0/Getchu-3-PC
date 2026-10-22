@@ -27,12 +27,12 @@ if ((read_u64(object+0x20) & read_u64(renderContext+0x58)) == 0)
 if (read_u8(object+0x30) == 0) continue;
 if (read_u8(object+0x35) == 0) continue;
 if (read_u8(object+0x32) != 0 &&
-    sub_26C9B8(read_ptr32(renderContext+0x2C), object+0x50, object+0xC0))
+    !sub_26C9B8(read_ptr32(renderContext+0x2C), object+0x50, object+0xC0))
     continue;
 // next retail routine at 0x26B550
 ```
 
-`native/src/original_render_visibility.cpp` implements only this exact early gate, taking extracted values from original game owner objects. A callback supplies the **unrecovered** `0x26C9B8` spatial rejection; it throws instead of supplying guessed frustum behavior when the callback is needed but missing. Downstream `0x26B550`, `0x26B57C`, `0x2803B4`, `0x2804F4`, `0x3B76F8`, and their draw/visibility consequences remain unported. This gate returning `true` means *eligible for subsequent original routines*, **not guaranteed visible**.
+`native/src/original_render_visibility.cpp` implements only this exact early gate, taking extracted values from original game owner objects. A callback supplies the **unrecovered** `0x26C9B8` spatial visibility result (nonzero means continue); it throws instead of supplying guessed frustum behavior when the callback is needed but missing. Downstream `0x26B550`, `0x26B57C`, `0x2803B4`, `0x2804F4`, `0x3B76F8`, and their draw/visibility consequences remain unported. This gate returning `true` means *eligible for subsequent original routines*, **not guaranteed visible**.
 
 ## Source-backed resource selector and render-path dispatch
 
@@ -73,3 +73,5 @@ Existing `gltf_scene.cpp` also applied invented host directional sunlight to eve
 5. Test on the owner's real stage I3D models and original I3M-driven GLBs with two independently moving actors; actual full game rendering is **not verified**.
 
 All synthetic test geometry is used exclusively as unit-test inputs and is **never** a replacement game stage/model.
+
+> **Retail branch correction (graphics recovery pass 3):** At `0x28087C`, the instruction is `beqzl $v0,0x280958`. The actor is rejected when `0x26C9B8` returns **zero**, not when it returns nonzero. The original `0x26C4B0` VU0 code is still a required dependency. See [retail render context / source branch documentation](ORIGINAL_RETAIL_RENDER_CONTEXT_AND_ACTOR_ENTRY.md).
