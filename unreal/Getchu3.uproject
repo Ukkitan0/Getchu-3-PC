@@ -20,5 +20,12 @@
       "Name": "EditorScriptingUtilities",
       "Enabled": true
     }
+  ],
+  "Modules": [
+    {
+      "Name": "Getchu3",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
   ]
 }
