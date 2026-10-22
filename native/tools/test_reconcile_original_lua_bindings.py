@@ -96,6 +96,35 @@ class CrossReferenceTests(unittest.TestCase):
         self.assertEqual(rows['createMGSGenerator']['published_original_vtable']['address'],
                          '0x006ADF00')
 
+    def test_actor_and_controller_literals_form_original_stage_requirements(self):
+        script = lua_report()
+        script['scripts'] = [
+            {'path': 'one/area.luc', 'literal_first_arguments': {
+                'new_ent': ['Monkey', 'Player'], 'c_ctrl': ['trig_wait']},
+             'direct_global_calls': ['new_ent', 'c_ctrl']},
+            {'path': 'two/area.luc', 'literal_first_arguments': {
+                'new_ent': ['Monkey']},
+             'direct_global_calls': ['new_ent']},
+        ]
+        script['literal_first_arguments'] = {
+            'new_ent': ['Monkey', 'Player'], 'c_ctrl': ['trig_wait'],
+            'gw_get_flag': ['intro_completed'],
+            'gw_set_flag': ['intro_completed', 'stage_complete']}
+        report = bindings.reconcile(script, elf_report(), [])
+        self.assertEqual(report['observed_actor_class_literals'], ['Monkey', 'Player'])
+        self.assertEqual(report['observed_controller_command_literals'], ['trig_wait'])
+        self.assertEqual(report['observed_global_flag_key_literals'],
+                         ['intro_completed', 'stage_complete'])
+        self.assertEqual(report['original_stage_inputs'][1]['path'], 'two/area.luc')
+        self.assertEqual(report['original_stage_inputs'][1]['observed_actor_class_literals'],
+                         ['Monkey'])
+
+    def test_malformed_literal_evidence_cannot_be_silently_accepted(self):
+        script = lua_report()
+        script['literal_first_arguments'] = {'new_ent': [42]}
+        with self.assertRaisesRegex(ValueError, 'literal argument'):
+            bindings.reconcile(script, elf_report(), [])
+
     def test_refuses_fake_executable_provenance(self):
         bad = elf_report()
         bad['original_verified_elf_sha256'] = '00' * 32
