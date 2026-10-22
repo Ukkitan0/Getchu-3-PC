@@ -192,8 +192,8 @@ private:
             FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Json), Report) && Report.IsValid())
         {
             const FString Result = Report->GetStringField(TEXT("status"));
-            if (Result == TEXT("original_models_textures_streams_imported_gameplay_not_implemented") && bOkay)
-                Status = TEXT("Original models, textures and available streams imported. Original stage collision, Lua, actor/gameplay and the live audio system are still incomplete.");
+            if (Result == TEXT("original_models_textures_streams_i3c_imported_gameplay_not_implemented") && bOkay)
+                Status = TEXT("Original model, texture, stream and I3C static meshes imported. Gameplay collision responses, Lua, actors, gadgets and live sound are still incomplete.");
             else
             {
                 if (!bOkay && Result != TEXT("blocked"))
