@@ -465,3 +465,82 @@ add_test(NAME NativeActualRetailLua50FormatRetarget COMMAND Getchu3RetailLua50Te
 # Audit actual game-owned ISO stages, without synthetic scenery or emulated hardware.
 add_executable(Getchu3RetailStageAudit src/retail_stage_audit.cpp)
 target_link_libraries(Getchu3RetailStageAudit PRIVATE Getchu3Assets)
+
+# Genuine SCUS_975.01 0x428AB8 static constructor order and 0x428B80/
+# 0x428CB8 native termination registry, no PlayStation CPU emulation.
+target_sources(Getchu3Assets PRIVATE src/original_windows_bootstrap.cpp)
+add_executable(Getchu3OriginalWindowsBootstrapTests tests/original_windows_bootstrap_test.cpp)
+target_link_libraries(Getchu3OriginalWindowsBootstrapTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailStaticConstructorsAndTerminationBlocks
+         COMMAND Getchu3OriginalWindowsBootstrapTests)
+
+# Optional offline source-proof CTest. Uses only an owner-supplied executable,
+# refuses a wrong-region/version ELF, never stores game bytes in the repository.
+set(AE3_RETAIL_USA_ELF "" CACHE FILEPATH "PRIVATE original USA SCUS_975.01 for startup opcode verification")
+if(AE3_RETAIL_USA_ELF)
+  if(NOT EXISTS "${AE3_RETAIL_USA_ELF}")
+    message(FATAL_ERROR "AE3_RETAIL_USA_ELF points to an absent owner-private original executable")
+  endif()
+  find_package(Python3 COMPONENTS Interpreter REQUIRED)
+  add_test(NAME OriginalUSAExecutableStaticConstructorOpcodeAudit
+      COMMAND "${Python3_EXECUTABLE}"
+              "${CMAKE_CURRENT_SOURCE_DIR}/tools/verify_original_windows_bootstrap.py"
+              "${AE3_RETAIL_USA_ELF}")
+  add_test(NAME OriginalRetailFourNativeConstructorBoundary
+      COMMAND Getchu3OriginalWindowsBootstrapTests "${AE3_RETAIL_USA_ELF}")
+endif()
+
+# 0x3A6CD0 native source-literal setup. No original executable bytes
+# or user-owned PCK/ISO data are part of the build.
+target_sources(Getchu3Assets PRIVATE src/original_windows_static_resources.cpp
+    src/original_windows_elf_source.cpp)
+add_executable(Getchu3OriginalElfSourceTests tests/original_windows_elf_source_test.cpp)
+target_link_libraries(Getchu3OriginalElfSourceTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailElfLiteralSourceRejectMissing
+    COMMAND Getchu3OriginalElfSourceTests)
+if(AE3_RETAIL_USA_ELF)
+    add_test(NAME OriginalRetailElfLiteralSourceAuthenticated
+        COMMAND Getchu3OriginalElfSourceTests "${AE3_RETAIL_USA_ELF}")
+endif()
+add_executable(Getchu3OriginalFourthCtorTests tests/original_windows_fourth_ctor_test.cpp)
+target_link_libraries(Getchu3OriginalFourthCtorTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailFourthConstructorRejectUnverified
+    COMMAND Getchu3OriginalFourthCtorTests)
+if(AE3_RETAIL_USA_ELF)
+    add_test(NAME OriginalRetailFourthConstructorOriginalElf
+        COMMAND Getchu3OriginalFourthCtorTests "${AE3_RETAIL_USA_ELF}")
+endif()
+add_executable(Getchu3OriginalStaticResourceTests tests/original_windows_static_resources_test.cpp)
+target_link_libraries(Getchu3OriginalStaticResourceTests PRIVATE Getchu3Assets)
+add_test(NAME OriginalRetailStaticResourceRejectUnverifiedSource
+         COMMAND Getchu3OriginalStaticResourceTests)
+set(AE3_RETAIL_ORIGINAL_STATIC_3A6CD0 "" CACHE FILEPATH
+    "PRIVATE 208-byte original USA SCUS literal region; never distributed")
+if(AE3_RETAIL_ORIGINAL_STATIC_3A6CD0)
+  if(NOT EXISTS "${AE3_RETAIL_ORIGINAL_STATIC_3A6CD0}")
+    message(FATAL_ERROR "Missing private authentic third-constructor literal sample")
+  endif()
+  add_test(NAME OriginalRetailStaticResourceAuthenticatedData
+      COMMAND Getchu3OriginalStaticResourceTests
+              "${AE3_RETAIL_ORIGINAL_STATIC_3A6CD0}")
+endif()
+
+# Host-native startup checkpoint test; successful Lua setup does not imply a game boot.
+add_executable(Getchu3WindowsBootStatusTests tests/windows_runtime_boot_status_test.cpp)
+target_include_directories(Getchu3WindowsBootStatusTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+add_test(NAME NativeRetailStartupCheckpointEvidence COMMAND Getchu3WindowsBootStatusTests)
+
+# Activate reviewed specialist files only after a complete source+test handoff
+# is copied into the native worktree. Incomplete cherry-picks fail configure.
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/ParallelIntegration.cmake")
+
+# Optional Python is used only for a disposable CMake registration contract test.
+# No game data or gameplay mock is compiled into the actual native engine.
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+  add_test(NAME NativeParallelManifestRegistration
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/test_parallel_integration_manifest.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/cmake/ParallelIntegration.cmake"
+            --cmake "${CMAKE_COMMAND}")
+endif()
