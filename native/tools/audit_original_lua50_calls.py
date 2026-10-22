@@ -49,6 +49,7 @@ class Reader:
         self.global_writes: set[str] = set()
         self.direct_global_calls: set[str] = set()
         self.prototype_calls: list[dict] = []
+        self.literal_call_sites: list[dict] = []
 
     def take(self, size: int) -> memoryview:
         if size < 0 or size > len(self.data) - self.pos:
@@ -86,53 +87,62 @@ class Reader:
         return raw.decode('ascii')
 
     @staticmethod
-    def direct_calls(instructions: list[int], constants: list[bytes | None]) -> set[str]:
-        """Conservative intra-basic-block Lua 5.0 register provenance.
+    def direct_call_evidence(instructions: list[int],
+                             constants: list[bytes | None]) -> list[dict]:
+        """Track direct GETGLOBAL calls and provably literal first arguments.
 
-        Tracks a global loaded into R(A), its MOVE aliases, and the call
-        register of OP_CALL/OP_TAILCALL. A branch drops provenance entirely,
-        avoiding invented call edges across unknown runtime control flow.
-        Indirect table calls and calls through upvalues deliberately remain
-        unclassified, not silently attributed to a guessed native binding.
+        Based on the actual Lua 5.0.3 register opcodes. Only direct GETGLOBAL
+        targets in the current straight-line block are attributed. Every
+        branch or uncertain result shape invalidates provenance, and no
+        dynamic argument is ever substituted with a guessed string value.
         """
-        registers: dict[int, str] = {}
-        called: set[str] = set()
-        for word in instructions:
+        # register -> (kind, value); kind is 'global' or 'string'
+        registers: dict[int, tuple[str, str]] = {}
+        calls: list[dict] = []
+        for pc, word in enumerate(instructions):
             op = word & 63
             a = (word >> 24) & 255
             b = (word >> 15) & 511
             c = (word >> 6) & 511
             if op in FLOW_BARRIERS:
                 registers.clear()
-            elif op == OP_GETGLOBAL:
+            elif op in (OP_GETGLOBAL, 1):  # 1 = OP_LOADK
                 index = (word >> 6) & 0x3FFFF
-                name = Reader.symbol(constants[index]) if isinstance(constants[index], bytes) else None
+                value = Reader.symbol(constants[index]) if (
+                    index < len(constants) and isinstance(constants[index], bytes)
+                ) else None
                 registers.pop(a, None)
-                if name is not None:
-                    registers[a] = name
+                if value is not None:
+                    registers[a] = ('global' if op == OP_GETGLOBAL else 'string', value)
             elif op == OP_MOVE:
-                name = registers.get(b)
+                value = registers.get(b)
                 registers.pop(a, None)
-                if name is not None:
-                    registers[a] = name
+                if value is not None:
+                    registers[a] = value
             elif op == OP_LOADNIL:
                 for i in range(a, b + 1):
                     registers.pop(i, None)
             elif op in (OP_CALL, OP_TAILCALL):
-                if a in registers:
-                    called.add(registers[a])
+                target = registers.get(a)
+                if target is not None and target[0] == 'global':
+                    first = registers.get(a + 1) if b >= 2 else None
+                    calls.append({
+                        'pc': pc,
+                        'name': target[1],
+                        'literal_first_string_argument': first[1] if (
+                            first is not None and first[0] == 'string') else None,
+                    })
+                # A call overwrites the result region, or opens the top.
                 if c == 0:
                     registers = {k:v for k,v in registers.items() if k < a}
                 else:
-                    # The return region begins at A; even a call
-                    # expecting zero results may mutate the call register.
                     for i in range(a, a + max(1, c - 1)):
                         registers.pop(i, None)
                 if op == OP_TAILCALL:
                     registers.clear()
             elif op == OP_SELF:
                 registers.pop(a, None)
-                registers.pop(a+1, None)
+                registers.pop(a + 1, None)
             elif op in WRITES_A:
                 registers.pop(a, None)
             elif op == OP_LOADBOOL:
@@ -141,7 +151,11 @@ class Reader:
                     registers.clear()
             elif op > 35:
                 raise InvalidChunk(f'unknown Lua 5.0 opcode {op}')
-        return called
+        return calls
+
+    @staticmethod
+    def direct_calls(instructions: list[int], constants: list[bytes | None]) -> set[str]:
+        return {call['name'] for call in Reader.direct_call_evidence(instructions, constants)}
 
     def function(self, depth: int) -> None:
         self.prototypes += 1
@@ -188,8 +202,13 @@ class Reader:
             if name is not None:
                 target = self.global_reads if operation == OP_GETGLOBAL else self.global_writes
                 target.add(name)
-        direct = self.direct_calls(words, constants)
+        raw_call_sites = self.direct_call_evidence(words, constants)
+        direct = {site['name'] for site in raw_call_sites}
         self.direct_global_calls.update(direct)
+        for site in raw_call_sites:
+            self.literal_call_sites.append({'prototype': prototype_id,
+                                            'line_defined': line_defined,
+                                            **site})
         self.prototype_calls.append({'prototype': prototype_id,
                                      'line_defined': line_defined,
                                      'direct_global_calls': sorted(direct)})
@@ -208,6 +227,16 @@ class Reader:
                 'global_reads': sorted(self.global_reads),
                 'global_writes': sorted(self.global_writes),
                 'direct_global_calls': sorted(self.direct_global_calls),
+                'literal_first_arguments': {
+                    name: sorted({site['literal_first_string_argument']
+                                  for site in self.literal_call_sites
+                                  if site['name'] == name and
+                                  site['literal_first_string_argument'] is not None})
+                    for name in sorted({site['name'] for site in self.literal_call_sites
+                                        if site['literal_first_string_argument'] is not None})
+                },
+                'direct_call_sites': sorted(self.literal_call_sites,
+                                            key=lambda x: (x['prototype'], x['pc'])),
                 'prototype_calls': sorted(self.prototype_calls, key=lambda x: x['prototype'])}
 
 
@@ -238,6 +267,7 @@ def audit(path: Path, host_source: Path | None = None) -> dict:
     writes: set[str] = set()
     direct_calls: set[str] = set()
     stages = []
+    literal_argument_sets: dict[str, set[str]] = {}
     for source in sources:
         if source.is_symlink():
             raise ValueError('refusing to read symlinked original script')
@@ -248,6 +278,8 @@ def audit(path: Path, host_source: Path | None = None) -> dict:
         reads.update(result['global_reads'])
         writes.update(result['global_writes'])
         direct_calls.update(result['direct_global_calls'])
+        for name, values in result['literal_first_arguments'].items():
+            literal_argument_sets.setdefault(name, set()).update(values)
         stages.append({'path': source.relative_to(root).as_posix(), **result})
     # These are unresolved *global loads*, not necessarily direct calls.
     # Lua's dynamically installed functions, table reads, and stage-specific
@@ -258,6 +290,8 @@ def audit(path: Path, host_source: Path | None = None) -> dict:
             'scripts': stages, 'registered_native_names': registered,
             'global_reads': sorted(reads), 'global_writes': sorted(writes),
             'direct_global_calls': sorted(direct_calls),
+            'literal_first_arguments': {name: sorted(values)
+                                        for name, values in sorted(literal_argument_sets.items())},
             'unresolved_direct_global_calls': sorted(
                 direct_calls - writes - set(registered)),
             'unresolved_global_reads': unresolved}
