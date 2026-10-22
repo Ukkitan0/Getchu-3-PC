@@ -130,9 +130,13 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
     LastError = TEXT("Source-backed original native Lua bridge is currently built for Windows only");
     return false;
 #else
-    const FString BridgePath = FPaths::Combine(
+    const FString ProjectBridge = FPaths::Combine(
         FPaths::ProjectDir(), TEXT("Binaries"), TEXT("Win64"),
         TEXT("Getchu3OriginalLuaBridge.dll"));
+    const FString PackagedBridge = FPaths::Combine(
+        FPlatformProcess::BaseDir(), TEXT("Getchu3OriginalLuaBridge.dll"));
+    const FString BridgePath = FPaths::FileExists(ProjectBridge)
+        ? ProjectBridge : PackagedBridge;
     if (!FPaths::FileExists(BridgePath)) {
         LastError = TEXT("Original native Lua DLL missing; build the real native Lua 5.0 bridge");
         return false;
