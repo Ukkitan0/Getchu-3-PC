@@ -7,6 +7,7 @@
 #include "ae3/original_actor_fallback_sampler.hpp"
 #include "ae3/original_actor_fallback_vu0_native.hpp"
 #include "ae3/original_vu0_geometry.hpp"
+#include "ae3/original_spatial_support.hpp"
 #include <cmath>
 
 #include <array>
@@ -175,7 +176,8 @@ static int originalNearestSourceImpl(
     Ae3OriginalManagerInitSession* session,
     const Ae3OriginalNearestPolygonSourceV1* source,
     Ae3OriginalNearestPolygonResultV1* output,
-    bool originalAllRecords) {
+    bool originalAllRecords,
+    const Ae3OriginalGridNearestSourceV1* realGrid=nullptr) {
     if (!session) return 0;
     if (session->busy) {
         session->error="reentrant original actor nearest polygon query refused";
@@ -189,7 +191,7 @@ static int originalNearestSourceImpl(
             !source->original_point_counts ||
             source->original_record_count==0 ||
             source->original_record_count>8192 ||
-            (!originalAllRecords &&
+            (!originalAllRecords && !realGrid &&
              (source->original_hit_count>65535 ||
               (source->original_hit_count &&
                !source->original_hit_indices))))
@@ -236,8 +238,56 @@ static int originalNearestSourceImpl(
             chosen=ae3::originalSpatialNearestAllWithVU0_21da2c(
                 records,polygons,queryVec);
         } else {
-            const std::span<const std::uint16_t> hitIndices(
-                source->original_hit_indices,source->original_hit_count);
+            // Exact original 0x4E3C14 source grid metadata can now run
+            // here, before the recovered source nearest selection.
+            // No host-generated hit candidates are needed in this mode.
+            ae3::OriginalSpatialGridHits generatedHits{};
+            if (realGrid) {
+                if (!realGrid->original_cell_offsets50 ||
+                    !realGrid->original_hit_pool08 ||
+                    !std::isfinite(realGrid->original_resolved_x) ||
+                    !std::isfinite(realGrid->original_resolved_y) ||
+                    !std::isfinite(realGrid->original_origin_x00) ||
+                    !std::isfinite(realGrid->original_origin_y04) ||
+                    !std::isfinite(realGrid->original_step_x10) ||
+                    !std::isfinite(realGrid->original_step_y14) ||
+                    realGrid->original_step_x10==0.0f ||
+                    realGrid->original_step_y14==0.0f ||
+                    realGrid->original_dimension_x18<=0 ||
+                    realGrid->original_dimension_y1c<=0 ||
+                    realGrid->original_dimension_x18>65535 ||
+                    realGrid->original_dimension_y1c>65535 ||
+                    realGrid->original_hit_pool_count>1048576)
+                    throw std::invalid_argument(
+                        "invalid original 0x4E3C14 source grid owner metadata");
+                const auto cells=
+                    static_cast<std::size_t>(realGrid->original_dimension_x18)*
+                    static_cast<std::size_t>(realGrid->original_dimension_y1c);
+                if (cells>1048576 ||
+                    realGrid->original_cell_offset_count<cells)
+                    throw std::out_of_range(
+                        "original 0x4E3C14 grid cells exceed source registry");
+                ae3::OriginalSpatialGridFields grid{};
+                grid.originX00=realGrid->original_origin_x00;
+                grid.originY04=realGrid->original_origin_y04;
+                grid.stepX10=realGrid->original_step_x10;
+                grid.stepY14=realGrid->original_step_y14;
+                grid.dimensionX18=realGrid->original_dimension_x18;
+                grid.dimensionY1c=realGrid->original_dimension_y1c;
+                grid.cellOffsets50={
+                    realGrid->original_cell_offsets50,
+                    realGrid->original_cell_offset_count};
+                grid.hitBuffer08={
+                    realGrid->original_hit_pool08,
+                    realGrid->original_hit_pool_count};
+                generatedHits=ae3::originalSpatialGridLookup_4e3c14(
+                    grid,realGrid->original_resolved_x,
+                    realGrid->original_resolved_y);
+            }
+            const std::span<const std::uint16_t> hitIndices=realGrid
+                ? generatedHits.originalRecordIndices
+                : std::span<const std::uint16_t>(
+                      source->original_hit_indices,source->original_hit_count);
             // Validate before calling 0x21D898 so malformed external
             // hit arrays cannot partially drive the source iterator.
             for (const auto hit:hitIndices)
@@ -287,6 +337,13 @@ extern "C" int ae3_original_polygon_nearest_all_21da2c(
     const Ae3OriginalNearestPolygonSourceV1* original,
     Ae3OriginalNearestPolygonResultV1* output) {
     return originalNearestSourceImpl(session,original,output,true);
+}
+extern "C" int ae3_original_polygon_nearest_grid_4e3c14_21d898(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalGridNearestSourceV1* original,
+    Ae3OriginalNearestPolygonResultV1* output) {
+    return originalNearestSourceImpl(
+        session,original?&original->original:nullptr,output,false,original);
 }
 
 static int originalManagerInitImpl(
