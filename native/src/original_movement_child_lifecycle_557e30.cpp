@@ -4,6 +4,7 @@
 #include "ae3/original_movement_metric_step_557f34.hpp"
 #include "ae3/original_movement_post_vector_557f54.hpp"
 #include "ae3/original_movement_post_step_558030.hpp"
+#include "ae3/original_movement_flag0_regenerate_36f83c.hpp"
 #include <stdexcept>
 #include <utility>
 
@@ -135,6 +136,20 @@ try_original_post_step_558030() {
     if(!postVectorOwner_ || (child_->originalWordAt(0xB8)&2u)==0u)
         throw std::logic_error(
             "original 558030 cannot follow an absent 557F54 vector state");
+    // Original 557FC8 checks +B8 bit0. If clear the original
+    // 558084 call regenerates 36F83C before the remaining
+    // source actor/collision methods. Do not skip this source call
+    // or ask for an already-completed 558030 continuation first.
+    if((child_->originalWordAt(0xB8)&1u)==0u) {
+        const auto binding=postStepOwner_->read_original_flag0_binding_36f83c(*child_);
+        if(!binding || !binding->originalOwner)
+            throw std::logic_error(
+                "original 557FC8 bit0-clear requires real 36F83C regeneration owner");
+        (void)originalMovementRegenerateFlag0Owned_36f83c(
+            *child_,binding->genuineChildScratchGuestVA,*binding->originalOwner);
+    }
+    // The post-step owner now receives a child that has passed
+    // the required original flag0 regeneration when selected.
     const auto original=postStepOwner_->read_original_post_step_after_557fc8(*child_);
     if(!original)
         return std::nullopt;
