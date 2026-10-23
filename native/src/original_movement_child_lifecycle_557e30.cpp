@@ -1,6 +1,7 @@
 #include "ae3/original_movement_child_lifecycle_557e30.hpp"
 #include "ae3/original_movement_child_early_36f954.hpp"
 #include "ae3/original_movement_normal_begin_557ed8.hpp"
+#include "ae3/original_movement_metric_step_557f34.hpp"
 #include <stdexcept>
 #include <utility>
 
@@ -8,9 +9,10 @@ namespace ae3 {
 OriginalMovementChildLifecycle_557e30::OriginalMovementChildLifecycle_557e30(
     std::unique_ptr<OriginalMovementChildD0_30c57c> child,
     OriginalMovementParentRead_557e30& originalParent,
-    OriginalMovementNormalCalls_557ed8* normalOwner)
+    OriginalMovementNormalCalls_557ed8* normalOwner,
+    OriginalMovementMetricOwner_557f34* metricOwner)
     :child_(std::move(child)),parent_(originalParent),
-     normalOwner_(normalOwner) {
+     normalOwner_(normalOwner),metricOwner_(metricOwner) {
     if(!child_ || child_->originalWordAt(0)!=
        OriginalMovementChildD0_30c57c::originalVtableVA)
         throw std::invalid_argument(
@@ -66,11 +68,18 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
             // came from mandatory 0x557E68 delay-slot load.
             originalMovementNormalBegin_557ed8(
                 *child_,originalParentWord14,*normalOwner_);
+            if(metricOwner_) {
+                // Source 0x557F34..0x557F50 executes
+                // original 0x317B34 metric and source 0x36FB18
+                // call, but post-call child state at 0x557F54
+                // still needs source collision/animation recovery.
+                (void)originalMovementMetricStep_557f34(
+                    *child_,*metricOwner_);
+            }
         }
     }
-    // A successfully executed prefix is NOT an actor update:
-    // 0x557F34 invokes original 0x317B34 / 0x36FB18 and
-    // subsequent collision/animation paths we have not recovered.
+    // A successfully executed prefix is NOT a complete actor
+    // frame. Original 0x557F54+ collision/animation is missing.
     throw std::logic_error(
         "original 0x557F34 gameplay continuation requires unrecovered source methods");
 }
