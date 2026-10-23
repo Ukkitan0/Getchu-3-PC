@@ -291,3 +291,43 @@ mutation of borrowed stage bytes, failed atomic stage replacement,
 explicit unmount and successful subsequent remount. Source files are
 committed; actual Windows native CTest and original Unreal runtime
 validation remain required.
+
+### Exact stage spatial records and pending actor actions
+
+The mounted `OriginalStageSpatialLoaded` already retained both the
+original 0x70-byte stage record array and source `0x21D46C` action
+type-1/type-2 descriptors. These were previously inaccessible through
+the native DLL, leaving a real Player/Monkey owner unable to consume
+the exact source records after stage mount.
+
+Four C ABI exports now connect the retained original data to a future
+real actor manager:
+
+- `ae3_original_stage_spatial_record_count` returns source record count.
+- `ae3_original_stage_spatial_record_copy` copies precisely the
+  recovered 0x70 record bytes plus validated original header VA
+  (`record+0x30`) and header `+0x16` point count.
+- `ae3_original_stage_spatial_pending_action_count` returns the number
+  of source actions identified during 0x1E-byte descriptor traversal.
+- `ae3_original_stage_spatial_pending_actions` copies these entries
+  in original polygon/slot order: source record index, source action
+  slot index, exact original type 1/2, and original argument halfword.
+
+All exported data are **copies**, not transient native pointers.
+Reads require a successfully mounted source stage; invalid source
+indices, unresolved or mismatched original header identity, output
+buffers with insufficient capacity, and unmounted stages fail without
+publishing a partial record or action list.
+
+The extended `OriginalLoadedStageSpatialNearestHostAbi` tests
+now cover two original action descriptors (type 1 / argument 7 and
+type 2 / argument 8), truncated output capacity, exact record header
+VA and vertex lane copies, bad indices, and unmount invalidation.
+
+**Scope boundary:** these calls provide necessary original stage data
+to the real game manager, but do NOT infer how type-1 or type-2
+actions spawn Monkey/Player objects. Original `0x21B0B0` /
+`0x21B240` child construction, original `0x57C620` controller
+update, animations and the owner lifecycle still need source-accurate
+gameplay integration. Nothing here proves Windows native compilation,
+original retail ISO execution or gameplay parity.
