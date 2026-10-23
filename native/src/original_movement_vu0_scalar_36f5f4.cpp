@@ -108,6 +108,25 @@ OriginalMovementVU0VectorFrame_36f5f4 originalMovementVU0VectorFrame_36f5f4(
     }
     return result;
 }
+OriginalMovementVU0VectorFrame_36f5f4 originalMovementVU0FirstReturn_36f5f4(
+    std::span<std::byte,0x110> scratch,
+    std::bitset<0x110>& known,
+    std::uint64_t originalGuestStackA0,
+    const OriginalMovementVU0ScalarSource_36f5f4& source) {
+    // Compute and validate ALL original VF register side effects
+    // before touching original owner scratch. Unsupported EE FP
+    // modes throw and cannot partially initialize the child input.
+    auto frame=originalMovementVU0VectorFrame_36f5f4(source);
+    originalMovementScratchScalarTail_36f6a8(
+        scratch,{originalGuestStackA0,0,
+                 frame.scalar.originalSecondLengthSquaredBits});
+    // The 0x57C148 original stack frame may contain previous data
+    // in bytes that the original 36F5F4 never writes. Only source
+    // SW/SWC1 at +0xA0,+0xA4,+0xA8,+0xAC establishes provenance.
+    for(std::size_t i=0xA0;i<0xB0;++i)
+        known.set(i);
+    return frame;
+}
 void originalMovementScratchFromVU0Scalar_36f5f4(
     std::span<std::byte,0x110> sourceScratch,
     std::uint64_t originalGuestStackA0,
