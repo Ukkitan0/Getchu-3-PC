@@ -1,6 +1,7 @@
 #include "ae3/original_manager_initializer.hpp"
 #include "ae3/original_stage_spatial_loader.hpp"
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cmath>
 #include <cstring>
