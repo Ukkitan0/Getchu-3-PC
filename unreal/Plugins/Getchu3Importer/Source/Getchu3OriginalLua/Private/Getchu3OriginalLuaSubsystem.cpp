@@ -108,6 +108,18 @@ int CallbackWriteOriginalProgress(void* Context, const void* Source, size_t Exac
     return Manager->WriteOriginalPlayerProgress(Packed) ? 1 : 0;
 }
 
+int CallbackRecoveredOriginalVoid(void* Context, uint32_t OriginalVA,
+                                  const char* OriginalName,
+                                  const char* OriginalArguments) {
+    auto* Manager = OriginalManager(Context);
+    if (!Manager || !OriginalName || !OriginalArguments ||
+        OriginalVA > 0x7fffffffu)
+        return 0;
+    return Manager->InvokeRecoveredOriginalVoidFunction(
+        static_cast<int32>(OriginalVA), Utf8String(OriginalName),
+        Utf8String(OriginalArguments)) ? 1 : 0;
+}
+
 int CallbackSelectWeapon(void* Context, int Selection) {
     auto* Manager = OriginalManager(Context);
     return Manager && Manager->SelectOriginalPlayerWeapon(Selection) ? 1 : 0;
@@ -366,6 +378,8 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
         NativeLibrary, TEXT("ae3_lua_api_version"));
     const auto Create = GetOriginalLuaFunction<decltype(&ae3_lua_create)>(
         NativeLibrary, TEXT("ae3_lua_create"));
+    const auto RegisterVoid = GetOriginalLuaFunction<decltype(&ae3_lua_register_original_void)>(
+        NativeLibrary, TEXT("ae3_lua_register_original_void"));
     const auto Execute = GetOriginalLuaFunction<decltype(&ae3_lua_execute_original_chunk)>(
         NativeLibrary, TEXT("ae3_lua_execute_original_chunk"));
     const auto SetupArea = GetOriginalLuaFunction<decltype(&ae3_lua_setup_area)>(
@@ -374,7 +388,7 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
         NativeLibrary, TEXT("ae3_lua_destroy"));
     const auto Error = GetOriginalLuaFunction<decltype(&ae3_lua_last_error)>(
         NativeLibrary, TEXT("ae3_lua_last_error"));
-    if (!Version || !Create || !Execute || !SetupArea || !Destroy || !Error ||
+    if (!Version || !Create || !RegisterVoid || !Execute || !SetupArea || !Destroy || !Error ||
         Version() != AE3_LUA_BRIDGE_API_VERSION) {
         LastError = TEXT("Original native Lua bridge exports or API version do not match the Unreal runtime");
         StopOriginalStage();
@@ -409,6 +423,7 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
     Bindings.select_weapon = &CallbackSelectWeapon;
     Bindings.read_original_player_progress = &CallbackReadOriginalProgress;
     Bindings.write_original_player_progress = &CallbackWriteOriginalProgress;
+    Bindings.invoke_original_void = &CallbackRecoveredOriginalVoid;
 
     bInOriginalManagerCall = true; // Creation queries original PlayerProgress.
     NativeState = Create(&Bindings);
@@ -420,6 +435,43 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
         StopOriginalStage();
         return false;
     }
+    // Bind only functions the owner source manager explicitly declares
+    // recovered and void-returning. An ELF CreateBind name alone is not
+    // evidence of an implemented native C++ actor/controller routine.
+    TArray<FGetchu3OriginalVoidFunction> OriginalVoidFunctions;
+    bInOriginalManagerCall = true;
+    const bool bHasVerifiedImplementations =
+        SourceManager->CollectVerifiedOriginalVoidFunctions(OriginalVoidFunctions);
+    bInOriginalManagerCall = false;
+    if (bDeferredOriginalStop || OriginalVoidFunctions.Num() > 256) {
+        LastError = TEXT("Source manager cancelled binding setup or exceeded original callback limit");
+        StopOriginalStage();
+        return false;
+    }
+    if (bHasVerifiedImplementations) {
+        for (const FGetchu3OriginalVoidFunction& Function : OriginalVoidFunctions) {
+            if (Function.OriginalVA <= 0 || (Function.OriginalVA & 3) != 0) {
+                LastError = TEXT("Unverified or unaligned original callback VA");
+                StopOriginalStage();
+                return false;
+            }
+            const FTCHARToUTF8 EncodedName(*Function.OriginalName);
+            if (!RegisterVoid(static_cast<Ae3LuaRuntime*>(NativeState),
+                              EncodedName.Get(),
+                              static_cast<uint32>(Function.OriginalVA))) {
+                LastError = Utf8String(Error(static_cast<Ae3LuaRuntime*>(NativeState)));
+                if (LastError.IsEmpty())
+                    LastError = TEXT("Original source callback rejected by real Lua runtime");
+                StopOriginalStage();
+                return false;
+            }
+        }
+    } else if (!OriginalVoidFunctions.IsEmpty()) {
+        LastError = TEXT("Original native manager supplied function names without verified implementations");
+        StopOriginalStage();
+        return false;
+    }
+
     const FTCHARToUTF8 NameUtf8(*OriginalLuaFilePath);
     const FTCHARToUTF8 TagUtf8(*OriginalSpawnTag);
     bInOriginalManagerCall = true;
