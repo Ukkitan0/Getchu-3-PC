@@ -57,6 +57,64 @@ AE3_LUA_EXPORT void* ae3_original_player_resource_lookup(
     const Ae3OriginalPlayerResourcePointers* pointers,
     const uint8_t* original_key16, void* original_secondary_factory);
 
+/* Original actor controller initializer at SCUS_975.01 VA 0x57BCB8.
+ * Records are the exact 0x70-byte original stage spatial records; route
+ * polygon indices and navigation bytes must be taken from owner-source data.
+ * All native allocations and RNG lifetime belong to this native session.
+ * This invokes recovered source math, NOT a fabricated Unreal Actor spawn.
+ */
+typedef struct Ae3OriginalManagerInitSession Ae3OriginalManagerInitSession;
+typedef struct Ae3OriginalVec4 {
+    float x,y,z,w;
+} Ae3OriginalVec4;
+typedef struct Ae3OriginalManagerInitStateV1 {
+    uint32_t source_method08, source_method0c;
+    uint8_t source_flag1c, source_alternative30;
+    uint16_t reserved;
+    Ae3OriginalVec4 controller20, target40, midpoint60;
+    uint32_t target_polygon_index; /* UINT32_MAX if no target. */
+} Ae3OriginalManagerInitStateV1;
+typedef struct Ae3OriginalManagerInitSourceV1 {
+    const void* original_records70;
+    size_t original_record_count;
+    uint32_t original_actor_polygon_index;
+    const uint32_t* original_route_indices;
+    size_t original_route_count;
+    const void* original_navigation_bytes;
+    size_t original_navigation_size;
+    Ae3OriginalVec4 original_owner_position40;
+    Ae3OriginalVec4 original_owner_direction50;
+} Ae3OriginalManagerInitSourceV1;
+typedef struct Ae3OriginalManagerInitCallsV1 {
+    void* user;
+    /* Original unresolved 0x21B854 must provide a real projected vector. */
+    int (*project_original_21b854)(
+        void* user, const void* original_polygon70,
+        const Ae3OriginalVec4* start, const Ae3OriginalVec4* end,
+        Ae3OriginalVec4* projected);
+    /* Original unresolved 0x57C7CC must advance real actor/route owner. */
+    int (*continue_original_57c7cc)(
+        void* user, const Ae3OriginalVec4* original_midpoint);
+} Ae3OriginalManagerInitCallsV1;
+
+AE3_LUA_EXPORT Ae3OriginalManagerInitSession*
+ae3_original_manager_init_create(uint32_t original_game_seed);
+AE3_LUA_EXPORT int ae3_original_manager_init_destroy(
+    Ae3OriginalManagerInitSession* session);
+/* Return original branch 1 near-owner, 2 kind-two, 3 general projection;
+ * 0 on missing owner, malformed source, unresolved callback or exception.
+ * output state is written ONLY on success and retains no source pointers.
+ * Callers must atomically roll back original manager effects on failure.
+ */
+AE3_LUA_EXPORT int ae3_original_manager_init_step(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalManagerInitSourceV1* original,
+    Ae3OriginalManagerInitStateV1* state,
+    const Ae3OriginalManagerInitCallsV1* real_calls);
+AE3_LUA_EXPORT const char* ae3_original_manager_init_last_error(
+    const Ae3OriginalManagerInitSession* session);
+
+
 
 /* Every user string is copied into this library; callbacks must not keep the
  * borrowed pointers past the call. Return 1 only after the real manager
