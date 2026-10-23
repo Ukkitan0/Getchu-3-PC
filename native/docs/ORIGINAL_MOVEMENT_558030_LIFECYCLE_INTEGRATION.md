@@ -239,3 +239,55 @@ the native wide interface.
 Windows game. These changes correct documented register
 semantics; they do not fabricate the unported
 `0x276538` engine implementation.
+
+## Source-verified 557ED8 normal-setup EE register ABI
+
+The original normal-setup path precedes the movement metric and
+post-tail. The source-verifier map for
+`0x317B9C..0x317BD4` and `0x557ED8..0x557F40`
+provides these original EE instructions:
+
+| Retail source | Original opcode | Operation |
+| --- | --- | --- |
+| `317BB0/BB8/BC0/BC4` | `25A201C0/25A20220/25AF0120/25A20140` | 32-bit `ADDIU` resource addresses, sign-extended in 64-bit EE v0 |
+| `557EF4` | `0040282D` | `DADDU a1,v0,zero`: complete 64-bit resource address for `276B68` |
+| `557EF8` | `0280202D` | `DADDU a0,s4,zero`: complete sign-extended parent word for `276B68` |
+| `557F08` | `10400004` | `BEQZ v0`: tests the complete 64-bit result from `276B68` |
+| `557F0C/557F14/557F18` | `0280202D` | `DADDU a0,s4,zero`: same 64-bit parent word to `2767F4` and `2773D4` |
+
+The previous native normal-owner callbacks narrowed s4 and
+the returned collision v0 to `uint32_t`; they also passed the
+resource selection's low 32 bits to `276B68` without
+original EE `ADDIU` sign extension.
+
+`OriginalMovementNormalCalls_557ed8` now preserves:
+- complete signed 64-bit s4 in all three original manager calls;
+- complete signed 64-bit a1 resource address in `276B68`;
+- complete original 64-bit `276B68` return through the
+  genuine `557F08 BEQZ` branch.
+
+The reusable `originalManagerSelectResource_317b9c`
+continues to expose the 32-bit resource-address result, with
+original `ADDIU` wrapping; source `557ED8` explicitly
+sign-extends that low word for its **64-bit EE argument**.
+Both normal setup and `557FC8` post-tail refuse noncanonical
+zero-extended high-bit parent s4 inputs before publishing
+game-child or owner side effects. The `557E30` lifecycle
+receives a low word from genuine parent memory, and performs
+the required signed extension before dispatch.
+
+The source-normal-begin CTest now covers: actual first-frame
+callback order; high-bit sign-extended parent arguments; a
+`276B68` return whose **only nonzero bits are in the upper
+32 bits** (which must call `2767F4`); sign-extended high-bit
+resource addresses; `ADDIU` low-word wrap; and refusal
+of impossible zero-extended caller-provided s4 values with
+unchanged child status/flags. Existing movement lifecycle
+CTest callbacks were updated to match the new genuine ABI.
+
+A local independent instruction-decoder test of the pinned
+opcodes passed **4 ADDIU + 5 DADDU + 1 BEQZ** register/opcode
+assertions. The source verifier now also checks these opcodes,
+the wide interface signatures and canonical source-data
+guards. **The full updated C++ CTest suite and native
+Windows game were not executed in this pass.**
