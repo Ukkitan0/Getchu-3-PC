@@ -103,6 +103,38 @@ def verify(path):
     }.items():
         if struct.unpack("<I",load_segment(data,pc,4))[0]!=op:
             raise ValueError("original packed-vector return branch changed "+hex(pc))
+    # Verified branch/constant fingerprint for 0x57BF5C itself.
+    # These are the original MIPS opcodes observed in the SHA-pinned
+    # USA ELF; the native C++ body keeps these source comparisons,
+    # transition methods, constructor order and branch-likely returns.
+    movement_branches={
+        0x57BF98:0x15E0007A, # existing child skips owner VU0 work
+        0x57C004:0x46000834, # COP1 C.OLT.S direction/-0.707
+        0x57C008:0x45000016, # BC1F, early next-method transition
+        0x57C064:0x908F001C, # flag+0x1c for 0x21B854 projection
+        0x57C0D8:0x46010034, # COP1 C.OLT.S metric/2.0
+        0x57C0DC:0x45020001, # BC1FL and genuine delay-slot effect
+        0x57C0E8:0x11E0000D, # zero gate for early method change
+        0x57C198:0x10400021, # 0x3161B8 failed branch
+        0x57C1A4:0x15CF001B, # word+0x14 != 2
+        0x57C1B0:0x11E00008, # flag+0x1c gates method 0x57C48C
+        0x57C1D8:0x11E00009, # variant-zero result 2
+        0x57C1E8:0x71EE78A8, # original PCEQW packed comparison
+        0x57C1EC:0x700F7DC8, # original PPACB lane reduction
+        0x57C1F8:0x51E00003, # BEQZL packed compare
+        0x57C1FC:0x24020002, # branch-likely delay: result 2
+        0x57C210:0x01ED100A, # MOVZ returns 1 on unequal lanes
+        0x57C224:0x91EF54E7, # dynamic original diagnostics global
+        0x57C238:0x2DEE0001, # second original diagnostic zero gate
+    }
+    for pc,expected in movement_branches.items():
+        if struct.unpack("<I",load_segment(data,pc,4))[0]!=expected:
+            raise ValueError("original 0x57BF5C branch changed "+hex(pc))
+    # Native source constants come from the actual adjacent original
+    # 16-byte retail method/scalar table, NEVER caller-generated values.
+    if load_segment(data,0x708A30,0x18)!=struct.pack(
+        "<III I I I",0x57C27C,0,0x57C48C,0,0xBF34FDF4,0x40000000):
+        raise ValueError("0x57BF5C original 0x708A30 method/scalar table changed")
     total_window = load_segment(data,START,END-START)
     if hashlib.sha256(total_window).hexdigest() != SOURCE_SHA256:
         raise ValueError("combined original four-function region differs")
