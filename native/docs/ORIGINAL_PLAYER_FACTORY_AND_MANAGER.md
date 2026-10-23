@@ -534,3 +534,34 @@ New native regression targets and original ELF hash/opcode
 verifiers cover these behaviors; GCC and Clang isolated
 sanitizer checks passed. Full Windows/Unreal build and
 playable game are **not** verified.
+
+
+### Genuine resource metric and persistent child re-entry expanded
+
+Recovered original `0x317B34` now includes the
+nonzero-mode VF1 VU0 length-squared, source COP1
+SQRT/ADD and capped MIN.S branch for **exactly
+reproducible ordinary source operands**, in addition
+to the two previously recovered direct resource-float
+returns. The calculation publishes actual modified
+VF1 register lanes to the game owner, avoiding
+stale source vector state.
+
+Original `0x557F34..0x557F50` obtains resource
+metric f0 from this function, reads real parent+0x70,
+multiplies original f12 in the `0x36FB18` JAL
+delay slot, and dispatches the genuine movement step.
+The native `0x36FB18` implementation covers
+only the source **status-complete** or **nonpositive
+movement-scale** fast returns. Positive movement below
+threshold requires the actual game's collision methods.
+
+The original initialized-child `0x557EB4 BNEZL`
+branch now skips first-time `0x557ED8` setup
+when child+0xC0 is set; it enters `0x557F34` directly
+on subsequent updates. Local GCC and Clang sanitizer
+integration tests validated source control-flow
+reentry and owner callback requirements. Further
+`0x557F54+` child animation/collision and
+persistent Player/Monkey runtime remain incomplete.
+See `native/docs/ORIGINAL_MOVEMENT_METRIC_557F34.md`.
