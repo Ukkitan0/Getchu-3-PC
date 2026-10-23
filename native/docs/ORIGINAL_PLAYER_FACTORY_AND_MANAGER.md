@@ -315,3 +315,47 @@ connected dispatcher builds passed GCC and Clang with
 UndefinedBehaviorSanitizer after this correction. The real
 `0x36F5F4` VU0 and runtime child-construction bodies are still
 not translated or provided by this source-frame layout alone.
+
+
+### Native original PCEQW comparison now shared across three actor methods
+
+`native/include/ae3/original_manager_packed_compare.hpp`
+provides one source-specific implementation of the full **four-word
+128-bit integer comparison** used by the already recovered original
+controller `0x57C1E0`, `0x57C508`, and `0x57C5D4` tails.
+
+The implementation deliberately compares original **raw 32-bit SQ
+lane patterns**, not IEEE-754 floating values. Signed positive/negative
+zero and NaN payloads retain original bit identity; there is no
+floating approximation, vector epsilon or host-synthesized input.
+
+`OriginalManagerChild70` retains two separately provenance-checked
+optional original 16-byte values: `controller20` (written by original
+variant-one `0x57BAF8`) and `controller40` (written in the source
+type-two `0x57BED4` SQC2 delay slot or later by an authentic original
+actor owner). The native `originalManagerInitialize_57bcb8` now
+preserves this genuine +0x40 SQC2 value when the type-two branch is
+selected; it does not guess a +0x40 vector in other branches.
+
+The three source controller owner callback interfaces have a native
+default packed-vector implementation. Existing explicit owner callback
+overrides remain compatible. When either real operand has not been
+provided, the default raises `std::invalid_argument`, rather than
+claiming a false movement/status result. Non-vector functions,
+including original `0x36F5F4` owner VU0 work and actual actor
+construction, are NOT implemented by this change.
+
+Regression `OriginalControllerPackedPCEQW128Bit` exercises each
+source byte of all four PCEQW lanes, signed zeros, fixed NaN
+payloads, missing operand refusal, and the actual return branches
+of `0x57BF5C`, `0x57C48C` and `0x57C554` when no owner overrides
+the native comparison. Constructor and initializer regressions
+add exact +0x40 source-vector preservation and publication checks.
+
+A standalone bitwise comparison smoke harness passed GCC and
+Clang C++20 under UndefinedBehaviorSanitizer in this work session.
+This is not a claim of running the complete new CTest target,
+Windows DLL, Unreal Editor, or game itself. The owner-private
+original executable was not mounted in this current environment,
+so no new retail-machine-code claims are based on fresh local ELF
+verification.
