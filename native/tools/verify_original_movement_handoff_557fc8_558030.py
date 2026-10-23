@@ -151,6 +151,25 @@ def check(root: Path) -> dict:
         "std::uint64_t originalS5From30C0A0" not in header_step):
         raise AssertionError("original 558070 s5->a1 callback truncated")
 
+    # Original 558054 LW a0,0x1C(s1) is a 32-bit MEMORY
+    # load that sign-extends into the full 64-bit EE a0.
+    # The owner read returns a 32-bit source word; the separate
+    # 314C44 callback must receive the sign-extended 64-bit value.
+    parent_lw=step["WORDS"][0x558054]
+    if (parent_lw >> 26 != 0x23 or ((parent_lw >> 21)&31)!=17
+        or ((parent_lw >> 16)&31)!=4 or (parent_lw&65535)!=0x1C):
+        raise AssertionError("original 558054 LW a0,parent+0x1C changed")
+    poststep_cpp=(root/"src"/"original_movement_post_step_558030.cpp").read_text(
+        encoding="utf-8"
+    )
+    poststep_hpp=(root/"include"/"ae3"/"original_movement_post_step_558030.hpp").read_text(
+        encoding="utf-8"
+    )
+    if "std::uint64_t originalParentWord1CSignExtended" not in poststep_hpp:
+        raise AssertionError("original 558054 signed EE a0 narrowed")
+    if "static_cast<std::int32_t>(parentWord1C)" not in poststep_cpp:
+        raise AssertionError("original 558054 LW sign extension omitted")
+
     # The existing original source windows establish the specialized
     # bit0 regeneration and its source ORI of 1 (not 2).
     if regen["WORDS"][0x36F890] != 0x35EF0001:
@@ -220,6 +239,7 @@ def check(root: Path) -> dict:
             "0x36F894 SW flags",
             "0x557FEC DADDU s5,v0,zero 64-bit",
             "0x558070 DADDU a1,s5,zero 64-bit",
+            "0x558054 LW a0,parent+0x1C sign-extended",
             "0x557E68 LW s4,parent+0x14 sign-extended",
             "0x557FF0 DADDU a0,s4,zero 64-bit",
             "0x557EF8 DADDU a0,s4,zero 64-bit",
