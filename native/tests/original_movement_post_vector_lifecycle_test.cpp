@@ -30,6 +30,7 @@ struct Owner final:OriginalMovementParentRead_557e30,
     int setups=0,regenerations=0,moves=0,post=0;
     bool failPost=false,allowPostStep=false,failSource314c44=false;
     bool allowFlag0=true,failFlag0=false;
+    bool useWideS5=false;
     bool diagnosticFirst=false,diagnosticSecond=false,badScratchVA=false;
     int real30c0a0Calls=0,real276538Calls=0,real36fc28Calls=0;
     std::vector<std::string> actualTailCalls{};
@@ -110,7 +111,7 @@ struct Owner final:OriginalMovementParentRead_557e30,
         actualTailCalls.emplace_back("scratch");
         return badScratchVA?0u:0x01FFF020u;
     }
-    std::uint32_t call_original_30c0a0(
+    std::uint64_t call_original_30c0a0(
         std::uint32_t parent,const std::array<std::uint32_t,4>& a1) override {
         assert(parent==0x234000u);
         if(real30c0a0Calls==0) {
@@ -123,7 +124,7 @@ struct Owner final:OriginalMovementParentRead_557e30,
         }
         ++real30c0a0Calls;
         actualTailCalls.emplace_back("30C0A0");
-        return 0x450000u;
+        return useWideS5 ? 0x12345678450000ull : 0x450000ull;
     }
     void call_original_276538(
         std::uint32_t parentWord14,
@@ -175,8 +176,9 @@ struct Owner final:OriginalMovementParentRead_557e30,
         return 0x880000u;
     }
     void call_original_314c44(
-        std::uint32_t word1c,std::uint32_t s5,std::uint32_t mode) override {
-        assert(word1c==0x880000u && s5==0x450000u && mode==2u);
+        std::uint32_t word1c,std::uint64_t s5,std::uint32_t mode) override {
+        assert(word1c==0x880000u &&
+               s5==(useWideS5?0x12345678450000ull:0x450000ull) && mode==2u);
         ++source314c44Calls;
         actualTailCalls.emplace_back("314C44");
         if(failSource314c44)
@@ -414,6 +416,7 @@ int main() {
     // The legacy 558030 caller must NOT also regenerate or execute.
     Owner nativeTail{};
     nativeTail.allowPostStep=false;
+    nativeTail.useWideS5=true;
     OriginalMovementChildLifecycle_557e30 realTail(
         child(1.0f),nativeTail,&nativeTail,&nativeTail,
         &nativeTail,&nativeTail,&nativeTail);
