@@ -167,6 +167,128 @@ extern "C" const char* ae3_original_manager_init_last_error(
                    : "original actor initializer session unavailable";
 }
 
+/* Expose the actually recovered 0x21D898/0x21DA2C original selectors,
+ * not an Unreal nearest-point substitute. 0x4E3C14 candidate generation
+ * is separate and its genuine u16 output must be supplied by the owner.
+ */
+static int originalNearestSourceImpl(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalNearestPolygonSourceV1* source,
+    Ae3OriginalNearestPolygonResultV1* output,
+    bool originalAllRecords) {
+    if (!session) return 0;
+    if (session->busy) {
+        session->error="reentrant original actor nearest polygon query refused";
+        return 0;
+    }
+    session->busy=true;
+    session->error.clear();
+    int success=0;
+    try {
+        if (!source || !output || !source->original_records70 ||
+            !source->original_point_counts ||
+            source->original_record_count==0 ||
+            source->original_record_count>8192 ||
+            (!originalAllRecords &&
+             (source->original_hit_count>65535 ||
+              (source->original_hit_count &&
+               !source->original_hit_indices))))
+            throw std::invalid_argument(
+                "original spatial selector requires stage records, "
+                "point descriptors and source grid hits");
+        const auto& query=source->original_query;
+        // W is not used by the original XZ plane test or XYZ distance,
+        // and must not be reinterpreted as a new Unreal position axis.
+        if (!std::isfinite(query.x) || !std::isfinite(query.y) ||
+            !std::isfinite(query.z))
+            throw std::invalid_argument(
+                "original nearest polygon XYZ query is nonfinite");
+
+        // Rehydrate aligned native geometry from genuine original records.
+        // The original 0x21B458 reads the three source LQC2 vectors
+        // in +0x40..+0x6F. Vertex counts come from 0x1E descriptors;
+        // never infer counts from collision meshes or triangle fans.
+        std::vector<ae3::OriginalSpatialRecord70> records(
+            source->original_record_count);
+        std::vector<std::array<ae3::OriginalVU0Vec4,3>> vertices(
+            source->original_record_count);
+        std::vector<ae3::OriginalSpatialSourcePolygon> polygons(
+            source->original_record_count);
+        const auto* bytes=
+            static_cast<const std::byte*>(source->original_records70);
+        for (std::size_t i=0;i<records.size();++i) {
+            std::memcpy(records[i].originalFields.data(),
+                        bytes+i*0x70,0x70);
+            const auto count=source->original_point_counts[i];
+            if (count==0 || count>3)
+                throw std::out_of_range(
+                    "original 0x1E polygon point count outside 1..3");
+            for (std::size_t j=0;j<count;++j)
+                std::memcpy(&vertices[i][j],
+                    records[i].originalFields.data()+0x40+j*16,16);
+            polygons[i].sourcePoints=
+                std::span<const ae3::OriginalVU0Vec4>(
+                    vertices[i].data(),count);
+        }
+        const auto queryVec=native(query);
+        const ae3::OriginalSpatialRecord70* chosen=nullptr;
+        if (originalAllRecords) {
+            chosen=ae3::originalSpatialNearestAllWithVU0_21da2c(
+                records,polygons,queryVec);
+        } else {
+            const std::span<const std::uint16_t> hitIndices(
+                source->original_hit_indices,source->original_hit_count);
+            // Validate before calling 0x21D898 so malformed external
+            // hit arrays cannot partially drive the source iterator.
+            for (const auto hit:hitIndices)
+                if (hit>=records.size())
+                    throw std::out_of_range(
+                        "original 0x4E3C14 grid hit outside spatial registry");
+            chosen=ae3::originalSpatialNearestGeometry_21d898(
+                records,polygons,ae3::OriginalSpatialGridHits{hitIndices},
+                queryVec);
+        }
+        Ae3OriginalNearestPolygonResultV1 result{};
+        result.original_polygon_index=UINT32_MAX;
+        if (chosen) {
+            // The iterator returns references only into local aligned
+            // records. Never expose a transient pointer through the ABI.
+            for (std::size_t i=0;i<records.size();++i) {
+                if (chosen==&records[i]) {
+                    result.original_polygon_index=
+                        static_cast<std::uint32_t>(i);
+                    break;
+                }
+            }
+            if (result.original_polygon_index==UINT32_MAX)
+                throw std::runtime_error(
+                    "original spatial selector returned foreign record");
+        }
+        *output=result;
+        session->error.clear();
+        success=1;
+    } catch (const std::exception& ex) {
+        session->error=ex.what();
+    } catch (...) {
+        session->error="unknown original native polygon selection failure";
+    }
+    session->busy=false;
+    return success;
+}
+
+extern "C" int ae3_original_polygon_nearest_hits_21d898(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalNearestPolygonSourceV1* original,
+    Ae3OriginalNearestPolygonResultV1* output) {
+    return originalNearestSourceImpl(session,original,output,false);
+}
+extern "C" int ae3_original_polygon_nearest_all_21da2c(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalNearestPolygonSourceV1* original,
+    Ae3OriginalNearestPolygonResultV1* output) {
+    return originalNearestSourceImpl(session,original,output,true);
+}
+
 static int originalManagerInitImpl(
     Ae3OriginalManagerInitSession* session,
     const Ae3OriginalManagerInitSourceV1* source,
