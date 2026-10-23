@@ -68,6 +68,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_movement_57bf5c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_tick_bridge_3161b8.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_manager_controller_owner_base.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_polygon_selector_30ffd0.cpp"
   # Original actor navigation initializer 0x57BCB8, source route-edge
   # lookup, type-2 target, exact source RNG / VU0 and 0x70 polygon views.
@@ -156,6 +157,26 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalControllerRouted57C388
     COMMAND Getchu3OriginalRouted57C388Tests)
+
+  # Shared original controller object: source 0x57C27C ->
+  # 0x57C388 -> 0x57C48C and type-two 0x57C554 use ONE
+  # game-owned 0x3161B8 wrapper/global nesting counter.
+  add_executable(Getchu3OriginalSharedControllerOwnerTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_controller_owner_base_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_controller_owner_base.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_tick_bridge_3161b8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_native_method_router.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_dispatch_57c620.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_route_child_57c27c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_routed_update_57c388.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_followup_57c48c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_type2_update_57c554.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_movement_57bf5c.cpp")
+  target_include_directories(Getchu3OriginalSharedControllerOwnerTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalSharedControllerOwner3161B8
+    COMMAND Getchu3OriginalSharedControllerOwnerTests)
 
   # One real controller-owned adapter for source 0x3161B8 and
   # 0x316174, preserving child-slot identity and global depth.
