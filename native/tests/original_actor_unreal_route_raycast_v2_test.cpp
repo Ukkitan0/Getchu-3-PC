@@ -83,6 +83,25 @@ int main() {
            output.active_target_polygon_index==0 &&
            actual.updates==2);
 
+    // A route[2] follow-up would require the original QMFC2 UPPER
+    // doubleword after 0x57C8EC. This legacy low64 callback cannot
+    // supply it; reject BEFORE touching owner targets/output. V3 uses
+    // the full 128-bit target and is the supported continuation path.
+    const std::array<uint32_t,3> extendedRoute{0,0,0};
+    input.original.original_route_indices=extendedRoute.data();
+    input.original.original_route_count=extendedRoute.size();
+    const auto beforeLegacy=output;
+    const auto beforeUpdates=actual.updates;
+    assert(ae3_original_actor_route_step_v2(
+        manager,&input,&calls,&output)==0);
+    assert(actual.updates==beforeUpdates &&
+           output.active_target_polygon_index==beforeLegacy.active_target_polygon_index &&
+           output.original_targets_applied==beforeLegacy.original_targets_applied);
+    assert(std::strstr(ae3_original_manager_init_last_error(manager),
+                       "full 128-bit")!=nullptr);
+    input.original.original_route_indices=route.data();
+    input.original.original_route_count=route.size();
+
     // Missing real 0x57C8EC owner must not publish route results.
     actual.accepted=false;
     const auto before=output;
