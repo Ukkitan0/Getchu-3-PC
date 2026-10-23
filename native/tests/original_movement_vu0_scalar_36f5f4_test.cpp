@@ -1,4 +1,7 @@
 #include "ae3/original_movement_vu0_scalar_36f5f4.hpp"
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 #include <array>
 #include <bit>
 #include <cassert>
