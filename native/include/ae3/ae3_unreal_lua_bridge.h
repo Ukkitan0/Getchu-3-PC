@@ -386,6 +386,33 @@ AE3_LUA_EXPORT int ae3_original_stage_spatial_record_copy(
     uint32_t original_record_index,
     Ae3OriginalStageSpatialRecordV1* output);
 
+/* Full source 0x30FFD0 actor current-polygon resolution using an
+ * already mounted ORIGINAL 0x21D46C stage. Source original a1 is
+ * incoming_polygon_index; UINT32_MAX represents original NULL.
+ *
+ * The real owner provides the original VU0 query vector loaded from
+ * its actor and original 0x4E3C14 grid operands on nearest fallback.
+ * grid may be NULL only if the source 0x30FFD0 branch never needs
+ * nearest. The original 0x21B788 uses source 0.1f margin for direct
+ * incoming/current checks; 0x21D898 retains its source-zero margin.
+ * The caller must atomically publish result.original_current_index
+ * to the REAL actor+0x30 on success, and clear original owner+0x50
+ * at its recovered 0x57C620 point. This API never creates an Actor.
+ */
+typedef struct Ae3OriginalActorPolygonSelectSourceV1 {
+    uint32_t original_current_index;
+    uint32_t original_incoming_index;
+    Ae3OriginalVec4 original_actor_query;
+    const Ae3OriginalStageSpatialGridSourceV1* original_grid;
+} Ae3OriginalActorPolygonSelectSourceV1;
+typedef struct Ae3OriginalActorPolygonSelectResultV1 {
+    uint32_t original_current_index; /* UINT32_MAX source NULL */
+} Ae3OriginalActorPolygonSelectResultV1;
+AE3_LUA_EXPORT int ae3_original_actor_polygon_select_30ffd0(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalActorPolygonSelectSourceV1* source,
+    Ae3OriginalActorPolygonSelectResultV1* output);
+
 /* Legacy LOW64-only view of original 0x57C8EC target dispatch.
  * Genuine 0x21B788 eligibility, 0x57C98C three-vertex random blend,
  * persistent 0x36F3C0 RNG, and 0x57CA68 fallback VU0 transformations
