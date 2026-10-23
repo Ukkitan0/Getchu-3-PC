@@ -144,11 +144,12 @@ with a synthetic boolean success.
 **Still not recovered in full:** the original owner-specific VU0
 register calculations and input provenance inside `0x57BF5C`,
 the actual source owner methods `0x3176AC`, `0x30C1D4`,
-`0x3161B8`, `0x316174`, `0x30C21C`, `0x30C520`,
-`0x30C57C`, `0x36F5F4`, the two original `0x441F40`
-stack-object initializers and original `0x21DB64` diagnostics,
-and persistent Player/Monkey lifetime. The recovered C++ branch
-sequencing does not make those game-owner bodies complete. Full Windows/Unreal Editor compilation has
+`0x30C21C`, `0x30C520`, `0x30C57C`, `0x36F5F4`,
+the two original `0x441F40` stack-object initializers, real
+implementations of vtable[5] for every game object, original
+`0x21DB64` diagnostics, and persistent Player/Monkey lifetime.
+The original `0x316174` and `0x3161B8` wrapper bodies are now
+natively recovered but still need authentic owner virtual methods. Full Windows/Unreal Editor compilation has
 not been verified; no proprietary ELF or ISO was committed.
 
 
@@ -255,3 +256,30 @@ must supply the actual VU0 state and original child/
 animation/movement method bodies; a persistent retail
 Player/Monkey manager must drive this native controller
 through a complete frame with real decoded game assets.
+
+
+### Recovered original common child update (0x316174 / 0x3161B8)
+
+The independently hash-pinned 17-word `0x316174` function and
+29-word `0x3161B8` function are translated in
+`native/src/original_manager_update_316174.cpp`.
+These update **all** original child types through their true
+vtable[5] methods; their native owner callbacks cannot be replaced
+with dummy actors or unconditional success.
+
+This source recovery verifies the global update-depth word at
+`0x696C98`, original flag masking of a2/a3, the vtable slot-5
+call, the full status write at controller+0x14, original child
+virtual deleting destructor slot 1 and clearing controller+0x10.
+Native C++ returns the true completed/active status and
+rejects missing source child objects.
+
+The source ELF verifier independently pins both full function
+hashes and 23 original instruction sites. The standalone
+`OriginalControllerUpdate3161743161B8` regression and the
+connected `0x3161B8 -> 0x316174 -> 0x57C620` original
+controller dispatch smoke path passed under GCC and Clang
+with UndefinedBehaviorSanitizer. The full Windows and Unreal
+project build and actual original game ownership are still
+outstanding. See
+`native/docs/ORIGINAL_MANAGER_UPDATE_316174.md`.
