@@ -21,6 +21,9 @@ public class Getchu3OriginalLua : ModuleRules
 
         if (Target.Platform == UnrealTargetPlatform.Win64)
         {
+            // The Win64 SHA-256 verifier uses CNG BCryptHash. Link the
+            // Windows SDK system import library, not Unreal's fatal SHA stub.
+            PublicSystemLibraries.Add("bcrypt.lib");
             string BridgeDll = Path.GetFullPath(Path.Combine(ModuleDirectory,
                 "..", "..", "..", "..", "Binaries", "Win64",
                 "Getchu3OriginalLuaBridge.dll"));
