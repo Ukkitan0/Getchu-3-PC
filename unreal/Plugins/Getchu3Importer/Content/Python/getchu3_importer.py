@@ -11,6 +11,7 @@ from pathlib import Path
 import hashlib
 import importlib
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -19,6 +20,32 @@ from typing import Any
 USA_ISO_SHA256 = "5b4c6272c9daf190b3f72081f124edd7ea2af3cc0dafeaef206ded97a022fd09"
 USA_ISO_BYTES = 2_174_091_264
 USA_ELF_SHA256 = "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63"
+
+
+def write_import_status(path: Path, outcome: dict[str, Any]) -> None:
+    """Atomically publish a complete status snapshot to the Unreal Editor.
+
+    Never expose truncated JSON while the owner ISO is extracting or the
+    asset importer is in a partially completed state. The temp file always
+    remains beside the destination so os.replace is same-volume.
+    """
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    staged = None
+    try:
+        with tempfile.NamedTemporaryFile(
+                "w", encoding="utf-8", dir=path.parent,
+                prefix=".Getchu3ImportStatus-", suffix=".tmp",
+                delete=False) as stream:
+            staged = Path(stream.name)
+            json.dump(outcome, stream, indent=2)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(staged, path)
+    finally:
+        if staged is not None:
+            staged.unlink(missing_ok=True)
 
 
 @dataclass(frozen=True)
@@ -329,7 +356,7 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
                                "original_collision_imported": False,
                                "original_lua_bound_to_runtime": False,
                                "sound_engine_verified": False}
-    report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+    write_import_status(report_file, outcome)
     try:
         source = verify_disc(iso_path)
         repo = Path(repo) if repo else locate_repo()
@@ -340,19 +367,19 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         outcome.update({"disc_sha256": source.digest, "workspace": str(folder),
                         "unreal_asset_root": asset_root,
                         "phase": "extract_source"})
-        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        write_import_status(report_file, outcome)
         extracted = folder / "original"
         recovery = recover_original(source.path, extracted, repo)
         outcome["original_files"] = recovery["original_vfi_files_extracted"]
         outcome["original_lua_scripts"] = recovery["original_lua_scripts"]
         outcome["phase"] = "unpack_original_stage_pck"
-        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        write_import_status(report_file, outcome)
         pck = unpack_original_pck_for_unreal(extracted / "vfi", repo)
         outcome["original_stage_pck_archives"] = pck["original_stage_pck_archives"]
         outcome["original_pck_members_written"] = pck["new_original_members_written"]
         outcome["original_pck_source_types"] = pck["counts"]
         outcome["phase"] = "decode_tim2"
-        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        write_import_status(report_file, outcome)
         converted = folder / "converted"
         from getchu3_media import convert_textures, convert_stream_audio
         textures = convert_textures(extracted / "vfi", converted / "textures", ae3_cli,
@@ -361,13 +388,13 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         outcome["original_pack_local_material_aliases"] = len(
             textures["pack_local_material_aliases"])
         outcome["phase"] = "decode_models"
-        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        write_import_status(report_file, outcome)
         models = convert_original_models(extracted / "vfi", converted / "models",
                                          repo, ae3_cli, textures=converted / "textures",
                                          pack_texture_aliases=converted / "material_aliases")
         outcome["models_detected"] = models["original_i3d_bin_files"]
         outcome["phase"] = "original_stage_catalog"
-        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        write_import_status(report_file, outcome)
         from getchu3_stage_catalog import build_original_stage_catalog
         stages = build_original_stage_catalog(extracted / "vfi", converted / "models",
                                               folder / "getchu3_original_stages.json")
@@ -375,7 +402,7 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         outcome["original_stage_script_count"] = stages["stage_scripts"]
         outcome["original_stage_catalog"] = str(folder / "getchu3_original_stages.json")
         outcome["phase"] = "verify_original_stage_bytecode_hashes"
-        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        write_import_status(report_file, outcome)
         from getchu3_stage_integrity import validate_stage_catalog
         verified_stages = validate_stage_catalog(extracted / "vfi", stages)
         stage_index_path = folder / "getchu3_verified_stage_index.json"
@@ -384,7 +411,7 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         outcome["source_sha256_verified_area_scripts"] = verified_stages["verified_area_scripts"]
         outcome["verified_original_stage_index"] = str(stage_index_path)
         outcome["phase"] = "audit_original_lua_manager_bindings"
-        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        write_import_status(report_file, outcome)
         from getchu3_original_bindings import create_original_binding_report
         try:
             native_evidence = create_original_binding_report(
@@ -401,16 +428,16 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
             outcome["original_binding_evidence_error"] = (
                 f"{type(exc).__name__}: {exc}")
         outcome["phase"] = "decode_streams"
-        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        write_import_status(report_file, outcome)
         streams = convert_stream_audio(extracted / "vfi", converted / "audio", ae3_cli)
         outcome["streams_decoded"] = streams["source_exst"]
         outcome["phase"] = "decode_original_i3c"
-        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        write_import_status(report_file, outcome)
         from getchu3_collision import convert_collision
         collision = convert_collision(extracted / "vfi", converted / "collision", ae3_cli)
         outcome["original_i3c_files"] = collision["original_i3c_files"]
         outcome["phase"] = "unreal_editor_asset_import"
-        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        write_import_status(report_file, outcome)
         base = asset_root
         imported_sources: dict[str, list[dict]] = {
             "models": [], "textures": [], "streams": [], "collision": []}
@@ -431,14 +458,14 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
             source_records=imported_sources["collision"])
         outcome["source_collision_mesh_assets_imported"] = True
         outcome["phase"] = "link_original_stage_source_objects"
-        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        write_import_status(report_file, outcome)
         from getchu3_asset_registry import build_asset_registry
         registry_path = folder / "getchu3_source_asset_registry.json"
         source_registry = build_asset_registry(stages, imported_sources, registry_path)
         outcome["original_source_registry"] = str(registry_path)
         outcome["source_linked_stage_count"] = len(source_registry["original_stages"])
         outcome["phase"] = "audit_per_stage_native_gameplay_dependencies"
-        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        write_import_status(report_file, outcome)
         if outcome.get("original_binding_evidence_status") == "source_checked":
             try:
                 from getchu3_native_readiness import build_original_native_readiness
@@ -473,4 +500,4 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         outcome["error"] = f"{type(exc).__name__}: {exc}"
         raise
     finally:
-        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        write_import_status(report_file, outcome)
