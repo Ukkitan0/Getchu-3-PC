@@ -345,6 +345,83 @@ extern "C" int ae3_original_stage_spatial_nearest_grid_21d898(
     return originalMountedSpatialNearestImpl(session,grid,query,output);
 }
 
+/* Copy ORIGINAL 0x21D46C native record bytes and source header
+ * metadata for real actor construction. Never leak stage-owned pointers.
+ */
+extern "C" int ae3_original_stage_spatial_record_count(
+    Ae3OriginalManagerInitSession* session,size_t* outCount) {
+    if (!session) return 0;
+    if (session->busy) {
+        session->error="reentrant original spatial record count refused";
+        return 0;
+    }
+    session->busy=true;
+    int success=0;
+    try {
+        if (!session->stageSpatial || !outCount)
+            throw std::invalid_argument(
+                "mounted original spatial stage and output count required");
+        if (session->stageSpatial->polygonHeaders.size()!=
+            session->stageSpatial->records.size())
+            throw std::invalid_argument(
+                "original 0x21D46C record/header registry inconsistent");
+        *outCount=session->stageSpatial->records.size();
+        session->error.clear();
+        success=1;
+    } catch (const std::exception& ex) {
+        session->error=ex.what();
+    } catch (...) {
+        session->error="unknown original stage record count failure";
+    }
+    session->busy=false;
+    return success;
+}
+extern "C" int ae3_original_stage_spatial_record_copy(
+    Ae3OriginalManagerInitSession* session,
+    uint32_t originalIndex,Ae3OriginalStageSpatialRecordV1* output) {
+    if (!session) return 0;
+    if (session->busy) {
+        session->error="reentrant original spatial record copy refused";
+        return 0;
+    }
+    session->busy=true;
+    int success=0;
+    try {
+        if (!session->stageSpatial || !output)
+            throw std::invalid_argument(
+                "mounted original spatial stage and record output required");
+        const auto& stage=*session->stageSpatial;
+        if (stage.records.size()!=stage.polygonHeaders.size() ||
+            originalIndex>=stage.records.size())
+            throw std::out_of_range(
+                "original 0x21D46C record index/header binding unavailable");
+        const auto& record=stage.records[originalIndex];
+        const auto& header=stage.polygonHeaders[originalIndex];
+        if (header.sourcePointCountAt16==0 ||
+            header.sourcePointCountAt16>3 ||
+            header.originalHeaderVA==0 ||
+            ae3::originalSpatialHeaderPointer_21b468(record)!=
+                header.originalHeaderVA)
+            throw std::invalid_argument(
+                "original 0x21D46C record source header invalid");
+        Ae3OriginalStageSpatialRecordV1 copy{};
+        static_assert(sizeof(copy.original_record70)==0x70);
+        std::memcpy(copy.original_record70,
+                    record.originalFields.data(),0x70);
+        copy.original_header_va=header.originalHeaderVA;
+        copy.original_point_count=header.sourcePointCountAt16;
+        *output=copy;
+        session->error.clear();
+        success=1;
+    } catch (const std::exception& ex) {
+        session->error=ex.what();
+    } catch (...) {
+        session->error="unknown original source stage record copy failure";
+    }
+    session->busy=false;
+    return success;
+}
+
 /* Only genuine 0x21D46C source descriptors are returned to the
  * actor owner. No action type is interpreted as an invented spawn.
  */
