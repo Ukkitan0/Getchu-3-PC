@@ -141,8 +141,13 @@ try_original_post_vector_557f54(
     // on a missing original regenerated VF1 state.
     if((child_->originalWordAt(0xB8)&2u)==0u)
         return std::nullopt;
+    // Original 557E68 LW s4 sign-extends 32-bit parent+0x14
+    // into the 64-bit EE register. 557F90 BBit032 must not see
+    // a fabricated zero-extended high half.
     const auto source=originalMovementPostVector_557f54(
-        *child_,originalParentWord14);
+        *child_,static_cast<std::uint64_t>(
+            static_cast<std::int64_t>(static_cast<std::int32_t>(
+                originalParentWord14))));
     // Source VU0 VF1/VF2/Q/GPR s3 side effects must reach the
     // original game owner before slot5 can return status1.
     postVectorOwner_->publish_original_557f54_vu0(source);
@@ -173,7 +178,9 @@ try_original_post_tail_557fc8(
     // the complete 558030 source return. DO NOT run legacy
     // read_original_post_step_after_557fc8 in parallel.
     return originalMovementPostTail_557fc8(
-        *child_,scratchGuestVA,originalParentWord14,
+        *child_,scratchGuestVA,
+        static_cast<std::uint64_t>(static_cast<std::int64_t>(
+            static_cast<std::int32_t>(originalParentWord14))),
         originalPublishedState,
         {originalF21MovementReturn,originalF20ResourceMetric,std::nullopt},
         *postTailOwner_);
