@@ -33,8 +33,9 @@ public:
 };
 
 // If original 0x3161B8 returns zero => source result zero.
-// Otherwise variant-zero returns one; variant-one returns one on
-// original vector equality, or original controller+0x14 on mismatch.
+// Source branch-delay audit: variant-zero returns source field +0x14.
+// Variant-one ALSO returns +0x14 when all four PCEQW vector lanes
+// match, and returns 1 otherwise. Prior documentation inverted this.
 // This method mutates only genuine typed controller +0x10 on a
 // verified source child creation/update sequence.
 std::uint32_t originalManagerType2Update_57c554(
