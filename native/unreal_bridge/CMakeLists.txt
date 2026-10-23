@@ -70,6 +70,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_spatial_index.cpp")
 add_library(Getchu3OriginalLuaBridge SHARED
   "${ORIGINAL_NATIVE_SOURCE}/ae3_unreal_lua_bridge.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/ae3_original_manager_init_bridge.cpp"
   ${ORIGINAL_LUA_STAGE_SOURCES}
   ${ORIGINAL_ACTOR_MANAGER_SOURCES})
 target_include_directories(Getchu3OriginalLuaBridge
