@@ -159,3 +159,46 @@ game logic and collision behavior must be recovered next.
 The full changed C++ CTest and native Windows executable are
 **not verified** in this handoff; no proprietary original bytes
 were committed.
+
+## 64-bit EE `s5` source-register ABI fix
+
+The original source contains two *64-bit* EE `DADDU` instructions,
+not 32-bit `ADDU` operations:
+
+| Retail PC | Original word | Exact register transfer |
+| --- | --- | --- |
+| `0x557FEC` | `0x0040A82D` | `DADDU s5,v0,zero` |
+| `0x558070` | `0x02A0282D` | `DADDU a1,s5,zero` |
+
+Before this correction, the native owner signature
+`call_original_30c0a0` returned `uint32_t`, and the
+`OriginalMovementPostStep_558030::originalS5From30C0A0` /
+`call_original_314c44` interfaces consumed `uint32_t`.
+That **truncated the upper 32 bits of source EE s5**, potentially
+corrupting the real original second argument to `0x314C44`.
+
+These interfaces now use `std::uint64_t` end-to-end. Source
+`0x558054` separately reads the first argument with an actual
+32-bit `LW`, so that callback field **remains** `uint32_t`.
+The original `a1` 128-bit `POR` argument to `0x30C0A0`
+also remains a full four-lane array; `DADDU` then consumes
+the low 64 bits of that function's **returned** `v0`.
+
+Extended high-bit regression fixtures return
+`0x0012345678450000` through `0x30C0A0`, then verify
+the complete value arrives at `0x314C44` without narrowing.
+Tests were extended in the standalone `558030`, standalone
+`557FC8` and both persistent-lifecycle CTest programs.
+The source verifier
+`native/tools/verify_original_movement_handoff_557fc8_558030.py`
+decodes both original opcodes as 64-bit `DADDU`, checks the
+actual source/destination register numbers, and fails if the
+native signatures regress to 32 bits.
+
+The source instruction-word decoder was checked directly in this
+session: `0x557FEC` yields opcode `0`, rs `v0` `2`,
+rd `s5` `21`, function `0x2D`; `0x558070` yields
+rs `s5` `21`, rd `a1` `5`, function `0x2D`.
+The updated C++ tests still require an actual compile and CTest
+run. No private game binary or original resource data were
+committed.
