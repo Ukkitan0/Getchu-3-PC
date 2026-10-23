@@ -257,3 +257,37 @@ All new bridge methods are registered with
 native source-recovered components. Neither a Windows/Unreal
 build nor in-game Play/Monkey behavior has been verified by
 these source commits.
+
+### Stage-owned spatial cache for frame queries
+
+The native `Ae3OriginalManagerInitSession` now also has a strictly
+host-owned, persistent `OriginalStageSpatialLoaded` value. A real
+actor manager can call:
+
+1. `ae3_original_stage_spatial_mount_21d46c` once at stage entry,
+   providing owner-loaded genuine original source bytes and runtime VA.
+2. `ae3_original_stage_spatial_nearest_all_21da2c` or
+   `ae3_original_stage_spatial_nearest_grid_21d898` repeatedly for
+   source actor queries without reallocating/redecoding records.
+3. `ae3_original_stage_spatial_unmount` during stage unload, before
+   the native manager session itself is destroyed.
+
+Each successful mount decodes the entire actual 0x21D46C spatial
+stage and owns the resulting source records and original-header
+bindings. The owner may release the borrowed source input bytes
+after mount. Invalid replacement mounts leave the previous native
+stage intact, not partially replaced, and do not reset or consume
+the session's original 0x36F3C0 game RNG state. Queries require a
+mounted stage and report source polygon INDEX values only.
+
+This is a persistent **spatial owner**, NOT the source gameplay
+Player/Monkey actor allocation/update/destruction manager. The
+original `0x57C620` controller update and the original game-owned
+actor/animation/spawn chain remain unrecovered or unconnected.
+
+Existing `OriginalLoadedStageSpatialNearestHostAbi` regression
+now also covers repeated mounted-stage nearest selection, post-mount
+mutation of borrowed stage bytes, failed atomic stage replacement,
+explicit unmount and successful subsequent remount. Source files are
+committed; actual Windows native CTest and original Unreal runtime
+validation remain required.
