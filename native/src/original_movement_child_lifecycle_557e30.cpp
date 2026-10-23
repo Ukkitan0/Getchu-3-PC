@@ -64,10 +64,8 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
             // original nonterminal reset/resource/collision setup
             // through real source callback methods. Parent+0x14
             // came from mandatory 0x557E68 delay-slot load.
-            const auto originals=normalOwner_->
-                read_original_parent_resource_fields(originalParentVA);
             originalMovementNormalBegin_557ed8(
-                *child_,originalParentWord14,originals,*normalOwner_);
+                *child_,originalParentWord14,*normalOwner_);
         }
     }
     // A successfully executed prefix is NOT an actor update:
