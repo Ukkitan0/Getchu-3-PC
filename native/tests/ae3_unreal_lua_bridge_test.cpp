@@ -79,6 +79,16 @@ int main() {
         registration, "original_void", 0x00512000u));
     assert(!ae3_lua_register_original_void(
         registration, "original_void", 0x00512000u));
+    // Malformed retail bytecode still counts as an execution attempt; it
+    // must not permit late replacement/injection of original Lua globals.
+    const unsigned char incompleteRetail[] = {0x1b, 'L', 'u', 'a', 0x50, 0, 0};
+    assert(!ae3_lua_execute_original_chunk(
+        registration, incompleteRetail, sizeof(incompleteRetail), "area.luc"));
+    assert(!ae3_lua_register_original_void(
+        registration, "late_original", 0x00512004u));
+    assert(ae3_lua_reset(registration) == 1);
+    assert(ae3_lua_register_original_void(
+        registration, "after_reset", 0x00512004u));
     assert(ae3_lua_destroy(registration) == 1);
 
     manager = callbacks();
