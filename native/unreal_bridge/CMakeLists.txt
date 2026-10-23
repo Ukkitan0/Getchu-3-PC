@@ -553,6 +553,29 @@ if(BUILD_TESTING)
   add_test(NAME OriginalMovementPostVector557F54
     COMMAND Getchu3OriginalPostVector557F54Tests)
 
+  # Native source 557E30 -> 557ED8 -> 557F34 -> 36F8C8 ->
+  # 557F54 source 0.95 threshold -> 3161B8 child deletion.
+  add_executable(Getchu3OriginalPostVectorLifecycleTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_post_vector_lifecycle_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_flagged_36fb5c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_36f8c8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_owned_36f8c8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp")
+  target_include_directories(Getchu3OriginalPostVectorLifecycleTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementPostVectorLifecycle557F54
+    COMMAND Getchu3OriginalPostVectorLifecycleTests)
+
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
   # source actor child callbacks; never invent missing movements.
