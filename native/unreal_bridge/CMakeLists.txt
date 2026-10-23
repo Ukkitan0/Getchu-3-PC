@@ -72,6 +72,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_tick_bridge_3161b8.cpp"
@@ -354,6 +355,17 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalMovementNonterminalSetup557ED8
     COMMAND Getchu3OriginalNormalBegin557ED8Tests)
+
+  # The preceding real 0x317B34 resource float source function:
+  # parent+0x40==1 -> resource+0x374, or mode low8==0 ->
+  # resource+0x3B4. Nonzero-mode VU0 remains unresolved.
+  add_executable(Getchu3OriginalResourceFloat317B34Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_resource_float_317b34_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp")
+  target_include_directories(Getchu3OriginalResourceFloat317B34Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalManagerResourceFloat317B34
+    COMMAND Getchu3OriginalResourceFloat317B34Tests)
 
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
