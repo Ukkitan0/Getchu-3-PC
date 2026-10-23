@@ -163,17 +163,26 @@ missing records/descriptors, descriptor counts outside 1..3, nonfinite
 XYZ queries and reentrant use are rejected without publishing output.
 The native session stays guarded until each query is finished.
 
-**Original-system dependency:** the underlying 0x4E3C14 grid candidate
-generation and owner runtime are not fully recovered; the ABI does not
-fabricate hits, stage geometry, player/monkey creation, target motion,
-or Unreal navigation. Host owners MUST supply real decoded original
-navigation/record bytes. These native exports alone do not create actors.
+**Original-system ownership:** the underlying 0x4E3C14 native
+grid candidate calculation is source-recovered in
+`native/src/original_spatial_support.cpp`. The initial `_hits_21d898`
+API still accepts a real owner-provided candidate list. The new
+`_grid_4e3c14_21d898` API runs that source grid lookup itself from
+original grid fields/cell offsets/hit pool, then invokes the native
+0x21D898 VU0 selector; it does not fabricate hits.
+
+The caller must provide original stage geometry, grid resources and
+the **actual two scalar grid coordinates** after the original
+game-specific VU0 operand extraction. That actor-owned operand
+extraction, persistent Player/Monkey manager, target motion, and
+Unreal gameplay runtime are NOT provided by this ABI.
 
 `native/tests/original_polygon_nearest_unreal_abi_test.cpp` exercises
-original grid order versus all-registry order, first-wins distance ties,
-rejected candidate planes, empty hit lists, malformed source indices,
-descriptor validation, nonfinite queries, W-lane independence, and the
-result-publication failure boundary. Its CTest target is
+original hit-list order versus all-registry order, first-wins distance
+ties, rejected candidate planes, empty hit lists, malformed source
+indices, descriptor validation, nonfinite queries, W-lane independence,
+source 0x4E3C14 cell lookup, two distinct original grid cells, invalid
+source offsets, missing cells, and failure without result publication. Its CTest target is
 `OriginalPolygonNearest21D89821DA2CHostAbi` in
 `native/unreal_bridge/CMakeLists.txt`.
 
