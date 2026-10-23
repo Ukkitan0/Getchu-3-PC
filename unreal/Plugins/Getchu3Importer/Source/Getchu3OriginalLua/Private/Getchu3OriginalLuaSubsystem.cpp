@@ -100,6 +100,14 @@ int CallbackReadOriginalProgress(void* Context, void* Destination, size_t ExactB
     return 1;
 }
 
+int CallbackWriteOriginalProgress(void* Context, const void* Source, size_t ExactBytes) {
+    auto* Manager = OriginalManager(Context);
+    if (!Manager || !Source || ExactBytes != 1033) return 0;
+    TArray<uint8> Packed;
+    Packed.Append(static_cast<const uint8*>(Source), static_cast<int32>(ExactBytes));
+    return Manager->WriteOriginalPlayerProgress(Packed) ? 1 : 0;
+}
+
 int CallbackSelectWeapon(void* Context, int Selection) {
     auto* Manager = OriginalManager(Context);
     return Manager && Manager->SelectOriginalPlayerWeapon(Selection) ? 1 : 0;
@@ -400,6 +408,7 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
     Bindings.read_survival = &CallbackReadSurvival;
     Bindings.select_weapon = &CallbackSelectWeapon;
     Bindings.read_original_player_progress = &CallbackReadOriginalProgress;
+    Bindings.write_original_player_progress = &CallbackWriteOriginalProgress;
 
     bInOriginalManagerCall = true; // Creation queries original PlayerProgress.
     NativeState = Create(&Bindings);
@@ -444,6 +453,44 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
         TEXT("Original source Lua stage and game manager transaction finished; original gameplay parity remains unverified."));
     return true;
 #endif
+}
+
+bool UGetchu3OriginalLuaSubsystem::ApplyOriginalHealthDelta(
+    float Delta, float& CommittedHealth) {
+    CommittedHealth = 0.0f;
+    if (!IsInGameThread() || !FMath::IsFinite(Delta) ||
+        !NativeLibrary || !NativeState || !IsValid(Manager) ||
+        bInOriginalManagerCall || bOriginalSetupOpen) {
+        LastError = TEXT("Original ChangeHP requires a committed source stage, real player manager and finite delta");
+        return false;
+    }
+    const auto Apply = GetOriginalLuaFunction<decltype(
+        &ae3_lua_apply_original_health_delta)>(
+            NativeLibrary, TEXT("ae3_lua_apply_original_health_delta"));
+    const auto NativeError = GetOriginalLuaFunction<decltype(
+        &ae3_lua_last_error)>(
+            NativeLibrary, TEXT("ae3_lua_last_error"));
+    if (!Apply || !NativeError) {
+        LastError = TEXT("Original Lua DLL does not export the recovered ChangeHP function");
+        return false;
+    }
+    bInOriginalManagerCall = true;
+    const int Applied = Apply(
+        static_cast<Ae3LuaRuntime*>(NativeState), Delta, &CommittedHealth);
+    bInOriginalManagerCall = false;
+    if (bDeferredOriginalStop) {
+        LastError = TEXT("Original player manager stopped the stage during ChangeHP");
+        StopOriginalStage();
+        return false;
+    }
+    if (Applied != 1) {
+        LastError = Utf8String(NativeError(static_cast<Ae3LuaRuntime*>(NativeState)));
+        if (LastError.IsEmpty())
+            LastError = TEXT("Original ChangeHP rejected by source-backed player state manager");
+        return false;
+    }
+    LastError.Empty();
+    return true;
 }
 
 void UGetchu3OriginalLuaSubsystem::StopOriginalStage() {
