@@ -30,8 +30,8 @@ int tryDestroyDuringProgressRead(void* opaque, void*, size_t bytes) {
     return 0; // Missing owner save still fails closed.
 }
 
-Ae3LuaManagerV2 callbacks() {
-    Ae3LuaManagerV2 manager{};
+Ae3LuaManagerV3 callbacks() {
+    Ae3LuaManagerV3 manager{};
     manager.api_version = AE3_LUA_BRIDGE_API_VERSION;
     manager.struct_size = sizeof(manager);
     manager.create_entity = rejectEntity;
