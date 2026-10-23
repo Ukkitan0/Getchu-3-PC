@@ -82,3 +82,38 @@ Original SCUS_975.01 actor manager, stage parameter manager, update dispatcher,
 monkey AI, player movement, capture systems, animation transitions, stage
 scheduler and source Lua registration callbacks remain necessary before the
 new Unreal host can reproduce the original game exactly.
+
+## Original game manager transaction lifecycle
+
+Original stage initialization may make many source Lua manager calls and then
+fail on a later unknown original function. The Unreal runtime now requires
+the actual manager provider to implement an **atomic** setup operation:
+
+- BeginOriginalStageSetup is invoked after verified DLL loading, before any
+  original Lua bytecode is executed. A provider must create a rollback-safe
+  transaction over original actor lifetime, stage parameters, global/local/
+  area flags and equipment changes. False means source state is unavailable.
+- Every original Lua operation executes inside the transaction. A failed
+  callback or missing original script-defined setupArea causes an immediate
+  AbortOriginalStageSetup, including when Begin partially allocated resources.
+- CommitOriginalStageSetup must apply the exact recovered original game
+  state and return true only on success. A rejected commit is followed by
+  AbortOriginalStageSetup.
+- StopOriginalStage also aborts any still-open transaction before unloading
+  the real native Lua DLL. Default manager methods are fail-closed, and
+  no generic Unreal actors are silently left behind.
+
+This transaction contract prevents a partially created imitation level.
+Implementing an original transactional manager with verified actor/flag
+ownership is still a required engine-recovery task, not a completed feature.
+
+## Original stage binding-recovery report
+
+A verified ISO import also runs existing native Lua 5.0 callsite analysis and
+verified original SCUS_975.01 CreateBind registration analysis together.
+The owner-private getchu3_original_binding_evidence.json contains the
+original direct-call names, candidate actor class string literals, source
+CreateBind addresses and unresolved original callback priorities. A failure
+to produce static evidence is explicitly recorded but does not prevent
+independent geometry import. These are static leads, NOT implementations,
+a complete call graph or proof of behavior.
