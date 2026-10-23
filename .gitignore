@@ -53,3 +53,4 @@ direct_jal_targets.tsv
 
 .getchu3/
 native/build-unreal-lua/
+native/build-unreal-lua-standalone/
