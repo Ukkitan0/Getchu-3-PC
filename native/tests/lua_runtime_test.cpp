@@ -451,6 +451,46 @@ void exactOriginalLuaFlagAndControllerBytes(){
     check(get(world.entities()[0].controllers,"opcode")==expectedCommand,
           "Original Lua controller command was truncated at embedded zero byte");
 }
+void originalVerifiedVoidCallbackTests(){
+    // Exercise the same genuine LuaStage dispatch path used by Unreal ABI
+    // v5: source VA + original name + zero-return callback, NOT a no-op.
+    ae3::NativeStageWorld world;
+    ae3::LuaStage stage(world);
+    int accepted=0;
+    stage.registerOriginalFunction("__source_verified_void",0x00512018u,
+        [&](const std::vector<ae3::ScriptValue>& args) {
+            check(args.size()==2 && args[0].kind==ae3::ScriptValue::Kind::text &&
+                  args[0].text==std::string("a\0b",3),
+                  "Original void callback truncated Lua 5.0 binary arguments");
+            const auto* count=args[1].member("count");
+            check(count && count->numberOr()==17,
+                  "Original void callback lost source table fields");
+            ++accepted;
+            return std::vector<ae3::ScriptValue>{}; // Original void behavior.
+        });
+    stage.registerOriginalFunction("__source_missing_void",0x0051201Cu,
+        [](const std::vector<ae3::ScriptValue>&)
+            -> std::vector<ae3::ScriptValue> {
+            throw std::runtime_error("original actor native manager unavailable");
+        });
+    stage.executeSource(
+        "function sourceVerifiedEvent() "
+        " local result=__source_verified_void('a' .. string.char(0) .. 'b',"
+        "    {count=17}) "
+        " assert(result==nil) "
+        "end "
+        "function sourceMissingEvent() __source_missing_void(10) end");
+    check(stage.invokeCallback("sourceVerifiedEvent") && accepted==1,
+          "Original native void callback was not executed exactly once");
+    bool refused=false;
+    try{stage.invokeCallback("sourceMissingEvent");}
+    catch(const std::runtime_error& ex){
+        refused=std::string(ex.what()).find(
+            "original actor native manager unavailable")!=std::string::npos;
+    }
+    check(refused, "Unrecovered original actor routine did not abort Lua");
+}
+
 void errorCases(){
     ae3::NativeStageWorld world;
     ae3::LuaStage lua(world);
@@ -482,6 +522,7 @@ int main(){
         originalRawLuaValuePreservationTests();
         exactOriginalLuaEntityClassBytes();
         exactOriginalLuaFlagAndControllerBytes();
+        originalVerifiedVoidCallbackTests();
         errorCases();
         std::cout<<"NATIVE_REAL_LUA50_EXECUTION_PASSED: "
                     "setupArea,new_ent,lua_param,c_order,c_ctrl,flags,control flow\n";
