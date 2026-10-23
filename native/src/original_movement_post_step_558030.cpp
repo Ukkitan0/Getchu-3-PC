@@ -48,8 +48,13 @@ std::uint32_t originalMovementPostStep_558030(
         throw std::logic_error("original child+0x09 mode unknown");
     // Original 0x558074 JAL 0x314C44 with child mode in
     // 0x558078 delay slot. 0x558080 sets v0=0 for return.
+    // Retail 558054 LW sign extends the 32-bit parent word
+    // into EE a0; the 558074 JAL passes that complete register.
+    const auto originalA0=static_cast<std::uint64_t>(
+        static_cast<std::int64_t>(
+            static_cast<std::int32_t>(parentWord1C)));
     owner.call_original_314c44(
-        parentWord1C,*source.originalS5From30C0A0,
+        originalA0,*source.originalS5From30C0A0,
         std::to_integer<std::uint32_t>(*mode));
     return 0u;
 }
