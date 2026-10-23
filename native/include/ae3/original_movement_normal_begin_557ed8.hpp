@@ -17,15 +17,19 @@ public:
     // earlier in 0x557E68.
     virtual OriginalManagerResourceFields_317b9c
     read_original_parent_resource_fields(std::uint32_t guestParentVA)=0;
+    // Source 0x557EF8 DADDU a0,s4,zero copies the full 64-bit
+    // sign-extended value loaded by original 557E68 LW s4,parent+14.
     // Source 0x557F00: a0=parent+0x14, a1=317B9C result;
     // a2=0, a3=0, f12=0. Preserve return v0 status.
     virtual std::uint32_t call_original_276b68(
-        std::uint32_t originalParentWord14,
+        std::uint64_t originalParentWord14SignExtended,
         std::uint32_t originalResourceVA)=0;
     // Called only if genuine 0x276B68 returned nonzero.
-    virtual void call_original_2767f4(std::uint32_t originalParentWord14)=0;
+    virtual void call_original_2767f4(
+        std::uint64_t originalParentWord14SignExtended)=0;
     // Always called: original (a0=parent+0x14, a1=0,a2=0)
-    virtual void call_original_2773d4(std::uint32_t originalParentWord14)=0;
+    virtual void call_original_2773d4(
+        std::uint64_t originalParentWord14SignExtended)=0;
 };
 
 // Source-authentic preparation up to original 0x557F30 inclusive.
@@ -33,6 +37,6 @@ public:
 // 0x36FB18 actor/collision/animation still must be executed.
 void originalMovementNormalBegin_557ed8(
     OriginalMovementChildD0_30c57c& originalChild,
-    std::uint32_t originalParentWord14,
+    std::uint64_t originalParentWord14SignExtended,
     OriginalMovementNormalCalls_557ed8& originalOwner);
 } // namespace ae3
