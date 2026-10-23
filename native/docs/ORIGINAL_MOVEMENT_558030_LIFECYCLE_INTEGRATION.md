@@ -97,3 +97,63 @@ compilation/execution before their outcomes can be claimed.
 3. Bind original player/monkey actor owners and animation to a
    native Windows stage update and actually execute the retail
    game frame. **Not playable yet.**
+
+
+## October 23 continuation — full original 557FC8 tail integrated
+
+A separate contributor recovered the **26-word original
+`0x557FC8..0x558030` control block**, source hash
+`aecf9edaedeeea8a27a5987bed707c47e9210d57ca411f95bfd1503fec0df6b1`,
+plus the source `0x558084..0x558090` flag0 alternative.
+`native/tools/verify_original_movement_post_tail_557fc8.py` pins
+the original MIPS instructions and the three 128-bit POR operations.
+The native translation is
+`native/src/original_movement_post_tail_557fc8.cpp`.
+
+The persistent `OriginalMovementChildLifecycle_557e30` now provides
+an **optional preferred direct-tail owner**
+`OriginalMovementPostTailOwner_557fc8`, after successful publication
+of source `0x557F54` VU0 results. The original `0x557FC0`
+early status1 bypasses this tail; otherwise the direct path:
+
+1. Reads the **genuine original EE guest scratch address** from the
+   original owner, not from the host pointer allocation.
+2. Executes original `0x557FC8` bit0 dispatch, including
+   `0x558084 -> 0x36F83C` VU0 generation when bit0 is clear.
+   Its actual 128-bit source return goes into EE a1; if bit0 is
+   already set, source `LQ child+0x90` supplies EE a1 instead.
+3. Calls original `0x30C0A0`, which supplies **actual original s5**,
+   then original `0x276538` with the entire original 128-bit s3
+   from `0x557F8C DMFC2 VF2`.
+4. Reproduces the original `0x6354E7 / 0x6354E0` conditional
+   gate and optionally invokes original `0x36FC28`.
+5. Executes the native source `0x558030` return using the
+   exact `f20` resource metric from `0x557F48` and
+   `f21` movement return from `0x557F60`.
+   It no longer requires an independent, caller-invented s5.
+
+The previous `OriginalMovementPostStepContinuation_558030` path
+is retained **only for compatibility** with genuine external
+owners that already execute the intermediate original call chain;
+it is not run if a direct-tail owner has been supplied. Its
+source f20/f21 must match the exact earlier native registers
+or the state is refused without a controller status write.
+
+The direct-tail integration is compiled into the core native
+actor-manager source set and registered in **all six**
+`OriginalMovementChildLifecycle_557e30` CTest linkages.
+Extended lifecycle regression source includes first-frame
+flag0 regeneration, repeated nonterminal status0 frames, the
+original optional `36FC28` gate, rejected invalid guest scratch
+VA, and prohibition of duplicate legacy execution. Additional
+static verifier:
+`native/tools/verify_original_movement_handoff_557fc8_558030.py`
+checks prior source opcode pins, actual callsites and CMake paths.
+
+**Boundary:** `0x30C0A0`, `0x276538`, `0x36FC28` and
+`0x314C44` are still **external original-engine methods**
+implemented only through required owner interfaces. Their
+game logic and collision behavior must be recovered next.
+The full changed C++ CTest and native Windows executable are
+**not verified** in this handoff; no proprietary original bytes
+were committed.
