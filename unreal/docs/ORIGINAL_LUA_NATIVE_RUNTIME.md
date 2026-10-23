@@ -146,3 +146,34 @@ tamper, path escape, symlink escape, ambiguous ID, missing script, and
 source-less stages). Windows Unreal C++ compilation and ISO-level gameplay
 execution still require external verification; this source gate is not a
 claim that any stage can be played.
+
+## Verified binding transport corrections and Windows test gate
+
+The Unreal branch now preserves exact original Lua 5.0 byte strings across
+the full native actor/flag/controller path. In addition to entity class/name
+and tag identifiers, `gw_set_flag` / `gw_get_flag` and related local/area
+flag keys use `lua_strlen` rather than zero-terminated `std::string`
+construction. `c_ctrl` stores the original command with `lua_pushlstring`
+instead of `lua_pushstring`. This matters for embedded zero bytes and other
+non-UTF-8 source characters: the DLL later passes names as hexadecimal bytes,
+but it cannot recover bytes already truncated inside LuaStage.
+
+`native/tests/lua_runtime_test.cpp` now checks real Lua 5.0 execution of a
+stage function whose flag key and controller command contain embedded NULs.
+It asserts exact native callback keys, stage-state flag lookup and nested
+entity controller opcode contents. This is an original Lua interpreter
+binding test with a synthetic script; it is **not** evidence that all retail
+`area.luc` files execute or that actor AI is complete.
+
+The Windows `BuildAndOpen.bat` pipeline now compiles and tests
+`Getchu3OriginalLuaStageBindingTests` independently of the entire
+Getchu3Assets graphics/navigation/runtime library, **as well as** the
+previous `Getchu3OriginalUnrealLuaBridgeTests` ABI rejection suite.
+Both are required before Unreal Editor compilation, providing a practical
+failure gate for the actual Lua value pipeline.
+
+There is still no verified Win64 build here: Unreal 5.6/Visual Studio
+are unavailable in this execution environment. The source tests must
+execute in the owner's Windows toolchain and may reveal additional
+integration failures. Missing original game managers remain the
+main block on running the actual game.
