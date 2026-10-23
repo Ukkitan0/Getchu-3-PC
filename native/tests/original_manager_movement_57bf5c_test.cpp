@@ -32,16 +32,13 @@ struct Calls final:OriginalManagerMovementCalls_57bf5c {
         OriginalManagerChild70&) override {
         order.push_back("VU-metric");return metric;
     }
-    void call_original_441f40(
-        std::array<std::byte,0x40>& scratch) override {
-        order.push_back("441F40");
-        scratch[0]=std::byte{0x3C};
-    }
     void call_original_36f5f4(
         OriginalMovementScratch_57bf5c& scratch) override {
         order.push_back("36F5F4");
-        assert(scratch.sourceStack20[0]==std::byte{0x3C});
-        assert(scratch.sourceStack60[0]==std::byte{0x3C});
+        // Source 0x441F40 wrote nothing. The genuine 0x36F5F4
+        // owner, not a fake earlier initializer, supplies data.
+        scratch.sourceStack20[0]=std::byte{0x3C};
+        scratch.sourceStack60[0]=std::byte{0x3C};
     }
     void* call_original_30c57c(
         OriginalManagerChild70&,const OriginalMovementScratch_57bf5c& scratch) override {
@@ -105,8 +102,7 @@ int main() {
     calls.order.clear();calls.direction=0;calls.metric=2;
     controller.flag1c=0;controller.word14=7;
     assert(run(9)==calls.done);
-    same(calls,{"VU-direction","VU-metric","441F40","441F40",
-                "36F5F4","30C57C","3161B8","316174"});
+    same(calls,{"VU-direction","VU-metric","36F5F4","30C57C","3161B8","316174"});
     assert(controller.child10==&calls.created);
     // Already present source child must bypass ALL VU work.
     calls.order.clear();calls.failExactVu=true;controller.word14=2;
@@ -149,8 +145,7 @@ int main() {
     calls.metric=3;calls.order.clear();controller.word14=0;
     assert(run(15)==calls.done);
     assert(controller.child10==&calls.created);
-    same(calls,{"VU-direction","21B854","VU-metric","441F40",
-                "441F40","36F5F4","30C57C","child-delete",
+    same(calls,{"VU-direction","21B854","VU-metric","36F5F4","30C57C","child-delete",
                 "3161B8","316174"});
     // NaN source comparisons are false (C.OLT.S unordered),
     // so no invented early exit can be taken.
