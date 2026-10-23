@@ -90,6 +90,16 @@ def check(root: Path) -> dict:
         raise AssertionError("557E68 is not original LW s4,parent+0x14")
     require_original_ee_daddu(tail["WORDS"][0x557FF0],
                               rs=20,rd=4,at=0x557FF0)
+    # Original selector ADDIU performs a 32-bit add, then
+    # sign-extends the full result to the EE 64-bit v0.
+    # 557EF4 copies v0 to 64-bit a1 without narrowing.
+    for at in (0x317BB0,0x317BB8,0x317BC0,0x317BC4):
+        word=normal["SOURCE_WORDS"][at]
+        if (word >> 26)!=9:
+            raise AssertionError(
+                f"original 317B9C resource arithmetic no longer ADDIU at {at:#x}")
+    require_original_ee_daddu(normal["SOURCE_WORDS"][0x557EF4],
+                              rs=2,rd=5,at=0x557EF4)
     for at in (0x557EF8, 0x557F0C, 0x557F14, 0x557F18):
         require_original_ee_daddu(
             normal["SOURCE_WORDS"][at],rs=20,rd=4,at=at)
@@ -113,6 +123,12 @@ def check(root: Path) -> dict:
                      )
     if "virtual std::uint64_t call_original_276b68" not in normal_header:
         raise AssertionError("source 557F08 full 64-bit v0 was narrowed")
+    if "std::uint64_t originalResourceVASignExtended" not in normal_header:
+        raise AssertionError("source 557EF4 EE resource a1 was truncated")
+    begin=(root / "src" / "original_movement_normal_begin_557ed8.cpp"
+           ).read_text(encoding="utf-8")
+    if "static_cast<std::int32_t>(sourceContextLow32)" not in begin:
+        raise AssertionError("source 317B9C 32-bit ADDIU result not sign-extended")
     for method in ("call_original_276b68", "call_original_2767f4",
                    "call_original_2773d4"):
         start=normal_header.find(method+"(")
@@ -203,6 +219,8 @@ def check(root: Path) -> dict:
             "0x557EF8 DADDU a0,s4,zero 64-bit",
             "0x557F0C/14/18 DADDU a0,s4,zero 64-bit",
             "0x557F08 BEQZ v0 full 64-bit",
+            "0x317BB0/BB8/BC0/BC4 ADDIU 32-bit signed extension",
+            "0x557EF4 DADDU a1,v0,zero full 64-bit",
         ],
         "source_lifecycle_ctest_targets_linked": len(lifecycle_targets),
         "source_register_provenance_checks_present": True,
