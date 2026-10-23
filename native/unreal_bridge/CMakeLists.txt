@@ -630,6 +630,15 @@ if(BUILD_TESTING)
   add_test(NAME OriginalMovement274988SourceVU0ExactNormalization
     COMMAND Getchu3OriginalMovementNormalize274988Tests)
 
+  # Complete original USA 276234 3-word LQ-to-SQ vector
+  # memory transfer, used from both 30C0A0 source branches.
+  add_executable(Getchu3OriginalMovementVectorCopy276234Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_vector_copy_276234_test.cpp")
+  target_include_directories(Getchu3OriginalMovementVectorCopy276234Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovement276234Source128BitMemoryCopy
+    COMMAND Getchu3OriginalMovementVectorCopy276234Tests)
+
   # 26 original source words at 557FC8..558030: original
   # bit0 flag regen, full 128-bit EE POR to 30C0A0/276538,
   # 6354E7 diagnostic and genuine post-step status 0/2.
