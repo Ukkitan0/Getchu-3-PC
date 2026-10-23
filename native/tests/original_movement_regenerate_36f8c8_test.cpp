@@ -61,6 +61,14 @@ int main() {
     try{(void)originalMovementRegenerate_36f8c8(src);}
     catch(const std::invalid_argument&){bad=true;}
     assert(bad);
+    // Progress 2^-35 yields polynomial cube 2^-105 and square
+    // 2^-70. Double addition loses the cube, but VU0 ADD is
+    // inexact: this unsupported rounding must refuse the frame.
+    src=sample();src.originalStatusA4Bits=word(0x1p-35f);
+    bad=false;
+    try{(void)originalMovementRegenerate_36f8c8(src);}
+    catch(const std::domain_error&){bad=true;}
+    assert(bad);
     src=sample();src.originalStatusA4Bits=0x7fc01234u;
     bad=false;
     try{(void)originalMovementRegenerate_36f8c8(src);}
