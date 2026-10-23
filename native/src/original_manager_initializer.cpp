@@ -10,6 +10,21 @@ OriginalManagerInitBranch_57bcb8 originalManagerInitialize_57bcb8(
     OriginalManagerInitState_57bcb8& state,const OriginalManagerInitSource_57bcb8& source,
     OriginalGameRandom_36f3c0& random,OriginalManagerInitCalls_57bcb8& calls) {
     auto& child=state.lifecycle;
+    // In the real variant-one construction sequence, 0x57BAF8 has
+    // already written the entire original +0x20 SQ before 0x57BCB8.
+    // Reject missing or contradictory typed owner state; do not allow a
+    // detached host-side vector to impersonate the initialized controller.
+    // This is a native ownership invariant, not a new original game branch.
+    if (child.alternative30) {
+        if (!child.controller20)
+            throw std::invalid_argument(
+                "original 0x57BAF8 controller+0x20 SQ was not supplied");
+        static_assert(sizeof(state.controller20)==16);
+        if (std::memcmp(child.controller20->data(),
+                        &state.controller20,sizeof(state.controller20))!=0)
+            throw std::invalid_argument(
+                "original 0x57BCB8 controller vector differs from constructor SQ");
+    }
     // 0x57BCDC..0x57BD34: alternative constructor only. The source
     // subtracts controller+20 - parent+14->40 in all four lanes; length
     // uses the already recovered 0x4748AC XYZ dot, not the W lane.
