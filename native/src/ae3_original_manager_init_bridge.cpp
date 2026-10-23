@@ -10,6 +10,7 @@
 #include "ae3/original_spatial_support.hpp"
 #include "ae3/original_spatial_raw_bridge.hpp"
 #include "ae3/original_stage_spatial_loader.hpp"
+#include "ae3/original_actor_polygon_selector_30ffd0.hpp"
 #include <cmath>
 
 #include <array>
@@ -424,6 +425,148 @@ extern "C" int ae3_original_stage_spatial_record_copy(
     }
     session->busy=false;
     return success;
+}
+
+/* Owner-source 0x30FFD0 current polygon adoption using the persistent
+ * original 0x21D46C stage and recovered 0x21B788/0x21D898 math.
+ * Return a source polygon ID. The real Player/Monkey owner publishes it.
+ */
+static int originalActorPolygonSelectNativeImpl(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalActorPolygonSelectSourceV1* source,
+    Ae3OriginalActorPolygonSelectResultV1* output) {
+    if (!session) return 0;
+    if (session->busy) {
+        session->error="reentrant original 0x30FFD0 actor selection refused";
+        return 0;
+    }
+    session->busy=true;
+    int success=0;
+    try {
+        if (!session->stageSpatial || !source || !output)
+            throw std::invalid_argument(
+                "original 0x30FFD0 requires mounted genuine stage, inputs and result");
+        const auto& stage=*session->stageSpatial;
+        if (!std::isfinite(source->original_actor_query.x) ||
+            !std::isfinite(source->original_actor_query.y) ||
+            !std::isfinite(source->original_actor_query.z))
+            throw std::invalid_argument(
+                "original 0x30FFD0 source VU0 XYZ query is nonfinite");
+        auto originalPointer=[&](std::uint32_t index)
+            ->const ae3::OriginalSpatialRecord70* {
+            if (index==UINT32_MAX) return nullptr;
+            if (index>=stage.records.size())
+                throw std::out_of_range(
+                    "original 0x30FFD0 actor polygon ID outside mounted stage");
+            return &stage.records[index];
+        };
+        const auto* current=originalPointer(source->original_current_index);
+        const auto* incoming=originalPointer(source->original_incoming_index);
+        ae3::OriginalResolvedSpatialGeometry geometry(
+            stage.records,stage.polygonHeaders);
+        const auto originalQuery=native(source->original_actor_query);
+        class SourceCalls final:public ae3::OriginalActorPolygonSelectorCalls_30ffd0 {
+        public:
+            SourceCalls(const ae3::OriginalStageSpatialLoaded& originalStage,
+                        std::span<const ae3::OriginalSpatialSourcePolygon> polygons,
+                        const ae3::OriginalVU0Vec4& query,
+                        const Ae3OriginalStageSpatialGridSourceV1* grid)
+                :stage_(originalStage),polygons_(polygons),
+                 query_(query),grid_(grid){}
+            bool call_original_21b788(
+                const ae3::OriginalSpatialRecord70& record,
+                float originalMarginF12) override {
+                for (std::size_t i=0;i<stage_.records.size();++i)
+                    if (&stage_.records[i]==&record)
+                        return ae3::originalVU0PolygonEligible_21b788(
+                            polygons_[i].sourcePoints,query_,originalMarginF12);
+                throw std::out_of_range(
+                    "original 0x21B788 actor polygon not in mounted stage");
+            }
+            const ae3::OriginalSpatialRecord70* call_original_21d898() override {
+                // Source 0x30FFD0 only needs nearest after other checks
+                // have rejected or no actor polygon is available.
+                if (!grid_ || !grid_->original_cell_offsets50 ||
+                    !grid_->original_hit_pool08 ||
+                    !std::isfinite(grid_->original_origin_x00) ||
+                    !std::isfinite(grid_->original_origin_y04) ||
+                    !std::isfinite(grid_->original_step_x10) ||
+                    !std::isfinite(grid_->original_step_y14) ||
+                    !std::isfinite(grid_->original_resolved_x) ||
+                    !std::isfinite(grid_->original_resolved_y) ||
+                    grid_->original_step_x10==0.0f ||
+                    grid_->original_step_y14==0.0f ||
+                    grid_->original_dimension_x18<=0 ||
+                    grid_->original_dimension_y1c<=0 ||
+                    grid_->original_dimension_x18>65535 ||
+                    grid_->original_dimension_y1c>65535 ||
+                    grid_->original_cell_offset_count>1048576 ||
+                    grid_->original_hit_pool_count>1048576)
+                    throw std::invalid_argument(
+                        "original 0x30FFD0 needs actual 0x4E3C14 grid owner data");
+                const auto cells=
+                    static_cast<std::size_t>(grid_->original_dimension_x18)*
+                    static_cast<std::size_t>(grid_->original_dimension_y1c);
+                if (cells>1048576 || grid_->original_cell_offset_count<cells)
+                    throw std::out_of_range(
+                        "original 0x4E3C14 source grid offsets are truncated");
+                ae3::OriginalSpatialGridFields genuine{};
+                genuine.originX00=grid_->original_origin_x00;
+                genuine.originY04=grid_->original_origin_y04;
+                genuine.stepX10=grid_->original_step_x10;
+                genuine.stepY14=grid_->original_step_y14;
+                genuine.dimensionX18=grid_->original_dimension_x18;
+                genuine.dimensionY1c=grid_->original_dimension_y1c;
+                genuine.cellOffsets50=std::span<const std::uint16_t>(
+                    grid_->original_cell_offsets50,
+                    grid_->original_cell_offset_count);
+                genuine.hitBuffer08=std::span<const std::uint16_t>(
+                    grid_->original_hit_pool08,
+                    grid_->original_hit_pool_count);
+                return ae3::originalStageNearestGrid_21d898(
+                    stage_,genuine,grid_->original_resolved_x,
+                    grid_->original_resolved_y,query_);
+            }
+        private:
+            const ae3::OriginalStageSpatialLoaded& stage_;
+            std::span<const ae3::OriginalSpatialSourcePolygon> polygons_;
+            const ae3::OriginalVU0Vec4& query_;
+            const Ae3OriginalStageSpatialGridSourceV1* grid_;
+        };
+        SourceCalls calls(stage,geometry.polygons(),originalQuery,
+                          source->original_grid);
+        const auto* selected=ae3::originalActorPolygonSelect_30ffd0(
+            current,incoming,calls);
+        Ae3OriginalActorPolygonSelectResultV1 result{};
+        result.original_current_index=UINT32_MAX;
+        if (selected) {
+            for (std::size_t i=0;i<stage.records.size();++i) {
+                if (selected==&stage.records[i]) {
+                    result.original_current_index=
+                        static_cast<std::uint32_t>(i);
+                    break;
+                }
+            }
+            if (result.original_current_index==UINT32_MAX)
+                throw std::runtime_error(
+                    "original 0x30FFD0 returned foreign actor polygon");
+        }
+        *output=result; // Actual owner commits this source result.
+        session->error.clear();
+        success=1;
+    } catch (const std::exception& ex) {
+        session->error=ex.what();
+    } catch (...) {
+        session->error="unknown original 0x30FFD0 actor polygon update failure";
+    }
+    session->busy=false;
+    return success;
+}
+extern "C" int ae3_original_actor_polygon_select_30ffd0(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalActorPolygonSelectSourceV1* source,
+    Ae3OriginalActorPolygonSelectResultV1* output) {
+    return originalActorPolygonSelectNativeImpl(session,source,output);
 }
 
 /* Only genuine 0x21D46C source descriptors are returned to the
