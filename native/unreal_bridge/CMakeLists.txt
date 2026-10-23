@@ -78,6 +78,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_flag0_regenerate_36f83c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_tail_557fc8.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_movement_normalize_274988.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_step_558030.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_36f8c8.cpp"
@@ -296,6 +297,7 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_child_lifecycle_557e30_test.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_tail_557fc8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normalize_274988.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_step_558030.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_flag0_regenerate_36f83c.cpp"
@@ -325,6 +327,7 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_tail_557fc8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normalize_274988.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_step_558030.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_flag0_regenerate_36f83c.cpp"
@@ -356,6 +359,7 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_tail_557fc8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normalize_274988.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_step_558030.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_flag0_regenerate_36f83c.cpp"
@@ -395,6 +399,7 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_tail_557fc8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normalize_274988.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_step_558030.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_flag0_regenerate_36f83c.cpp"
@@ -468,6 +473,7 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_tail_557fc8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normalize_274988.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_step_558030.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_flag0_regenerate_36f83c.cpp"
@@ -583,6 +589,7 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_tail_557fc8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normalize_274988.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_step_558030.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_flag0_regenerate_36f83c.cpp"
@@ -612,12 +619,24 @@ if(BUILD_TESTING)
   add_test(NAME OriginalMovement276538NativeVectorForward
     COMMAND Getchu3OriginalMovementForward276538Tests)
 
+  # Native source-verified retail 274988 X/Z-plane normalization
+  # using genuine prior VF1, PPAC/PCPY source vector packing and
+  # exact finite COP1 subset (no PS2 emulator or approximations).
+  add_executable(Getchu3OriginalMovementNormalize274988Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_normalize_274988_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normalize_274988.cpp")
+  target_include_directories(Getchu3OriginalMovementNormalize274988Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovement274988SourceVU0ExactNormalization
+    COMMAND Getchu3OriginalMovementNormalize274988Tests)
+
   # 26 original source words at 557FC8..558030: original
   # bit0 flag regen, full 128-bit EE POR to 30C0A0/276538,
   # 6354E7 diagnostic and genuine post-step status 0/2.
   add_executable(Getchu3OriginalPostTail557FC8Tests
     "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_post_tail_557fc8_test.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_tail_557fc8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normalize_274988.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_flag0_regenerate_36f83c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_36f8c8.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
@@ -649,6 +668,7 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_flag0_regenerate_36f83c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_tail_557fc8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normalize_274988.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_step_558030.cpp")
   target_include_directories(Getchu3OriginalPostTailLifecycle557FC8Tests
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
