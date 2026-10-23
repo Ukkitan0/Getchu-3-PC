@@ -184,6 +184,7 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_native_method_router_test.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_native_method_router.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_movement_57bf5c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_dispatch_57c620.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_route_child_57c27c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_routed_update_57c388.cpp"
