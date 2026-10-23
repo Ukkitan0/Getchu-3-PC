@@ -2,6 +2,7 @@
 #include "ae3/original_manager_resource_float_317b34.hpp"
 #include "ae3/original_manager_resource_vu0_317b34.hpp"
 #include "ae3/original_movement_step_fast_36fb18.hpp"
+#include "ae3/original_movement_flagged_36fb5c.hpp"
 #include <cstdint>
 
 namespace ae3 {
@@ -31,6 +32,19 @@ public:
         const std::array<std::uint32_t,4>& originalVF1After)=0;
     virtual std::uint32_t read_original_parent_float70(
         std::uint32_t originalParentGuestVA)=0;
+    // Opt-in original 36FB5C flagged positive-movement path:
+    // the owner supplies actual 128-bit VF1, source scratch
+    // guest address and actual child status/flags. Default
+    // absent preserves mandatory retail 36FB18 owner fallback.
+    virtual std::optional<OriginalMovementFlaggedInputs_36fb5c>
+    read_original_flagged_vf1_36fb5c(
+        const OriginalMovementChildD0_30c57c&,
+        std::uint32_t) {return std::nullopt;}
+    virtual void publish_original_vf1_after_36fb5c(
+        const std::array<std::uint32_t,4>&) {
+        throw std::logic_error(
+            "original 36FB5C live VF1 state publication unavailable");
+    }
     // Required for movement f12 positive below threshold.
     virtual std::uint32_t call_original_36fb18(
         OriginalMovementChildD0_30c57c& originalChild,
