@@ -17,6 +17,7 @@ struct Owner:OriginalMovementPostTailOwner_557fc8 {
     std::vector<std::string> calls{};
     std::uint32_t publishedRatio{};
     bool diagFirst=false,diagSecond=false,failVF=false,failManager=false;
+    bool expectSignExtendedParent=false;
     std::uint64_t read_original_child_scratch_guest_va_557fc8(
         const OriginalMovementChildD0_30c57c&) override {
         return 0x01FFF020u;
@@ -44,8 +45,9 @@ struct Owner:OriginalMovementPostTailOwner_557fc8 {
         return 0x12345678450000ull;
     }
     void call_original_276538(
-        std::uint32_t p,const std::array<std::uint32_t,4>& originalS3) override {
-        assert(p==0x340000u && originalS3[0]==raw(1.0f));
+        std::uint64_t p,const std::array<std::uint32_t,4>& originalS3) override {
+        assert(p==(expectSignExtendedParent?0xffffffff81234000ull:0x340000ull) &&
+               originalS3[0]==raw(1.0f));
         calls.emplace_back("276538");
     }
     std::uint8_t read_original_6354e7() override {
@@ -75,7 +77,7 @@ struct Owner:OriginalMovementPostTailOwner_557fc8 {
 };
 std::unique_ptr<OriginalMovementChildD0_30c57c>
 makeChild(float progress,unsigned flags,float vector=1.0f,
-          bool knownA1=true) {
+          bool knownA1=true,unsigned mode8=1) {
     std::array<std::byte,0x110> scratch{};
     std::bitset<0x110> known{};
     for(unsigned i=0x80;i<0xB0;++i)known.set(i);
@@ -93,7 +95,7 @@ makeChild(float progress,unsigned flags,float vector=1.0f,
         scratch[0xA8+i]=std::byte((flags>>(i*8))&255u);
     }
     return originalMovementChildCreate_30c57c(
-        0x234000u,scratch,known,1,2);
+        0x234000u,scratch,known,mode8,2);
 }
 }
 int main() {
@@ -176,5 +178,18 @@ int main() {
         {raw(2),raw(4),std::nullopt},o);}
     catch(const std::runtime_error&){refused=true;}
     assert(refused && o.calls==std::vector<std::string>({"30C0A0"}));
+    // 557E68 LW s4,parent+14 sign-extends to full EE 64 bits.
+    // Mode+8 zero skips 557F90 BBit032 but 557FF0 DADDU must
+    // preserve all sign-extension bits into original 276538 a0.
+    o.failManager=false;o.diagFirst=false;o.calls.clear();
+    o.expectSignExtendedParent=true;
+    c=makeChild(0.5f,3u,1.0f,true,0);
+    source=originalMovementPostVector_557f54(*c,0xffffffff81234000ull);
+    assert(!source.originalSlot5EarlyStatus);
+    assert(originalMovementPostTail_557fc8(
+        *c,0x01FFF020u,0xffffffff81234000ull,source,
+        {raw(2),raw(4),std::nullopt},o)==0u);
+    assert(o.calls==std::vector<std::string>({
+        "30C0A0","276538","6354e7","parent1c","314C44"}));
     std::cout<<"ORIGINAL_POST_TAIL_557FC8_TO_558030_PASSED\n";
 }
