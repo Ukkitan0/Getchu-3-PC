@@ -9,7 +9,18 @@
 #include <cassert>
 #include <iostream>
 #include <stdexcept>
+#include <type_traits>
 using namespace ae3;
+static_assert(std::is_same_v<
+    decltype(&originalMovementCommitFlaggedIteration_36fb5c),
+    void(*)(OriginalMovementChildD0_30c57c&,
+            const OriginalMovementFlaggedInputs_36fb5c&,
+            const OriginalMovementFlaggedPass_36fb5c&)>);
+static_assert(std::is_same_v<
+    decltype(&originalMovementCommitFlaggedReturn_36fb5c),
+    void(*)(OriginalMovementChildD0_30c57c&,
+            const OriginalMovementFlaggedInputs_36fb5c&,
+            const OriginalMovementFlaggedPass_36fb5c&)>);
 namespace {
 std::uint32_t raw(float f){return std::bit_cast<std::uint32_t>(f);}
 std::unique_ptr<OriginalMovementChildD0_30c57c> ownedChild(
