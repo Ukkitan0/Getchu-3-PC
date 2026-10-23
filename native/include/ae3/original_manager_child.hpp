@@ -17,6 +17,11 @@ struct OriginalManagerChild70 {
     // 0x57BAF8 writes all 128 bits of original a3 at +0x20.
     // 0x57BA98 does NOT initialize this field. Absence is not zero.
     std::optional<std::array<std::byte,16>> controller20;
+    // The source +0x40 SQC2 is published by genuine 0x57BCB8
+    // type-two target selection, or subsequently by the real actor
+    // owner. Constructor 0x57BA98/0x57BAF8 does NOT establish this
+    // value; missing must never be mistaken for an all-zero SQ.
+    std::optional<std::array<std::byte,16>> controller40;
     void* context18=nullptr;
     std::uint8_t flag1c=0,flag1d=0;
     std::uint8_t alternative30=0;
