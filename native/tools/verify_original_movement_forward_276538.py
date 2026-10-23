@@ -23,7 +23,7 @@ def elf_window(path: Path) -> bytes:
     contents = path.read_bytes()
     if hashlib.sha256(contents).hexdigest() != ELF_SHA:
         raise ValueError("not original verified USA SCUS_975.01 ELF")
-    if contents[:7] != b"\\x7fELF\\x01\\x01\\x01" or (
+    if contents[:7] != b"\x7fELF\x01\x01\x01" or (
         struct.unpack_from("<H", contents, 18)[0] != 8
     ):
         raise ValueError("original source is not ELF32 little-endian MIPS")
