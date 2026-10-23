@@ -358,7 +358,10 @@ int LuaStage::newEntity(lua_State* L){
         const ScriptValue* name=fields.member("name");
         const ScriptValue* tag=fields.member("tag_name");
         StageEntity entry;
-        entry.entityClass=type;
+        // Lua 5.0 strings can contain embedded NUL bytes. Preserve their
+        // exact length for the original C ABI byte-hex transport; otherwise
+        // the Unreal manager would see a different original entity class.
+        entry.entityClass.assign(type, lua_strlen(L,1));
         if(name)entry.name=name->stringOr();
         if(tag)entry.tagName=tag->stringOr();
         entry.fields=std::move(fields);
