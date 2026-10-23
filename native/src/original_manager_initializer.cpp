@@ -72,6 +72,13 @@ OriginalManagerInitBranch_57bcb8 originalManagerInitialize_57bcb8(
             // Source 0x708A10 holds this method-pair metadata (VA,0).
             child.word08=0x57c554;child.word0c=0;
             state.target40=point; // source delay slot 0x57BED4 SQC2
+            // Publish the exact source SQC2 destination into the
+            // typed controller too. This is the original +0x40
+            // 128-bit vector, not a host-generated target.
+            std::array<std::byte,16> original40{};
+            static_assert(sizeof(point)==16);
+            std::memcpy(original40.data(),&point,16);
+            child.controller40=original40;
             return OriginalManagerInitBranch_57bcb8::typeTwoTarget;
         }
     }
