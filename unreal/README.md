@@ -336,8 +336,9 @@ The build now includes `OriginalPolygonRaycast4C1B3CHostAbi` and
 `OriginalRoute57C7CCNativeRaycast4C1B3C` CTests. Their sources are
 committed and the Windows build will run them, but **neither test
 has been executed inside Unreal 5.6 in this environment**. The
-original player/monkey object manager, `0x21B854` and the complete
-`0x57C8EC` target-update implementation remain incomplete.
+original player/monkey object manager and `0x21B854` remain
+incomplete. Native full-width `0x57C8EC` target computation is
+now recovered (see following section), but no gameplay owner is wired.
 The game is still not playable.
 
 ## Full original 0x57C8EC / 0x57CA68 VU0 actor target now recovered
