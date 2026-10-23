@@ -21,8 +21,12 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
     if(resource.originalParentWord40==1u || mode==0u)
         metric=originalManagerResourceFloatBits_317b34(resource,mode);
     else {
+        const auto input=owner.read_original_resource_vu0_inputs(parentVA);
+        if(input.originalParentGuestVA!=parentVA)
+            throw std::invalid_argument(
+                "original 317B34 VU0 VF1 input belongs to a different retail parent");
         const auto original=originalManagerResourceVU0_317b34(
-            resource,mode,owner.read_original_resource_vu0_inputs(parentVA));
+            resource,mode,input);
         // Real original 317B34 mutates VF1 in VU0 BEFORE
         // returning COP1 f0. A source-owner without VF1
         // publication cannot claim correct frame continuity.
