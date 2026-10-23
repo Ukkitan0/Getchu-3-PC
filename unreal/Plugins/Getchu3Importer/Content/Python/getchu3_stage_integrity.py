@@ -79,10 +79,13 @@ def validate_stage_catalog(extracted_vfi: Path, catalog: dict) -> dict:
         length = path.stat().st_size
         if length < 14 or length > MAX_SCRIPT_BYTES:
             raise ValueError("Original stage Lua size invalid")
+        hasher = hashlib.sha256()
         with path.open("rb") as handle:
             magic = handle.read(5)
-            handle.seek(0)
-            digest = hashlib.file_digest(handle, "sha256").hexdigest()
+            hasher.update(magic)
+            for block in iter(lambda: handle.read(1024 * 1024), b""):
+                hasher.update(block)
+        digest = hasher.hexdigest()
         if magic != LUA_MAGIC or digest.casefold() != expected.casefold():
             raise ValueError("Owner-original Lua bytes mismatch verified stage catalog")
         verified.append({"stage": stage_id, "source": relative.as_posix(),
