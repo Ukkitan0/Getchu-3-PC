@@ -118,3 +118,37 @@ The CMake/CTest target is
 **This is substantial genuine original executable source recovery,
 not a playable native Windows build.** No GitHub Actions runs were
 created or dispatched; Windows compilation remains unverified.
+
+## Unreal native bridge integration (2026-10-23)
+
+The existing source spatial loader and original VU0 nearest selectors
+are linked into `Getchu3OriginalLuaBridge`. The new C ABI functions
+
+- `ae3_original_stage_nearest_all_21d46c_21da2c`
+- `ae3_original_stage_nearest_grid_21d46c_21d898`
+
+can be called by the real game manager with its owner-loaded source stage
+allocation bytes, original runtime base VA, genuine query vector and,
+for grid queries, the original 0x4E3C14 grid metadata and resolved two
+scalar operands. No one must first fabricate 0x70 records, manually
+pick descriptor point counts, or allocate a synthetic Actor/Monkey.
+
+The ABI instantiates the translated `originalStageBuildSourceSpatial_21d46c`
+and runs `originalStageNearestAll_21da2c` or
+`originalStageNearestGrid_21d898` from the actual decoded stage.
+Results contain the ORIGINAL source polygon index, not a pointer to
+temporary C++ stage records. The outer native session refuses reentrancy;
+malformed source data does not publish an output.
+
+`native/tests/original_stage_nearest_unreal_abi_test.cpp`, registered
+as `OriginalLoadedStageSpatialNearestHostAbi`, verifies a native
+loaded-stage fixture through descriptor validation, genuine source
+vertex-index lookups, nearest choice, grid-hit forwarding, invalid
+source lengths/counts, missing source base VA, and output immutability.
+
+This is still not a running playable Ape Escape 3. The original
+`0x36EDAC` grid allocator / packed actor coordinate extraction,
+dynamic action types 1/2 actor ownership, original `0x57C620`
+controller update, complete Lua game bindings and rendering/runtime
+integration remain outstanding. A successful Windows and Unreal
+Editor compile has not been demonstrated for this bridge addition.
