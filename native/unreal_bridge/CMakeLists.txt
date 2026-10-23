@@ -128,6 +128,15 @@ if(BUILD_TESTING)
   add_test(NAME OriginalManagerInitializer57BCB8
     COMMAND Getchu3OriginalManagerInitializerTests)
 
+  add_executable(Getchu3OriginalManagerHostAbiTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_unreal_abi_test.cpp")
+  target_include_directories(Getchu3OriginalManagerHostAbiTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  target_link_libraries(Getchu3OriginalManagerHostAbiTests
+    PRIVATE Getchu3OriginalLuaBridge)
+  add_test(NAME OriginalManagerInitializerHostAbi
+    COMMAND Getchu3OriginalManagerHostAbiTests)
+
   add_executable(Getchu3OriginalHealthBridgeTests
     "${ORIGINAL_NATIVE_ROOT}/tests/ae3_unreal_health_bridge_test.cpp")
   target_include_directories(Getchu3OriginalHealthBridgeTests
