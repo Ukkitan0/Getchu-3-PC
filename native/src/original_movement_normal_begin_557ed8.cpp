@@ -9,11 +9,14 @@ void originalMovementNormalBegin_557ed8(
     // Source 0x557ED8 MTC1 zero,f20. Source 0x557EE4 SWC1
     // child+0xB4=0. 0x557EEC is 0x557EE8 JAL's delay slot,
     // clearing source child+0xB8 BEFORE 0x317B9C returns.
-    child.writeWord(0xB4,0u);
-    child.writeWord(0xB8,0u);
+    // Retail 0x557EE0 reads child+0x09 BEFORE 0x557EE4
+    // writes zero to +0xB4; 0x557EEC writes zero to +0xB8
+    // in the 0x317B9C JAL delay slot.
     const auto mode=child.originalByteAt(0x09);
     if(!mode)
         throw std::logic_error("original movement child+0x09 mode is unknown");
+    child.writeWord(0xB4,0u);
+    child.writeWord(0xB8,0u);
 
     // Source 0x557EE8 JAL genuine 0x317B9C; its full 14-word
     // branch/selection semantics are translated natively.
