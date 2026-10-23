@@ -70,6 +70,9 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_vu0_scalar_36f5f4.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
@@ -285,6 +288,10 @@ if(BUILD_TESTING)
   add_executable(Getchu3OriginalMovementChildLifecycleTests
     "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_child_lifecycle_557e30_test.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
@@ -302,6 +309,10 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_child_early_36f954_test.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
@@ -321,6 +332,10 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp")
@@ -348,6 +363,10 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp")
@@ -366,6 +385,58 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalManagerResourceFloat317B34
     COMMAND Getchu3OriginalResourceFloat317B34Tests)
+
+  # Original 0x317B34 VU0 VF1 metric under exact PS2 FP subset.
+  add_executable(Getchu3OriginalResourceVU0Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_resource_vu0_317b34_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp")
+  target_include_directories(Getchu3OriginalResourceVU0Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalManagerResourceVU0Exact317B34
+    COMMAND Getchu3OriginalResourceVU0Tests)
+
+  # Original 0x36FB18 completed-status/nonpositive-scale fast exits.
+  add_executable(Getchu3OriginalMovementStepFastTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_step_fast_36fb18_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp")
+  target_include_directories(Getchu3OriginalMovementStepFastTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementStepFast36FB18
+    COMMAND Getchu3OriginalMovementStepFastTests)
+
+  # Source 557F34/317B34 metric and original 36FB18 handoff.
+  add_executable(Getchu3OriginalMetricPrefixTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_metric_step_557f34_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp")
+  target_include_directories(Getchu3OriginalMetricPrefixTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementMetricPrefix557F34
+    COMMAND Getchu3OriginalMetricPrefixTests)
+
+  # Connected 557E30 -> 557ED8 -> 557F34 -> 36FB18 lifecycle.
+  add_executable(Getchu3OriginalMetricLifecycleTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_normal_metric_lifecycle_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp")
+  target_include_directories(Getchu3OriginalMetricLifecycleTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementNormalMetricLifecycle
+    COMMAND Getchu3OriginalMetricLifecycleTests)
 
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
