@@ -57,6 +57,17 @@ class SourceVerificationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Duplicate"):
             validate_stage_catalog(self.root, self.catalog)
 
+    def test_parent_directory_symlink_escape_rejected(self):
+        exterior = tempfile.TemporaryDirectory()
+        self.addCleanup(exterior.cleanup)
+        escape = Path(exterior.name)
+        (escape / "area.luc").write_bytes(self.payload)
+        self.filename.unlink()
+        self.filename.parent.rmdir()
+        self.filename.parent.symlink_to(escape, target_is_directory=True)
+        with self.assertRaisesRegex(ValueError, "outside"):
+            validate_stage_catalog(self.root, self.catalog)
+
     def test_stage_without_script_is_not_certified(self):
         self.catalog["stages"].append({"stage": "other", "area_lua_sources": []})
         result = validate_stage_catalog(self.root, self.catalog)
