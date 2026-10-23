@@ -3,6 +3,7 @@
 #include "ae3/original_movement_normal_begin_557ed8.hpp"
 #include "ae3/original_movement_metric_step_557f34.hpp"
 #include "ae3/original_movement_post_vector_557f54.hpp"
+#include "ae3/original_movement_post_step_558030.hpp"
 #include <stdexcept>
 #include <utility>
 
@@ -12,10 +13,11 @@ OriginalMovementChildLifecycle_557e30::OriginalMovementChildLifecycle_557e30(
     OriginalMovementParentRead_557e30& originalParent,
     OriginalMovementNormalCalls_557ed8* normalOwner,
     OriginalMovementMetricOwner_557f34* metricOwner,
-    OriginalMovementPostVectorOwner_557f54* postVectorOwner)
+    OriginalMovementPostVectorOwner_557f54* postVectorOwner,
+    OriginalMovementPostStepContinuation_558030* postStepOwner)
     :child_(std::move(child)),parent_(originalParent),
      normalOwner_(normalOwner),metricOwner_(metricOwner),
-     postVectorOwner_(postVectorOwner) {
+     postVectorOwner_(postVectorOwner),postStepOwner_(postStepOwner) {
     if(!child_ || child_->originalWordAt(0)!=
        OriginalMovementChildD0_30c57c::originalVtableVA)
         throw std::invalid_argument(
@@ -80,6 +82,8 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
                     *child_,*metricOwner_);
                 if(const auto early=try_original_post_vector_557f54(originalParentWord14))
                     return *early;
+                if(const auto post=try_original_post_step_558030())
+                    return *post;
             }
         }
     }
@@ -96,6 +100,8 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
             *child_,*metricOwner_);
         if(const auto early=try_original_post_vector_557f54(originalParentWord14))
             return *early;
+        if(const auto post=try_original_post_step_558030())
+            return *post;
     }
     // A successfully executed prefix is NOT a complete actor
     // frame. Original 0x557F54+ collision/animation is missing.
@@ -117,6 +123,25 @@ try_original_post_vector_557f54(std::uint32_t originalParentWord14) {
     // original game owner before slot5 can return status1.
     postVectorOwner_->publish_original_557f54_vu0(source);
     return source.originalSlot5EarlyStatus;
+}
+std::optional<std::uint32_t> OriginalMovementChildLifecycle_557e30::
+try_original_post_step_558030() {
+    if(!postStepOwner_)
+        return std::nullopt;
+    // This owner is not a replacement for the unported original
+    // 557FC8..55802C actor/collision operations. Before allowing
+    // the genuine 558030 block, require successfully published
+    // 557F54 VU0 outputs from the same child and genuine bit1.
+    if(!postVectorOwner_ || (child_->originalWordAt(0xB8)&2u)==0u)
+        throw std::logic_error(
+            "original 558030 cannot follow an absent 557F54 vector state");
+    const auto original=postStepOwner_->read_original_post_step_after_557fc8(*child_);
+    if(!original)
+        return std::nullopt;
+    // The continuation owner certifies source-backed intermediate
+    // processing and supplies f20/f21/s5, never placeholder physics.
+    // Return source status 0 or 2 without inventing completion.
+    return originalMovementPostStep_558030(*child_,*original,*postStepOwner_);
 }
 void OriginalMovementChildLifecycle_557e30::
 call_original_child_vtable1_delete(void* object) {
