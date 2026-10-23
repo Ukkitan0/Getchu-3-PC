@@ -25,7 +25,8 @@ function MustRun {
 $UnrealDir = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $Repo = (Resolve-Path (Join-Path $UnrealDir "..")).Path
 $Native = Join-Path $Repo "native"
-$BuildDir = Join-Path $Repo "native\build-unreal-lua"
+$NativeLuaProject = Join-Path $Native "unreal_bridge"
+$BuildDir = Join-Path $Repo "native\build-unreal-lua-standalone"
 $ProjectFile = Join-Path $UnrealDir "Getchu3.uproject"
 if (!(Test-Path -LiteralPath $ProjectFile -PathType Leaf)) {
     throw "The actual Unreal project is missing: $ProjectFile"
@@ -101,7 +102,7 @@ MustRun $TestPython ($PyPrefix + @("-m", "unittest", "discover", "-s",
                                   "test_unpack_original_stage_pck.py", "-v")) `
     "Original PCK member source extraction or collision identity tests failed"
 
-MustRun "cmake" @("-S", $Native, "-B", $BuildDir, "-G", "Visual Studio 17 2022",
+MustRun "cmake" @("-S", $NativeLuaProject, "-B", $BuildDir, "-G", "Visual Studio 17 2022",
                   "-A", "x64") "Native Lua 5.0 bridge configuration failed"
 MustRun "cmake" @("--build", $BuildDir, "--config", "Release",
                   "--target", "Getchu3OriginalLuaBridge", "Getchu3OriginalUnrealLuaBridgeTests",
