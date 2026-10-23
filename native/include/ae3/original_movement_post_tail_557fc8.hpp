@@ -28,8 +28,10 @@ public:
         const std::array<std::uint32_t,4>& originalEEA1)=0;
     // Source 557FF4 JAL: original a0=parent+0x14, a1=EE s3.
     // 557FF8 MMI3 POR a1,zero,s3 copies ALL four VF2 lanes.
+    // 557E68 LW s4,parent+0x14 sign-extends the original word,
+    // and 557FF0 DADDU a0,s4,zero passes its full 64-bit bits.
     virtual void call_original_276538(
-        std::uint32_t originalParentWord14,
+        std::uint64_t originalParentWord14SignExtended,
         const std::array<std::uint32_t,4>& originalEES3)=0;
     virtual std::uint8_t read_original_6354e7()=0;
     virtual std::uint8_t read_original_6354e0()=0;
@@ -43,7 +45,7 @@ public:
 std::uint32_t originalMovementPostTail_557fc8(
     OriginalMovementChildD0_30c57c& actualChild,
     std::uint64_t originalChildScratchGuestVA,
-    std::uint32_t originalParentWord14,
+    std::uint64_t originalParentWord14SignExtended,
     const OriginalMovementPostVector_557f54& originalPostVector,
     const OriginalMovementPostStep_558030& originalMovementReturn,
     OriginalMovementPostTailOwner_557fc8& genuineOwner);
