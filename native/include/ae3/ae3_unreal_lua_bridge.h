@@ -137,8 +137,9 @@ AE3_LUA_EXPORT const char* ae3_original_manager_init_last_error(
 /* Original actor-stage polygon selection, direct native versions of
  * 0x21D898 (0x4E3C14 grid-hit list) and 0x21DA2C (all records).
  * The caller supplies ORIGINAL stage-loader 0x70 records, per-polygon
- * 0x1E descriptor point counts and, for 0x21D898, the real original
- * 16-bit candidate indices returned by the still-unported 0x4E3C14.
+ * 0x1E descriptor point counts and, for the hits-based API, the
+ * actual original 16-bit grid candidate indices. The higher-level
+ * grid-based API below now executes recovered 0x4E3C14 internally.
  * No spatial grid/candidate source is synthesized by this ABI.
  * Both use recovered 0x21B468 centroid and VU0 XYZ distance; 0x21D898
  * additionally applies the source 0x21B788 XZ plane eligibility check.
