@@ -64,6 +64,15 @@ int main() {
     try{(void)originalMovementPostVector_557f54(*child(0.5f,1,true,0),0x340000u);}
     catch(const std::logic_error&){rejected=true;}
     assert(rejected);
+    // A 32-bit LW parent+0x14 with high sign bit set is
+    // sign-extended by the original EE and 557F90 BBit032
+    // takes an unported tagged-parent branch. It cannot be
+    // mistaken for a zero-extended valid ordinary guest VA.
+    rejected=false;
+    try{(void)originalMovementPostVector_557f54(
+        *c,0xffffffff81234000ull);}
+    catch(const std::invalid_argument&){rejected=true;}
+    assert(rejected);
     rejected=false;
     try{(void)originalMovementPostVector_557f54(*c,0x100340000ull);}
     catch(const std::invalid_argument&){rejected=true;}
