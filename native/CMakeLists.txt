@@ -112,6 +112,17 @@ add_executable(Getchu3OriginalLuaStageBindingTests
 target_include_directories(Getchu3OriginalLuaStageBindingTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(Getchu3OriginalLuaStageBindingTests PRIVATE Getchu3Lua50)
 add_test(NAME OriginalLua50HostStageBindings COMMAND Getchu3OriginalLuaStageBindingTests)
+if(WIN32)
+  # Guard against Unreal's unimplemented/fatal generic SHA256 stub.
+  # This is the exact CNG helper the original stage-ID loader uses.
+  add_executable(Getchu3OriginalWindowsSha256Tests
+    tests/windows_original_sha256_test.cpp)
+  target_include_directories(Getchu3OriginalWindowsSha256Tests
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  target_link_libraries(Getchu3OriginalWindowsSha256Tests PRIVATE bcrypt)
+  add_test(NAME OriginalWindowsSHA256SourceVectors
+    COMMAND Getchu3OriginalWindowsSha256Tests)
+endif()
 
 # Authentic SCUS_975.01 secondary Player virtual method, reconstructed in C++.
 add_executable(Getchu3OriginalPlayerModeTests tests/original_player_mode_test.cpp)
