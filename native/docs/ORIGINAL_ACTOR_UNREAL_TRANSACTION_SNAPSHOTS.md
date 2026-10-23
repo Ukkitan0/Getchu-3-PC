@@ -189,3 +189,71 @@ source offsets, missing cells, and failure without result publication. Its CTest
 These tests and exports are committed as source only; a successful
 Windows DLL build, Unreal Editor integration, and actual ISO-backed
 stage operation still require verification.
+
+## Original source-header and complete loaded-stage ABI integration
+
+Two levels of source-backed spatial input are now available to the
+native Unreal DLL, in addition to the older caller-supplied polygon
+count/record APIs.
+
+### Direct original allocated-header resolution
+
+`ae3_original_polygon_nearest_original_data_all_21da2c` and
+`ae3_original_polygon_nearest_original_data_grid_21d898` consume the
+**original loaded 0x70-byte spatial records** and actual original
+source allocation bytes with their true, owner-provided 32-bit runtime
+base addresses. These C functions call the already-recovered
+`originalSpatialResolveHeaders_21b468`, which reads the source
+`record+0x30` pointer and original `header+0x16` unsigned vertex
+count. The original `+0x40..+0x6F` VU0 vectors then feed the
+same source-derived 0x4E3C14 / 0x21D898 / 0x21DA2C functions.
+
+Unresolved source pointers, overlapping matching allocations,
+malformed counts, incomplete allocation buffers and grid errors
+reject before publishing any result. Source addresses are NEVER
+dereferenced as native pointers or interpreted as an EE emulator
+address space.
+
+The independent native ABI target
+`OriginalRawSpatialHeaderGridNearestHostAbi` checks exact
+source pointer resolution, original header vertex counts, full
+registry tie ordering, native grid eligibility, invalid/ambiguous
+source allocations and error atomicity.
+
+### Actual stage-source construction in one DLL invocation
+
+The more complete
+`ae3_original_stage_nearest_all_21d46c_21da2c` and
+`ae3_original_stage_nearest_grid_21d46c_21d898` entry points
+begin with **genuine already-loaded stage bytes and the source
+runtime base address**, not host-built spatial records.
+
+They invoke the native original
+`originalStageBuildSourceSpatial_21d46c` recovery to resolve all
+six source-relative pointers, build genuine 0x70-byte records,
+read 0x1E-byte polygon descriptors, fetch source vertex indices
+from the real stage vertex table and preserve the source record
+header identities. They then run original source VU0 centroid,
+plane eligibility, grid (when requested), and nearest selection.
+
+The stage-specific C ABI does **not** invent action type 1/2 actor
+objects. Those entries remain pending in the decoded stage, and
+game-specific actor management/animation/update logic is still
+unfinished. The caller must still provide genuine 0x4E3C14 grid
+metadata and actual original packed-coordinate scalar operands
+on the grid path; original 0x36EDAC grid allocation, retail
+asset loading, and persistent Player/Monkey stage lifetime are
+not claimed as complete.
+
+CTest `OriginalLoadedStageSpatialNearestHostAbi` covers
+original-stage-source records and vertex tables, grid selection,
+empty candidate sets, rejected malformed source descriptors,
+invalid indices/metadata, unavailable source base VA and output
+atomicity. These are fixture-backed regression tests, NOT a
+private retail ISO gameplay verification.
+
+All new bridge methods are registered with
+`native/unreal_bridge/CMakeLists.txt` and reuse the existing
+native source-recovered components. Neither a Windows/Unreal
+build nor in-game Play/Monkey behavior has been verified by
+these source commits.
