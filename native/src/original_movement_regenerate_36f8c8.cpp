@@ -62,6 +62,10 @@ OriginalMovementRegenerateResult_36f8c8 originalMovementRegenerate_36f8c8(
        (src.originalChildScratchGuestVA&0xfu)!=0 ||
        !src.originalResourcePointerRegA0 ||
        (src.originalResourcePointerRegA0>>32)!=0 ||
+       // Original 36F8EC LW t7,0xA0(a0) sign-extends into
+       // the 64-bit EE GPR. A high-bit low word cannot be a
+       // zero-extended ordinary source for the original LQ path.
+       (src.originalResourcePointerRegA0&0x80000000ull)!=0 ||
        (src.originalResourcePointerRegA0&0xfu)!=0)
         throw std::invalid_argument(
             "original 0x36F8C8 tagged/unaligned source requires another branch");
