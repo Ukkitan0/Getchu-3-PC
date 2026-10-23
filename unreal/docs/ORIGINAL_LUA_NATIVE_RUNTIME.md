@@ -468,14 +468,15 @@ and the original hit point if present. Unknown source graph entries,
 missing owner data, invalid ray coordinates and unsupported recursion
 budgets are rejected. There are no Unreal collision traces here.
 
-The new ae3_original_actor_route_step_v2 applies the source
-0x4C1B3C projection **inside** original 0x57C7CC whenever the controller
-requires an actor polygon update. It preserves source 0x57C814 first
-projection operands (incoming A1, controller+0x40) and source 0x57C894
-subsequent ray-end data. The latter is built from the exact returned
-DMFC2 LOW64 target bits of the still-owner-implemented 0x57C8EC,
-with high64 zeroed exactly as in the recovered original pipeline.
-No synthesized target vector or projection answer is accepted.
+The original raycast is exposed by the source route interface.
+The **legacy low64-only** ae3_original_actor_route_step_v2 now refuses
+source routes requiring a subsequent route[2] projection, before any
+owner mutation. It cannot represent the real 0x57C894 source high64.
+The supported full-width ae3_original_actor_route_step_v3 instead
+executes original 0x4C1B3C in the 0x57C7CC follower with correct
+0x57C814 first-ray inputs and 0x57C894 PCPYUD **HIGH64 to Z/W**
+on follow-up rays, including source 0x57C88C start-lane masking.
+No truncated target vector is accepted as a completed route.
 
 Dedicated CTests:
 - OriginalPolygonRaycast4C1B3CHostAbi checks source triangle projection,
@@ -490,9 +491,10 @@ committing new random state **only after** a valid original branch
 returns; invalid source or manager failure cannot silently consume
 the shared actor RNG and desynchronize future samples.
 
-**Unfinished:** Original 0x21B854 projection, complete 0x57C8EC
-target-result production for the real Player/Monkey manager, real
-source-object ownership, actor updates, and the Unreal gameplay loop.
+**Unfinished:** Original 0x21B854 projection, persistent real
+Player/Monkey actor-owner commitment, actor updates, and the Unreal
+gameplay loop. The original full-width 0x57C8EC calculation and the
+0x57CA68 fallback are recovered separately in the following section.
 All source paths are committed but these newly added C++ CTests have
 not been executed with the full real Lua/Unreal Windows build. There
 is no claim that the game is playable.
