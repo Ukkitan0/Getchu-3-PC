@@ -5,8 +5,9 @@ Genuine original SCUS_975.01 SHA256 required. This verifier
 checks original VU0 and COP1 instructions, branch targets,
 status/flag stores and the constant +0x7157C4=0.125f.
 Recovery handles only the bit1-set, non-tagged pointer and
-exact finite binary32 subset. If bit1 is clear, actual
-0x36F8C8 still MUST regenerate VF1; no stand-in gameplay.
+exact finite binary32 subset. If bit1 is clear, actual 0x36F8C8 still MUST regenerate VF1;
+ordinary untagged regeneration is now recovered. Tagged and repeated
+movement/collision paths remain incomplete; no stand-in gameplay.
 """
 import argparse
 import hashlib
@@ -102,7 +103,9 @@ def verify(path):
       "original_source_coefficient":0.125,
       "source_completed_flagged_paths_native":True,
       "requires_original_36f8c8_if_regeneration":True,
-      "original_36f8c8_native_recovered":False,
+      "original_36f8c8_ordinary_untagged_native_recovered":True,
+      "original_36f8c8_tagged_branches_native_recovered":False,
+      "original_multi_iteration_and_collision_native_recovered":False,
       "retail_game_playable":False
     }
 if __name__=="__main__":
