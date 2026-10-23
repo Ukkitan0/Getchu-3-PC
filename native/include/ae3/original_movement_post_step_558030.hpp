@@ -29,6 +29,21 @@ public:
         std::uint32_t originalParentGuestVA,
         std::uint32_t exactOriginalFloatBits)=0;
 };
+// A caller may continue to 0x558030 ONLY after authentic upstream
+// 0x557FC8..0x55802C actor/collision processing has completed.
+// This is an explicit original-game state boundary, NOT permission
+// to skip unresolved movement or fabricate a source S5 value.
+class OriginalMovementPostStepContinuation_558030:
+    public OriginalMovementPostStepOwner_558030 {
+public:
+    // Return nullopt if the actual upstream original game owner
+    // cannot establish the source registers and branch provenance.
+    // All returned data must reflect the real 0x558030 entry state.
+    virtual std::optional<OriginalMovementPostStep_558030>
+    read_original_post_step_after_557fc8(
+        const OriginalMovementChildD0_30c57c& genuineChild)=0;
+};
+
 // Genuine source status 2 after successful parent+0x70 store,
 // otherwise source status 0 after original 0x314C44 dispatch.
 // Requires exactly representable ordinary COP1 operands for division.
