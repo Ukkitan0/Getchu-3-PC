@@ -16,7 +16,7 @@ std::uint32_t raw(float f){return std::bit_cast<std::uint32_t>(f);}
 struct Owner:OriginalMovementPostTailOwner_557fc8 {
     std::vector<std::string> calls{};
     std::uint32_t publishedRatio{};
-    bool diagFirst=false,diagSecond=false,failVF=false;
+    bool diagFirst=false,diagSecond=false,failVF=false,failManager=false;
     std::uint64_t read_original_child_scratch_guest_va_557fc8(
         const OriginalMovementChildD0_30c57c&) override {
         return 0x01FFF020u;
@@ -37,7 +37,10 @@ struct Owner:OriginalMovementPostTailOwner_557fc8 {
     std::uint32_t call_original_30c0a0(
         std::uint32_t p,const std::array<std::uint32_t,4>& originalA1) override {
         assert(p==0x234000u && originalA1[0]==raw(1.0f));
-        calls.emplace_back("30C0A0");return 0x450000u;
+        calls.emplace_back("30C0A0");
+        if(failManager)
+            throw std::runtime_error("actual original 30C0A0 owner failed");
+        return 0x450000u;
     }
     void call_original_276538(
         std::uint32_t p,const std::array<std::uint32_t,4>& originalS3) override {
@@ -70,10 +73,15 @@ struct Owner:OriginalMovementPostTailOwner_557fc8 {
     }
 };
 std::unique_ptr<OriginalMovementChildD0_30c57c>
-makeChild(float progress,unsigned flags,float vector=1.0f) {
+makeChild(float progress,unsigned flags,float vector=1.0f,
+          bool knownA1=true) {
     std::array<std::byte,0x110> scratch{};
     std::bitset<0x110> known{};
     for(unsigned i=0x80;i<0xB0;++i)known.set(i);
+    // On bit0-set original 557FDC must LQ child+0x90,
+    // copied from scratch+0x80 with genuine initialized bytes.
+    if(!knownA1)
+        for(unsigned i=0x80;i<0x90;++i)known.reset(i);
     const auto p=raw(progress),pointer=0x744DD0u;
     const auto one=raw(1.0f),vec=raw(vector);
     for(unsigned i=0;i<4;++i) {
@@ -142,5 +150,30 @@ int main() {
         {raw(2),raw(4),std::nullopt},o);}
     catch(const std::runtime_error&){refused=true;}
     assert(refused && c->originalWordAt(0xB8)==2u);
+    // Original 557FDC consumes real 128-bit child+0x90 on
+    // the already-flagged branch. Unknown copy provenance must
+    // not turn into fabricated zero vector data for 30C0A0.
+    o.failVF=false;o.calls.clear();
+    c=makeChild(0.5f,3u,1.0f,false);
+    source=originalMovementPostVector_557f54(*c,0x340000u);
+    refused=false;
+    try{(void)originalMovementPostTail_557fc8(
+        *c,0x01FFF020u,0x340000u,source,
+        {raw(2),raw(4),std::nullopt},o);}
+    catch(const std::logic_error&){refused=true;}
+    assert(refused && o.calls.empty());
+
+    // The source 557FE4 JAL 30C0A0 is before 276538 and
+    // every diagnostic/558030 branch. Failure of the real
+    // game owner must not be treated as successful frame return.
+    c=makeChild(0.5f,3u);
+    source=originalMovementPostVector_557f54(*c,0x340000u);
+    o.failManager=true;o.calls.clear();
+    refused=false;
+    try{(void)originalMovementPostTail_557fc8(
+        *c,0x01FFF020u,0x340000u,source,
+        {raw(2),raw(4),std::nullopt},o);}
+    catch(const std::runtime_error&){refused=true;}
+    assert(refused && o.calls==std::vector<std::string>({"30C0A0"}));
     std::cout<<"ORIGINAL_POST_TAIL_557FC8_TO_558030_PASSED\n";
 }
