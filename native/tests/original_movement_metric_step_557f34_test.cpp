@@ -83,10 +83,19 @@ struct OriginalOwner : OriginalMovementNormalCalls_557ed8,
         ++flaggedReads;
         if(flaggedReads==1) {
             assert(f12==std::bit_cast<std::uint32_t>(0.5f));
+            const auto one=std::bit_cast<std::uint32_t>(1.0f);
+            // A legal negative source progress is delegated BEFORE
+            // attempting the source VU0 SQRT: norm(1,1,0,0)
+            // requires irrational sqrt(2), and cannot be refused
+            // by the restricted native exact-only arithmetic path.
+            const auto vf1=c.originalWordAt(0xB4)==
+                             std::bit_cast<std::uint32_t>(-1.0f)
+                ? std::array<std::uint32_t,4>{one,one,0u,0u}
+                : std::array<std::uint32_t,4>{
+                    std::bit_cast<std::uint32_t>(2.0f),0u,0u,0u};
             return OriginalMovementFlaggedInputs_36fb5c{
                 0x01FFF020u,c.originalWordAt(0xB4),
-                c.originalWordAt(0xB8),f12,
-                {std::bit_cast<std::uint32_t>(2.0f),0u,0u,0u}};
+                c.originalWordAt(0xB8),f12,vf1};
         }
         assert(flaggedReads==2 &&
                f12==std::bit_cast<std::uint32_t>(0.25f));
