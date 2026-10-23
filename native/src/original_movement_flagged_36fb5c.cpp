@@ -25,6 +25,14 @@ float mul(float a,float b) {
     return v;
 }
 float add(float a,float b) {
+    // Two normal binary32 operands with exponents over 24 apart
+    // cannot have an exactly representable nonzero sum. A double
+    // comparison alone may incorrectly accept this: double also
+    // rounds away the smaller operand when the gap exceeds 53 bits.
+    if(a!=0.0f && b!=0.0f &&
+       std::abs(std::ilogb(a)-std::ilogb(b))>24)
+        throw std::domain_error(
+            "original VU0/COP1 ADD requires unverified PS2 rounding");
     const volatile float v=a+b;
     validate(v);
     if(static_cast<double>(v)!=static_cast<double>(a)+static_cast<double>(b))
