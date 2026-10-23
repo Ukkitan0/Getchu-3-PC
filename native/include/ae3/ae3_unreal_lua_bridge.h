@@ -300,6 +300,10 @@ typedef struct Ae3OriginalRouteSourceV3 {
     const uint16_t* original_polygon_point_counts;
     Ae3OriginalVec4 original_controller20;
     int original_controller_variant30;
+    Ae3OriginalVec4 original_owner14_vector40;
+    uint32_t original_q_bits;
+    uint32_t original_vu0_r_bits;
+    int original_fallback_operands_available;
 } Ae3OriginalRouteSourceV3;
 typedef struct Ae3OriginalRouteCallsV3 {
     void* user;
@@ -310,7 +314,9 @@ typedef struct Ae3OriginalRouteCallsV3 {
     int (*begin_original_actor_update)(void* user);
     int (*stage_original_target_57c8ec)(
         void* user, uint32_t original_polygon,
-        uint64_t original_target_low64);
+        uint64_t original_target_low64,
+        uint64_t original_target_high64,
+        uint32_t original_vu0_r_bits);
     int (*commit_original_actor_update)(void* user);
     void (*abort_original_actor_update)(void* user);
 } Ae3OriginalRouteCallsV3;
