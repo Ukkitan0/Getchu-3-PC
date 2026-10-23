@@ -103,6 +103,15 @@ add_executable(Getchu3OriginalUnrealLuaBridgeTests tests/ae3_unreal_lua_bridge_t
 target_include_directories(Getchu3OriginalUnrealLuaBridgeTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(Getchu3OriginalUnrealLuaBridgeTests PRIVATE Getchu3OriginalLuaBridge)
 add_test(NAME OriginalLua50UnrealHostBridgeFailClosed COMMAND Getchu3OriginalUnrealLuaBridgeTests)
+# Standalone source-Lua execution checks for the ORIGINAL Unreal host bridge.
+# Linking this small test directly avoids compiling the unrelated graphics,
+# navigation and audio subsystems just to validate script-value fidelity.
+add_executable(Getchu3OriginalLuaStageBindingTests
+  tests/lua_runtime_test.cpp
+  src/lua_stage.cpp src/retail_lua50.cpp src/player_state.cpp)
+target_include_directories(Getchu3OriginalLuaStageBindingTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_link_libraries(Getchu3OriginalLuaStageBindingTests PRIVATE Getchu3Lua50)
+add_test(NAME OriginalLua50HostStageBindings COMMAND Getchu3OriginalLuaStageBindingTests)
 
 # Authentic SCUS_975.01 secondary Player virtual method, reconstructed in C++.
 add_executable(Getchu3OriginalPlayerModeTests tests/original_player_mode_test.cpp)
