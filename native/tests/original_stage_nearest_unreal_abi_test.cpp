@@ -153,6 +153,29 @@ int main() {
         originalBytes.data(),originalBytes.size(),0x510000,0x6A1000};
     assert(ae3_original_stage_spatial_mount_21d46c(
                session,&mountSource)==1);
+    // Genuine original 0x21D46C per-record header/vertex snapshots
+    // are copied by value, not exposed as temporary stage pointers.
+    size_t sourceRecordCount=99;
+    assert(ae3_original_stage_spatial_record_count(
+               session,&sourceRecordCount)==1);
+    assert(sourceRecordCount==2);
+    Ae3OriginalStageSpatialRecordV1 recordCopy{};
+    assert(ae3_original_stage_spatial_record_copy(
+               session,0,&recordCopy)==1);
+    assert(recordCopy.original_header_va==0x510100 &&
+           recordCopy.original_point_count==3);
+    uint32_t firstOriginalX=0;
+    std::memcpy(&firstOriginalX,recordCopy.original_record70+0x40,4);
+    assert(firstOriginalX==std::bit_cast<std::uint32_t>(1.0f));
+    assert(ae3_original_stage_spatial_record_copy(
+               session,1,&recordCopy)==1);
+    assert(recordCopy.original_header_va==0x51011e &&
+           recordCopy.original_point_count==1);
+    recordCopy.original_header_va=0xDEADBEEF;
+    assert(ae3_original_stage_spatial_record_copy(
+               session,2,&recordCopy)==0);
+    assert(recordCopy.original_header_va==0xDEADBEEF);
+
     size_t pendingCount=99;
     assert(ae3_original_stage_spatial_pending_action_count(
                session,&pendingCount)==1);
@@ -226,6 +249,14 @@ int main() {
     assert(ae3_original_stage_spatial_pending_action_count(
                session,&pendingCount)==0);
     assert(pendingCount==99);
+    sourceRecordCount=99;
+    assert(ae3_original_stage_spatial_record_count(
+               session,&sourceRecordCount)==0);
+    assert(sourceRecordCount==99);
+    recordCopy.original_header_va=0xDEADBEEF;
+    assert(ae3_original_stage_spatial_record_copy(
+               session,0,&recordCopy)==0);
+    assert(recordCopy.original_header_va==0xDEADBEEF);
     result.original_polygon_index=555;
     assert(ae3_original_stage_spatial_nearest_all_21da2c(
                session,&frameQuery,&result)==0);
