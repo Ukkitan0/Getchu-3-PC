@@ -9,6 +9,17 @@ std::uint32_t originalMovementPostTail_557fc8(
     const OriginalMovementPostVector_557f54& postVector,
     const OriginalMovementPostStep_558030& movementReturn,
     OriginalMovementPostTailOwner_557fc8& owner) {
+    // The original 557FF0 DADDU copies s4 from 557E68 LW,
+    // which must be the sign-extended 32-bit parent+0x14.
+    // Reject a fabricated zero-extended high-bit guest value
+    // before executing original 36F83C or other game callbacks.
+    const auto lowParentWord=static_cast<std::uint32_t>(
+        originalParentWord14SignExtended);
+    if(originalParentWord14SignExtended!=
+       static_cast<std::uint64_t>(static_cast<std::int64_t>(
+           static_cast<std::int32_t>(lowParentWord))))
+        throw std::invalid_argument(
+            "original 557FF0 s4 register is not canonical 557E68 LW");
     if(postVector.originalSlot5EarlyStatus)
         throw std::invalid_argument(
             "original 557FC0 slot5 early exit already returned before 557FC8");
