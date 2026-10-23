@@ -78,6 +78,18 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
             }
         }
     }
+    else if (metricOwner_ && *flagC0==std::byte{1}) {
+        // Source 0x557EB4 BNEZL: an ALREADY initialized child
+        // jumps directly to 0x557F34, skipping 36F954,
+        // 557ED8 resets and 276B68/2773D4 setup calls.
+        // Original 0x557EB8 LBU child+0x09 runs in the branch
+        // delay slot; originalMovementMetricStep_557f34 reads
+        // that exact typed child mode before calling 317B34.
+        // The actual 36FB18 movement step still requires source
+        // owner callbacks when the genuine fast path is absent.
+        (void)originalMovementMetricStep_557f34(
+            *child_,*metricOwner_);
+    }
     // A successfully executed prefix is NOT a complete actor
     // frame. Original 0x557F54+ collision/animation is missing.
     throw std::logic_error(
