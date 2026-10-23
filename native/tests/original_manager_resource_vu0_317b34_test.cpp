@@ -49,6 +49,17 @@ int main() {
     try{(void)originalManagerResourceVU0_317b34(parent,1,v);}
     catch(const std::invalid_argument&){refused=true;}
     assert(refused);
+    // 317B58 sees the full signed EE parent register. A
+    // caller-supplied zero-extended 0x81234000 would bypass
+    // the original tagged path if accepted as ordinary.
+    v.originalParentGuestVA=0x81234000ull;refused=false;
+    try{(void)originalManagerResourceVU0_317b34(parent,1,v);}
+    catch(const std::invalid_argument&){refused=true;}
+    assert(refused);
+    v.originalParentGuestVA=0xffffffff81234000ull;refused=false;
+    try{(void)originalManagerResourceVU0_317b34(parent,1,v);}
+    catch(const std::invalid_argument&){refused=true;}
+    assert(refused);
     v.originalParentGuestVA=0x234000u;
     // Source special NaNs, subnormals and inexact hardware
     // rounding are NOT silently computed as host IEEE floats.
