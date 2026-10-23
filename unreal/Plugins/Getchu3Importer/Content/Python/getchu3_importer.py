@@ -264,7 +264,7 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
                 native_evidence["unresolved_original_bindings"])
             outcome["original_actor_class_literal_count"] = len(
                 native_evidence["source_original_actor_class_literals"])
-        except (OSError, ValueError, RuntimeError) as exc:
+        except (ImportError, OSError, ValueError, RuntimeError) as exc:
             # A failure in the static recovery audit is not a failed asset
             # decode. Report it explicitly, without hiding missing gameplay.
             outcome["original_binding_evidence_status"] = "blocked"
