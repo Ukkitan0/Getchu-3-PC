@@ -41,6 +41,7 @@ int main() {
     assert(r.originalVF2After[0]==raw(1.0f));
     assert(r.originalVF1After[0]==raw(0.5f));
     assert(r.originalGprS3VF2X==raw(1.0f));
+    assert(r.originalGprS3VF2==r.originalVF2After);
     assert(r.originalSlot5EarlyStatus==1u);
     r=originalMovementPostVector_557f54(*child(1.0f),0x340000u);
     assert(r.originalVU0Q==raw(1.0f));
