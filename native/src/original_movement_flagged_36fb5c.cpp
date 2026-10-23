@@ -126,6 +126,18 @@ void originalMovementCommitFlaggedReturn_36fb5c(
        child.originalWordAt(0xB8)!=in.originalChildFlagsA8)
         throw std::invalid_argument(
             "original movement source plan no longer matches live child status/flags");
+    // The owner must not supply a fabricated status or return f0:
+    // recompute the retail source pass and require full agreement
+    // before modifying the original child's guest-data image.
+    const auto verified=originalMovementFlaggedPass_36fb5c(in);
+    if(verified.originalVF1After!=pass.originalVF1After ||
+       verified.originalStatusA4AfterBits!=pass.originalStatusA4AfterBits ||
+       verified.originalFlagsA8After!=pass.originalFlagsA8After ||
+       verified.originalReturnF0Bits!=pass.originalReturnF0Bits ||
+       verified.originalRemainingF20Bits!=pass.originalRemainingF20Bits ||
+       verified.requiresOriginal36F8C8!=pass.requiresOriginal36F8C8)
+        throw std::invalid_argument(
+            "original 36FB5C child commit rejected an unverified source pass");
     // The source stores status+0xA4 and clears flags+0xA8
     // before returning f0. The typed child starts at +0x10.
     child.writeWord(0xB4,pass.originalStatusA4AfterBits);
