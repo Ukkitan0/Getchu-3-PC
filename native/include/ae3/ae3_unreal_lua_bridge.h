@@ -211,6 +211,34 @@ AE3_LUA_EXPORT int ae3_original_actor_route_step(
     const Ae3OriginalRouteCallsV1* genuine_manager,
     Ae3OriginalRouteResultV1* output);
 
+/* Version 2: actually execute original 0x4C1B3C projection inside the
+ * recovered 0x57C7CC follower, using original 0x21BD3C adjacency and
+ * 0x21EE00 edge intersection. The real 0x57C8EC owner must return the
+ * exact LOW 64 original target-vector bits produced by its routine.
+ * Initial projection uses controller+0x40; subsequent projections use
+ * DMFC2 source low 64 bits with zero high 64, as original 0x57C894.
+ */
+typedef struct Ae3OriginalRouteSourceV2 {
+    Ae3OriginalRouteSourceV1 original;
+    const uint8_t* original_degree;
+    const uint32_t* original_neighbor3;
+    const uint16_t* original_action_kind3;
+    Ae3OriginalVec4 original_incoming_a1;
+    Ae3OriginalVec4 original_controller40;
+    uint32_t original_max_recursions;
+} Ae3OriginalRouteSourceV2;
+typedef struct Ae3OriginalRouteCallsV2 {
+    void* user;
+    int (*original_apply_target_57c8ec)(
+        void* user, uint32_t original_polygon,
+        uint64_t* original_target_low64);
+} Ae3OriginalRouteCallsV2;
+AE3_LUA_EXPORT int ae3_original_actor_route_step_v2(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalRouteSourceV2* original,
+    const Ae3OriginalRouteCallsV2* actual_target_manager,
+    Ae3OriginalRouteResultV1* output);
+
 
 
 
