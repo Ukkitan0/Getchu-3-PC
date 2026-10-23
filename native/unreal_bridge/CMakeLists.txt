@@ -69,6 +69,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_scratch_tail_36f6a8.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_vu0_scalar_36f5f4.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_tick_bridge_3161b8.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_controller_owner_base.cpp"
@@ -273,6 +274,19 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalMovementFirstReturnScratchProvenance
     COMMAND Getchu3OriginalMovementFirstReturnKnownTests)
+
+  # Original real movement-child 0x6B0B20 vtable slot5 0x557E30
+  # flag-driven completion and slot1 0x556A0C deletion; preserves
+  # original parent+0x14 branch-delay load and 0x3161B8 status.
+  add_executable(Getchu3OriginalMovementChildLifecycleTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_child_lifecycle_557e30_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp")
+  target_include_directories(Getchu3OriginalMovementChildLifecycleTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementChildLifecycle557E30
+    COMMAND Getchu3OriginalMovementChildLifecycleTests)
 
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
