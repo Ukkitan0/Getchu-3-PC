@@ -1,5 +1,6 @@
 #include "ae3/ae3_unreal_lua_bridge.h"
 #include "ae3/lua_stage.hpp"
+#include "ae3/original_player_factory.hpp"
 
 #include <cmath>
 #include <cstring>
@@ -235,6 +236,31 @@ int callSafely(Ae3LuaRuntime* runtime, Action&& action) noexcept {
     return 0;
 }
 } // namespace
+
+extern "C" void* ae3_original_player_resource_lookup(
+    const Ae3OriginalPlayerResourcePointers* pointers,
+    const uint8_t* original_key16, void* original_secondary_factory) {
+    if (!pointers || !original_key16) return nullptr;
+    ae3::OriginalResourceName16 key{};
+    // Original Player virtual slot 2 compares all 16 bytes, not strlen().
+    std::memcpy(key.data(), original_key16, key.size());
+    const ae3::OriginalPlayerResources actual{
+        pointers->player_at_5c,
+        pointers->main_player_at_60,
+        pointers->item_chatcher_at_64,
+        pointers->force_at_180,
+        pointers->bar_interface_at_70,
+        pointers->iZone_at_110,
+        pointers->iHanger_at_188,
+        pointers->iRope_at_1a0,
+        pointers->iDashBall_at_1d0,
+        pointers->iHeroSwitch_at_258,
+    };
+    const ae3::OriginalSecondaryFactoryGlobal secondary{
+        original_secondary_factory, 0
+    };
+    return ae3::originalPlayerResourceLookup_34a014(actual, key, secondary);
+}
 
 extern "C" uint32_t ae3_lua_api_version(void) {
     return AE3_LUA_BRIDGE_API_VERSION;
