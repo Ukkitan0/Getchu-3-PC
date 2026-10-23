@@ -95,6 +95,11 @@ int main() {
     assert(blocked && globalDepth.depth==0 &&
            controller.word14==0xBEEFu &&
            controller.child10==child.originalChildPointer() &&
-           owner.calls.back()=="36FB18-owner");
+           owner.calls==std::vector<std::string>({
+               "parent14","317B34-fields","parent70","36FB18-owner"}));
+    // Source 0x557EB4 takes its BNEZL when child+C0==1,
+    // skipping initial 317B9C and 276B68/2773D4 setup.
+    // The second update must NOT clear the previous real
+    // child state or create another fake native actor.
     std::cout<<"ORIGINAL_MOVEMENT_CHILD_METRIC_LIFECYCLE_PASSED\n";
 }
