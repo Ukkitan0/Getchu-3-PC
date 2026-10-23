@@ -388,7 +388,7 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
         StopOriginalStage(); // Abort even if Begin partially allocated resources.
         return false;
     }
-    Ae3LuaManagerV3 Bindings{};
+    Ae3LuaManagerV4 Bindings{};
     Bindings.api_version = AE3_LUA_BRIDGE_API_VERSION;
     Bindings.struct_size = sizeof(Bindings);
     Bindings.user = this;
