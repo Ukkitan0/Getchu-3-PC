@@ -20,6 +20,13 @@ float exactMultiply(float a,float b) {
     return v;
 }
 float exactAdd(float a,float b) {
+    // Even binary64 can discard a tiny nonzero binary32 operand.
+    // When source exponents differ by over 24, a single binary32
+    // ADD cannot be exact; do not certify PS2 VU0/COP1 rounding.
+    if(a!=0.0f && b!=0.0f &&
+       std::abs(std::ilogb(a)-std::ilogb(b))>24)
+        throw std::domain_error(
+            "original VU0/COP1 ADD requires hardware rounding");
     const volatile float v=a+b;
     if (!std::isfinite(v) || std::fpclassify(v)==FP_SUBNORMAL ||
         static_cast<double>(v)!=static_cast<double>(a)+static_cast<double>(b))
