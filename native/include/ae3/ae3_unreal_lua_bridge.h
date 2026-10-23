@@ -159,6 +159,28 @@ AE3_LUA_EXPORT int ae3_original_actor_target_57c8ec(
     Ae3OriginalManagerInitSession* session,
     const Ae3OriginalActorTargetRequestV1* source,
     Ae3OriginalActorTargetResultV1* out);
+/* The first source target API is low64-only. Original 0x57C8EC's real
+ * QMFC2 result is 128 bits: V1 will now reject any nonzero upper half
+ * instead of silently corrupting actor steering. Prefer V2 below.
+ * The source 0x57CA68 fixed VU0 candidate transform now exists.
+ */
+typedef struct Ae3OriginalActorTargetRequestV2 {
+    Ae3OriginalActorTargetRequestV1 original;
+    Ae3OriginalVec4 original_owner14_vector40;
+    uint32_t original_q_bits;
+    uint32_t original_vu0_r_bits;
+    int original_fallback_operands_available;
+} Ae3OriginalActorTargetRequestV2;
+typedef struct Ae3OriginalActorTargetResultV2 {
+    uint64_t original_low64;
+    uint64_t original_high64;
+    int original_branch; /* 1 = pass-through, 2 = triangle, 3 = fallback */
+    uint32_t original_vu0_r_bits;
+} Ae3OriginalActorTargetResultV2;
+AE3_LUA_EXPORT int ae3_original_actor_target_57c8ec_v2(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalActorTargetRequestV2* source,
+    Ae3OriginalActorTargetResultV2* out);
 
 /* Fully recovered original polygon projection chain:
  * 0x4C1B3C ray preparation -> 0x21BD3C traversal -> 0x21EE00 edge clip.
