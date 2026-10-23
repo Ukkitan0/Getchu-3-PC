@@ -255,6 +255,44 @@ AE3_LUA_EXPORT int ae3_original_polygon_nearest_original_data_grid_21d898(
     const Ae3OriginalRawGridNearestSourceV1* original,
     Ae3OriginalNearestPolygonResultV1* output);
 
+/* Native 0x21D46C stage spatial loader -> recovered 0x21D898 / 0x21DA2C.
+ * No reconstructed stage records, detached header counts or arbitrary
+ * original allocation list are needed: genuine loaded stage bytes,
+ * the real 32-bit runtime base VA, and original query operands suffice.
+ * This does NOT load game assets from the disc, implement the source
+ * 0x36EDAC grid allocator, or construct game actors for type 1/2 actions.
+ */
+typedef struct Ae3OriginalStageNearestSourceV1 {
+    const void* original_loaded_stage_bytes;
+    size_t original_loaded_stage_size;
+    uint32_t original_runtime_base_va;
+    uint32_t original_registry_owner_va; /* 0 if genuinely absent */
+    Ae3OriginalVec4 original_query;
+} Ae3OriginalStageNearestSourceV1;
+typedef struct Ae3OriginalStageGridNearestSourceV1 {
+    Ae3OriginalStageNearestSourceV1 original;
+    float original_origin_x00, original_origin_y04;
+    float original_step_x10, original_step_y14;
+    int32_t original_dimension_x18, original_dimension_y1c;
+    const uint16_t* original_cell_offsets50;
+    size_t original_cell_offset_count;
+    const uint16_t* original_hit_pool08;
+    size_t original_hit_pool_count;
+    float original_resolved_x, original_resolved_y;
+} Ae3OriginalStageGridNearestSourceV1;
+/* 1 for completed source query, including empty (UINT32_MAX) result;
+ * 0 on invalid genuine stage/owner data. No result is published on
+ * failure. The session rejects reentrancy and stays valid afterward.
+ */
+AE3_LUA_EXPORT int ae3_original_stage_nearest_all_21d46c_21da2c(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalStageNearestSourceV1* source,
+    Ae3OriginalNearestPolygonResultV1* output);
+AE3_LUA_EXPORT int ae3_original_stage_nearest_grid_21d46c_21d898(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalStageGridNearestSourceV1* source,
+    Ae3OriginalNearestPolygonResultV1* output);
+
 /* Legacy LOW64-only view of original 0x57C8EC target dispatch.
  * Genuine 0x21B788 eligibility, 0x57C98C three-vertex random blend,
  * persistent 0x36F3C0 RNG, and 0x57CA68 fallback VU0 transformations
