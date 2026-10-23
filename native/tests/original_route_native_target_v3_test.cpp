@@ -9,17 +9,41 @@
 #include <iostream>
 
 struct ActualActorOwner {
-    bool allowCommit=true;
-    unsigned commits=0;
-    uint64_t lastLow64=0;
+    bool allowBegin=true,allowStage=true,allowCommit=true;
+    bool inTransaction=false;
+    unsigned begins=0,stages=0,commits=0,aborts=0;
+    uint64_t pendingLow64=0,lastLow64=0;
 };
-int sourceTargetCommit(void* opaque,uint32_t polygon,uint64_t bits) {
+int sourceBegin(void* opaque) {
     auto& owner=*static_cast<ActualActorOwner*>(opaque);
-    assert(polygon==0);
+    assert(!owner.inTransaction);
+    ++owner.begins;
+    owner.inTransaction=true;
+    return owner.allowBegin?1:0;
+}
+int sourceStage(void* opaque,uint32_t polygon,uint64_t bits) {
+    auto& owner=*static_cast<ActualActorOwner*>(opaque);
+    assert(owner.inTransaction&&polygon==0);
+    ++owner.stages;
+    if (!owner.allowStage) return 0;
+    owner.pendingLow64=bits;
+    return 1;
+}
+int sourceCommit(void* opaque) {
+    auto& owner=*static_cast<ActualActorOwner*>(opaque);
+    assert(owner.inTransaction);
     ++owner.commits;
     if (!owner.allowCommit) return 0;
-    owner.lastLow64=bits;
+    owner.lastLow64=owner.pendingLow64;
+    owner.inTransaction=false;
     return 1;
+}
+void sourceAbort(void* opaque) {
+    auto& owner=*static_cast<ActualActorOwner*>(opaque);
+    assert(owner.inTransaction);
+    ++owner.aborts;
+    owner.inTransaction=false;
+    owner.pendingLow64=0;
 }
 int main() {
     // Synthetic structural source records with genuine decoded +0x40
@@ -53,7 +77,7 @@ int main() {
     auto* control=ae3_original_manager_init_create(5489);
     assert(session && control);
     ActualActorOwner actual{};
-    Ae3OriginalRouteCallsV3 callbacks{&actual,sourceTargetCommit};
+    Ae3OriginalRouteCallsV3 callbacks{&actual,sourceBegin,sourceStage,sourceCommit,sourceAbort};
     Ae3OriginalRouteResultV1 result{};
     result.active_target_polygon_index=UINT32_MAX;
 
@@ -79,13 +103,14 @@ int main() {
            result.original_targets_applied==before.original_targets_applied);
     assert(std::strstr(ae3_original_manager_init_last_error(session),
                        "refused")!=nullptr);
+    assert(actual.aborts==1 && !actual.inTransaction);
     actual.allowCommit=true;
     assert(ae3_original_actor_route_step_v3(
         session,&source,&callbacks,&result)==1);
     const auto afterFailedRandom=actual.lastLow64;
     // Failed original manager commit did not consume source game RNG.
     ActualActorOwner expected{};
-    Ae3OriginalRouteCallsV3 controlCallbacks{&expected,sourceTargetCommit};
+    Ae3OriginalRouteCallsV3 controlCallbacks{&expected,sourceBegin,sourceStage,sourceCommit,sourceAbort};
     Ae3OriginalRouteResultV1 controlResult{};
     assert(ae3_original_actor_route_step_v3(
         control,&source,&controlCallbacks,&controlResult)==1);
@@ -110,6 +135,19 @@ int main() {
            result.active_target_polygon_index==last.active_target_polygon_index);
     assert(std::strstr(ae3_original_manager_init_last_error(session),
                        "0x57CA68")!=nullptr);
+    assert(actual.aborts==2 && !actual.inTransaction);
+    // Failure during transaction BEGIN or target staging still ABORTS.
+    source.original_controller20={2,0,2,1};
+    actual.allowBegin=false;
+    assert(ae3_original_actor_route_step_v3(
+        session,&source,&callbacks,&result)==0);
+    assert(actual.aborts==3 && !actual.inTransaction);
+    actual.allowBegin=true;
+    actual.allowStage=false;
+    assert(ae3_original_actor_route_step_v3(
+        session,&source,&callbacks,&result)==0);
+    assert(actual.aborts==4 && !actual.inTransaction);
+    actual.allowStage=true;
     // Source descriptor absent or inconsistent: refuse, never invent count.
     source.original_polygon_point_counts=nullptr;
     assert(ae3_original_actor_route_step_v3(
