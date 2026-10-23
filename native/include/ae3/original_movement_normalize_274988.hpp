@@ -23,6 +23,11 @@ struct OriginalMovementNormalizeResult_274988 {
     std::array<std::uint32_t,4> originalVF1After;
     std::uint32_t originalLengthSquaredBits;
     std::uint32_t originalLengthBits;
+    // Source 2749D4 BC1F jumps straight to 274A00 JR,
+    // bypassing 2749FC SQ original VF1 -> 0(a0).
+    // When originalPerformedNormalize is false, VF1Before
+    // still captures the earlier live VU0 register update,
+    // but the original parent +0x50 MEMORY MUST NOT be written.
     // Absent when original epsilon compare refuses normalization.
     // Source 2749E0 loads +1.0, then 2749EC DIV.S f2=1/length.
     bool originalPerformedNormalize;
