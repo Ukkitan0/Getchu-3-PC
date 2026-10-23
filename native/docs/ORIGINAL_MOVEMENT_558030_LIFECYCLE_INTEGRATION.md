@@ -354,3 +354,79 @@ CTest run. The original executable, game assets and full
 Windows runtime were unavailable for this test, and the
 remaining external original manager functions are still
 unimplemented.
+
+## Native original `0x36FB70 → 0x36FC18 → 0x36FB70` iterative movement
+
+A new optional native execution path reconnects original positive
+movement across multiple `0x36FB70` VU0 passes. Unlike the
+previous single-pass handling, it does **not** immediately hand
+every unfinished large movement to an external full
+`0x36FB18` callback.
+
+The original pinned source sequence is:
+
+| Retail PC | Original instruction | Native continuation |
+| --- | --- | --- |
+| `0x36FC14` | `ADD.S status,0.125` | Advance original child `+0xB4` |
+| `0x36FBE4` | `SW zero,child+0xA8` | Clear copied child `+0xB8` flags |
+| `0x36FC18` | `JAL 0x36F8C8` | Call translated genuine VF1/VF4/ACC regeneration |
+| `0x36FC20` | `J 0x36FB70` | Repeat the verified source movement pass |
+| `0x36FC24` | `DMFC2 VF1` | Demand the regenerated complete 128-bit VF1 |
+
+The source status increment and flag clearing now have their own
+typed commit `originalMovementCommitFlaggedIteration_36fb5c`.
+Before writing, it recomputes the genuine exact source result,
+checks old child status and flags and rejects tampered/stale plans.
+A completed original `f0` result cannot be substituted for this
+incomplete iteration; equally, a partial result cannot be committed
+as a finished `f0`.
+
+The live `originalMovementMetricStep_557f34` now has a separate
+**opt-in original-owner interface**
+`read_original_flagged_loop_binding_36fc18`. This is
+intentionally distinct from the first-pass bit1-clear
+`read_original_regeneration_binding_36f8c8`, as a flagged
+iteration must use live VU0 state from the same child and current
+frame. Without that opt-in binding, the old verified-original-owner
+callback remains; no invented movement is returned.
+
+For each permitted pass the native routine:
+
+1. Verifies actual source status, flags and original scratch VA
+   against the still-live child and genuine owner binding.
+2. Publishes the exact reconstructed VU0 `VF1` from
+   `originalMovementFlaggedPass_36fb5c`.
+3. If the source returns a genuine `f0`, performs the existing
+   source completed-state commit and returns that exact value.
+4. Otherwise commits original `+0xB4/+0xB8` intermediate
+   state and calls `originalMovementRegenerateOwned_36f8c8`.
+5. Reads the next *genuine* 128-bit VF1, ensures it is exactly
+   the newly regenerated VF1 and the remaining movement `f20`
+   agrees, then resumes the next exact source pass. The iteration
+   count is bounded at nine source passes because every unfinished
+   large pass advances `+0xB4` by exactly one eighth.
+
+A regression through `originalMovementMetricStep_557f34`
+demonstrates the real source sequence for original progress
+`0.5`, movement `0.5`, original VF1 `(2,0,0,0)`:
+the first large pass advances progress to `0.625`, consumes
+`0.25`, clears flags, then original `36F8C8` regenerates
+bit1 and the exact polynomial VF1
+`(0.244140625,0.390625,0.625,1)`.
+The following norm's exact squared value is
+`420169 / 262144`, whose square root is irrational.
+It **must be refused** by the current exact-binary32-only
+COP1 guard. This test verifies actual source boundary
+reentry without pretending that a host floating-point
+approximation is known PS2 hardware behavior. Further regressions
+reject stale intermediate commits, inconsistent regenerated VF1
+and foreign guest scratch bindings without reporting a completed
+original frame.
+
+**Limit:** native iterative control flow has been connected,
+but complete inexact PS2 VU0/COP1 rounding, tagged-pointer paths
+and original collision/actor manager methods remain
+unimplemented. The newly authored C++ tests and native
+Windows game binary have not been built in this session;
+static code/linkage inspections are not a replacement for CTest.
+No copyrighted executable bytes were committed.
