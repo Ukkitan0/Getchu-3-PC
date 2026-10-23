@@ -73,6 +73,12 @@ int main() {
         *c,0xffffffff81234000ull);}
     catch(const std::invalid_argument&){rejected=true;}
     assert(rejected);
+    // Refuse a caller that zero-extends the signed original
+    // 557E68 LW value: it belongs to the tagged EE branch.
+    rejected=false;
+    try{(void)originalMovementPostVector_557f54(*c,0x81234000ull);}
+    catch(const std::invalid_argument&){rejected=true;}
+    assert(rejected);
     rejected=false;
     try{(void)originalMovementPostVector_557f54(*c,0x100340000ull);}
     catch(const std::invalid_argument&){rejected=true;}
