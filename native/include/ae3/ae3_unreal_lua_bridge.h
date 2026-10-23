@@ -171,15 +171,14 @@ AE3_LUA_EXPORT int ae3_original_polygon_nearest_all_21da2c(
     const Ae3OriginalNearestPolygonSourceV1* original,
     Ae3OriginalNearestPolygonResultV1* output);
 
-/* Recovered original 0x57C8EC controller target-vector dispatch.
- * Variant !=0: original 0x21B788 polygon eligibility and source low64
- * controller pass-through, only if polygon accepts source point.
- * Variant ==0: original 0x57C98C three-vertex VU0 weighted random
- * selection using the PERSISTENT source 0x36F3C0 game RNG.
- * The unrecovered 0x57CA68 fallback VU0 transform is rejected.
- * point_count comes from genuine original 0x1E-byte stage descriptor;
- * 0x70 record bytes must come from the original 0x21D46C stage loader.
- * A successful result owns ONLY original $v0 low64 bits.
+/* Legacy LOW64-only view of original 0x57C8EC target dispatch.
+ * Genuine 0x21B788 eligibility, 0x57C98C three-vertex random blend,
+ * persistent 0x36F3C0 RNG, and 0x57CA68 fallback VU0 transformations
+ * are recovered in the full-width V2 implementation below.
+ * The V1 ABI cannot carry genuine 128-bit QMFC2 source output and
+ * rejects results with a nonzero upper half; use V2 for actor steering.
+ * All point counts/0x70 records must come from the original stage
+ * 0x1E descriptors and 0x21D46C loader, never from Unreal geometry.
  */
 typedef struct Ae3OriginalActorTargetRequestV1 {
     const void* original_record70;
