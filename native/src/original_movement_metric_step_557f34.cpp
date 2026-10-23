@@ -114,7 +114,13 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
                            (current.originalChildFlagsA8&2u)==0u)
                             throw std::invalid_argument(
                                 "original 36FB70 VF1 owner disagrees with regenerated child");
-                        const auto actual=originalMovementFlaggedPass_36fb5c(current);
+                        // The original 36FB70 VF1 calculation is
+                        // performed once per source iteration.
+                        // Reuse the already verified first pass
+                        // rather than running source arithmetic twice.
+                        const auto actual=iteration==0u
+                            ? plan
+                            : originalMovementFlaggedPass_36fb5c(current);
                         owner.publish_original_vf1_after_36fb5c(
                             actual.originalVF1After);
                         if(actual.originalReturnF0Bits) {
