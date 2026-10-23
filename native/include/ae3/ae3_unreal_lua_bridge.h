@@ -30,6 +30,34 @@ extern "C" {
 
 typedef struct Ae3LuaRuntime Ae3LuaRuntime;
 
+/* Original Player virtual slot 2 at retail VA 0x34A014.
+ * These borrowed pointers MUST refer to genuine source-recovered Player
+ * subobjects. No allocation, fallback instance or guessed component occurs.
+ * The secondary factory pointer must refer to the genuine original owner;
+ * null preserves the original feature gate for the last six entries.
+ */
+typedef struct Ae3OriginalPlayerResourcePointers {
+    void* player_at_5c;
+    void* main_player_at_60;
+    void* item_chatcher_at_64;
+    void* force_at_180;
+    void* bar_interface_at_70;
+    void* iZone_at_110;
+    void* iHanger_at_188;
+    void* iRope_at_1a0;
+    void* iDashBall_at_1d0;
+    void* iHeroSwitch_at_258;
+} Ae3OriginalPlayerResourcePointers;
+
+/* key16 is exactly sixteen original bytes (zero padded where required).
+ * Returns a borrowed genuine original subobject pointer or null, directly
+ * using the recovered source function originalPlayerResourceLookup_34a014.
+ */
+AE3_LUA_EXPORT void* ae3_original_player_resource_lookup(
+    const Ae3OriginalPlayerResourcePointers* pointers,
+    const uint8_t* original_key16, void* original_secondary_factory);
+
+
 /* Every user string is copied into this library; callbacks must not keep the
  * borrowed pointers past the call. Return 1 only after the real manager
  * successfully accepts the operation. Zero rejects the operation and makes
