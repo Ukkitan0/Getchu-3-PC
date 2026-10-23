@@ -140,15 +140,17 @@ source f20/f21 must match the exact earlier native registers
 or the state is refused without a controller status write.
 
 The direct-tail integration is compiled into the core native
-actor-manager source set and registered in **all six**
-`OriginalMovementChildLifecycle_557e30` CTest linkages.
+actor-manager source set and registered in the **six pre-existing lifecycle CTest targets**, plus a
+new dedicated two-frame original `0x557FC8` lifecycle regression,
+for **seven** lifecycle-linked targets total.
 Extended lifecycle regression source includes first-frame
 flag0 regeneration, repeated nonterminal status0 frames, the
 original optional `36FC28` gate, rejected invalid guest scratch
 VA, and prohibition of duplicate legacy execution. Additional
 static verifier:
 `native/tools/verify_original_movement_handoff_557fc8_558030.py`
-checks prior source opcode pins, actual callsites and CMake paths.
+checks prior source opcode pins, actual callsites and all seven
+lifecycle-linked CMake targets.
 
 **Boundary:** `0x30C0A0`, `0x276538`, `0x36FC28` and
 `0x314C44` are still **external original-engine methods**
