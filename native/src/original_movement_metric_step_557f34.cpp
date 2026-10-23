@@ -90,6 +90,26 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
                 step=owner.call_original_36fb18(child,scaledRaw);
             }
         } else {
+            if(!flagged) {
+                // Genuine retail 36FB64 branch to 36FC18 runs
+                // actual 36F8C8 before returning to 36FB70.
+                // If an authoritative owner provides the raw VU0
+                // state and source guest child VA, recover that
+                // original regeneration exactly ONCE here.
+                const auto binding=
+                    owner.read_original_regeneration_binding_36f8c8(child);
+                if(binding) {
+                    if(!binding->originalOwner)
+                        throw std::invalid_argument(
+                            "original 36F8C8 binding missing genuine register owner");
+                    (void)originalMovementRegenerateOwned_36f8c8(
+                        child,binding->genuineChildScratchGuestVA,
+                        *binding->originalOwner);
+                }
+            }
+            // Even if VF1 regeneration completed, the following
+            // 36FB70/36F8C8 iterative collision handling remains
+            // the real original owner, NOT a synthetic result.
             step=owner.call_original_36fb18(child,scaledRaw);
         }
     }
