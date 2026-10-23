@@ -126,6 +126,7 @@ if(BUILD_TESTING)
   # flow in all three branches without requiring the unfinished renderer.
   add_executable(Getchu3OriginalManagerInitializerTests
     "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_unreal_initializer_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_child.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_initializer.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_actor_nav_route.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_actor_type2_target.cpp"
