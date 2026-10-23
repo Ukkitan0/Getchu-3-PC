@@ -67,6 +67,27 @@ def recover_original(iso: Path, output: Path, repo: Path) -> dict[str, Any]:
     return result
 
 
+def unpack_original_pck_for_unreal(source: Path, repo: Path) -> dict[str, Any]:
+    """Expose genuine stage members BEFORE model/texture/collision conversion.
+
+    The existing native source extractor keeps I3C in PCK by default; Unreal
+    explicitly requests those bytes so the original I3C geometry can be
+    imported without emulation or invented collision.
+    """
+    tools = repo / "native" / "tools"
+    sys.path.insert(0, str(tools))
+    try:
+        module = importlib.import_module("unpack_original_stage_pck")
+        result = module.unpack(source, include_collision=True)
+    finally:
+        sys.path.remove(str(tools))
+    if result.get("original_stage_pck_archives", 0) < 1:
+        raise RuntimeError("No genuine stage PCK archives found in owner-original ISO")
+    if result.get("owner_private_i3c_extraction_requested") is not True:
+        raise RuntimeError("Original I3C triangle members were not requested from stage PCK")
+    return result
+
+
 def convert_original_models(source: Path, destination: Path, repo: Path,
                             ae3_cli: str, *, textures: Path | None = None) -> dict[str, Any]:
     if not ae3_cli or (not shutil.which(ae3_cli) and not Path(ae3_cli).is_file()):
@@ -234,6 +255,12 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         recovery = recover_original(source.path, extracted, repo)
         outcome["original_files"] = recovery["original_vfi_files_extracted"]
         outcome["original_lua_scripts"] = recovery["original_lua_scripts"]
+        outcome["phase"] = "unpack_original_stage_pck"
+        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        pck = unpack_original_pck_for_unreal(extracted / "vfi", repo)
+        outcome["original_stage_pck_archives"] = pck["original_stage_pck_archives"]
+        outcome["original_pck_members_written"] = pck["new_original_members_written"]
+        outcome["original_pck_source_types"] = pck["counts"]
         outcome["phase"] = "decode_tim2"
         report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         converted = folder / "converted"
