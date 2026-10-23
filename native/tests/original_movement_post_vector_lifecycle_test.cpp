@@ -4,6 +4,9 @@
 #include "ae3/original_movement_post_vector_557f54.hpp"
 #include "ae3/original_movement_post_step_558030.hpp"
 #include "ae3/original_movement_flag0_regenerate_36f83c.hpp"
+#include "ae3/original_movement_post_tail_557fc8.hpp"
+#include <string>
+#include <vector>
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -22,11 +25,14 @@ struct Owner final:OriginalMovementParentRead_557e30,
                    OriginalMovementRegenerationOwner_36f8c8,
                    OriginalMovementPostVectorOwner_557f54,
                    OriginalMovementPostStepContinuation_558030,
-                   OriginalMovementFlag0Owner_36f83c {
+                   OriginalMovementPostTailOwner_557fc8 {
     OriginalMovementChildD0_30c57c* child{};
     int setups=0,regenerations=0,moves=0,post=0;
     bool failPost=false,allowPostStep=false,failSource314c44=false;
     bool allowFlag0=true,failFlag0=false;
+    bool diagnosticFirst=false,diagnosticSecond=false,badScratchVA=false;
+    int real30c0a0Calls=0,real276538Calls=0,real36fc28Calls=0;
+    std::vector<std::string> actualTailCalls{};
     bool wrongMetricF20=false,wrongMovementF21=false;
     int postStepReads=0,source314c44Calls=0,sourceParentWord1cReads=0;
     int flag0Reads=0,flag0Publications=0,flag0Bindings=0;
@@ -98,10 +104,47 @@ struct Owner final:OriginalMovementParentRead_557e30,
         if(!allowFlag0)return std::nullopt;
         return OriginalMovementFlag0Binding_36f83c{0x01FFF020u,this};
     }
+    std::uint64_t read_original_child_scratch_guest_va_557fc8(
+        const OriginalMovementChildD0_30c57c& c) override {
+        assert(&c==child);
+        actualTailCalls.emplace_back("scratch");
+        return badScratchVA?0u:0x01FFF020u;
+    }
+    std::uint32_t call_original_30c0a0(
+        std::uint32_t parent,const std::array<std::uint32_t,4>& a1) override {
+        assert(parent==0x234000u && a1[0]==0u);
+        if(child->originalWordAt(0xB8)==3u &&
+           flag0Publications>0 && real30c0a0Calls==0)
+            assert(a1[3]==raw(1.0f));
+        ++real30c0a0Calls;
+        actualTailCalls.emplace_back("30C0A0");
+        return 0x450000u;
+    }
+    void call_original_276538(
+        std::uint32_t parentWord14,
+        const std::array<std::uint32_t,4>& s3) override {
+        assert(parentWord14==0x340000u && s3[0]==raw(1.0f));
+        ++real276538Calls;
+        actualTailCalls.emplace_back("276538");
+    }
+    std::uint8_t read_original_6354e7() override {
+        actualTailCalls.emplace_back("6354e7");
+        return diagnosticFirst?1u:0u;
+    }
+    std::uint8_t read_original_6354e0() override {
+        actualTailCalls.emplace_back("6354e0");
+        return diagnosticSecond?1u:0u;
+    }
+    void call_original_36fc28(std::uint64_t scratch) override {
+        assert(scratch==0x01FFF020u);
+        ++real36fc28Calls;
+        actualTailCalls.emplace_back("36FC28");
+    }
     void publish_original_36f83c_vu0(
         const OriginalMovementRegenerateResult_36f8c8& result) override {
         assert(result.originalFlagsA8After==3u);
         ++flag0Reads;
+        actualTailCalls.emplace_back("publish36F83C");
         if(failFlag0)
             throw std::runtime_error("original 36F83C VF0 publication failed");
         ++flag0Publications;
@@ -123,12 +166,14 @@ struct Owner final:OriginalMovementParentRead_557e30,
         std::uint32_t va) override {
         assert(va==0x234000u);
         ++sourceParentWord1cReads;
+        actualTailCalls.emplace_back("readParent1C");
         return 0x880000u;
     }
     void call_original_314c44(
         std::uint32_t word1c,std::uint32_t s5,std::uint32_t mode) override {
         assert(word1c==0x880000u && s5==0x450000u && mode==2u);
         ++source314c44Calls;
+        actualTailCalls.emplace_back("314C44");
         if(failSource314c44)
             throw std::runtime_error("actual original 314C44 owner failed");
     }
@@ -359,5 +404,65 @@ int main() {
     }
     continuationOwner.wrongMetricF20=false;
     continuationOwner.wrongMovementF21=false;
+    // Preferred path: source 557FC8 itself runs genuine 36F83C,
+    // source 30C0A0 (sets s5), 276538, debug gate, and 558030.
+    // The legacy 558030 caller must NOT also regenerate or execute.
+    Owner nativeTail{};
+    nativeTail.allowPostStep=false;
+    OriginalMovementChildLifecycle_557e30 realTail(
+        child(1.0f),nativeTail,&nativeTail,&nativeTail,
+        &nativeTail,&nativeTail,&nativeTail);
+    controller.child10=realTail.originalChildPointer();
+    controller.word14=88u;
+    nativeTail.child=static_cast<OriginalMovementChildD0_30c57c*>(
+        controller.child10);
+    assert(originalManagerChildUpdate_3161b8(
+        controller,0,0,0,depth,realTail)==0u);
+    assert(controller.word14==0u && controller.child10==nativeTail.child &&
+           realTail.ownsOriginalChild() && depth.depth==0u);
+    assert(nativeTail.flag0Publications==1 && nativeTail.real30c0a0Calls==1 &&
+           nativeTail.real276538Calls==1 && nativeTail.postStepReads==0 &&
+           nativeTail.child->originalWordAt(0xB8)==3u);
+    assert(nativeTail.actualTailCalls==std::vector<std::string>({
+        "scratch","publish36F83C","30C0A0","276538","6354e7",
+        "readParent1C","314C44"}));
+    nativeTail.actualTailCalls.clear();
+    // Reentry reads child+90 via original POR, not duplicate 36F83C.
+    assert(originalManagerChildUpdate_3161b8(
+        controller,0,0,0,depth,realTail)==0u);
+    assert(nativeTail.setups==1 && nativeTail.regenerations==1 &&
+           nativeTail.flag0Publications==1 && nativeTail.real30c0a0Calls==2 &&
+           nativeTail.postStepReads==0);
+    assert(nativeTail.actualTailCalls==std::vector<std::string>({
+        "scratch","30C0A0","276538","6354e7",
+        "readParent1C","314C44"}));
+    nativeTail.actualTailCalls.clear();
+    nativeTail.diagnosticFirst=true;
+    assert(originalManagerChildUpdate_3161b8(
+        controller,0,0,0,depth,realTail)==0u);
+    assert(nativeTail.real36fc28Calls==1);
+    assert(nativeTail.actualTailCalls==std::vector<std::string>({
+        "scratch","30C0A0","276538","6354e7","6354e0",
+        "36FC28","readParent1C","314C44"}));
+
+    // The guest scratch address for 36F83C is NOT the host pointer.
+    Owner missingGuest{};
+    missingGuest.badScratchVA=true;
+    OriginalMovementChildLifecycle_557e30 refusesTail(
+        child(1.0f),missingGuest,&missingGuest,&missingGuest,
+        &missingGuest,&missingGuest,&missingGuest);
+    controller.child10=refusesTail.originalChildPointer();
+    controller.word14=59u;
+    missingGuest.child=static_cast<OriginalMovementChildD0_30c57c*>(
+        controller.child10);
+    refused=false;
+    try{(void)originalManagerChildUpdate_3161b8(
+        controller,0,0,0,depth,refusesTail);}
+    catch(const std::invalid_argument&){refused=true;}
+    assert(refused && controller.word14==59u &&
+           controller.child10==missingGuest.child &&
+           missingGuest.real30c0a0Calls==0 &&
+           missingGuest.child->originalWordAt(0xB8)==2u &&
+           depth.depth==0u);
     std::cout<<"ORIGINAL_POST_VECTOR_LIFECYCLE_557F54_PASSED\n";
 }
