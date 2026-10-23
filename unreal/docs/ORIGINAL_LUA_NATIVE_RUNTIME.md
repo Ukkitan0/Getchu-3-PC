@@ -203,3 +203,35 @@ test-vector expectations** independently match Python's `hashlib.sha256`;
 the seven source-catalog Python integrity tests pass. The BCrypt helper
 and Unreal stage loader themselves still require compilation and execution
 on Windows with UE 5.6; they are **not** reported as Windows-tested.
+
+## Independent original-Lua bridge build and callback-lifetime hardening
+
+The one-click Windows launcher now configures `native/unreal_bridge`
+instead of the complete `native/CMakeLists.txt`. This builds the real
+recovered `LuaStage`, `retail_lua50`, `PlayerProgress`, the Lua 5.0.3
+runtime and the ABI/stage/Windows-hash tests without configuring unrelated
+cgltf, zlib, audio, physics, graphics or navigation targets. The Lua 5.0.3
+download URL and pinned SHA-256 remain identical to the full native build.
+The isolated build directory is ignored by Git, and the resulting Windows
+DLL is staged locally under `unreal/Binaries/Win64`.
+
+Build-structure validation: a local CMake configure/build/CTest pass using
+**temporary empty C/C++ sources and a fake Lua source directory** succeeded
+for the two non-Windows target definitions. This only verifies the isolated
+CMake graph. The recovered native C++ and Lua 5.0.3 code was not compiled
+in that smoke test; neither MSVC, the real Windows SHA test nor Unreal
+Engine were available. The actual full Windows DLL and game are unverified.
+
+The game instance runtime now sets an explicit native-call guard around
+beginning stage transactions, original player-data lookup, Lua bytecode
+execution, `setupArea` and the final manager commit. If an original game
+manager re-enters the subsystem to Stop or replace the stage while any
+such call is active, cleanup is deferred until the call unwinds. A rejected
+or cancelled stage transaction is then aborted before the VM and its DLL
+are destroyed. The native C ABI additionally refuses direct VM destruction
+while executing a callback. This prevents invalidating the native Lua stack
+from an Unreal manager callback but is NOT yet proven in UE5 on Windows.
+
+The original actor factory, monster/monkey update logic, player gadget
+systems, stage and camera scheduler, animation bindings and sound engine
+remain unimplemented and the Play control is still disabled.
