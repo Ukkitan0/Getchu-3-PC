@@ -76,6 +76,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_step_558030.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_36f8c8.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_owned_36f8c8.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_flagged_36fb5c.cpp"
@@ -523,6 +524,17 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalMovementRegenMetricIntegration36F8C8
     COMMAND Getchu3OriginalMovementRegenMetricIntegrationTests)
+
+  # Genuine original 0x558030..0x558084 post-movement:
+  # terminal parent+0x70 ratio and original ongoing 314C44.
+  add_executable(Getchu3OriginalPostStep558030Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_post_step_558030_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_step_558030.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp")
+  target_include_directories(Getchu3OriginalPostStep558030Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementPostStep558030
+    COMMAND Getchu3OriginalPostStep558030Tests)
 
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
