@@ -4,7 +4,6 @@ namespace ae3 {
 void originalMovementNormalBegin_557ed8(
     OriginalMovementChildD0_30c57c& child,
     std::uint32_t originalParentWord14,
-    const OriginalManagerResourceFields_317b9c& resourceFields,
     OriginalMovementNormalCalls_557ed8& calls) {
     // Source 0x557ED8 MTC1 zero,f20. Source 0x557EE4 SWC1
     // child+0xB4=0. 0x557EEC is 0x557EE8 JAL's delay slot,
@@ -20,6 +19,10 @@ void originalMovementNormalBegin_557ed8(
 
     // Source 0x557EE8 JAL genuine 0x317B9C; its full 14-word
     // branch/selection semantics are translated natively.
+    // Original 0x557EE8 JAL executes its +0xB8-zero delay slot
+    // BEFORE genuine 0x317B9C's reads of original parent fields.
+    const auto resourceFields=calls.read_original_parent_resource_fields(
+        child.originalWordAt(4));
     const auto sourceContext=originalManagerSelectResource_317b9c(
         resourceFields,std::to_integer<unsigned>(*mode));
 
