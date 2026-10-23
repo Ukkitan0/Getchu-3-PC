@@ -19,14 +19,20 @@ std::unique_ptr<OriginalMovementChildD0_30c57c> child() {
     return originalMovementChildCreate_30c57c(0x240000u,data,known,1,2);
 }
 struct OriginalOwner : OriginalMovementNormalCalls_557ed8,
-                       OriginalMovementMetricOwner_557f34 {
+                       OriginalMovementMetricOwner_557f34,
+                       OriginalMovementRegenerationOwner_36f8c8 {
     OriginalManagerResourceFloatFields_317b34 floatFields{
         0x700000u,1u,
         std::bit_cast<std::uint32_t>(3.0f),std::nullopt};
     std::uint32_t scaleRaw=0;
     bool foreignOriginalVF1=false;
+    bool iterativeFlagged=false,disagreeRegeneratedVF1=false;
     int movementCallbacks=0,resourceReads=0,vf1Publications=0;
+    int flaggedReads=0,flaggedPublications=0,regenPublications=0;
+    OriginalMovementChildD0_30c57c* actualChild=nullptr;
     std::array<std::uint32_t,4> lastVF1{};
+    std::array<std::uint32_t,4> liveVF1{};
+    std::array<std::uint32_t,4> regeneratedVF1{};
     OriginalManagerResourceFields_317b9c
     read_original_parent_resource_fields(std::uint32_t va) override {
         assert(va==0x240000u);
@@ -68,8 +74,64 @@ struct OriginalOwner : OriginalMovementNormalCalls_557ed8,
         assert(va==0x240000u);
         return scaleRaw;
     }
+    std::optional<OriginalMovementFlaggedInputs_36fb5c>
+    read_original_flagged_vf1_36fb5c(
+        const OriginalMovementChildD0_30c57c& c,std::uint32_t f12) override {
+        if(!iterativeFlagged)return std::nullopt;
+        assert(&c==actualChild);
+        ++flaggedReads;
+        if(flaggedReads==1) {
+            assert(f12==std::bit_cast<std::uint32_t>(0.5f));
+            return OriginalMovementFlaggedInputs_36fb5c{
+                0x01FFF020u,c.originalWordAt(0xB4),
+                c.originalWordAt(0xB8),f12,
+                {std::bit_cast<std::uint32_t>(2.0f),0u,0u,0u}};
+        }
+        assert(flaggedReads==2 &&
+               f12==std::bit_cast<std::uint32_t>(0.25f));
+        const auto next=regeneratedVF1;
+        auto altered=next;
+        if(disagreeRegeneratedVF1)
+            altered[3]^=0x100u;
+        return OriginalMovementFlaggedInputs_36fb5c{
+            0x01FFF020u,c.originalWordAt(0xB4),
+            c.originalWordAt(0xB8),f12,altered};
+    }
+    void publish_original_vf1_after_36fb5c(
+        const std::array<std::uint32_t,4>& vf1) override {
+        ++flaggedPublications;
+        liveVF1=vf1;
+    }
+    std::optional<OriginalMovementRegenerationBinding_36f8c8>
+    read_original_flagged_loop_binding_36fc18(
+        const OriginalMovementChildD0_30c57c& c) override {
+        if(!iterativeFlagged)return std::nullopt;
+        assert(&c==actualChild && c.originalWordAt(0xB8)==2u);
+        return OriginalMovementRegenerationBinding_36f8c8{
+            0x01FFF020u,this};
+    }
+    std::array<std::array<std::uint32_t,4>,8>
+    read_original_vf1_through_vf8(std::uint32_t parentVA) override {
+        assert(iterativeFlagged && parentVA==0x240000u &&
+               actualChild->originalWordAt(0xB8)==0u);
+        std::array<std::array<std::uint32_t,4>,8> real{};
+        for(auto& reg:real)
+            for(auto& lane:reg)
+                lane=std::bit_cast<std::uint32_t>(1.0f);
+        real[0]=liveVF1;
+        return real;
+    }
+    void publish_original_36f8c8_vu0(
+        const OriginalMovementRegenerateResult_36f8c8& result) override {
+        assert(actualChild->originalWordAt(0xB8)==0u &&
+               result.originalFlagsA8After==2u);
+        ++regenPublications;
+        regeneratedVF1=result.originalVF1After;
+    }
     std::uint32_t call_original_36fb18(
         OriginalMovementChildD0_30c57c& child,std::uint32_t f12) override {
+        if(iterativeFlagged)
+            throw std::logic_error("native original 36FC18 loop must not use owner fallback");
         assert(child.originalByteAt(0xC0)==std::byte{1});
         assert(f12==std::bit_cast<std::uint32_t>(3.0f));
         ++movementCallbacks;
@@ -130,5 +192,67 @@ int main() {
     try {(void)originalMovementMetricStep_557f34(*source,owner);}
     catch(const std::invalid_argument&){refused=true;}
     assert(refused);
+    // Full source 36FB70 nonterminal flagged iteration from actual
+    // 557F34 metric: 36FC14 adds +1/8, 36FBE4 clears flags,
+    // 36FC18 calls real native 36F8C8, 36FC20 branches back to
+    // 36FB70 with regenerated VF1 and remaining original f20.
+    // With status=.5 and VF1=(2,0,0,0), 0.5 movement
+    // consumes original 0.25 chunk; then progress=.625,
+    // remaining=.25 and flags regenerated to bit1. The
+    // next sqrt for the polynomial vector is inexact, so the
+    // exact-only native subset must refuse rather than
+    // invent PS2 COP1 rounding or claim completed gameplay.
+    OriginalOwner iterative{};
+    iterative.iterativeFlagged=true;
+    iterative.floatFields.originalFloatAt374Bits=
+        std::bit_cast<std::uint32_t>(1.0f);
+    iterative.scaleRaw=std::bit_cast<std::uint32_t>(0.5f);
+    auto iterChild=child();
+    iterChild->writeWord(0xB0,0x744dd0u);
+    iterative.actualChild=iterChild.get();
+    originalMovementNormalBegin_557ed8(*iterChild,0x220000u,iterative);
+    iterChild->writeWord(0xB4,std::bit_cast<std::uint32_t>(0.5f));
+    iterChild->writeWord(0xB8,2u);
+    bool iterativeRefused=false;
+    try{(void)originalMovementMetricStep_557f34(*iterChild,iterative);}
+    catch(const std::domain_error&){iterativeRefused=true;}
+    assert(iterativeRefused &&
+           iterChild->originalWordAt(0xB4)==
+               std::bit_cast<std::uint32_t>(0.625f) &&
+           iterChild->originalWordAt(0xB8)==2u &&
+           iterative.flaggedReads==2 &&
+           iterative.flaggedPublications==1 &&
+           iterative.regenPublications==1 &&
+           iterative.movementCallbacks==0);
+    assert(iterative.regeneratedVF1==
+           (std::array<std::uint32_t,4>{
+               std::bit_cast<std::uint32_t>(0.244140625f),
+               std::bit_cast<std::uint32_t>(0.390625f),
+               std::bit_cast<std::uint32_t>(0.625f),
+               std::bit_cast<std::uint32_t>(1.0f)}));
+
+    // The real 36FC24 reentry must use the exact live VF1
+    // returned by the 36F8C8 regeneration; no claimed owner
+    // can silently substitute a different destination lane.
+    OriginalOwner wrongVF{};
+    wrongVF.iterativeFlagged=true;
+    wrongVF.disagreeRegeneratedVF1=true;
+    wrongVF.floatFields.originalFloatAt374Bits=
+        std::bit_cast<std::uint32_t>(1.0f);
+    wrongVF.scaleRaw=std::bit_cast<std::uint32_t>(0.5f);
+    auto wrongChild=child();
+    wrongChild->writeWord(0xB0,0x744dd0u);
+    wrongVF.actualChild=wrongChild.get();
+    originalMovementNormalBegin_557ed8(*wrongChild,0x220000u,wrongVF);
+    wrongChild->writeWord(0xB4,std::bit_cast<std::uint32_t>(0.5f));
+    wrongChild->writeWord(0xB8,2u);
+    iterativeRefused=false;
+    try{(void)originalMovementMetricStep_557f34(*wrongChild,wrongVF);}
+    catch(const std::invalid_argument&){iterativeRefused=true;}
+    assert(iterativeRefused && wrongVF.regenPublications==1 &&
+           wrongVF.flaggedReads==2 &&
+           wrongChild->originalWordAt(0xB8)==2u &&
+           wrongVF.movementCallbacks==0);
+
     std::cout<<"ORIGINAL_MOVEMENT_557F34_METRIC_PREFIX_PASSED\n";
 }
