@@ -25,6 +25,11 @@ float multiply(float a,float b) {
     return x;
 }
 float add(float a,float b) {
+    // Binary64 can also lose an extreme nonzero binary32 lane.
+    // Exponent gaps over 24 cannot yield exact VU0 additions.
+    if(a!=0.0f && b!=0.0f &&
+       std::abs(std::ilogb(a)-std::ilogb(b))>24)
+        throw std::domain_error("original 0x557F54 VADD rounding unproven");
     const volatile float x=a+b;
     checked(x);
     if(static_cast<double>(x)!=static_cast<double>(a)+static_cast<double>(b))
