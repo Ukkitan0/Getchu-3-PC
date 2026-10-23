@@ -37,13 +37,13 @@ struct Owner final : OriginalMovementParentRead_557e30,
         return {0x700000u,1u,std::nullopt};
     }
     std::uint32_t call_original_276b68(
-        std::uint32_t p,std::uint32_t resource) override {
+        std::uint64_t p,std::uint32_t resource) override {
         assert(p==0x340000u && resource==0x7001C0u);return 0;
     }
-    void call_original_2767f4(std::uint32_t) override {
+    void call_original_2767f4(std::uint64_t) override {
         throw std::runtime_error("unexpected original 2767F4");
     }
-    void call_original_2773d4(std::uint32_t p) override {assert(p==0x340000u);}
+    void call_original_2773d4(std::uint64_t p) override {assert(p==0x340000u);}
     OriginalManagerResourceFloatFields_317b34
     read_original_resource_float_fields(std::uint32_t p) override {
         assert(p==0x234000u);
