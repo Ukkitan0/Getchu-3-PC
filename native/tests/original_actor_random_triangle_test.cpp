@@ -50,9 +50,16 @@ int main(int argc,char**argv) {
         const auto sample=originalActorRandomTriangle_57c98c(source,a);
         std::array<std::array<std::byte,16>,3> bytes{};
         for(unsigned i=0;i<3;++i)std::memcpy(bytes[i].data(),&source[i],16);
-        assert(originalActorRandomTriangleLow64_57c98c(bytes,b)==low64(sample));
+        const auto packed=originalActorRandomTrianglePacked_57c98c(bytes,b);
+        assert(packed.originalLow64==low64(sample));
+        assert(packed.originalHigh64==
+            (std::uint64_t(std::bit_cast<std::uint32_t>(sample.z)) |
+            (std::uint64_t(std::bit_cast<std::uint32_t>(sample.w))<<32)));
         assert(a.originalCursor()==1&&b.originalCursor()==1);
-        assert(std::isfinite(sample.x)&&std::isfinite(sample.y)&&std::isfinite(sample.z));
+        assert(std::bit_cast<std::uint32_t>(sample.x)==0 &&
+               std::bit_cast<std::uint32_t>(sample.y)==0 &&
+               packed.originalLow64==0);
+        assert(std::isfinite(sample.z));
         const auto sum=weights.originalWeightedCoefficients[0]+
             weights.originalWeightedCoefficients[1]+weights.originalWeightedCoefficients[2];
         assert(std::fabs(sample.w-sum)<0.000001f);
@@ -103,7 +110,11 @@ int main(int argc,char**argv) {
                 const auto expected=originalActorRandomTriangle_57c98c(vertexRecords[i],independent);
                 assert(pipeline.sourceTargetResults().size()==1);
                 assert(pipeline.sourceTargetResults()[0].originalVectorLow64==low64(expected));
-                assert(actual.originalCursor()==independent.originalCursor());
+                assert(pipeline.sourceTargetResults()[0].originalVectorHigh64==
+            (std::uint64_t(std::bit_cast<std::uint32_t>(expected.z)) |
+            (std::uint64_t(std::bit_cast<std::uint32_t>(expected.w))<<32)));
+        assert(pipeline.sourceTargetResults()[0].originalVectorLow64==0);
+        assert(actual.originalCursor()==independent.originalCursor());
                 ++verified;
             }
         }
