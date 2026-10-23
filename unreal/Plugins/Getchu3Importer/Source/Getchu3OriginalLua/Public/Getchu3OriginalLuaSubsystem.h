@@ -47,7 +47,8 @@ private:
     // from Blueprint. Call StartImportedOriginalStage with the original ID.
     bool StartOriginalStage(const FString& OriginalLuaFilePath,
                             const FString& OriginalSpawnTag,
-                            UGetchu3OriginalManagerProvider* SourceManager);
+                            UGetchu3OriginalManagerProvider* SourceManager,
+                            const FString& ExpectedOriginalSha256);
 
     // The API is resolved by name from the native C ABI DLL at runtime.
     // Keep Unreal's STL ABI/allocator and the native Lua allocator separate.
