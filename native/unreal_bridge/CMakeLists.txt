@@ -76,6 +76,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_step_558030.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_36f8c8.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_owned_36f8c8.cpp"
@@ -292,6 +293,7 @@ if(BUILD_TESTING)
   add_executable(Getchu3OriginalMovementChildLifecycleTests
     "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_child_lifecycle_557e30_test.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp"
@@ -316,6 +318,7 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_child_early_36f954_test.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp"
@@ -342,6 +345,7 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp"
@@ -376,6 +380,7 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp"
@@ -444,6 +449,7 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_normal_metric_lifecycle_test.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_36f8c8.cpp"
@@ -535,6 +541,17 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalMovementPostStep558030
     COMMAND Getchu3OriginalPostStep558030Tests)
+
+  # Original 557F54..557FC8 source vector VRSQRT/VMULq,
+  # original child+A0 and source 0x704B08 threshold.
+  add_executable(Getchu3OriginalPostVector557F54Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_post_vector_557f54_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp")
+  target_include_directories(Getchu3OriginalPostVector557F54Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementPostVector557F54
+    COMMAND Getchu3OriginalPostVector557F54Tests)
 
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
