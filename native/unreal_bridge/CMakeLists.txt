@@ -63,6 +63,9 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   # These are real recovered original functions, not actor substitutes.
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_initializer.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_route_follower.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_polygon_raycast.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_polygon_traversal.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_polygon_edge_clip.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_nav_route.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_type2_target.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_random_triangle.cpp"
@@ -148,6 +151,15 @@ if(BUILD_TESTING)
     PRIVATE Getchu3OriginalLuaBridge)
   add_test(NAME OriginalActorRoute57C7CCHostAbi
     COMMAND Getchu3OriginalActorRouteHostAbiTests)
+
+  add_executable(Getchu3OriginalPolygonRayHostAbiTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_polygon_unreal_raycast_abi_test.cpp")
+  target_include_directories(Getchu3OriginalPolygonRayHostAbiTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  target_link_libraries(Getchu3OriginalPolygonRayHostAbiTests
+    PRIVATE Getchu3OriginalLuaBridge)
+  add_test(NAME OriginalPolygonRaycast4C1B3CHostAbi
+    COMMAND Getchu3OriginalPolygonRayHostAbiTests)
 
   add_executable(Getchu3OriginalHealthBridgeTests
     "${ORIGINAL_NATIVE_ROOT}/tests/ae3_unreal_health_bridge_test.cpp")
