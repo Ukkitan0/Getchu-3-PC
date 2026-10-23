@@ -86,7 +86,25 @@ int main() {
     assert(ae3_original_polygon_nearest_all_21da2c(
                session,&request,&result)==0);
     assert(result.original_polygon_index==123);
+    sourcePointCounts[1]=4;
+    assert(ae3_original_polygon_nearest_all_21da2c(
+               session,&request,&result)==0);
+    assert(result.original_polygon_index==123);
     sourcePointCounts[1]=3;
+
+    request.original_hit_indices=nullptr;
+    request.original_hit_count=1;
+    assert(ae3_original_polygon_nearest_hits_21d898(
+               session,&request,&result)==0);
+    assert(result.original_polygon_index==123);
+    request.original_hit_indices=originalGridHits.data();
+
+    request.original_hit_count=65536;
+    assert(ae3_original_polygon_nearest_hits_21d898(
+               session,&request,&result)==0);
+    assert(result.original_polygon_index==123);
+    request.original_hit_count=1;
+
     const auto previousQuery=request.original_query;
     request.original_query.x=std::numeric_limits<float>::quiet_NaN();
     assert(ae3_original_polygon_nearest_all_21da2c(
