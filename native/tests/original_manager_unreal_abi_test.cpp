@@ -107,6 +107,7 @@ struct RecoveredRouteCalls {
     int targetUpdates=0;
     int projected=0;
     bool acceptTarget=true;
+    uint32_t expectedTarget=0;
 };
 int recoveredProject21b854(void*, const void* polygon,
                            const Ae3OriginalVec4* from,
@@ -127,7 +128,7 @@ int recoveredProjection4c1b3c(void* context,uint32_t actor,
 }
 int recoveredApply57c8ec(void* context,uint32_t target) {
     auto& callbacks=*static_cast<RecoveredRouteCalls*>(context);
-    assert(target==0);
+    assert(target==callbacks.expectedTarget);
     callbacks.targetUpdates++;
     return callbacks.acceptTarget?1:0;
 }
@@ -170,6 +171,56 @@ void verifyRecoveredRouteFollowerRunsInsideOriginalInitializer() {
            actualOwner.targetUpdates==2 &&
            actualOwner.projected==0);
     // The legacy opaque callback is no longer needed for the new path.
+    assert(ae3_original_manager_init_destroy(session)==1);
+}
+
+void verifyRecoveredRouteFollowerMultiPolygonBranchInInitializer() {
+    auto* session=ae3_original_manager_init_create(5489);
+    assert(session);
+    std::array<uint8_t,0x70*2> polygons{};
+    std::vector<uint8_t> navigation(0x80+2*0x1e);
+    navigation[0x24]=2; // exactly two original stage polygon descriptors
+    navigation[0x3c]=0x80; // original descriptor table offset
+    navigation[0x80+2]=1;  // source polygon 0: one neighbor
+    navigation[0x80+4]=1;  // neighbor polygon 1
+    navigation[0x80+0x0a]=0; // original non-kind-2 action
+    std::array<uint32_t,2> route{0,1};
+    Ae3OriginalManagerInitSourceV1 source{};
+    source.original_records70=polygons.data();
+    source.original_record_count=2;
+    source.original_actor_polygon_index=0;
+    source.original_navigation_bytes=navigation.data();
+    source.original_navigation_size=navigation.size();
+    source.original_route_indices=route.data();
+    source.original_route_count=route.size();
+    source.original_owner_direction50={1,2,3,4};
+    Ae3OriginalManagerInitStateV1 state{};
+    state.source_flag1c=1;
+    state.source_method08=0x1234;
+    state.source_method0c=0x5678;
+    state.target_polygon_index=UINT32_MAX;
+    state.controller20={1,2,3,4};
+    RecoveredRouteCalls owner{};
+    owner.expectedTarget=1;
+    Ae3OriginalManagerInitCallsV2 hooks{
+        &owner,recoveredProject21b854,
+        recoveredProjection4c1b3c,recoveredApply57c8ec
+    };
+    // Control flow: 0x57BCB8 checks action kind 0, performs original
+    // projection and calls source 0x57C7CC. No invented route selector:
+    // original 0x57C7CC adopts source route[1] then invokes 0x57C8EC.
+    assert(ae3_original_manager_init_step_v2(
+        session,&source,&state,&hooks)==3);
+    assert(state.target_polygon_index==1 &&
+           state.source_method08==0x57bf5c &&
+           owner.targetUpdates==1 && owner.projected==0);
+    // Missing original route[1] must abort without publishing any state.
+    route[1]=99;
+    const auto before=state;
+    assert(ae3_original_manager_init_step_v2(
+        session,&source,&state,&hooks)==0);
+    assert(state.source_method08==before.source_method08 &&
+           state.target_polygon_index==before.target_polygon_index);
     assert(ae3_original_manager_init_destroy(session)==1);
 }
 
@@ -230,6 +281,7 @@ int main() {
     verifyNearOwner();
     verifyGeneralRouteAndRequiredOwners();
     verifyRecoveredRouteFollowerRunsInsideOriginalInitializer();
+    verifyRecoveredRouteFollowerMultiPolygonBranchInInitializer();
     verifyOriginalKindTwoTarget();
     verifyUnsafeInputs();
     std::cout<<"ORIGINAL_MANAGER_57BCB8_HOST_ABI_PASSED\n";
