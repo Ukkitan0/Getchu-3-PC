@@ -84,7 +84,7 @@ def check(root: Path) -> dict:
     import re
     lifecycle_targets = [
         block for block in re.findall(
-            r"add_executable\\([^\\n]*\\n[\\s\\S]*?\\)\\n",
+            r"add_executable\([^\n]*\n[\s\S]*?\)\n",
             cmake
         )
         if "original_movement_child_lifecycle_557e30.cpp" in block
