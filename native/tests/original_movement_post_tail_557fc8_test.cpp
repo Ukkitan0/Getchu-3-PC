@@ -206,5 +206,56 @@ int main() {
     assert(refused && o.calls.empty() &&
            c->originalWordAt(0xB8)==3u);
 
+    // The standalone source tail must not skip 557F54's bit1-clear
+    // regeneration by accepting a detached post-vector object.
+    // Original bit1-clear must branch to 558094 -> 36F8C8 first.
+    o.calls.clear();
+    c=makeChild(0.5f,0u);
+    auto validVector=originalMovementPostVector_557f54(
+        *makeChild(1.0f,3u),0x340000u);
+    refused=false;
+    try{(void)originalMovementPostTail_557fc8(
+        *c,0x01FFF020u,0x340000u,validVector,
+        {raw(2),raw(4),std::nullopt},o);}
+    catch(const std::logic_error&){refused=true;}
+    assert(refused && o.calls.empty() &&
+           c->originalWordAt(0xB8)==0u);
+
+    // Original 557F8C DMFC2 s3,VF2 saves all four 32-bit
+    // lanes, followed by 557FF8 POR a1,s3,zero. Reject a
+    // detached owner state where the published EE s3 differs
+    // from the actual earlier VU0 VF2, BEFORE any source call.
+    c=makeChild(1.0f,3u);
+    source=originalMovementPostVector_557f54(*c,0x340000u);
+    const auto unchanged=source;
+    source.originalGprS3VF2[3]^=1u;
+    refused=false;
+    try{(void)originalMovementPostTail_557fc8(
+        *c,0x01FFF020u,0x340000u,source,
+        {raw(2),raw(4),std::nullopt},o);}
+    catch(const std::invalid_argument&){refused=true;}
+    assert(refused && o.calls.empty() &&
+           c->originalWordAt(0xB8)==3u);
+    source=unchanged;
+    source.originalGprS3VF2X^=1u;
+    refused=false;
+    try{(void)originalMovementPostTail_557fc8(
+        *c,0x01FFF020u,0x340000u,source,
+        {raw(2),raw(4),std::nullopt},o);}
+    catch(const std::invalid_argument&){refused=true;}
+    assert(refused && o.calls.empty());
+
+    // 557F90 BBit032 chooses a different tagged-parent branch
+    // for nonzero mode+8; detached post-tail callers may not
+    // bypass that earlier source decision with an ordinary VF2.
+    source=unchanged;
+    refused=false;
+    try{(void)originalMovementPostTail_557fc8(
+        *c,0x01FFF020u,0xffffffff81234000ull,source,
+        {raw(2),raw(4),std::nullopt},o);}
+    catch(const std::invalid_argument&){refused=true;}
+    assert(refused && o.calls.empty() &&
+           c->originalWordAt(0xB8)==3u);
+
     std::cout<<"ORIGINAL_POST_TAIL_557FC8_TO_558030_PASSED\n";
 }
