@@ -1,5 +1,8 @@
 #include "ae3/ae3_unreal_lua_bridge.h"
 #include <array>
+#ifdef NDEBUG
+#undef NDEBUG // CTest runs Windows Release; never compile the checks away.
+#endif
 #include <cassert>
 #include <cmath>
 #include <cstdint>
