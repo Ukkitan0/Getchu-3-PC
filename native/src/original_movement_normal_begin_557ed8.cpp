@@ -23,8 +23,16 @@ void originalMovementNormalBegin_557ed8(
     // BEFORE genuine 0x317B9C's reads of original parent fields.
     const auto resourceFields=calls.read_original_parent_resource_fields(
         child.originalWordAt(4));
-    const auto sourceContext=originalManagerSelectResource_317b9c(
+    const auto sourceContextLow32=originalManagerSelectResource_317b9c(
         resourceFields,std::to_integer<unsigned>(*mode));
+    // Original 317BB0/317BB8/317BC0/317BC4 ADDIU produces
+    // a sign-extended 32-bit result in the 64-bit EE v0.
+    // Original 557EF4 DADDU copies ALL bits into a1. Keep
+    // the low-word typed selector reusable, but never discard
+    // this mandatory MIPS64 extension at the call boundary.
+    const auto sourceContext=static_cast<std::uint64_t>(
+        static_cast<std::int64_t>(
+            static_cast<std::int32_t>(sourceContextLow32)));
 
     // Source 0x557F00: original 0x276B68(parent+0x14,
     // sourceContext,0,0, f12=0). Original callback owns effects.
