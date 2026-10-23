@@ -1,5 +1,6 @@
 #pragma once
 #include "ae3/original_manager_child.hpp"
+#include "ae3/original_manager_packed_compare.hpp"
 #include <cstdint>
 
 namespace ae3 {
@@ -29,7 +30,9 @@ public:
     // Source alternative30 VU/EE vector equality (0x57C5D4..F8).
     // Missing source owner operands must reject, not be approximated.
     virtual bool call_original_variant_vector_equal_57c5d4(
-        const OriginalManagerChild70& originalController)=0;
+        const OriginalManagerChild70& originalController) {
+        return originalManagerPackedPceqwEqual_57c1e0(originalController);
+    }
 };
 
 // If original 0x3161B8 returns zero => source result zero.
