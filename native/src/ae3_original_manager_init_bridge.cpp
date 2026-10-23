@@ -57,6 +57,77 @@ public:
 private:
     const Ae3OriginalManagerInitCallsV1* callbacks_;
 };
+
+/* Unlike the legacy init hook, this one executes the actually recovered
+ * 0x57C7CC native controller traversal. Only original polygon projection
+ * and target-update *effects* remain external owner dependencies.
+ */
+class RealActorCallsV2 final : public ae3::OriginalManagerInitCalls_57bcb8 {
+public:
+    RealActorCallsV2(const Ae3OriginalManagerInitCallsV2* source,
+                     std::span<const ae3::OriginalSpatialRecord70> records,
+                     std::span<const uint32_t> route,
+                     const ae3::OriginalSpatialRecord70* actor)
+        :source_(source),records_(records),route_(route),actor_(actor){}
+    uint32_t originalIndex(const ae3::OriginalSpatialRecord70* polygon) const {
+        if (!polygon) return UINT32_MAX;
+        for (std::size_t i=0;i<records_.size();++i)
+            if (polygon==&records_[i]) return static_cast<uint32_t>(i);
+        throw std::invalid_argument("original controller polygon outside decoded source registry");
+    }
+    ae3::OriginalVU0Vec4 call_original_21b854(
+        const ae3::OriginalSpatialRecord70& polygon,
+        const ae3::OriginalVU0Vec4& begin,
+        const ae3::OriginalVU0Vec4& end) override {
+        if (!source_ || !source_->project_original_21b854)
+            throw std::runtime_error("original 0x21B854 projection manager missing");
+        const auto start=external(begin), stop=external(end);
+        Ae3OriginalVec4 projected{};
+        if (source_->project_original_21b854(
+                source_->user,polygon.originalFields.data(),&start,&stop,&projected)!=1)
+            throw std::runtime_error("original 0x21B854 projection rejected by manager");
+        return native(projected);
+    }
+    void call_original_57c7cc(
+        ae3::OriginalManagerInitState_57bcb8& init,
+        const ae3::OriginalVU0Vec4&) override {
+        if (!source_ || !source_->original_apply_target_57c8ec)
+            throw std::runtime_error("original 0x57C8EC target owner missing");
+        struct ForwardOriginalCalls final : ae3::OriginalActorRouteFollowerCalls_57c7cc {
+            RealActorCallsV2& outer;
+            explicit ForwardOriginalCalls(RealActorCallsV2& source):outer(source){}
+            const ae3::OriginalSpatialRecord70* call_original_4c1b3c_project(
+                const ae3::OriginalSpatialRecord70* actor) override {
+                if (!outer.source_->original_project_4c1b3c)
+                    throw std::runtime_error("original 0x4C1B3C projection manager missing");
+                uint32_t polygon=UINT32_MAX;
+                if (outer.source_->original_project_4c1b3c(
+                        outer.source_->user,outer.originalIndex(actor),&polygon)!=1)
+                    throw std::runtime_error("original 0x4C1B3C projection rejected");
+                if (polygon==UINT32_MAX) return nullptr;
+                if (polygon>=outer.records_.size())
+                    throw std::out_of_range("original projected polygon outside decoded registry");
+                return &outer.records_[polygon];
+            }
+            void call_original_57c8ec_update_target(
+                const ae3::OriginalSpatialRecord70* target) override {
+                if (outer.source_->original_apply_target_57c8ec(
+                        outer.source_->user,outer.originalIndex(target))!=1)
+                    throw std::runtime_error("original 0x57C8EC target update rejected");
+            }
+        } calls(*this);
+        ae3::OriginalActorRouteFollowerState_57c7cc route{
+            records_,route_,actor_,init.target50,init.lifecycle.flag1c!=0
+        };
+        (void)ae3::originalActorAdvanceRoute_57c7cc(route,calls);
+        init.target50=route.activePolygonAtController50;
+    }
+private:
+    const Ae3OriginalManagerInitCallsV2* source_;
+    std::span<const ae3::OriginalSpatialRecord70> records_;
+    std::span<const uint32_t> route_;
+    const ae3::OriginalSpatialRecord70* actor_;
+};
 }
 struct Ae3OriginalManagerInitSession {
     ae3::OriginalGameRandom_36f3c0 originalRandom;
@@ -86,11 +157,12 @@ extern "C" const char* ae3_original_manager_init_last_error(
                    : "original actor initializer session unavailable";
 }
 
-extern "C" int ae3_original_manager_init_step(
+static int originalManagerInitImpl(
     Ae3OriginalManagerInitSession* session,
     const Ae3OriginalManagerInitSourceV1* source,
     Ae3OriginalManagerInitStateV1* state,
-    const Ae3OriginalManagerInitCallsV1* originalCallbacks) {
+    const Ae3OriginalManagerInitCallsV1* oldCallbacks,
+    const Ae3OriginalManagerInitCallsV2* sourceCallbacks) {
     if (!session) return 0;
     if (session->busy) {
         session->error = "reentrant original actor initializer call forbidden";
@@ -151,7 +223,13 @@ extern "C" int ae3_original_manager_init_step(
                 static_cast<const std::byte*>(source->original_navigation_bytes),
                 source->original_navigation_size)
         };
-        RealActorCalls calls(originalCallbacks);
+        RealActorCalls oldCalls(oldCallbacks);
+        RealActorCallsV2 recoveredRouteCalls(sourceCallbacks,records,
+            std::span<const uint32_t>(source->original_route_indices,
+                source->original_route_count),originalPolygon);
+        ae3::OriginalManagerInitCalls_57bcb8& calls = sourceCallbacks
+            ? static_cast<ae3::OriginalManagerInitCalls_57bcb8&>(recoveredRouteCalls)
+            : static_cast<ae3::OriginalManagerInitCalls_57bcb8&>(oldCalls);
         const auto branch = ae3::originalManagerInitialize_57bcb8(
             sourceState,stage,session->originalRandom,calls);
         // No manager state is published until original computation succeeded.
@@ -185,6 +263,24 @@ extern "C" int ae3_original_manager_init_step(
     }
     session->busy = false;
     return result;
+}
+extern "C" int ae3_original_manager_init_step(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalManagerInitSourceV1* source,
+    Ae3OriginalManagerInitStateV1* state,
+    const Ae3OriginalManagerInitCallsV1* callbacks) {
+    return originalManagerInitImpl(session,source,state,callbacks,nullptr);
+}
+extern "C" int ae3_original_manager_init_step_v2(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalManagerInitSourceV1* source,
+    Ae3OriginalManagerInitStateV1* state,
+    const Ae3OriginalManagerInitCallsV2* callbacks) {
+    if (!callbacks) {
+        if(session) session->error="original initializer v2 requires recovered route manager";
+        return 0;
+    }
+    return originalManagerInitImpl(session,source,state,nullptr,callbacks);
 }
 
 /* Original 0x57C7CC route follower is already source-recovered. Unlike
