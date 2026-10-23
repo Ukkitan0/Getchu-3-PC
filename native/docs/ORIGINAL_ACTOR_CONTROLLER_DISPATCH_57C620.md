@@ -104,3 +104,59 @@ real gameplay boot or live Player/Monkey native actor update is
 claimed. The original Lua bindings, full dynamic actor methods,
 graphics/animation calls, and source-complete warning side effects
 remain required before calling this a playable original port.
+
+## Source action-type-2 child update 0x57C554
+
+The authentic original `0x57BCB8` initializer installs method
+`0x57C554` when an original route selects type-2 action handling.
+That method is now directly source-audited and reconstructed as native
+`originalManagerType2Update_57c554`.
+
+The complete **0x57C554..0x57C620** original method is **51 source
+instructions**, SHA-256
+`4ca5bcd1a364bee1fb22edfde1b29073296b0531f3ddaab1396577cfadfa4e7a`.
+Original JALs are **0x57C584 -> 0x30C360** and
+**0x57C5B8 -> 0x3161B8**. These and 23 independent source
+opcode sites are verified by
+`native/tools/verify_original_manager_type2_57c554.py` against
+the owner's original `SCUS_975.01`.
+
+The recovered control flow:
+
+- If original controller+0x10 child is null, call genuine
+  `0x30C360` to construct a child using original actor parent,
+  source VU0 vector, +0x50 pending polygon and +0x1D mode.
+- Re-read controller+0x10 after that call; if it became nonnull,
+  invoke the original child vtable[1] destructor before replacing
+  it with the new original child pointer.
+- Always call original `0x3161B8` using a mutable reference to
+  controller+0x10, the unchanged original `a1` and zero-valued
+  auxiliary operands. A zero result returns original zero.
+- A successful `0x3161B8` in variant-zero returns **1**.
+  Variant-one uses the source packed EE/VU comparison at
+  `0x57C5D4..0x57C5F8`: exact original comparison true returns
+  **1**; false returns original controller word+0x14.
+
+Source child creation, destruction and type-2 vector equality
+must be provided by the actual original actor owner. They remain
+explicit interfaces, never a synthetic Unreal child or approximate
+vector length test.
+
+The C++ regression `OriginalControllerType2Update57C554`
+exercises original child allocation/overwrite ordering,
+preexisting children, early zero update return, source variant-zero
+and variant-one return values, and refusal of unavailable source
+VU operands. Focused native GCC/Clang C++20 builds with ASan
+and UBSan passed locally. A complete Windows DLL build and real
+Ape Escape 3 game stage are not yet verified.
+
+## Next source recovery: general actor method 0x57BF5C
+
+The alternative original controller method installed by the
+`0x57BCB8` general projection branch is **0x57BF5C**, a
+larger EE/VU source function that invokes original `0x21B854`,
+`0x57C7CC`, `0x316174`, `0x3161B8` and multiple other source
+actor operations. It is **not** translated merely by the above
+type-2 recovery; its full vector and action behavior still needs
+source-level decompilation. This is the next high-priority original
+controller function before playable movement can be claimed.
