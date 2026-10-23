@@ -119,14 +119,14 @@ void requireManagerSuccess(int accepted, const char* operation) {
 } // namespace
 
 struct Ae3LuaRuntime {
-    Ae3LuaManagerV2 callbacks{};
+    Ae3LuaManagerV3 callbacks{};
     ae3::NativeStageWorld stageWorld;
     std::optional<ae3::PlayerProgress> sourceProgress;
     std::unique_ptr<ae3::LuaStage> stage;
     std::string error;
     bool busy = false;
 
-    explicit Ae3LuaRuntime(const Ae3LuaManagerV2& input) : callbacks(input) {
+    explicit Ae3LuaRuntime(const Ae3LuaManagerV3& input) : callbacks(input) {
         resetStage();
     }
     void resetStage() {
@@ -234,9 +234,9 @@ int callSafely(Ae3LuaRuntime* runtime, Action&& action) noexcept {
 extern "C" uint32_t ae3_lua_api_version(void) {
     return AE3_LUA_BRIDGE_API_VERSION;
 }
-extern "C" Ae3LuaRuntime* ae3_lua_create(const Ae3LuaManagerV2* manager) {
+extern "C" Ae3LuaRuntime* ae3_lua_create(const Ae3LuaManagerV3* manager) {
     if (!manager || manager->api_version != AE3_LUA_BRIDGE_API_VERSION ||
-        manager->struct_size != sizeof(Ae3LuaManagerV2))
+        manager->struct_size != sizeof(Ae3LuaManagerV3))
         return nullptr;
     // Original stage gameplay requires a real actor AND parameter manager.
     // A stub accepting records would be a false gameplay implementation.
