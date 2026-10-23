@@ -92,7 +92,14 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
                 // remains for an unavailable original register owner.
                 const auto originalBinding=
                     owner.read_original_flagged_loop_binding_36fc18(child);
-                if(!originalBinding) {
+                // The retail path accepts negative nonterminal
+                // status too. A fixed nine-pass bound follows
+                // from 1/8 advances ONLY if status initially >=0.
+                // Delegate negative progress to the genuine original
+                // method, preserving behavior without a false bound.
+                const auto initialStatus=std::bit_cast<float>(
+                    genuine->originalChildStatusA4Bits);
+                if(!originalBinding || initialStatus<0.0f) {
                     step=owner.call_original_36fb18(child,scaledRaw);
                 } else {
                     if(!originalBinding->originalOwner ||
