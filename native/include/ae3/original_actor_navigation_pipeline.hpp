@@ -4,6 +4,7 @@
 #include "ae3/original_vu0_geometry.hpp"
 #include "ae3/original_actor_random_triangle.hpp"
 #include "ae3/original_actor_fallback_sampler.hpp"
+#include "ae3/original_actor_fallback_vu0_native.hpp"
 #include "ae3/original_polygon_raycast.hpp"
 #include <optional>
 #include <array>
@@ -13,8 +14,9 @@
 #include <vector>
 
 namespace ae3 {
-// Three genuine VU0 dependencies are not yet recovered. No synthesized
-// collision, projection or steering is substituted for the retail code.
+// Legacy callback retains strictly unresolved/injection-only source paths.
+// The genuine 0x57CA68 math is now translated natively whenever the
+// original caller supplies its shared RNG, owner vector and Q bits.
 class OriginalActorUntranslatedMath_57c7cc {
 public:
     virtual ~OriginalActorUntranslatedMath_57c7cc()=default;
@@ -61,6 +63,18 @@ public:
     // VU0 Q is caller-owned COP2 state. This original routine invokes
     // VMULq four times in two source blocks but never writes Q itself.
     void setOriginalFallbackQBits_57ca68(std::uint32_t rawOriginalQ);
+    // Optional binding to original VU0 R state. VRINIT/VRXOR run twice per
+    // candidate, independent from the original EE MT19937 draw stream.
+    // Borrowed caller-owned state must outlive each actor advance().
+    void setOriginalFallbackRState_57ca68(OriginalActorFallbackVu0R_57ca68* state) noexcept {
+        originalFallbackR_=state;
+    }
+    // Genuine VRINIT/VRXOR effects are retained even if the owning
+    // engine has not bound its shared global VU0 R yet. Binding external
+    // state is still required for whole-engine VI[R] synchronization.
+    const OriginalActorFallbackVu0R_57ca68& sourceFallbackRState_57ca68() const noexcept {
+        return originalFallbackR_?*originalFallbackR_:localSourceVu0R_;
+    }
 
     OriginalActorRouteFollowResult_57c7cc advance(
         OriginalActorRouteFollowerState_57c7cc& originalActorRoute);
@@ -77,6 +91,12 @@ private:
         const OriginalSpatialRecord70&,float originalF12) override;
     std::uint64_t call_original_57ca68_geometry(
         const OriginalSpatialRecord70&) override;
+    std::uint64_t call_original_57ca68_geometry_high64() const override {
+        return latestFallbackHigh64_;
+    }
+    std::uint64_t call_original_57c98c_geometry_high64() const override {
+        return latestTriangleHigh64_;
+    }
     std::uint64_t call_original_57c98c_three_vertex_transform(
         const OriginalSpatialRecord70&,
         const std::array<std::array<std::byte,16>,3>&) override;
@@ -90,9 +110,14 @@ private:
     OriginalActorUntranslatedMath_57c7cc& math_;
     OriginalGameRandom_36f3c0* originalSharedRandom_=nullptr;
     OriginalActorFallbackVU0Transform_57ca68* originalFallbackTransform_=nullptr;
+    OriginalActorFallbackNativeVU0_57ca68 nativeFallbackTransform_{};
+    std::uint64_t latestFallbackHigh64_=0;
     std::span<const OriginalPolygonLinks_21bd3c> originalSourceAdjacency_;
     std::optional<std::array<std::byte,16>> originalOwner14Vector40_;
     std::optional<std::uint32_t> originalFallbackQBits_;
+    OriginalActorFallbackVu0R_57ca68* originalFallbackR_=nullptr;
+    OriginalActorFallbackVu0R_57ca68 localSourceVu0R_{};
+    std::uint64_t latestTriangleHigh64_=0;
     std::optional<OriginalVU0Vec4> originalIncomingRayA1_;
     std::optional<OriginalVU0Vec4> originalController40_;
     std::optional<OriginalVU0Vec4> latestTargetRayA2_;
