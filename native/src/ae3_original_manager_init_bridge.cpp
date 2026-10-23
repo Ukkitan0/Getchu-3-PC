@@ -246,8 +246,16 @@ static int originalManagerInitImpl(
             std::span<const std::uint32_t>(routeSnapshot),
             std::span<const std::byte>(navigationSnapshot)
         };
-        RealActorCalls oldCalls(oldCallbacks);
-        RealActorCallsV2 recoveredRouteCalls(sourceCallbacks,records,
+        // Freeze the complete registered callback table as well as actor
+        // resources. A host rebind during 0x21B854 must not redirect the
+        // remaining source call sequence within this initialization.
+        Ae3OriginalManagerInitCallsV1 stableOldCallbacks{};
+        Ae3OriginalManagerInitCallsV2 stableSourceCallbacks{};
+        if (oldCallbacks) stableOldCallbacks=*oldCallbacks;
+        if (sourceCallbacks) stableSourceCallbacks=*sourceCallbacks;
+        RealActorCalls oldCalls(oldCallbacks?&stableOldCallbacks:nullptr);
+        RealActorCallsV2 recoveredRouteCalls(
+            sourceCallbacks?&stableSourceCallbacks:nullptr,records,
             std::span<const std::uint32_t>(routeSnapshot),originalPolygon);
         ae3::OriginalManagerInitCalls_57bcb8& calls = sourceCallbacks
             ? static_cast<ae3::OriginalManagerInitCalls_57bcb8&>(recoveredRouteCalls)
@@ -914,12 +922,15 @@ extern "C" int ae3_original_actor_route_step_v3(
         session->error="original actor route has invalid owner polygon records/adjacency";
         return 0;
     }
+    // A manager may rebind its callback table during Begin; this
+    // transaction must execute the same original owner contract throughout.
+    const Ae3OriginalRouteCallsV3 stableManager=*manager;
     // The entire native route, including the gap BETWEEN Begin and
     // Commit, has live pointers into this session. In particular, Stage
     // callbacks must not be allowed to destroy it mid-stack.
     session->busy=true;
     auto abortSafely=[&]() {
-        try {manager->abort_original_actor_update(manager->user);}
+        try {stableManager.abort_original_actor_update(stableManager.user);}
         catch (...) {} // preserve original error at the C ABI boundary
     };
     bool began=false;
@@ -979,7 +990,7 @@ extern "C" int ae3_original_actor_route_step_v3(
             !std::isfinite(b.z)||!std::isfinite(b.w))
             throw std::invalid_argument("original route projection vectors invalid");
 
-        OriginalRouteTargetOwnerV3 proposed(*session,fixedSource,*manager);
+        OriginalRouteTargetOwnerV3 proposed(*session,fixedSource,stableManager);
         struct OriginalFullWidthRoute final :
             ae3::OriginalActorRouteFollowerCalls_57c7cc {
             std::span<const ae3::OriginalSpatialRecord70> records;
@@ -1035,7 +1046,7 @@ extern "C" int ae3_original_actor_route_step_v3(
                native(a),native(b),source->original.original_max_recursions);
 
         began=true; // Even rejected Begin may have allocated owner state.
-        if (manager->begin_original_actor_update(manager->user)!=1)
+        if (stableManager.begin_original_actor_update(stableManager.user)!=1)
             throw std::runtime_error("original game actor owner refused Begin");
 
         ae3::OriginalActorRouteFollowerState_57c7cc originalRoute{
@@ -1059,7 +1070,7 @@ extern "C" int ae3_original_actor_route_step_v3(
             static_cast<std::uint32_t>(followed.followingRouteIndicesTested),
             followed.returnedEarlyBecauseCurrentTargetMatched?1:0
         };
-        if (manager->commit_original_actor_update(manager->user)!=1)
+        if (stableManager.commit_original_actor_update(stableManager.user)!=1)
             throw std::runtime_error("original game actor owner refused Commit");
         began=false;
         session->originalRandom=std::move(proposed.proposed.originalRandom);
