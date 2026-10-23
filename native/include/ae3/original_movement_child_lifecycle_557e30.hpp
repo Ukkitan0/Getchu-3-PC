@@ -3,10 +3,12 @@
 #include "ae3/original_movement_child_30c57c.hpp"
 #include <cstdint>
 #include <memory>
+#include <optional>
 
 namespace ae3 {
 class OriginalMovementNormalCalls_557ed8;
 class OriginalMovementMetricOwner_557f34;
+class OriginalMovementPostVectorOwner_557f54;
 // Genuine original 0x557E30 child slot5 must read parent+0x14
 // in the delay slot of 0x557E64, EVEN when it returns immediately
 // for controller update bits 0/1. This source parent is another
@@ -30,7 +32,8 @@ public:
         std::unique_ptr<OriginalMovementChildD0_30c57c> originalChild,
         OriginalMovementParentRead_557e30& genuineParent,
         OriginalMovementNormalCalls_557ed8* optionalGenuineNormalOwner=nullptr,
-        OriginalMovementMetricOwner_557f34* optionalGenuineMetricOwner=nullptr);
+        OriginalMovementMetricOwner_557f34* optionalGenuineMetricOwner=nullptr,
+        OriginalMovementPostVectorOwner_557f54* optionalPostVectorOwner=nullptr);
     void* originalChildPointer() const noexcept;
     bool ownsOriginalChild() const noexcept;
     std::uint32_t call_original_vtable5(
@@ -45,5 +48,8 @@ private:
     // remains unsupported and must not get a synthetic result.
     OriginalMovementNormalCalls_557ed8* normalOwner_;
     OriginalMovementMetricOwner_557f34* metricOwner_;
+    OriginalMovementPostVectorOwner_557f54* postVectorOwner_;
+    std::optional<std::uint32_t> try_original_post_vector_557f54(
+        std::uint32_t originalParentWord14);
 };
 } // namespace ae3
