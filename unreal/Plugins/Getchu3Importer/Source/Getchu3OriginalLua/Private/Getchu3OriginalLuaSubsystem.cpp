@@ -449,12 +449,28 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
         return false;
     }
     if (bHasVerifiedImplementations) {
+        TSet<FString> RegisteredOriginalNames;
         for (const FGetchu3OriginalVoidFunction& Function : OriginalVoidFunctions) {
             if (Function.OriginalVA <= 0 || (Function.OriginalVA & 3) != 0) {
                 LastError = TEXT("Unverified or unaligned original callback VA");
                 StopOriginalStage();
                 return false;
             }
+            const FString& Name = Function.OriginalName;
+            bool bValidName = !Name.IsEmpty() && Name.Len() <= 128;
+            for (int32 Index = 0; bValidName && Index < Name.Len(); ++Index) {
+                const TCHAR Code = Name[Index];
+                bValidName = (Code == TEXT('_')) ||
+                    (Code >= TEXT('a') && Code <= TEXT('z')) ||
+                    (Code >= TEXT('A') && Code <= TEXT('Z')) ||
+                    (Index > 0 && Code >= TEXT('0') && Code <= TEXT('9'));
+            }
+            if (!bValidName || RegisteredOriginalNames.Contains(Name)) {
+                LastError = TEXT("Duplicate or invalid genuine original Lua callback name");
+                StopOriginalStage();
+                return false;
+            }
+            RegisteredOriginalNames.Add(Name);
             const FTCHARToUTF8 EncodedName(*Function.OriginalName);
             if (!RegisterVoid(static_cast<Ae3LuaRuntime*>(NativeState),
                               EncodedName.Get(),
