@@ -5,6 +5,7 @@
 #include "ae3/original_movement_post_vector_557f54.hpp"
 #include "ae3/original_movement_post_step_558030.hpp"
 #include "ae3/original_movement_flag0_regenerate_36f83c.hpp"
+#include "ae3/original_movement_post_tail_557fc8.hpp"
 #include <stdexcept>
 #include <utility>
 
@@ -15,10 +16,12 @@ OriginalMovementChildLifecycle_557e30::OriginalMovementChildLifecycle_557e30(
     OriginalMovementNormalCalls_557ed8* normalOwner,
     OriginalMovementMetricOwner_557f34* metricOwner,
     OriginalMovementPostVectorOwner_557f54* postVectorOwner,
-    OriginalMovementPostStepContinuation_558030* postStepOwner)
+    OriginalMovementPostStepContinuation_558030* postStepOwner,
+    OriginalMovementPostTailOwner_557fc8* postTailOwner)
     :child_(std::move(child)),parent_(originalParent),
      normalOwner_(normalOwner),metricOwner_(metricOwner),
-     postVectorOwner_(postVectorOwner),postStepOwner_(postStepOwner) {
+     postVectorOwner_(postVectorOwner),postStepOwner_(postStepOwner),
+     postTailOwner_(postTailOwner) {
     if(!child_ || child_->originalWordAt(0)!=
        OriginalMovementChildD0_30c57c::originalVtableVA)
         throw std::invalid_argument(
@@ -81,8 +84,15 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
                 // still needs source collision/animation recovery.
                 const auto movement=originalMovementMetricStep_557f34(
                     *child_,*metricOwner_);
-                if(const auto early=try_original_post_vector_557f54(originalParentWord14))
+                OriginalMovementPostVector_557f54 published{};
+                if(const auto early=try_original_post_vector_557f54(
+                       originalParentWord14,&published))
                     return *early;
+                if(const auto tail=try_original_post_tail_557fc8(
+                       originalParentWord14,published,
+                       movement.originalF20MetricRaw,
+                       movement.originalMovementF0Raw))
+                    return *tail;
                 if(const auto post=try_original_post_step_558030(
                        movement.originalF20MetricRaw,
                        movement.originalMovementF0Raw))
@@ -101,8 +111,15 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
         // owner callbacks when the genuine fast path is absent.
         const auto movement=originalMovementMetricStep_557f34(
             *child_,*metricOwner_);
-        if(const auto early=try_original_post_vector_557f54(originalParentWord14))
+        OriginalMovementPostVector_557f54 published{};
+        if(const auto early=try_original_post_vector_557f54(
+               originalParentWord14,&published))
             return *early;
+        if(const auto tail=try_original_post_tail_557fc8(
+               originalParentWord14,published,
+               movement.originalF20MetricRaw,
+               movement.originalMovementF0Raw))
+            return *tail;
         if(const auto post=try_original_post_step_558030(
                movement.originalF20MetricRaw,
                movement.originalMovementF0Raw))
@@ -114,7 +131,9 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
         "original 0x557F34 gameplay continuation requires unrecovered source methods");
 }
 std::optional<std::uint32_t> OriginalMovementChildLifecycle_557e30::
-try_original_post_vector_557f54(std::uint32_t originalParentWord14) {
+try_original_post_vector_557f54(
+    std::uint32_t originalParentWord14,
+    OriginalMovementPostVector_557f54* originalPublishedState) {
     if(!postVectorOwner_)
         return std::nullopt;
     // Original 557F54 flags+B8 bit1 zero requires original
@@ -127,7 +146,37 @@ try_original_post_vector_557f54(std::uint32_t originalParentWord14) {
     // Source VU0 VF1/VF2/Q/GPR s3 side effects must reach the
     // original game owner before slot5 can return status1.
     postVectorOwner_->publish_original_557f54_vu0(source);
+    if(originalPublishedState)
+        *originalPublishedState=source;
     return source.originalSlot5EarlyStatus;
+}
+std::optional<std::uint32_t> OriginalMovementChildLifecycle_557e30::
+try_original_post_tail_557fc8(
+    std::uint32_t originalParentWord14,
+    const OriginalMovementPostVector_557f54& originalPublishedState,
+    std::uint32_t originalF20ResourceMetric,
+    std::uint32_t originalF21MovementReturn) {
+    if(!postTailOwner_)
+        return std::nullopt;
+    // 557F54 VU publication must have completed before 557FC8.
+    // Otherwise the original 276538 a1=full 128-bit s3 operand
+    // has no legitimate owner-provided source state.
+    if(!postVectorOwner_ || (child_->originalWordAt(0xB8)&2u)==0u)
+        throw std::logic_error(
+            "original 557FC8 tail needs published genuine 557F54 VU0");
+    // The real original EE guest VA comes from the owner, not a
+    // reconstructed pointer from the host object allocation.
+    const auto scratchGuestVA=
+        postTailOwner_->read_original_child_scratch_guest_va_557fc8(*child_);
+    // 557FC8..558030 itself performs original flag0 regeneration,
+    // 30C0A0 (which yields s5), 276538, debug-gated 36FC28, and
+    // the complete 558030 source return. DO NOT run legacy
+    // read_original_post_step_after_557fc8 in parallel.
+    return originalMovementPostTail_557fc8(
+        *child_,scratchGuestVA,originalParentWord14,
+        originalPublishedState,
+        {originalF21MovementReturn,originalF20ResourceMetric,std::nullopt},
+        *postTailOwner_);
 }
 std::optional<std::uint32_t> OriginalMovementChildLifecycle_557e30::
 try_original_post_step_558030(
