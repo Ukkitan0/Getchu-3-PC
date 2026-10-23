@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-#define AE3_LUA_BRIDGE_API_VERSION 4u
+#define AE3_LUA_BRIDGE_API_VERSION 5u
 
 typedef struct Ae3LuaRuntime Ae3LuaRuntime;
 
@@ -46,7 +46,7 @@ typedef struct Ae3LuaRuntime Ae3LuaRuntime;
  * This is not a guessed gameplay schema. No source bytes are lost by Unicode
  * transcoding, embedded NUL, or JSON key normalization.
  */
-typedef struct Ae3LuaManagerV4 {
+typedef struct Ae3LuaManagerV5 {
     uint32_t api_version;
     uint32_t struct_size;
     void* user;
@@ -69,7 +69,16 @@ typedef struct Ae3LuaManagerV4 {
      * The native bridge will NEVER synthesize or cache a successful write.
      */
     int (*write_original_player_progress)(void*, const void* source, size_t exact_size);
-} Ae3LuaManagerV4;
+    /* ONLY source-recovered, verified original-ELF void-return Lua callbacks.
+     * original_name is an ASCII Lua global, native address is an independently
+     * verified retail function VA (NOT a CreateBind JAL site).
+     * typed_arguments_json preserves source Lua byte values. Return 1 only
+     * after the original native behavior has actually been performed.
+     */
+    int (*invoke_original_void)(void*, uint32_t original_va,
+                                const char* original_name,
+                                const char* typed_arguments_json);
+} Ae3LuaManagerV5;
 
 /* All API functions return 1 on success, 0 on failure.
  * On failure ae3_lua_last_error provides the error text while the handle
@@ -77,12 +86,20 @@ typedef struct Ae3LuaManagerV4 {
  * and must run on the Unreal game thread. Callbacks MUST NOT re-enter.
  */
 AE3_LUA_EXPORT uint32_t ae3_lua_api_version(void);
-AE3_LUA_EXPORT Ae3LuaRuntime* ae3_lua_create(const Ae3LuaManagerV4* manager);
+AE3_LUA_EXPORT Ae3LuaRuntime* ae3_lua_create(const Ae3LuaManagerV5* manager);
 /* Returns 0 without destroying if Lua or a manager callback is executing.
  * Callers MUST NOT unload the host DLL or discard the handle after 0.
  */
 AE3_LUA_EXPORT int ae3_lua_destroy(Ae3LuaRuntime* runtime);
 AE3_LUA_EXPORT int ae3_lua_reset(Ae3LuaRuntime* runtime);
+/* Register one *actually implemented* original source Lua function before
+ * executing its stage chunk. Registration requires an original verified VA,
+ * a valid global name, and a live invoke_original_void manager. Never
+ * auto-register functions merely because a name appears in the ELF audit.
+ * Call fails on duplicate or built-in globals, invalid VA, or after execution.
+ */
+AE3_LUA_EXPORT int ae3_lua_register_original_void(
+    Ae3LuaRuntime* runtime, const char* original_name, uint32_t original_va);
 AE3_LUA_EXPORT int ae3_lua_execute_original_chunk(
     Ae3LuaRuntime* runtime, const void* bytes, size_t length,
     const char* original_chunk_path);
