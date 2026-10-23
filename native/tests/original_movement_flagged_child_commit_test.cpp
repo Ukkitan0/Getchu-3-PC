@@ -68,5 +68,46 @@ int main(){
     catch(const std::logic_error&){rejected=true;}
     assert(rejected && child2->originalWordAt(0xB4)==raw(0.5f) &&
            child2->originalWordAt(0xB8)==2u);
+    // Native recovery of the intermediate original 36FC14/36FBE4
+    // iteration: status += 1/8, flags are cleared, and the
+    // caller must invoke actual 36FC18 -> 36F8C8 afterward.
+    // Do not confuse this with a finished source f0 return.
+    auto originalPartial=ownedChild(0.5f,2u);
+    const OriginalMovementFlaggedInputs_36fb5c partialSource{
+        0x01FFF020u,raw(0.5f),2u,raw(0.5f),
+        {raw(2.0f),0u,0u,0u}};
+    const auto partial=originalMovementFlaggedPass_36fb5c(partialSource);
+    assert(partial.requiresOriginal36F8C8 &&
+           !partial.originalReturnF0Bits &&
+           partial.originalStatusA4AfterBits==raw(0.625f) &&
+           partial.originalRemainingF20Bits==raw(0.25f));
+    auto tampered=partial;
+    tampered.originalRemainingF20Bits=raw(0.125f);
+    rejected=false;
+    try {originalMovementCommitFlaggedIteration_36fb5c(
+        *originalPartial,partialSource,tampered);}
+    catch(const std::invalid_argument&){rejected=true;}
+    assert(rejected &&
+           originalPartial->originalWordAt(0xB4)==raw(0.5f) &&
+           originalPartial->originalWordAt(0xB8)==2u);
+    // Completed return paths may not be misused as a
+    // partial source 36FC18 regeneration, and vice versa.
+    rejected=false;
+    try {originalMovementCommitFlaggedIteration_36fb5c(
+        *originalPartial,in,pass);}
+    catch(const std::logic_error&){rejected=true;}
+    assert(rejected && originalPartial->originalWordAt(0xB4)==raw(0.5f));
+    originalMovementCommitFlaggedIteration_36fb5c(
+        *originalPartial,partialSource,partial);
+    assert(originalPartial->originalWordAt(0xB4)==raw(0.625f));
+    assert(originalPartial->originalWordAt(0xB8)==0u);
+    // A source pass from the previous 36FB70 iteration is stale
+    // after the genuine original status and flag writes.
+    rejected=false;
+    try {originalMovementCommitFlaggedIteration_36fb5c(
+        *originalPartial,partialSource,partial);}
+    catch(const std::invalid_argument&){rejected=true;}
+    assert(rejected);
+
     std::cout<<"ORIGINAL_36FB5C_OWNED_CHILD_COMMIT_PASSED\n";
 }
