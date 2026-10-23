@@ -58,9 +58,14 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
     if(fast) {
         step=*fast;
     } else {
-        const auto genuine=owner.read_original_flagged_vf1_36fb5c(
-            child,scaledRaw);
-        if(genuine && child.originalWordAt(0xB8)&2u) {
+        // Original 0x36FB5C branches to genuine 36F8C8 when
+        // source flag bit1 is clear. It must not request the
+        // previous VF1 from a game owner on that path.
+        const bool flagged=(child.originalWordAt(0xB8)&2u)!=0u;
+        const auto genuine=flagged
+            ? owner.read_original_flagged_vf1_36fb5c(child,scaledRaw)
+            : std::optional<OriginalMovementFlaggedInputs_36fb5c>{};
+        if(genuine) {
             // Verify the source original 36FB5C arguments are
             // THIS owned child's actual status/flags/scale.
             if(genuine->originalChildStatusA4Bits!=child.originalWordAt(0xB4) ||
