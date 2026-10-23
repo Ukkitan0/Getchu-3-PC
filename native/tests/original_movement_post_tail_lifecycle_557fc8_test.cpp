@@ -98,7 +98,7 @@ struct Owner final : OriginalMovementParentRead_557e30,
         const OriginalMovementChildD0_30c57c& c) override {
         assert(&c==active);return 0x01FFF020u;
     }
-    std::uint32_t call_original_30c0a0(
+    std::uint64_t call_original_30c0a0(
         std::uint32_t p,const std::array<std::uint32_t,4>& a1) override {
         assert(p==0x234000u);
         if(manager30c0==0) {
@@ -110,7 +110,7 @@ struct Owner final : OriginalMovementParentRead_557e30,
             // fabricated vector reconstructed from s3.
             assert(a1[0]==raw(1.0f));
         }
-        ++manager30c0;return 0x450000u;
+        ++manager30c0;return 0x12345678450000ull;
     }
     void call_original_276538(
         std::uint32_t p,const std::array<std::uint32_t,4>& s3) override {
@@ -126,8 +126,8 @@ struct Owner final : OriginalMovementParentRead_557e30,
         assert(p==0x234000u);return 0x880000u;
     }
     void call_original_314c44(
-        std::uint32_t a0,std::uint32_t a1,std::uint32_t a2) override {
-        assert(a0==0x880000u && a1==0x450000u && a2==2u);
+        std::uint32_t a0,std::uint64_t a1,std::uint32_t a2) override {
+        assert(a0==0x880000u && a1==0x12345678450000ull && a2==2u);
         ++updates;
     }
     void store_original_parent_float70(
