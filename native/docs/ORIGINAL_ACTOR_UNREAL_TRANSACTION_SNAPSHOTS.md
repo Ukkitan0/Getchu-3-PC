@@ -114,3 +114,20 @@ A second source-backed constructor fix now connects the existing
 This is a recovered source field transfer, **not** a complete Player/Monkey
 factory or `0x57C620` update loop. It neither invents the unported original
 animation/movement operations nor supplies a synthetic Unreal actor.
+
+### Constructor → initializer invariant
+
+The source-level `originalManagerInitialize_57bcb8` now requires the
+variant-one lifecycle's saved `controller20` SQ and the initializer's
+`controller20` to be **bit-identical** before executing original actor
+math. This is a native host ownership check: the genuine `0x57BAF8`
+constructor must already have provided the full 16-byte vector before
+source `0x57BCB8` executes. Missing or contradictory variant-one inputs
+reject without running the source RNG, projection or route effects.
+Variant-zero `0x57BA98` does not assert that its uninitialized +0x20
+field is meaningful.
+
+Both independent original initializer tests now supply the actual
+variant-one SQ explicitly. The Unreal C++ test also rejects both a
+missing source SQ and a one-byte-mismatched vector, preserving the
+previous source update method and game RNG cursor on failure.
