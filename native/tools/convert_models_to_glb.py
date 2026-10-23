@@ -21,7 +21,7 @@ MAX_BYTES=512*1024*1024
 
 def export_models(extracted: Path, output: Path, ae3: str = "ae3",
                   *, max_models=MAX_MODELS, animations=False, textures=None,
-                  runner=subprocess.run) -> dict:
+                  pack_texture_aliases=None, runner=subprocess.run) -> dict:
     extracted = extracted.resolve(strict=True)
     output = output.resolve()
     if not extracted.is_dir():
@@ -60,8 +60,16 @@ def export_models(extracted: Path, output: Path, ae3: str = "ae3",
             counts["already_converted"]+=1
             continue
         upgrading=expected.exists()
+        texroot = textures if textures is not None else extracted
+        # Original PCK identifiers have an archive index prefix. SDK glTF
+        # resolves textures by original material name, so only use the
+        # alias folder from this exact original pack, never another stage.
+        if pack_texture_aliases is not None and "pck_assets" in relative.parts:
+            texroot = Path(pack_texture_aliases).resolve() / relative.parent
+            if not any(texroot.glob("*.png")):
+                counts["models_without_verified_local_materials"] += 1
         command=[ae3,"gltf",str(source),"--out",str(destination),
-                 "--textures",str(textures if textures is not None else extracted)]
+                 "--textures",str(texroot)]
         if animations:
             # MIT ae3-sdk matches I3M named tracks to source skeletons
             # only when its independent match/coverage gates both pass.
