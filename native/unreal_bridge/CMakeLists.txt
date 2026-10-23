@@ -66,6 +66,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_routed_update_57c388.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_native_method_router.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_movement_57bf5c.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_movement_scratch_tail_36f6a8.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_tick_bridge_3161b8.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_controller_owner_base.cpp"
@@ -199,6 +200,17 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalControllerUpdate3161743161B8
     COMMAND Getchu3OriginalManager316174TickTests)
+
+  # Actual original 0x36F5F4 scratch-output scalar tail, limited
+  # to source caller 0x57C148 / original t0=0; VU0 arithmetic
+  # remains an explicitly unrecovered real owner dependency.
+  add_executable(Getchu3OriginalMovementScratchTailTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_scratch_tail_36f6a8_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_scratch_tail_36f6a8.cpp")
+  target_include_directories(Getchu3OriginalMovementScratchTailTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementScratchTail36F6A8
+    COMMAND Getchu3OriginalMovementScratchTailTests)
 
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
