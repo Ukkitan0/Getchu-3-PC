@@ -69,6 +69,9 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_nav_route.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_type2_target.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_random_triangle.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_actor_target_dispatch.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_vu0_geometry.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_spatial_support.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_ray_geometry.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_game_random.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_spatial_index.cpp")
