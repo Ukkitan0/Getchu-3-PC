@@ -56,6 +56,20 @@ int main() {
     try{(void)originalMovementRegenerate_36f8c8(src);}
     catch(const std::invalid_argument&){bad=true;}
     assert(bad);
+    // Genuine original 36F8EC LW t7,a0+0xA0 is sign-extended
+    // into a 64-bit EE register. Both canonical negative
+    // and wrongly zero-extended negative guest source pointers
+    // select an unported tagged/alternate instruction path.
+    src=sample();src.originalResourcePointerRegA0=0x81234000ull;
+    bad=false;
+    try{(void)originalMovementRegenerate_36f8c8(src);}
+    catch(const std::invalid_argument&){bad=true;}
+    assert(bad);
+    src=sample();src.originalResourcePointerRegA0=0xffffffff81234000ull;
+    bad=false;
+    try{(void)originalMovementRegenerate_36f8c8(src);}
+    catch(const std::invalid_argument&){bad=true;}
+    assert(bad);
     src=sample();src.originalChildScratchGuestVA=0x10001fff020ull;
     bad=false;
     try{(void)originalMovementRegenerate_36f8c8(src);}
