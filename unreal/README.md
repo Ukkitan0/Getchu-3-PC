@@ -165,3 +165,30 @@ versioned to v4 and the one-click Windows build runs the added
 damage/healing, bounds, preservation of unrelated original capture/shop
 bytes, and failed/no-op writes. As always, tests and actual UE5.6 Win64
 build remain unverified here.
+
+## Unreal asset-identity import hardening
+
+The source importer now preflights every original filename against the
+actual destination Unreal package path **before** issuing import tasks.
+Sanitization of unsupported characters is applied to
+`AssetImportTask.destination_name` (not merely calculated for a collision
+check), including genuine original I3C collision sources. Two source files
+that would collapse onto the same case-insensitive Unreal package cause
+a fail-closed import instead of silent overwrite.
+
+Unreal Interchange can ignore a requested destination name for some
+formats, so the source registry additionally checks the **actual UObject
+paths returned after import**. For GLBs, PNGs and WAVs it records only
+their primary SkeletalMesh/StaticMesh, Texture2D or SoundWave objects when
+the engine reports those types. Supporting/shared imported materials
+must not be mistaken for an original model or cause false model collisions.
+If an import yields no primary source object, the importer refuses to
+label that original file successfully imported.
+
+New synthetic importer tests cover sanitized names, package collisions
+detected before editor mutation, actual UObject alias collisions,
+primary-mesh extraction from shared materials, absence of primary meshes,
+and collision package aliases. The Unreal 5.6 importer has **not** been
+executed in this container, and those committed Python tests have not
+been run against a real Unreal Editor here. The gameplay Play button is
+unchanged and remains disabled until the genuine actor managers are ready.
