@@ -24,6 +24,7 @@ struct OriginalOwner : OriginalMovementNormalCalls_557ed8,
         0x700000u,1u,
         std::bit_cast<std::uint32_t>(3.0f),std::nullopt};
     std::uint32_t scaleRaw=0;
+    bool foreignOriginalVF1=false;
     int movementCallbacks=0,resourceReads=0,vf1Publications=0;
     std::array<std::uint32_t,4> lastVF1{};
     OriginalManagerResourceFields_317b9c
@@ -50,7 +51,7 @@ struct OriginalOwner : OriginalMovementNormalCalls_557ed8,
     OriginalResourceVU0Inputs_317b34
     read_original_resource_vu0_inputs(std::uint32_t va) override {
         assert(va==0x240000u);
-        return {0x240000u,
+        return {foreignOriginalVF1?0x250000u:0x240000u,
                 {std::bit_cast<std::uint32_t>(3.0f),
                  std::bit_cast<std::uint32_t>(4.0f),0,0},
                 std::bit_cast<std::uint32_t>(2.0f),
@@ -114,6 +115,14 @@ int main() {
     assert(owner.vf1Publications==1);
     assert(owner.lastVF1[0]==std::bit_cast<std::uint32_t>(25.0f));
     assert(owner.lastVF1[1]==std::bit_cast<std::uint32_t>(32.0f));
+    // A wrong retail parent must fail BEFORE publishing VF1
+    // or accessing the next original parent scale.
+    owner.foreignOriginalVF1=true;
+    bool foreignRejected=false;
+    try {(void)originalMovementMetricStep_557f34(*source,owner);}
+    catch(const std::invalid_argument&){foreignRejected=true;}
+    assert(foreignRejected && owner.vf1Publications==1);
+    owner.foreignOriginalVF1=false;
     // Missing true original +0x374 value cannot fall through.
     owner.floatFields.originalParentWord40=1;
     owner.floatFields.originalFloatAt374Bits.reset();
