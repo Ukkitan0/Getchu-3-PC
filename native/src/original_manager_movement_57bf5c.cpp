@@ -42,12 +42,14 @@ std::uint32_t originalManagerMovementUpdate_57bf5c(
             installOriginalNextMethod(controller,0x57C27C);
             return source.call_original_316174(controller,originalA1);
         }
-        // 0x57C120..0x57C15C; preserve the exact two separate
-        // 0x441F40 initializer calls before original 0x36F5F4 and
-        // original 0x30C57C child constructor.
+        // 0x57C128/0x57C130 call original 0x441F40 twice.
+        // Direct USA source audit: 0x441F40..0x441F70 is a true
+        // NO-OP with no original memory stores or observable
+        // stack-state changes. No callbacks or invented initial
+        // geometry are required for either call.
         OriginalMovementScratch_57bf5c scratch{};
-        source.call_original_441f40(scratch.sourceStack20);
-        source.call_original_441f40(scratch.sourceStack60);
+        // The true original 0x36F5F4 owner must populate any
+        // scratch bytes later consumed by 0x30C57C.
         source.call_original_36f5f4(scratch);
         void* created=source.call_original_30c57c(controller,scratch);
         // Retail 0x57C164 rereads child+0x10 after construction;
