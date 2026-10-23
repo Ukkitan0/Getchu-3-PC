@@ -18,6 +18,10 @@ struct Owner:OriginalMovementPostTailOwner_557fc8 {
     std::uint32_t publishedRatio{};
     bool diagFirst=false,diagSecond=false,failVF=false,failManager=false;
     bool expectSignExtendedParent=false;
+    bool useOriginal274988=false,missingLiveVF1=false;
+    int storedParent50=0,publishedVU0=0;
+    OriginalMovementNormalizeResult_274988 last274988{};
+    std::uint64_t lastParent50{};
     std::uint64_t read_original_child_scratch_guest_va_557fc8(
         const OriginalMovementChildD0_30c57c&) override {
         return 0x01FFF020u;
@@ -46,9 +50,36 @@ struct Owner:OriginalMovementPostTailOwner_557fc8 {
     }
     void call_original_276538(
         std::uint64_t p,const std::array<std::uint32_t,4>& originalS3) override {
+        if(useOriginal274988) {
+            OriginalMovementPostTailOwner_557fc8::call_original_276538(
+                p,originalS3);
+            return;
+        }
         assert(p==(expectSignExtendedParent?0xffffffff81234000ull:0x340000ull) &&
                originalS3[0]==raw(1.0f));
         calls.emplace_back("276538");
+    }
+    std::optional<std::array<std::uint32_t,4>>
+    read_original_live_vf1_before_274988(
+        std::uint64_t destination) override {
+        assert(destination==0x340050ull);
+        calls.emplace_back("read274988VF1");
+        if(missingLiveVF1)return std::nullopt;
+        return std::array<std::uint32_t,4>{
+            raw(1.0f),raw(2.0f),raw(3.0f),raw(4.0f)};
+    }
+    void publish_original_274988_vu0(
+        std::uint64_t destination,
+        const OriginalMovementNormalizeResult_274988& result) override {
+        assert(destination==0x340050ull);
+        calls.emplace_back("publish274988VF");
+        lastParent50=destination;
+        last274988=result;
+        ++publishedVU0;
+        // The original 2749D4 BC1F skips the 2749FC SQ
+        // to original 0(a0) when normalization is omitted.
+        if(result.originalPerformedNormalize)
+            ++storedParent50;
     }
     std::uint8_t read_original_6354e7() override {
         calls.emplace_back("6354e7");return diagFirst?1:0;
@@ -257,5 +288,48 @@ int main() {
     assert(refused && o.calls.empty() &&
            c->originalWordAt(0xB8)==3u);
 
+    // The now-native default 276538 -> 274988 path must
+    // preserve the real 128-bit stack value, read physical VF1,
+    // publish VF2/VF1 and write source parent+0x50 only after
+    // original 2749F8 VMULx if normalized.
+    o.calls.clear();
+    o.useOriginal274988=true;
+    o.expectSignExtendedParent=false;
+    o.missingLiveVF1=false;
+    o.call_original_276538(
+        0x340000ull,{raw(2.0f),0x7fc00001u,0u,raw(1.0f)});
+    assert(o.calls==std::vector<std::string>(
+        {"read274988VF1","publish274988VF"}) &&
+           o.publishedVU0==1 && o.storedParent50==1 &&
+           o.lastParent50==0x340050ull &&
+           o.last274988.originalPerformedNormalize &&
+           o.last274988.originalVF2Packed==
+              (std::array<std::uint32_t,4>{
+                raw(2.0f),0u,0u,raw(1.0f)}) &&
+           o.last274988.originalVF1After==
+              (std::array<std::uint32_t,4>{
+                raw(1.0f),0u,0u,raw(0.5f)}));
+    // The near-zero epsilon branch computes an intermediate
+    // live VF1, but DOES NOT execute original 2749FC SQ.
+    o.calls.clear();
+    o.call_original_276538(
+        0x340000ull,{0u,raw(64.0f),0u,raw(1.0f)});
+    assert(o.calls==std::vector<std::string>(
+        {"read274988VF1","publish274988VF"}) &&
+           o.publishedVU0==2 && o.storedParent50==1 &&
+           !o.last274988.originalPerformedNormalize &&
+           o.last274988.originalVF1BeforeThreshold[2]==raw(3.0f));
+    // The real physical VF1 is mandatory. The native wrapper
+    // cannot turn unknown VF1 values into invented zero lanes.
+    o.calls.clear();
+    o.missingLiveVF1=true;
+    refused=false;
+    try{o.call_original_276538(
+        0x340000ull,{raw(2.0f),0u,0u,raw(1.0f)});}
+    catch(const std::logic_error&){refused=true;}
+    assert(refused && o.calls==std::vector<std::string>(
+        {"read274988VF1"}) &&
+           o.publishedVU0==2 && o.storedParent50==1);
+    o.useOriginal274988=false;
     std::cout<<"ORIGINAL_POST_TAIL_557FC8_TO_558030_PASSED\n";
 }
