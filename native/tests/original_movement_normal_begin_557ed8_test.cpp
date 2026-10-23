@@ -49,7 +49,7 @@ struct Owner final:OriginalMovementNormalCalls_557ed8 {
         return fields;
     }
     std::uint64_t call_original_276b68(
-        std::uint64_t parentWord14,std::uint32_t resourceVA) override {
+        std::uint64_t parentWord14,std::uint64_t resourceVA) override {
         assert(parentWord14==expectedParentWord14);
         const auto expected=originalManagerSelectResource_317b9c(fields,2);
         assert(resourceVA==expected);
