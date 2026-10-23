@@ -78,6 +78,21 @@ if (-not $SkipSDKBootstrap) {
     }
     $env:PATH = (Join-Path $Venv "Scripts") + [IO.Path]::PathSeparator + $env:PATH
 }
+# Importer regressions are mandatory. A source build must not pass while the
+# ISO extractor/media adapters reject all valid input or accept fake game data.
+$TestPython = if (Test-Path -LiteralPath (Join-Path $Repo ".getchu3\ae3sdk-venv\Scripts\python.exe")) {
+    Join-Path $Repo ".getchu3\ae3sdk-venv\Scripts\python.exe"
+} elseif (Get-Command py -ErrorAction SilentlyContinue) {
+    "py"
+} elseif (Get-Command python -ErrorAction SilentlyContinue) {
+    "python"
+} else {
+    throw "Python 3 is required for original ISO importer verification."
+}
+$PyPrefix = if ($TestPython -eq "py") { @("-3") } else { @() }
+MustRun $TestPython ($PyPrefix + @("-m", "unittest", "discover", "-s",
+                                  (Join-Path $UnrealDir "tests"), "-v")) `
+    "Original ISO/asset/Lua binding importer regressions failed"
 
 MustRun "cmake" @("-S", $Native, "-B", $BuildDir, "-G", "Visual Studio 17 2022",
                   "-A", "x64") "Native Lua 5.0 bridge configuration failed"
