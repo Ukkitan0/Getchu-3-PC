@@ -195,19 +195,60 @@ Its source-opcode fingerprint
 `b24dbd9ee6c08d78397e803f4e25b1591b95f2b735215ae7f115e66dffed1840`
 was checked against the user's genuine USA ELF.
 
+### Follow-up source VU0 register outputs
+
+The separate
+`originalMovementVU0VectorFrame_36f5f4`
+native path now recovers the ordinary-float branch and
+register outputs **after** source `0x36F640`.
+
+The exact first `C.OLT.S` test compares VF1.x against
+1.0f. When true, original `0x36F64C` places 0.5f in
+VF1.x, the source `VMULx` pair scales original VF3
+(A1) and VF6 (A3), and the source `VADD.xyzw` places
+their midpoint in VF4. When false, VF4 retains genuine
+A2. These results are returned only for ordinary finite
+original vector lanes.
+
+Original `0x36F660` zeroes t5; the two actual
+`PPACW` operations at `0x36F668/0x36F66C`
+produce zero t6 for `0x36F674` QMTC2 VF7.
+Original `0x36F67C/0x36F684/0x36F68C`
+then execute the source operations:
+
+- VF3 = VF4 - original A1
+- VF1 = original A3 - VF4
+- VF2 = VF7(0) - original A3
+
+This is the recovered 128-bit **source register output**,
+not a guessed Unreal transform or movement animation.
+All four XYZ/W lanes are checked on this path, unlike the
+scalar-only norm helper that consumes XYZ.
+
+The new native CTest
+`OriginalMovementVU0SourceVectors36F5F4`
+covers both exact source VF4 branches, VF1/VF2/VF3
+outputs and invalid original W-lane refusal. Local
+GCC and Clang C++20 UndefinedBehaviorSanitizer tests
+passed. The source verifier now pins these additional
+MMI, COP2 transfer and vector opcodes against the
+actual USA ELF.
+
 ### Remaining original VU0 work
 
-The full function is still **not** completely recovered.
-Its `0x36F64C..0x36F65C` vector-changing branch and
-`0x36F668..0x36F68C` VF3/VF4/VF5 outputs are not
-represented by the scalar helper. The alternative
-cross-entry paths and hardware-specific rounding,
-overflow, status/MAC flags and source actor ownership
-need further recovery.
+The **first-return path** has substantially more of its
+VU0 scalar and vector arithmetic recovered, but the
+original function is still not fully integrated into
+a persistent actor game owner. Alternative cross-entry
+paths, the original branch-specific hardware rounding,
+overflow/underflow and VU0 status/MAC flags, and authentic
+source input register ownership need further verification.
+The native implementation refuses unsupported source
+floating-point classes rather than assuming that host
+IEEE-754 handling matches hardware.
 
 The real original `0x36F5F4` engine callback is
-therefore **not automatically replaced** by the scalar
-helper in the live movement-owner path; doing so would
-silently invent the remaining VU0 side effects.
-Only complete and properly sourced actor callbacks
-should drive the real game.
+therefore **not automatically replaced** in the live
+movement-owner path. It would be incorrect to claim a
+complete actor update while those remaining original
+side effects and game-owner dependencies are absent.
