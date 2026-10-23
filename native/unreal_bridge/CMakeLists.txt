@@ -70,6 +70,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_vu0_scalar_36f5f4.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_tick_bridge_3161b8.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_controller_owner_base.cpp"
@@ -281,12 +282,43 @@ if(BUILD_TESTING)
   add_executable(Getchu3OriginalMovementChildLifecycleTests
     "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_child_lifecycle_557e30_test.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp")
   target_include_directories(Getchu3OriginalMovementChildLifecycleTests
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalMovementChildLifecycle557E30
     COMMAND Getchu3OriginalMovementChildLifecycleTests)
+
+  # Genuine 0x36F954 fast exit in a NORMAL zero-flag child
+  # slot5 update: source child+B4 >=1.0 at f12=2.0 ->
+  # 0x557E30 status2 -> 0x3161B8 actual child destructor.
+  add_executable(Getchu3OriginalNormalChildCompletion36F954Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_child_early_36f954_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp")
+  target_include_directories(Getchu3OriginalNormalChildCompletion36F954Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalNormalChildCompletion36F954
+    COMMAND Getchu3OriginalNormalChildCompletion36F954Tests)
+
+  # Complete source chain: retail VU0 vector inputs, scalar result,
+  # source scratch status, actual 30C57C data initialization,
+  # zero-flag 557E30 completion and true 3161B8 child deletion.
+  add_executable(Getchu3OriginalNormalVUChildChainTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_normal_vu_child_chain_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_vu0_scalar_36f5f4.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_scratch_tail_36f6a8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp")
+  target_include_directories(Getchu3OriginalNormalVUChildChainTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalNormalMovementVUChildLifecycle
+    COMMAND Getchu3OriginalNormalVUChildChainTests)
 
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
