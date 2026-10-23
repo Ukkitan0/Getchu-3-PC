@@ -274,12 +274,12 @@ static int originalNearestSourceImpl(
                 grid.stepY14=realGrid->original_step_y14;
                 grid.dimensionX18=realGrid->original_dimension_x18;
                 grid.dimensionY1c=realGrid->original_dimension_y1c;
-                grid.cellOffsets50={
+                grid.cellOffsets50=std::span<const std::uint16_t>(
                     realGrid->original_cell_offsets50,
-                    realGrid->original_cell_offset_count};
-                grid.hitBuffer08={
+                    realGrid->original_cell_offset_count);
+                grid.hitBuffer08=std::span<const std::uint16_t>(
                     realGrid->original_hit_pool08,
-                    realGrid->original_hit_pool_count};
+                    realGrid->original_hit_pool_count);
                 generatedHits=ae3::originalSpatialGridLookup_4e3c14(
                     grid,realGrid->original_resolved_x,
                     realGrid->original_resolved_y);
