@@ -55,6 +55,60 @@ int main() {
                session,&request,&result)==1);
     assert(result.original_polygon_index==0);
 
+    // The complete original 0x4E3C14 grid lookup is recovered and
+    // must drive 0x21D898 with original source cell offsets/pool.
+    // No caller-generated hit list is allowed to influence this path.
+    const std::array<std::uint16_t,2> sourceCellOffsets{0,4};
+    const std::array<std::uint16_t,8> sourceHitPool{
+        2,1,2,0, 1,0,0,0
+    };
+    Ae3OriginalGridNearestSourceV1 grid{};
+    grid.original=request;
+    grid.original.original_hit_indices=nullptr;
+    grid.original.original_hit_count=0;
+    grid.original_origin_x00=0;
+    grid.original_origin_y04=0;
+    grid.original_step_x10=1;
+    grid.original_step_y14=1;
+    grid.original_dimension_x18=2;
+    grid.original_dimension_y1c=1;
+    grid.original_cell_offsets50=sourceCellOffsets.data();
+    grid.original_cell_offset_count=sourceCellOffsets.size();
+    grid.original_hit_pool08=sourceHitPool.data();
+    grid.original_hit_pool_count=sourceHitPool.size();
+    grid.original_resolved_x=0;
+    grid.original_resolved_y=0;
+    result.original_polygon_index=123;
+    assert(ae3_original_polygon_nearest_grid_4e3c14_21d898(
+               session,&grid,&result)==1);
+    assert(result.original_polygon_index==2);
+    grid.original_resolved_x=1;
+    assert(ae3_original_polygon_nearest_grid_4e3c14_21d898(
+               session,&grid,&result)==1);
+    assert(result.original_polygon_index==0);
+
+    // The grid adapter uses genuine +0x50 cell offsets. A bad offset,
+    // absent cell metadata, malformed cell count or nonfinite source
+    // scalar must not publish a false nearest actor polygon.
+    std::array<std::uint16_t,2> invalidOffsets=sourceCellOffsets;
+    invalidOffsets[0]=65535;
+    grid.original_cell_offsets50=invalidOffsets.data();
+    grid.original_resolved_x=0;
+    result.original_polygon_index=123;
+    assert(ae3_original_polygon_nearest_grid_4e3c14_21d898(
+               session,&grid,&result)==0);
+    assert(result.original_polygon_index==123);
+    grid.original_cell_offsets50=sourceCellOffsets.data();
+    grid.original_cell_offset_count=1;
+    assert(ae3_original_polygon_nearest_grid_4e3c14_21d898(
+               session,&grid,&result)==0);
+    assert(result.original_polygon_index==123);
+    grid.original_cell_offset_count=sourceCellOffsets.size();
+    grid.original_resolved_x=std::numeric_limits<float>::quiet_NaN();
+    assert(ae3_original_polygon_nearest_grid_4e3c14_21d898(
+               session,&grid,&result)==0);
+    assert(result.original_polygon_index==123);
+
     // Original eligibility rejects the distant polygon, even when it
     // is the ONLY returned candidate (unlike the full-registry path).
     request.original_hit_count=1;
