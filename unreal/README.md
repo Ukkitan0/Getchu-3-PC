@@ -38,7 +38,7 @@ No successful Unreal Editor build or original-game execution is claimed.
 
 ## Requirements and usage
 
-Windows, Unreal Engine **5.6**, supported C++ toolchain and the owner's SHA-verified USA ISO. `PythonScriptPlugin` and `Interchange` are enabled. For model import, a separately installed [pxdl/ae3-sdk](https://github.com/pxdl/ae3-sdk) CLI must provide `ae3` on PATH. Unreal's embedded Editor Python can run the extraction scripts without separate Python installation.
+Windows, Unreal Engine **5.6**, supported C++ toolchain, **Python 3.10 or later**, and the owner's SHA-verified USA ISO. `PythonScriptPlugin` and `Interchange` are enabled. For model import, a separately installed [pxdl/ae3-sdk](https://github.com/pxdl/ae3-sdk) CLI must provide `ae3` on PATH. Unreal's embedded Editor Python can run the extraction scripts without separate Python installation.
 
 Open `Getchu3.uproject`, build the Editor plugin if the editor prompts, then select Tools → **Ape Escape 3 — Unreal Importer**. Drag/drop or browse for an owned ISO; choose **Import Original ISO**. The editor remains occupied while assets are imported. Each attempt uses a new private workspace so retries do not overwrite original data.
 
