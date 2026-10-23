@@ -119,14 +119,14 @@ void requireManagerSuccess(int accepted, const char* operation) {
 } // namespace
 
 struct Ae3LuaRuntime {
-    Ae3LuaManagerV3 callbacks{};
+    Ae3LuaManagerV4 callbacks{};
     ae3::NativeStageWorld stageWorld;
     std::optional<ae3::PlayerProgress> sourceProgress;
     std::unique_ptr<ae3::LuaStage> stage;
     std::string error;
     bool busy = false;
 
-    explicit Ae3LuaRuntime(const Ae3LuaManagerV3& input) : callbacks(input) {
+    explicit Ae3LuaRuntime(const Ae3LuaManagerV4& input) : callbacks(input) {
         resetStage();
     }
     void resetStage() {
@@ -234,9 +234,9 @@ int callSafely(Ae3LuaRuntime* runtime, Action&& action) noexcept {
 extern "C" uint32_t ae3_lua_api_version(void) {
     return AE3_LUA_BRIDGE_API_VERSION;
 }
-extern "C" Ae3LuaRuntime* ae3_lua_create(const Ae3LuaManagerV3* manager) {
+extern "C" Ae3LuaRuntime* ae3_lua_create(const Ae3LuaManagerV4* manager) {
     if (!manager || manager->api_version != AE3_LUA_BRIDGE_API_VERSION ||
-        manager->struct_size != sizeof(Ae3LuaManagerV3))
+        manager->struct_size != sizeof(Ae3LuaManagerV4))
         return nullptr;
     // Original stage gameplay requires a real actor AND parameter manager.
     // A stub accepting records would be a false gameplay implementation.
@@ -289,6 +289,31 @@ extern "C" int ae3_lua_setup_area(Ae3LuaRuntime* runtime,
         if (!original_spawn_tag || !*original_spawn_tag)
             throw std::invalid_argument("missing source-backed spawn tag");
         runtime->stage->callSetupArea(original_spawn_tag);
+    });
+}
+extern "C" int ae3_lua_apply_original_health_delta(
+    Ae3LuaRuntime* runtime, float delta, float* out_health) {
+    return callSafely(runtime, [&] {
+        if (!out_health || !std::isfinite(delta))
+            throw std::invalid_argument("invalid original ChangeHP delta or output");
+        if (!runtime->callbacks.read_original_player_progress ||
+            !runtime->callbacks.write_original_player_progress)
+            throw std::runtime_error(
+                "original ChangeHP requires source-backed player read and atomic write managers");
+        ae3::PlayerProgress original{};
+        if (runtime->callbacks.read_original_player_progress(
+                runtime->callbacks.user, &original, sizeof(original)) != 1)
+            throw std::runtime_error("original player progress could not be read");
+        if (!std::isfinite(original.player_life))
+            throw std::runtime_error("original player life is not finite");
+        const float changed = ae3::changePlayerHealth(original, delta);
+        if (runtime->callbacks.write_original_player_progress(
+                runtime->callbacks.user, &original, sizeof(original)) != 1)
+            throw std::runtime_error("original player progress write was rejected");
+        // Existing LuaStage may retain a pointer to this OPTIONAL saved
+        // source state. Update in-place only after the manager commits.
+        if (runtime->sourceProgress) *runtime->sourceProgress = original;
+        *out_health = changed;
     });
 }
 extern "C" const char* ae3_lua_last_error(const Ae3LuaRuntime* runtime) {
