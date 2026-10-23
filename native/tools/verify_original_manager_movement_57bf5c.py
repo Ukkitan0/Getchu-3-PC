@@ -59,6 +59,22 @@ def verify(path):
     original_next_method=load_segment(data,0x708A48,8)
     if original_next_method!=struct.pack("<II",0x57C388,0):
         raise ValueError("source 0x708A48 controller update pair changed")
+    if load_segment(data,0x708A38,8)!=struct.pack("<II",0x57C48C,0):
+        raise ValueError("source 0x708A38 routed controller update pair changed")
+    # Distinct two original source-method ownership transitions:
+    # 0x57C27C publishes 0x57C388; 0x57C388 publishes 0x57C48C.
+    for pc,op in {
+        0x57C2A8:0x0C0C5DAB,  # 0x3176AC
+        0x57C2C4:0x0C0C3075,  # 0x30C1D4
+        0x57C2FC:0x0C0C586E,  # 0x3161B8
+        0x57C338:0x0C0C585D,  # 0x316174
+        0x57C3D0:0x0C15F1F3,  # 0x57C7CC
+        0x57C3EC:0x0C0C3087,  # 0x30C21C
+        0x57C424:0x0C0C586E,  # 0x3161B8
+        0x57C45C:0x0C0C585D,  # 0x316174
+    }.items():
+        if struct.unpack("<I",load_segment(data,pc,4))[0]!=op:
+            raise ValueError("original method-transition JAL changed "+hex(pc))
     # Distinct source function prologues; the previous 382-word
     # region audit mistakenly combined these as one method.
     for pc,opcode in {
