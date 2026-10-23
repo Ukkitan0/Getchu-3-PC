@@ -14,6 +14,12 @@ public:
             return originals_.realOwner.call_original_direct_57c7ac(
                 methodVA,sourceThisOffset);
         switch(methodVA) {
+        case 0x57BF5C:
+            if (originals_.movement)
+                return originalManagerMovementUpdate_57bf5c(
+                    controller_,a1_,*originals_.movement);
+            return originals_.realOwner.call_original_direct_57c7ac(
+                methodVA,sourceThisOffset);
         case 0x57C27C:
             return originalManagerRouteChildUpdate_57c27c(
                 controller_,a1_,originals_.routeChild);
