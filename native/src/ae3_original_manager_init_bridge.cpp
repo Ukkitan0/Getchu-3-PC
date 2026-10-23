@@ -230,6 +230,16 @@ static int originalManagerInitImpl(
         child.word0c = initial.source_method0c;
         child.flag1c = initial.source_flag1c;
         child.alternative30 = initial.source_alternative30;
+        // When the genuine variant-one 0x57BAF8 constructor preceded
+        // 0x57BCB8, source SQ wrote the COMPLETE controller +0x20 value.
+        // Preserve this exact owner-provided vector in the typed child.
+        // Variant-zero 0x57BA98 must not claim any such source write.
+        if (child.alternative30) {
+            std::array<std::byte,16> originalController20{};
+            static_assert(sizeof(initial.controller20)==16);
+            std::memcpy(originalController20.data(),&initial.controller20,16);
+            child.controller20=originalController20;
+        }
         ae3::OriginalManagerInitState_57bcb8 sourceState{
             child, native(initial.controller20), native(initial.target40),
             nullptr, native(initial.midpoint60)
