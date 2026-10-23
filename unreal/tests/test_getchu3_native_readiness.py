@@ -143,6 +143,40 @@ class NativeReadinessTests(unittest.TestCase):
                     readiness.build_original_native_readiness(
                         original_catalog(), evidence, original_registry(), self.output)
 
+    def test_independent_stages_cannot_inherit_other_stage_callbacks(self):
+        catalog = original_catalog()
+        catalog["stages"].append({"stage": "toy_c", "area_lua_sources": [],
+                                  "translation_only_associations": []})
+        registry = original_registry()
+        registry["original_stages"].append({
+            "stage": "toy_c", "resolved_source_placements": []})
+        evidence = original_elf_evidence()
+        evidence["original_stage_inputs"].append({
+            "path": "toy_c/area.luc",
+            "direct_global_calls": ["different_native"],
+            "observed_actor_class_literals": ["toy_monkey"],
+            "observed_controller_command_literals": ["jump"]})
+        result = readiness.build_original_native_readiness(
+            catalog, evidence, registry, self.output)
+        self.assertEqual(result["stage_count"], 2)
+        toy, woods = result["stages"]
+        self.assertEqual(toy["original_stage"], "toy_c")
+        self.assertEqual(toy["original_actor_classes_seen"], ["toy_monkey"])
+        self.assertEqual(toy["unresolved_original_calls"],
+                         [{"name": "different_native",
+                           "reason": "not_in_elf_reconciliation"}])
+        self.assertEqual(woods["original_stage"], "woods_c")
+        self.assertEqual(woods["original_controller_commands_seen"], ["run"])
+        self.assertNotIn("different_native", woods["direct_global_calls_observed"])
+
+    def test_missing_verified_evidence_cannot_produce_native_ready_report(self):
+        evidence = original_elf_evidence()
+        evidence["schema"] = "unverified"
+        with self.assertRaisesRegex(ValueError, "verified USA ELF"):
+            readiness.build_original_native_readiness(
+                original_catalog(), evidence, original_registry(), self.output)
+        self.assertFalse(self.output.exists())
+
     def test_no_calls_still_does_not_claim_original_gameplay(self):
         evidence = original_elf_evidence()
         evidence["original_stage_inputs"] = [
