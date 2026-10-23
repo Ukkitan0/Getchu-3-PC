@@ -24,8 +24,10 @@ public:
     // ONLY when child+B4 is strictly less than 1.0f.
     virtual std::uint32_t read_original_parent_word1c(
         std::uint32_t originalParentGuestVA)=0;
+    // Original 558054 LW a0,parent+0x1C sign-extends to
+    // 64-bit EE a0 even though the source memory word is 32-bit.
     virtual void call_original_314c44(
-        std::uint32_t originalParentWord1C,
+        std::uint64_t originalParentWord1CSignExtended,
         std::uint64_t originalS5From30C0A0,
         std::uint32_t originalChildModeByte09)=0;
     // 0x55806C SWC1 parent+0x70 is the return branch delay slot.
