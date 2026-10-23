@@ -13,6 +13,12 @@ struct OriginalOwner {
     int destroyDuringBegin=-1,destroyDuringStage=-1,
         destroyDuringCommit=-1,destroyDuringAbort=-1;
     bool allowBegin=true,allowStage=true,allowCommit=true;
+    // Real host Begin callbacks can synchronously mutate caller-owned buffers.
+    // The route invocation must use its pre-Begin original source snapshot.
+    bool mutateSourceBeforeStage=false;
+    Ae3OriginalRouteSourceV3* mutableSource=nullptr;
+    uint16_t* mutableCounts=nullptr;
+    uint8_t* mutablePolygon=nullptr;
     bool inTransaction=false;
     unsigned begins=0,stages=0,commits=0,aborts=0;
     uint64_t pendingLow=0,pendingHigh=0,lastLow=0,lastHigh=0;
@@ -26,6 +32,12 @@ int begin(void* opaque) {
         owner.destroyDuringBegin=ae3_original_manager_init_destroy(
             owner.activeSession);
     owner.inTransaction=true;
+    if (owner.mutateSourceBeforeStage) {
+        assert(owner.mutableSource && owner.mutableCounts && owner.mutablePolygon);
+        owner.mutableSource->original_controller20={90,0,90,1};
+        owner.mutableCounts[0]=4; // an invalid replacement point descriptor
+        std::memset(owner.mutablePolygon+0x40,0,3*sizeof(Ae3OriginalVec4));
+    }
     return owner.allowBegin;
 }
 int stage(void* opaque,uint32_t polygon,uint64_t low,uint64_t high,uint32_t r) {
@@ -116,6 +128,23 @@ int main() {
     std::memcpy(&expectedLow,xy.data(),8);
     std::memcpy(&expectedHigh,zw.data(),8);
     assert(owner.lastLow==expectedLow&&owner.lastHigh==expectedHigh);
+
+    // Begin must not change the original route computation halfway through
+    // a transaction. It is allowed to touch caller buffers, but the native
+    // invocation must retain the already validated stage source snapshot.
+    const auto initialPolygon=polygon;
+    const auto initialController=source.original_controller20;
+    owner.mutableSource=&source;
+    owner.mutableCounts=counts.data();
+    owner.mutablePolygon=polygon.data();
+    owner.mutateSourceBeforeStage=true;
+    assert(ae3_original_actor_route_step_v3(a,&source,&callbacks,&result)==1);
+    assert(owner.lastLow==expectedLow && owner.lastHigh==expectedHigh);
+    assert(counts[0]==4 && source.original_controller20.x==90);
+    owner.mutateSourceBeforeStage=false;
+    polygon=initialPolygon;
+    source.original_controller20=initialController;
+    counts[0]=3;
 
     // Original 0x57C98C triangle result lives in GPR HIGH64.
     source.original_controller_variant30=0;
