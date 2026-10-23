@@ -640,3 +640,51 @@ remaining iterative movement/real collision, original
 557F54+ animation/actor state, and persistent
 playable Player/Monkey. Detailed reconstruction:
 `native/docs/ORIGINAL_MOVEMENT_REGENERATION_36F8C8.md`.
+
+
+### Original 557F54–558084 post-movement path recovered (USA source-verified)
+
+Additional original player/actor child slot5 behavior was translated
+from four complete pinned USA executable windows totaling **111
+original MIPS instructions**:
+
+- `0x557F54..0x557FC8` (29 words): genuine VF1/VF2
+  normalization via VRSQRT/VMULq, full 128-bit EE s3
+  preservation, original <0.95 early status1
+- `0x557FC8..0x558030` (26 words): original bit0
+  state gate, packed full 128-bit POR arguments to
+  source `0x30C0A0` and `0x276538`,
+  short-circuit BSS diagnostic gate, and 0x558030 handoff
+- `0x36F83C..0x36F8C8` (35 words): identical
+  source VU0/PPACW polynomial as 0x36F8C8, but
+  original scratch flags `|=1`, with owned child B8 update
+- `0x558030..0x558084` (21 words): terminal
+  original `f21/f20` parent+0x70 store/status2,
+  or original `0x314C44` dispatch/status0
+
+The native original `0x557E30` controller now has an optional
+**full source post-tail owner** which can execute the recovered
+`0x557FC8` original manager call *sequence* after VF output
+publication. The pre-existing explicit `0x558030` continuation
+interface remains available, preserving concurrent integration.
+Source controller `0x3161B8` still retains a child on status0
+and deletes it on status1/2.
+
+GCC and Clang C++20 UndefinedBehaviorSanitizer isolated tests passed
+for the new source functions; source window fingerprints were checked
+against the genuine private ELF. CMake registers
+`OriginalMovementPostStep558030`,
+`OriginalMovementPostVector557F54`,
+`OriginalMovementPostVectorLifecycle557F54`,
+`OriginalMovementRegenerateFlag036F83C`,
+`OriginalMovementPostTail557FC8`, and
+`OriginalMovementPostTailLifecycle557FC8`.
+
+**Source-owner methods not yet decompiled/integrated:**
+`0x30C0A0`, `0x276538`, `0x314C44`,
+diagnostic `0x36FC28` and their collision/
+stage-animation dependencies. The full Windows/Unreal binary
+and playable game are **not** established.
+
+See `native/docs/ORIGINAL_MOVEMENT_POST_TAIL_557FC8.md`
+and `native/docs/ORIGINAL_MOVEMENT_POST_UPDATE_557F54_558030.md`.
