@@ -182,6 +182,15 @@ if(BUILD_TESTING)
   add_test(NAME OriginalActorTarget57C8ECNativeFastAndRandom
     COMMAND Getchu3OriginalActorTargetAbiTests)
 
+  add_executable(Getchu3OriginalRouteNativeTargetV3Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_route_native_target_v3_test.cpp")
+  target_include_directories(Getchu3OriginalRouteNativeTargetV3Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  target_link_libraries(Getchu3OriginalRouteNativeTargetV3Tests
+    PRIVATE Getchu3OriginalLuaBridge)
+  add_test(NAME OriginalRoute57C7CCTarget57C8ECNativeCommit
+    COMMAND Getchu3OriginalRouteNativeTargetV3Tests)
+
   add_executable(Getchu3OriginalHealthBridgeTests
     "${ORIGINAL_NATIVE_ROOT}/tests/ae3_unreal_health_bridge_test.cpp")
   target_include_directories(Getchu3OriginalHealthBridgeTests
