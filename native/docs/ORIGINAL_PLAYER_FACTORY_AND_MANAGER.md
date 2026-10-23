@@ -454,3 +454,24 @@ operand ownership into this VU0 function, PS2 hardware-specific
 edge-case behavior, other 0x36F5F4 entry branches, real
 0x30C57C child vtable/lifetime, original animation and
 complete Player/Monkey stage/game runtime.
+
+
+### Original child source-state provenance and flag-driven lifetime
+
+The original 0x36F5F4 first-return VU0 calculations now preserve
+VF1 through VF7 and publish only their **proven** source scratch
+writes (+0xA0..+0xAF). The 0x30C57C original 0xD0-byte child
+constructor now has a provenance-aware source-copy overload,
+preventing the 0xB0 copied bytes of unknown original stack
+state from appearing as invented zero-valued actor data.
+
+The original child vtable **0x6B0B20**, its slot5
+**0x557E30** and deleting destructor slot1 **0x556A0C**
+were independently recovered from the pinned USA ELF.
+The native child lifecycle supports the exact original
+bit0/bit1 completion status1, required parent+0x14
+delay-slot read, and original 0x3161B8 controller status
+publication and source child deletion. Other original
+0x557EB4+ normal gameplay branches remain deliberately
+unimplemented, as do the live persistent Player/Monkey
+owner and full native game loop.
