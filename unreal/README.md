@@ -276,3 +276,33 @@ update actors in a playable stage. No Player or Monkey instance is
 invented, and gameplay remains unavailable. These Win64 tests have not
 been executed here; the source/integration consistency review passes,
 but UE5.6 Editor compilation and genuine ISO execution remain unverified.
+
+## Original actor route controller now runs recovered 0x57C7CC code
+
+The native Unreal DLL now compiles and exports the **actual recovered
+source 0x57C7CC route follower**. The public
+ae3_original_actor_route_step receives genuine decoded owner-stage
+0x70-byte source polygons, actor/target polygon indexes, original route
+entries, and the source controller's branch flag. It performs the
+original single-polygon fallback, matching-target early return, and
+source route[1..] advance/update order, returning the actual original
+target ID. Only original 0x4C1B3C polygon projection and 0x57C8EC
+target-update effects require the real actor-owner callback.
+
+More importantly, ae3_original_manager_init_step_v2 now connects
+0x57BCB8 to the recovered 0x57C7CC function directly, rather than
+delegating that entire part of initialization to an opaque manager.
+The old ae3_original_manager_init_step entry point remains available
+for native compatibility. The versioned initializer requires real
+original 0x21B854, 0x4C1B3C and 0x57C8EC operations and refuses
+unimplemented ones; it does not synthesize a Player or Monkey.
+
+The Windows one-click native build now includes the test
+OriginalActorRoute57C7CCHostAbi and expanded
+OriginalManagerInitializerHostAbi tests. They cover source route
+ordering, current-target equality, missing original callbacks,
+invalid target indexes, owner update rejection, and the new integrated
+one- and two-polygon initializer paths. **The tests have been committed
+but not executed on Windows in this environment**. Unreal game-manager
+lifetime, real actor construction and runtime tick integration are
+still unfinished, and the game remains unplayable.
