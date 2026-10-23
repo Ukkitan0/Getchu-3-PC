@@ -345,6 +345,81 @@ extern "C" int ae3_original_stage_spatial_nearest_grid_21d898(
     return originalMountedSpatialNearestImpl(session,grid,query,output);
 }
 
+/* Only genuine 0x21D46C source descriptors are returned to the
+ * actor owner. No action type is interpreted as an invented spawn.
+ */
+extern "C" int ae3_original_stage_spatial_pending_action_count(
+    Ae3OriginalManagerInitSession* session,size_t* outCount) {
+    if (!session) return 0;
+    if (session->busy) {
+        session->error="reentrant original stage action enumeration refused";
+        return 0;
+    }
+    session->busy=true;
+    int success=0;
+    try {
+        if (!session->stageSpatial || !outCount)
+            throw std::invalid_argument(
+                "source stage mount and action count output are required");
+        *outCount=session->stageSpatial->pendingOriginalActions.size();
+        session->error.clear();
+        success=1;
+    } catch (const std::exception& ex) {
+        session->error=ex.what();
+    } catch (...) {
+        session->error="unknown original stage action count failure";
+    }
+    session->busy=false;
+    return success;
+}
+extern "C" int ae3_original_stage_spatial_pending_actions(
+    Ae3OriginalManagerInitSession* session,
+    Ae3OriginalStagePendingActionV1* output,
+    size_t capacity,size_t* outCount) {
+    if (!session) return 0;
+    if (session->busy) {
+        session->error="reentrant original stage action read refused";
+        return 0;
+    }
+    session->busy=true;
+    int success=0;
+    try {
+        if (!session->stageSpatial || !outCount)
+            throw std::invalid_argument(
+                "source stage mount and action array count output are required");
+        const auto& pending=session->stageSpatial->pendingOriginalActions;
+        if (capacity<pending.size() || (!output && !pending.empty()))
+            throw std::out_of_range(
+                "original stage action output capacity is too small");
+        // Validate the complete source batch before publishing ANY output,
+        // preserving source record/slot/type/argument identities.
+        std::vector<Ae3OriginalStagePendingActionV1> staged;
+        staged.reserve(pending.size());
+        for (const auto& action:pending) {
+            if (action.sourceRecordIndex>=
+                    session->stageSpatial->records.size() ||
+                action.actionIndex>=3 ||
+                (action.type!=1 && action.type!=2))
+                throw std::out_of_range(
+                    "invalid original 0x21D46C pending action descriptor");
+            staged.push_back({action.sourceRecordIndex,
+                action.actionIndex,action.type,action.argument,0});
+        }
+        if (!staged.empty())
+            std::memcpy(output,staged.data(),
+                staged.size()*sizeof(Ae3OriginalStagePendingActionV1));
+        *outCount=staged.size();
+        session->error.clear();
+        success=1;
+    } catch (const std::exception& ex) {
+        session->error=ex.what();
+    } catch (...) {
+        session->error="unknown original stage action batch read failure";
+    }
+    session->busy=false;
+    return success;
+}
+
 /* Expose the actually recovered 0x21D898/0x21DA2C original selectors,
  * not an Unreal nearest-point substitute. 0x4E3C14 candidate generation
  * is separate and its genuine u16 output must be supplied by the owner.
