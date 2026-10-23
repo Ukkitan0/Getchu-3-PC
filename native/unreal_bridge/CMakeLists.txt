@@ -13,7 +13,13 @@ FetchContent_Declare(Getchu3Lua503
   URL_HASH "SHA256=1193a61b0e08acaa6eee0eecf29709179ee49c71baebc59b682a25c3b5a45671"
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
-FetchContent_MakeAvailable(Getchu3Lua503)
+# Lua 5.0.3 ships no CMakeLists.txt. FetchContent_MakeAvailable would
+# attempt add_subdirectory on a non-CMake upstream archive on some CMake
+# versions. Populate the verified tarball, then compile its C sources here.
+FetchContent_GetProperties(Getchu3Lua503)
+if(NOT getchu3lua503_POPULATED)
+  FetchContent_Populate(Getchu3Lua503)
+endif()
 set(LUA503_CORE
   lapi lcode ldebug ldo ldump lfunc lgc llex lmem lobject
   lopcodes lparser lstate lstring ltable ltm lundump lvm lzio
