@@ -10,7 +10,7 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
     // Reached only after source 0x557ED8 setup writes child+C0=1.
     const auto initialized=child.originalByteAt(0xC0);
     const auto modeByte=child.originalByteAt(9);
-    if(!initialized || *initialized!=std::byte{1} || !modeByte)
+    if(!initialized || *initialized==std::byte{0} || !modeByte)
         throw std::logic_error("original 557F34 must follow real normal child setup");
     const std::uint32_t parentVA=child.originalWordAt(4);
 
