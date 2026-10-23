@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""Audit original USA 0x36F5F4 movement VU0 routine and its REAL callsite.
+
+Pins the full local entry window, data constants, return-store opcodes,
+and five cross-entry EE BBit132 branches. The verified caller at
+0x57C148 supplies source stack+0x20, t0=0 and three original COP2
+vectors. This does NOT claim to recover the preceding VU0 arithmetic
+or the other potential branch destinations.
+"""
+import argparse
+import hashlib
+import json
+import struct
+from pathlib import Path
+
+RETAIL_SHA256 = "5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63"
+ENTRY = 0x36F5F4
+RETURN_END = 0x36F6DC
+WINDOW_SHA256 = "1a3f90814dc34de36195e7d7718d1b0d906e365020117633f9f8967218df3de8"
+CALLSITE_SHA256 = "6ce5da0f7c29c442276734d4ef87501b483e7c3f242c3cbf61fe721022b81112"
+
+# Genuine MIPS words, read from owner-private SCUS_975.01, not examples.
+WORDS = {
+    0x36F5F4:0x48A51800, # a1 -> COP2
+    0x36F5FC:0x48A62000, # a2 -> COP2
+    0x36F604:0x48A73000, # a3 -> COP2
+    0x36F60C:0xC5C00000, # LWC1 f0, original +0x7157AC
+    0x36F630:0x482E0800, # genuine VU0 output to GPR
+    0x36F63C:0x482E1000, # next VU0 output to GPR
+    0x36F640:0x46000834, # C.OLT.S f1,f0
+    0x36F648:0x45000005, # conditional original normalisation branch
+    0x36F660:0x0000682D, # t5 = 0
+    0x36F664:0x448F0800, # MTC1 second VU scalar -> f1
+    0x36F678:0x240B0002, # t3 = 2
+    0x36F680:0x0008580A, # MOVZ t3,zero,t0 => 0 at retail caller
+    0x36F690:0x000B61C0, # t4 = t3 << 7 (128-byte source records)
+    0x36F694:0x25EF4DD0, # +0x4DD0 to 0x740000 -> 0x744DD0
+    0x36F698:0x46000834, # C.OLT.S f1,1.0f, unordered=false
+    0x36F6A0:0xF8840010, # BBit132 a0 bit36 -> source 0x36F6E4
+    0x36F6A4:0xF8860020, # BBit132 a0 bit38 -> source 0x36F728
+    0x36F6A8:0xAC8000A8, # SW zero, [source a0]+0xA8
+    0x36F6AC:0xAC8D00A4, # SW t5(=0), [a0]+0xA4
+    0x36F6B0:0xAC8C00A0, # SW t4(source guest VA), [a0]+0xA0
+    0x36F6B4:0xF8830040, # BBit132 a0 bit35 -> source 0x36F7B8
+    0x36F6B8:0xF8810050, # BBit132 a0 bit33 -> source 0x36F7FC
+    0x36F6BC:0xF8820060, # BBit132 a0 bit34 -> source 0x36F840
+    0x36F6C4:0xAC8B00AC, # SW t3(=0 at caller), [a0]+0xAC
+    0x36F6C8:0x45000002, # BC1F skip optional SWC1
+    0x36F6D0:0xE48000A4, # SWC1 f0(=1.0f), [a0]+0xA4
+    0x36F6D4:0x03E00008, # return
+    0x57C120:0x27B00020, # s0 = original SP+0x20
+    0x57C138:0x0200202D, # a0 = s0 after two 0x441F40 no-ops
+    0x57C13C:0x0000402D, # t0 = zero
+    0x57C148:0x0C0DBD7D, # JAL source 0x36F5F4
+    0x57C14C:0x70133CA9, # source packing in JAL delay slot
+}
+GUEST_RECORD_TABLE = 0x744DD0
+SOURCE_CONSTANT_1 = 0x7157AC
+BRANCH_EXITS = {
+    0x36F6A0:0x36F6E4,
+    0x36F6A4:0x36F728,
+    0x36F6B4:0x36F7B8,
+    0x36F6B8:0x36F7FC,
+    0x36F6BC:0x36F840,
+}
+
+def segments(data):
+    phoff=struct.unpack_from("<I",data,28)[0]
+    entsize,n=struct.unpack_from("<HH",data,42)
+    return [struct.unpack_from("<8I",data,phoff+i*entsize)
+            for i in range(n)]
+
+def original_bytes(data,va,count):
+    for typ,off,start,_,filesz,_,_,_ in segments(data):
+        if typ==1 and start<=va and va+count<=start+filesz:
+            return data[off+va-start:off+va-start+count]
+    raise ValueError("source ELF VA is not file-backed "+hex(va))
+
+def verify(original):
+    data=Path(original).read_bytes()
+    if hashlib.sha256(data).hexdigest()!=RETAIL_SHA256:
+        raise ValueError("not pinned original USA retail executable")
+    if data[:7]!=b"\x7fELF\x01\x01\x01" or struct.unpack_from("<H",data,18)[0]!=8:
+        raise ValueError("not original little-endian MIPS ELF32")
+    code=original_bytes(data,ENTRY,RETURN_END-ENTRY)
+    if hashlib.sha256(code).hexdigest()!=WINDOW_SHA256:
+        raise ValueError("original 0x36F5F4 entry window changed")
+    if hashlib.sha256(original_bytes(data,0x57C120,0x44)).hexdigest()!=CALLSITE_SHA256:
+        raise ValueError("original 0x57C148 callsite operands changed")
+    for pc,expected in WORDS.items():
+        (actual,)=struct.unpack("<I",original_bytes(data,pc,4))
+        if actual!=expected:
+            raise ValueError("retail 0x36F5F4 source opcode changed "+hex(pc))
+    if struct.unpack("<I",original_bytes(data,SOURCE_CONSTANT_1,4))[0]!=0x3F800000:
+        raise ValueError("source 0x7157AC is not 1.0f")
+    guest_bss=False
+    for typ,off,start,_,filesz,memsz,_,_ in segments(data):
+        if typ==1 and start+filesz<=GUEST_RECORD_TABLE<start+memsz:
+            guest_bss=True
+    if not guest_bss:
+        raise ValueError("0x744DD0 must remain original runtime BSS, not file data")
+    for at,target in BRANCH_EXITS.items():
+        originalWord=WORDS[at]
+        # All five are original MIPS64 BBit132, which examines
+        # a0 high-32 bits (bit >=32), not host pointer bits.
+        offset=originalWord&0xffff
+        if offset>=0x8000:offset-=0x10000
+        actual=at+4+(offset<<2)
+        if actual!=target:
+            raise ValueError("source BBit132 target changed "+hex(at))
+
+    return {
+        "retail_elf_sha256":RETAIL_SHA256,
+        "source_entry":"0x36F5F4",
+        "entry_to_first_return":"0x36F5F4..0x36F6DC",
+        "entry_window_words":len(code)//4,
+        "entry_window_sha256":WINDOW_SHA256,
+        "callsite":"0x57C148",
+        "callsite_t0":0,
+        "source_guest_bss_record_pointer":"0x744DD0",
+        "source_record_stride":128,
+        "direct_tail_stores":["+0xA8=0","+0xA4=0 or 1.0f",
+                              "+0xA0=0x744DD0","+0xAC=0"],
+        "cross_entry_source_branches":{
+            hex(k):hex(v) for k,v in BRANCH_EXITS.items()},
+        "native_tail_only_recovered":True,
+        "full_original_vu0_arithmetic_recovered":False,
+        "playable_windows_game":False,
+    }
+
+if __name__=="__main__":
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument("original_elf",type=Path)
+    print(json.dumps(verify(p.parse_args().original_elf),indent=2))
