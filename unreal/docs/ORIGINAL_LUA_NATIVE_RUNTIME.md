@@ -450,3 +450,49 @@ before output state is published. Native tests check both the single
 source polygon and two-polygon path, missing targets and rejected
 updates. Real actor instances and owner transaction/rollback remain
 to be connected from Unreal; this is not a playable actor factory.
+
+## Original polygon raycast and native 0x57C7CC route+ray connection
+
+Further native recovery is now compiled directly into the standalone DLL:
+
+- Original 0x4C1B3C source ray preparation (XYZ length/normalization)
+- Original 0x21BD3C polygon traversal and action-kind-zero recursion
+- Original 0x21EE00 directed polygon edge half-plane clipping
+- Original 0x57C7CC actor route control flow, now with native polygon projection
+
+The public ae3_original_polygon_project_4c1b3c API takes the *owner's*
+real decoded 0x70-byte original stage polygon records, genuine adjacency
+degree/neighbor/action arrays and original input vectors. It returns
+the last accepted original source polygon index, traversal counters,
+and the original hit point if present. Unknown source graph entries,
+missing owner data, invalid ray coordinates and unsupported recursion
+budgets are rejected. There are no Unreal collision traces here.
+
+The new ae3_original_actor_route_step_v2 applies the source
+0x4C1B3C projection **inside** original 0x57C7CC whenever the controller
+requires an actor polygon update. It preserves source 0x57C814 first
+projection operands (incoming A1, controller+0x40) and source 0x57C894
+subsequent ray-end data. The latter is built from the exact returned
+DMFC2 LOW64 target bits of the still-owner-implemented 0x57C8EC,
+with high64 zeroed exactly as in the recovered original pipeline.
+No synthesized target vector or projection answer is accepted.
+
+Dedicated CTests:
+- OriginalPolygonRaycast4C1B3CHostAbi checks source triangle projection,
+  edge clipping, outside miss, and malformed original adjacency.
+- OriginalRoute57C7CCNativeRaycast4C1B3C checks early target match,
+  route reassignment after a real source ray miss, exact owner target
+  update and refused original 0x57C8EC execution.
+
+Both are required by BuildAndOpen.bat. The original 0x57BCB8
+initializer also now uses a tentative copy of the genuine retail RNG,
+committing new random state **only after** a valid original branch
+returns; invalid source or manager failure cannot silently consume
+the shared actor RNG and desynchronize future samples.
+
+**Unfinished:** Original 0x21B854 projection, complete 0x57C8EC
+target-result production for the real Player/Monkey manager, real
+source-object ownership, actor updates, and the Unreal gameplay loop.
+All source paths are committed but these newly added C++ CTests have
+not been executed with the full real Lua/Unreal Windows build. There
+is no claim that the game is playable.
