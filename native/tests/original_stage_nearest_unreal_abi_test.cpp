@@ -139,6 +139,21 @@ int main() {
     assert(ae3_original_stage_nearest_all_21d46c_21da2c(
                session,&source,&result)==1);
     assert(result.original_polygon_index==1);
+    // Before adding fixture actions, a valid source stage has none.
+    const Ae3OriginalStageSpatialMountSourceV1 emptyActionStage{
+        originalBytes.data(),originalBytes.size(),0x510000,0x6A1000};
+    assert(ae3_original_stage_spatial_mount_21d46c(
+               session,&emptyActionStage)==1);
+    size_t noActionCount=777;
+    assert(ae3_original_stage_spatial_pending_action_count(
+               session,&noActionCount)==1);
+    assert(noActionCount==0);
+    noActionCount=777;
+    assert(ae3_original_stage_spatial_pending_actions(
+               session,nullptr,0,&noActionCount)==1);
+    assert(noActionCount==0);
+    assert(ae3_original_stage_spatial_unmount(session)==1);
+
     // Install two genuine descriptor action requests. These are NOT
     // gameplay actors: the native stage preserves original type/slot/arg
     // until the source Player/Monkey manager can perform the real action.
@@ -231,6 +246,18 @@ int main() {
     assert(ae3_original_stage_spatial_nearest_all_21da2c(
                session,&frameQuery,&result)==1);
     assert(result.original_polygon_index==1);
+    // The failed replacement cannot erase the prior source action list
+    // or rewrite the prior 0x70 record/descriptor header binding.
+    pendingCount=99;
+    assert(ae3_original_stage_spatial_pending_actions(
+               session,pending.data(),pending.size(),&pendingCount)==1);
+    assert(pendingCount==2 &&
+           pending[0].original_action_type==1 &&
+           pending[1].original_argument==8);
+    assert(ae3_original_stage_spatial_record_copy(
+               session,0,&recordCopy)==1);
+    assert(recordCopy.original_header_va==0x510100 &&
+           recordCopy.original_point_count==3);
     // Restore the test fixture and prove another good source mount
     // replaces the old stage only after successful validation.
     put32(originalBytes,0x24,2);
