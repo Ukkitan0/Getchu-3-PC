@@ -252,3 +252,50 @@ therefore **not automatically replaced** in the live
 movement-owner path. It would be incorrect to claim a
 complete actor update while those remaining original
 side effects and game-owner dependencies are absent.
+
+
+## Source first-return integration and initialized-byte provenance
+
+The now-recovered ordinary-operand `0x57C148 -> 0x36F5F4`
+first-return path has a single native entrypoint:
+`originalMovementVU0FirstReturn_36f5f4`. It computes and validates
+**all four returned VU0 register vectors** before performing the
+already verified original `0x36F6A8` scalar/store tail. This avoids
+the previous scalar-only shortcut silently omitting the original
+VF1/VF2/VF3/VF4 updates.
+
+The source `0x36F5F4` first-return writes only four 32-bit scratch
+words at relative offsets `0xA0`, `0xA4`, `0xA8` and `0xAC`
+for the actual `0x57C148` callsite. It does **not** initialize
+the remaining `0xA0` source bytes. The first-return native API
+therefore accepts a `std::bitset<0x110>` known-byte mask and
+marks **only** `0xA0..0xAF` as newly initialized after all
+input validation and successful writes. Any previous independently
+proven source-byte ownership is preserved. An invalid original
+VU input or guest-stack address raises an error before mutating
+either scratch bytes or the known-byte mask.
+
+The original `0x30C57C` constructor indeed copies all `0xB0`
+scratch bytes to original child `+0x10..+0xBF`, but a physical
+copy of an *uninitialized* original source byte does not make
+its value known. The new
+`originalMovementChildCreate_30c57c(..., sourceKnown, ...)`
+overload copies the retail fields while propagating the source
+initialized-byte mask to the native child view. Attempting to
+read unknown copied game bytes returns `std::nullopt` or
+throws for a full unknown source word, instead of reporting
+invented zero values. The existing 4-argument constructor
+overload remains for genuinely **fully initialized** source
+scratch supplied by a true game owner.
+
+CTest `OriginalMovementFirstReturnScratchProvenance` exercises
+the entire ordinary-float source chain, output vectors, scalar
+word writes, preexisting known bytes, actual 0xD0 constructor
+fields, unknown stack data, and atomic rejection of bad
+source VU0 inputs/guest addresses.
+
+An isolated local equivalent of the new path compiled and
+passed using GCC and Clang C++20 with strict warnings and
+UndefinedBehaviorSanitizer. The full new repository CTest,
+Windows DLL and Unreal Editor have not been run here.
+No original proprietary ELF/ISO bytes are included.
