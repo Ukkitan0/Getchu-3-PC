@@ -5,6 +5,7 @@
 #include <memory>
 
 namespace ae3 {
+class OriginalMovementNormalCalls_557ed8;
 // Genuine original 0x557E30 child slot5 must read parent+0x14
 // in the delay slot of 0x557E64, EVEN when it returns immediately
 // for controller update bits 0/1. This source parent is another
@@ -26,7 +27,8 @@ class OriginalMovementChildLifecycle_557e30 final:
 public:
     OriginalMovementChildLifecycle_557e30(
         std::unique_ptr<OriginalMovementChildD0_30c57c> originalChild,
-        OriginalMovementParentRead_557e30& genuineParent);
+        OriginalMovementParentRead_557e30& genuineParent,
+        OriginalMovementNormalCalls_557ed8* optionalGenuineNormalOwner=nullptr);
     void* originalChildPointer() const noexcept;
     bool ownsOriginalChild() const noexcept;
     std::uint32_t call_original_vtable5(
@@ -36,5 +38,9 @@ public:
 private:
     std::unique_ptr<OriginalMovementChildD0_30c57c> child_;
     OriginalMovementParentRead_557e30& parent_;
+    // Nonterminal normal setup is activated ONLY by a genuine owner.
+    // The original 0x317B34 / 0x36FB18 gameplay continuation
+    // remains unsupported and must not get a synthetic result.
+    OriginalMovementNormalCalls_557ed8* normalOwner_;
 };
 } // namespace ae3
