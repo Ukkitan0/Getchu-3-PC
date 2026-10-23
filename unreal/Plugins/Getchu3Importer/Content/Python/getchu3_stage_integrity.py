@@ -9,9 +9,9 @@ import hashlib
 from pathlib import Path, PurePosixPath
 import re
 
-STAGE_ID = re.compile(r"[A-Za-z0-9_]{1,64}\\Z")
-HEX64 = re.compile(r"[a-fA-F0-9]{64}\\Z")
-LUA_MAGIC = b"\\x1bLua\\x50"
+STAGE_ID = re.compile(r"[A-Za-z0-9_]{1,64}\Z")
+HEX64 = re.compile(r"[a-fA-F0-9]{64}\Z")
+LUA_MAGIC = b"\x1bLua\x50"
 MAX_SCRIPT_BYTES = 16 * 1024 * 1024
 
 
@@ -19,7 +19,7 @@ def source_path(stage_id: str, relative: str) -> PurePosixPath:
     """Accept a stage's authentic area.luc path; reject path traversal."""
     if not STAGE_ID.fullmatch(stage_id):
         raise ValueError("Invalid original stage identifier")
-    if not isinstance(relative, str) or "\\\\" in relative or "\\x00" in relative:
+    if not isinstance(relative, str) or "\\" in relative or "\x00" in relative:
         raise ValueError("Unsafe original source script path")
     path = PurePosixPath(relative)
     if (path.is_absolute() or ".." in path.parts or "." in relative.split("/") or
