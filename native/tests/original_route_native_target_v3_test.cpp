@@ -9,6 +9,9 @@
 #include <iostream>
 
 struct OriginalOwner {
+    Ae3OriginalManagerInitSession* activeSession=nullptr;
+    int destroyDuringBegin=-1,destroyDuringStage=-1,
+        destroyDuringCommit=-1,destroyDuringAbort=-1;
     bool allowBegin=true,allowStage=true,allowCommit=true;
     bool inTransaction=false;
     unsigned begins=0,stages=0,commits=0,aborts=0;
@@ -19,6 +22,9 @@ int begin(void* opaque) {
     auto& owner=*static_cast<OriginalOwner*>(opaque);
     assert(!owner.inTransaction);
     ++owner.begins;
+    if (owner.activeSession)
+        owner.destroyDuringBegin=ae3_original_manager_init_destroy(
+            owner.activeSession);
     owner.inTransaction=true;
     return owner.allowBegin;
 }
@@ -26,6 +32,9 @@ int stage(void* opaque,uint32_t polygon,uint64_t low,uint64_t high,uint32_t r) {
     auto& owner=*static_cast<OriginalOwner*>(opaque);
     assert(owner.inTransaction&&polygon==0);
     ++owner.stages;
+    if (owner.activeSession)
+        owner.destroyDuringStage=ae3_original_manager_init_destroy(
+            owner.activeSession);
     if(!owner.allowStage)return 0;
     owner.pendingLow=low;
     owner.pendingHigh=high;
@@ -36,6 +45,9 @@ int commit(void* opaque) {
     auto& owner=*static_cast<OriginalOwner*>(opaque);
     assert(owner.inTransaction);
     ++owner.commits;
+    if (owner.activeSession)
+        owner.destroyDuringCommit=ae3_original_manager_init_destroy(
+            owner.activeSession);
     if(!owner.allowCommit)return 0;
     owner.lastLow=owner.pendingLow;
     owner.lastHigh=owner.pendingHigh;
@@ -47,6 +59,9 @@ void abort(void* opaque) {
     auto& owner=*static_cast<OriginalOwner*>(opaque);
     assert(owner.inTransaction);
     ++owner.aborts;
+    if (owner.activeSession)
+        owner.destroyDuringAbort=ae3_original_manager_init_destroy(
+            owner.activeSession);
     owner.inTransaction=false;
     owner.pendingLow=owner.pendingHigh=0;
     owner.pendingR=0;
@@ -81,6 +96,8 @@ int main() {
     auto* b=ae3_original_manager_init_create(5489);
     assert(a&&b);
     OriginalOwner owner{},other{};
+    owner.activeSession=a;
+    other.activeSession=b;
     Ae3OriginalRouteCallsV3 callbacks{&owner,begin,stage,commit,abort};
     Ae3OriginalRouteCallsV3 control{&other,begin,stage,commit,abort};
     Ae3OriginalRouteResultV1 result{};
@@ -91,6 +108,9 @@ int main() {
     assert(result.active_target_polygon_index==0 &&
            result.original_targets_applied==1 &&
            owner.commits==1 && !owner.inTransaction);
+    assert(owner.destroyDuringBegin==0 &&
+           owner.destroyDuringStage==0 &&
+           owner.destroyDuringCommit==0);
     const std::array<float,2> xy{2,0},zw{2,1};
     uint64_t expectedLow=0,expectedHigh=0;
     std::memcpy(&expectedLow,xy.data(),8);
@@ -104,6 +124,7 @@ int main() {
     assert(ae3_original_actor_route_step_v3(a,&source,&callbacks,&result)==0);
     assert(result.active_target_polygon_index==before.active_target_polygon_index &&
            owner.lastHigh==expectedHigh && owner.aborts==1);
+    assert(owner.destroyDuringAbort==0 && owner.destroyDuringStage==0);
     owner.allowCommit=true;
     assert(ae3_original_actor_route_step_v3(a,&source,&callbacks,&result)==1);
     const auto firstHigh=owner.lastHigh;
