@@ -84,7 +84,12 @@ OriginalMovementPostVector_557f54 originalMovementPostVector_557f54(
         throw std::logic_error("original 0x30C57C child mode+8 unknown");
     if(*mode8==std::byte{0})return result;
     // Source 557F90 BBit032 parent+14 chooses alternate path.
+    // Source 557E68 LW sign-extends the original parent word
+    // into s4, and 557F90 BBit032 tests its high half. A
+    // caller that mistakenly zero-extended a negative original
+    // 32-bit word must NOT take the ordinary untagged path.
     if((originalParentWord14GuestVA>>32)!=0 ||
+       (originalParentWord14GuestVA&0x80000000ull)!=0 ||
        (originalParentWord14GuestVA&3u)!=0)
         throw std::invalid_argument("original 557F90 tagged parent branch unrecovered");
     // 0x557F98 VF1=VF1*VF2; VADDy, VADDz.
