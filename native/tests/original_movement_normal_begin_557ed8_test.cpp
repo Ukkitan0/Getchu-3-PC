@@ -33,11 +33,17 @@ std::unique_ptr<OriginalMovementChildD0_30c57c> makeChild(
 struct Owner final:OriginalMovementNormalCalls_557ed8 {
     OriginalManagerResourceFields_317b9c fields{0x701000u,0u,0u};
     std::vector<std::string> calls{};
+    OriginalMovementChildD0_30c57c* observedChild=nullptr;
     std::uint32_t collisionResult=0;
     bool failCollision=false, failRecalc=false, failReset=false;
     OriginalManagerResourceFields_317b9c
     read_original_parent_resource_fields(std::uint32_t parentVA) override {
         assert(parentVA==0x234000u);
+        // 0x557EE8 JAL executes +0xB8-zero delay slot BEFORE
+        // the original parent read inside 0x317B9C.
+        if(observedChild)
+            assert(observedChild->originalWordAt(0xB4)==0 &&
+                   observedChild->originalWordAt(0xB8)==0);
         calls.emplace_back("read-parent");
         return fields;
     }
@@ -79,41 +85,42 @@ int main() {
     Owner source{};
     auto child=makeChild(2);
     assert(child->originalWordAt(0xB8)==0xF5F5F5F5u);
+    source.observedChild=child.get();
     originalMovementNormalBegin_557ed8(
-        *child,0x345000u,source.fields,source);
+        *child,0x345000u,source);
     cleared(*child);
     assert(child->originalByteAt(0xC0)==std::byte{1});
-    assert(source.calls==std::vector<std::string>({"276B68","2773D4"}));
+    assert(source.calls==std::vector<std::string>({"read-parent","276B68","2773D4"}));
 
     source.collisionResult=1;source.calls.clear();
-    child=makeChild(2);
-    originalMovementNormalBegin_557ed8(*child,0x345000u,source.fields,source);
+    child=makeChild(2);source.observedChild=child.get();
+    originalMovementNormalBegin_557ed8(*child,0x345000u,source);
     assert(source.calls==std::vector<std::string>(
-        {"276B68","2767F4","2773D4"}));
+        {"read-parent","276B68","2767F4","2773D4"}));
     cleared(*child);assert(child->originalByteAt(0xC0)==std::byte{1});
 
     // Source callbacks must be genuine. A failed route setup cannot
     // publish child +0xC0=1 prematurely; earlier SWC1 reset survives.
-    source.failCollision=true;source.calls.clear();child=makeChild(2);
+    source.failCollision=true;source.calls.clear();child=makeChild(2);source.observedChild=child.get();
     bool rejected=false;
-    try{originalMovementNormalBegin_557ed8(*child,0x345000u,source.fields,source);}
+    try{originalMovementNormalBegin_557ed8(*child,0x345000u,source);}
     catch(const std::runtime_error&){rejected=true;}
-    assert(rejected && source.calls==std::vector<std::string>({"276B68"}));
+    assert(rejected && source.calls==std::vector<std::string>({"read-parent","276B68"}));
     cleared(*child);assert(child->originalByteAt(0xC0)==std::byte{0});
     source.failCollision=false;
-    source.failRecalc=true;source.calls.clear();child=makeChild(2);
+    source.failRecalc=true;source.calls.clear();child=makeChild(2);source.observedChild=child.get();
     rejected=false;
-    try{originalMovementNormalBegin_557ed8(*child,0x345000u,source.fields,source);}
+    try{originalMovementNormalBegin_557ed8(*child,0x345000u,source);}
     catch(const std::runtime_error&){rejected=true;}
-    assert(rejected&&source.calls==std::vector<std::string>({"276B68","2767F4"}));
+    assert(rejected&&source.calls==std::vector<std::string>({"read-parent","276B68","2767F4"}));
     assert(child->originalByteAt(0xC0)==std::byte{0});
     source.failRecalc=false;
-    source.failReset=true;source.calls.clear();child=makeChild(2);
+    source.failReset=true;source.calls.clear();child=makeChild(2);source.observedChild=child.get();
     rejected=false;
-    try{originalMovementNormalBegin_557ed8(*child,0x345000u,source.fields,source);}
+    try{originalMovementNormalBegin_557ed8(*child,0x345000u,source);}
     catch(const std::runtime_error&){rejected=true;}
     assert(rejected&&source.calls==std::vector<std::string>(
-        {"276B68","2767F4","2773D4"}));
+        {"read-parent","276B68","2767F4","2773D4"}));
     assert(child->originalByteAt(0xC0)==std::byte{0});
     source.failReset=false;
 
@@ -123,6 +130,8 @@ int main() {
     Parent parent{};
     OriginalMovementChildLifecycle_557e30 lifecycle(
         makeChild(2),parent,&source);
+    source.observedChild=static_cast<OriginalMovementChildD0_30c57c*>(
+        lifecycle.originalChildPointer());
     OriginalManagerChild70 controller{};
     OriginalUpdateDepth_696c98 depth{};
     controller.child10=lifecycle.originalChildPointer();
