@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Audit original USA 0x36F5F4 movement VU0 routine and its REAL callsite.
 
-Pins the full local entry window, data constants, return-store opcodes,
-and five cross-entry EE BBit132 branches. The verified caller at
-0x57C148 supplies source stack+0x20, t0=0 and three original COP2
-vectors. This does NOT claim to recover the preceding VU0 arithmetic
-or the other potential branch destinations.
+Pins the full local entry window, genuine VU0 vector reduction
+opcodes, scalar data constants, return stores and five cross-entry
+EE BBit132 branches. The verified caller at 0x57C148 supplies
+source stack+0x20, t0=0 and three original COP2 vectors. The two
+VF1.x/VF2.x squared-distance reductions are natively translated
+for ordinary FP inputs; the rest of the VU register/flag pipeline
+and alternative entry paths are NOT recovered.
 """
 import argparse
 import hashlib
@@ -19,14 +21,33 @@ RETURN_END = 0x36F6DC
 WINDOW_SHA256 = "1a3f90814dc34de36195e7d7718d1b0d906e365020117633f9f8967218df3de8"
 CALLSITE_SHA256 = "6ce5da0f7c29c442276734d4ef87501b483e7c3f242c3cbf61fe721022b81112"
 
+# Source 0x36F608..0x36F62C is the genuine COP2 upper-pipeline
+# vector length-squared reduction, not a guessed 3D distance:
+# VSUB -> VMUL -> VADDy.xyw -> VADDz.xyzw for BOTH source pairs.
+VU_MACRO_SHA256 = "b24dbd9ee6c08d78397e803f4e25b1591b95f2b735215ae7f115e66dffed1840"
+VU_SCALAR_OPS = {
+    # pc: (word, fd, fs, ft, destination_mask, low6_opcode)
+    0x36F608:(0x4BE3206C,1,4,3,0xF,0x2C), # VSUB VF1=VF4-VF3
+    0x36F610:(0x4BE330AC,2,6,3,0xF,0x2C), # VSUB VF2=VF6-VF3
+    0x36F618:(0x4BE1086A,1,1,1,0xF,0x2A), # VMUL VF1*=VF1
+    0x36F61C:(0x4BE210AA,2,2,2,0xF,0x2A), # VMUL VF2*=VF2
+    0x36F620:(0x4BA10841,1,1,1,0xD,0x01), # VADDy VF1.xyw
+    0x36F624:(0x4BA21081,2,2,2,0xD,0x01), # VADDy VF2.xyw
+    0x36F628:(0x4BE10842,1,1,1,0xF,0x02), # VADDz VF1.xyzw
+    0x36F62C:(0x4BE21082,2,2,2,0xF,0x02), # VADDz VF2.xyzw
+}
+
 # Genuine MIPS words, read from owner-private SCUS_975.01, not examples.
 WORDS = {
     0x36F5F4:0x48A51800, # a1 -> COP2
     0x36F5FC:0x48A62000, # a2 -> COP2
     0x36F604:0x48A73000, # a3 -> COP2
+    0x36F614:0x48A72800, # reuse original a3 -> VF5
+    0x36F638:0x448F0800, # MTC1 first VF1.x -> COP1 f1
     0x36F60C:0xC5C00000, # LWC1 f0, original +0x7157AC
-    0x36F630:0x482E0800, # genuine VU0 output to GPR
-    0x36F63C:0x482E1000, # next VU0 output to GPR
+    0x36F630:0x482E0800, # DMFC2 VF1.x => COP1 first norm
+    0x36F63C:0x482E1000, # DMFC2 VF2.x => later COP1 f1
+
     0x36F640:0x46000834, # C.OLT.S f1,f0
     0x36F648:0x45000005, # conditional original normalisation branch
     0x36F660:0x0000682D, # t5 = 0
@@ -87,6 +108,15 @@ def verify(original):
         raise ValueError("original 0x36F5F4 entry window changed")
     if hashlib.sha256(original_bytes(data,0x57C120,0x44)).hexdigest()!=CALLSITE_SHA256:
         raise ValueError("original 0x57C148 callsite operands changed")
+    # The source opcode fields prove the lane/mask/operand sequence.
+    if hashlib.sha256(original_bytes(data,0x36F608,0x28)).hexdigest()!=VU_MACRO_SHA256:
+        raise ValueError("source original 36F608 VU0 scalar sequence changed")
+    for pc,(word,fd,fs,ft,mask,op) in VU_SCALAR_OPS.items():
+        actual=struct.unpack("<I",original_bytes(data,pc,4))[0]
+        decoded=((actual>>6)&31,(actual>>11)&31,
+                 (actual>>16)&31,(actual>>21)&15,actual&63)
+        if actual!=word or decoded!=(fd,fs,ft,mask,op):
+            raise ValueError("source VU0 scalar operation or operand changed "+hex(pc))
     for pc,expected in WORDS.items():
         (actual,)=struct.unpack("<I",original_bytes(data,pc,4))
         if actual!=expected:
@@ -123,7 +153,10 @@ def verify(original):
                               "+0xA0=0x744DD0","+0xAC=0"],
         "cross_entry_source_branches":{
             hex(k):hex(v) for k,v in BRANCH_EXITS.items()},
-        "native_tail_only_recovered":True,
+        "native_source_vu0_xyz_reduction_recovered":True,
+        "native_source_vu0_reduction_input_policy":"finite normal/zero lanes only",
+        "original_vu0_scalar_opcodes_verified":len(VU_SCALAR_OPS),
+        "native_tail_only_recovered":False,
         "full_original_vu0_arithmetic_recovered":False,
         "playable_windows_game":False,
     }
