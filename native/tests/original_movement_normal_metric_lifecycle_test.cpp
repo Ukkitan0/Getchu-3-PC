@@ -48,6 +48,11 @@ struct Owner final:OriginalMovementParentRead_557e30,
     read_original_resource_vu0_inputs(std::uint32_t) override {
         throw std::runtime_error("unexpected original 317B34 VU0 branch");
     }
+    void publish_original_vf1_after_317b34(
+        std::uint32_t,
+        const std::array<std::uint32_t,4>&) override {
+        throw std::runtime_error("unexpected source VF1 mutation on type1 fast path");
+    }
     std::uint32_t read_original_parent_float70(std::uint32_t va) override {
         assert(va==0x120000u);calls.emplace_back("parent70");
         return scale;
