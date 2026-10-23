@@ -27,6 +27,9 @@ def check(root: Path) -> dict:
     regen = runpy.run_path(
         str(tools / "verify_original_movement_flag0_regenerate_36f83c.py")
     )
+    regen_bit1 = runpy.run_path(
+        str(tools / "verify_original_movement_regenerate_36f8c8.py")
+    )
     step = runpy.run_path(
         str(tools / "verify_original_movement_post_step_558030.py")
     )
@@ -170,6 +173,27 @@ def check(root: Path) -> dict:
     if "static_cast<std::int32_t>(parentWord1C)" not in poststep_cpp:
         raise AssertionError("original 558054 LW sign extension omitted")
 
+    # Source 36F8EC LW t7,0xA0(a0) sign extends its resource
+    # pointer before source 36F8F0's alternate branch decision.
+    # In the 317B34 resource metric, original 317B58 explicitly
+    # selects a tagged-parent path not recovered as ordinary VU0.
+    pointer_lw=regen_bit1["WORDS"][0x36F8EC]
+    if (pointer_lw>>26)!=0x23 or ((pointer_lw>>21)&31)!=4 or (
+        (pointer_lw>>16)&31)!=15 or (pointer_lw&65535)!=0xA0:
+        raise AssertionError("source 36F8EC resource LW pointer changed")
+    if prefix["WORDS"][0x317B58]!=0xD8810060:
+        raise AssertionError("original 317B58 tagged parent branch changed")
+    ordinary_vu0=(root/"src"/"original_manager_resource_vu0_317b34.cpp").read_text(
+        encoding="utf-8"
+    )
+    regenerated=(root/"src"/"original_movement_regenerate_36f8c8.cpp").read_text(
+        encoding="utf-8"
+    )
+    if "source.originalParentGuestVA&0x80000000ull" not in ordinary_vu0:
+        raise AssertionError("zero-extended negative resource parent not rejected")
+    if "src.originalResourcePointerRegA0&0x80000000ull" not in regenerated:
+        raise AssertionError("zero-extended negative VF resource pointer not rejected")
+
     # The existing original source windows establish the specialized
     # bit0 regeneration and its source ORI of 1 (not 2).
     if regen["WORDS"][0x36F890] != 0x35EF0001:
@@ -240,6 +264,8 @@ def check(root: Path) -> dict:
             "0x557FEC DADDU s5,v0,zero 64-bit",
             "0x558070 DADDU a1,s5,zero 64-bit",
             "0x558054 LW a0,parent+0x1C sign-extended",
+            "0x36F8EC LW t7,a0+0xA0 sign-extended source pointer",
+            "0x317B58 tagged EE parent branch",
             "0x557E68 LW s4,parent+0x14 sign-extended",
             "0x557FF0 DADDU a0,s4,zero 64-bit",
             "0x557EF8 DADDU a0,s4,zero 64-bit",
