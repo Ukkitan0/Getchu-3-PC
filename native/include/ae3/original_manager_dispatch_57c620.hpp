@@ -19,8 +19,8 @@ public:
     virtual std::uint32_t call_original_virtual_57c79c(
         std::uint32_t sourceVirtualTableByteOffset,
         std::int32_t signedSourceThisOffset)=0;
-    // 0x57C6C0 passes original parent+0x04, pending resource+0x50.
-    virtual void call_original_30ffd0(void* originalParent,void* originalResource50)=0;
+    // 0x57C6C0 passes original parent+0x04, pending polygon+0x50.
+    virtual void call_original_30ffd0(void* originalParent,void* originalPolygon50)=0;
     // Original post-dispatch diagnostics read these actual global bytes
     // only if resource+0x50 remains unhandled. The gate is dynamic.
     virtual std::uint8_t read_original_6354e7()=0;
@@ -33,7 +33,7 @@ public:
 // Entry receives original a1 mask. The real source returns 2 if the
 // controller update-method field+0x08 is zero, otherwise the original
 // dispatch result, or 1 when source argument bits bypass dispatch.
-// If a genuine pending resource remains and the original dynamic
+// If a genuine pending polygon remains and the original dynamic
 // diagnostic gate is active, the real game-owned warning is mandatory.
 // Missing original methods must throw/fail, not return synthetic success.
 std::uint32_t originalManagerDispatch_57c620(
