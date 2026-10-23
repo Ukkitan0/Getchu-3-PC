@@ -225,3 +225,27 @@ atomicity/cancellation cases. Both groups passed locally using the
 committed algorithm and Python's filesystem APIs. Additional Unreal import
 preflight/regression cases were committed but **the full suite has not run
 against a real Unreal 5.6 Editor or an original disc here**.
+
+## Original source Lua native actor-function dispatch (ABI v5)
+
+The recovered Lua runtime already supported calling original game-function
+registrations by source address, but the Unreal host could not provide them.
+The native DLL now exposes `ae3_lua_register_original_void`, and the Unreal
+source-manager interface supports explicit original-VA/name registrations
+and invocation with the **original typed Lua arguments**. Callback registration
+occurs before executing each authentic `area.luc`. Invalid source names,
+unaligned addresses, missing implementations, duplicate globals, built-in
+replacements, and callbacks registered after execution starts are rejected.
+When an original native implementation refuses the call, source Lua execution
+fails and transactional stage construction aborts. The game is not fooled by
+a name-only registration or a fabricated generic Actor.
+
+This currently supports **void-return original functions only**. A source
+`CreateBind` callsite is not the function's verified original callback VA;
+the real manager must independently recover both the callback address and
+behavior, not copy a registration address from an audit. Default manager
+methods refuse all registrations and invocations. The integration is an
+actual DLL-to-Unreal Lua registration/dispatch path, **not a completed
+original actor factory, AI, gameplay loop or playable game**. Synthetic
+native tests for the registration contract are committed; the native Windows
+and UE5.6 builds remain unverified here.
