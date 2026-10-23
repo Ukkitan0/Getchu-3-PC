@@ -10,6 +10,8 @@ class OriginalMovementNormalCalls_557ed8;
 class OriginalMovementMetricOwner_557f34;
 class OriginalMovementPostVectorOwner_557f54;
 class OriginalMovementPostStepContinuation_558030;
+class OriginalMovementPostTailOwner_557fc8;
+struct OriginalMovementPostVector_557f54;
 // Genuine original 0x557E30 child slot5 must read parent+0x14
 // in the delay slot of 0x557E64, EVEN when it returns immediately
 // for controller update bits 0/1. This source parent is another
@@ -35,7 +37,8 @@ public:
         OriginalMovementNormalCalls_557ed8* optionalGenuineNormalOwner=nullptr,
         OriginalMovementMetricOwner_557f34* optionalGenuineMetricOwner=nullptr,
         OriginalMovementPostVectorOwner_557f54* optionalPostVectorOwner=nullptr,
-        OriginalMovementPostStepContinuation_558030* optionalPostStepOwner=nullptr);
+        OriginalMovementPostStepContinuation_558030* optionalPostStepOwner=nullptr,
+        OriginalMovementPostTailOwner_557fc8* optionalPostTailOwner=nullptr);
     void* originalChildPointer() const noexcept;
     bool ownsOriginalChild() const noexcept;
     std::uint32_t call_original_vtable5(
@@ -52,8 +55,15 @@ private:
     OriginalMovementMetricOwner_557f34* metricOwner_;
     OriginalMovementPostVectorOwner_557f54* postVectorOwner_;
     OriginalMovementPostStepContinuation_558030* postStepOwner_;
+    OriginalMovementPostTailOwner_557fc8* postTailOwner_;
     std::optional<std::uint32_t> try_original_post_vector_557f54(
-        std::uint32_t originalParentWord14);
+        std::uint32_t originalParentWord14,
+        OriginalMovementPostVector_557f54* originalPublishedState=nullptr);
+    std::optional<std::uint32_t> try_original_post_tail_557fc8(
+        std::uint32_t originalParentWord14,
+        const OriginalMovementPostVector_557f54& originalPublishedState,
+        std::uint32_t originalF20ResourceMetric,
+        std::uint32_t originalF21MovementReturn);
     std::optional<std::uint32_t> try_original_post_step_558030(
         std::uint32_t originalF20ResourceMetric,
         std::uint32_t originalF21MovementReturn);
