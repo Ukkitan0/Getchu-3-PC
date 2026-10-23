@@ -1,6 +1,12 @@
 #include "ae3/original_actor_ray_geometry.hpp"
 #include <cmath>
 namespace ae3 {
+OriginalVU0Vec4 originalActorPackedSubsequentRayStart_57c88c(
+    const OriginalVU0Vec4& incoming) noexcept {
+    // 0x57C7E4 / 0x57C88C: two PCPYUD with the same source
+    // high doubleword. The second does not restore original X/Y.
+    return {0.0f,0.0f,incoming.z,incoming.w};
+}
 float originalVU0DotXYZ_4748ac(const OriginalVU0Vec4& a,
                               const OriginalVU0Vec4& b) noexcept {
     // Original 0x4748B4 VMUL.xyzw VF1,VF1,VF2;
