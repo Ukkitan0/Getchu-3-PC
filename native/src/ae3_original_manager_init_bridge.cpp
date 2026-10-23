@@ -9,6 +9,7 @@
 #include "ae3/original_vu0_geometry.hpp"
 #include "ae3/original_spatial_support.hpp"
 #include "ae3/original_spatial_raw_bridge.hpp"
+#include "ae3/original_stage_spatial_loader.hpp"
 #include <cmath>
 
 #include <array>
@@ -494,6 +495,136 @@ extern "C" int ae3_original_polygon_nearest_original_data_grid_21d898(
     Ae3OriginalNearestPolygonResultV1* output) {
     return originalRawNearestImpl(
         session,original?&original->original:nullptr,original,output);
+}
+
+/* The complete recovered source stage spatial lookup in ONE native call:
+ * 0x21D46C loaded source -> original header pointer+0x30 and vertex table
+ * -> 0x4E3C14 grid hits (if requested) -> source VU0 0x21D898/0x21DA2C.
+ * Actor/gameplay creation is intentionally NOT manufactured here.
+ */
+static int originalStageNearestImpl(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalStageNearestSourceV1* source,
+    const Ae3OriginalStageGridNearestSourceV1* originalGrid,
+    Ae3OriginalNearestPolygonResultV1* output) {
+    if (!session) return 0;
+    if (session->busy) {
+        session->error="reentrant original 0x21D46C stage spatial query refused";
+        return 0;
+    }
+    session->busy=true;
+    session->error.clear();
+    int success=0;
+    try {
+        if (!source || !output ||
+            !source->original_loaded_stage_bytes ||
+            source->original_loaded_stage_size<0x50 ||
+            source->original_loaded_stage_size>64*1024*1024 ||
+            source->original_runtime_base_va==0)
+            throw std::invalid_argument(
+                "original 0x21D46C requires genuine bounded loaded stage bytes and source VA");
+        const auto q=source->original_query;
+        if (!std::isfinite(q.x) || !std::isfinite(q.y) ||
+            !std::isfinite(q.z))
+            throw std::invalid_argument(
+                "original stage nearest source XYZ query is nonfinite");
+        const ae3::OriginalStageSpatialSource genuineStage{
+            source->original_runtime_base_va,
+            std::span<const std::byte>(
+                static_cast<const std::byte*>(
+                    source->original_loaded_stage_bytes),
+                source->original_loaded_stage_size),
+            source->original_registry_owner_va};
+        const auto bounds=ae3::originalStageReadSpatialOffsets_21d46c(
+            genuineStage);
+        if (bounds.countAt24==0 || bounds.countAt24>8192)
+            throw std::out_of_range(
+                "original stage spatial registry count outside supported bounds");
+        const auto decoded=ae3::originalStageBuildSourceSpatial_21d46c(
+            genuineStage);
+        const ae3::OriginalSpatialRecord70* selected=nullptr;
+        if (originalGrid) {
+            if (!originalGrid->original_cell_offsets50 ||
+                !originalGrid->original_hit_pool08 ||
+                !std::isfinite(originalGrid->original_origin_x00) ||
+                !std::isfinite(originalGrid->original_origin_y04) ||
+                !std::isfinite(originalGrid->original_step_x10) ||
+                !std::isfinite(originalGrid->original_step_y14) ||
+                !std::isfinite(originalGrid->original_resolved_x) ||
+                !std::isfinite(originalGrid->original_resolved_y) ||
+                originalGrid->original_step_x10==0.0f ||
+                originalGrid->original_step_y14==0.0f ||
+                originalGrid->original_dimension_x18<=0 ||
+                originalGrid->original_dimension_y1c<=0 ||
+                originalGrid->original_dimension_x18>65535 ||
+                originalGrid->original_dimension_y1c>65535 ||
+                originalGrid->original_hit_pool_count>1048576)
+                throw std::invalid_argument(
+                    "original stage 0x4E3C14 grid metadata invalid");
+            const auto cells=
+                static_cast<std::size_t>(originalGrid->original_dimension_x18)*
+                static_cast<std::size_t>(originalGrid->original_dimension_y1c);
+            if (cells>1048576 ||
+                originalGrid->original_cell_offset_count<cells)
+                throw std::out_of_range(
+                    "original stage grid source offset map truncated");
+            ae3::OriginalSpatialGridFields grid{};
+            grid.originX00=originalGrid->original_origin_x00;
+            grid.originY04=originalGrid->original_origin_y04;
+            grid.stepX10=originalGrid->original_step_x10;
+            grid.stepY14=originalGrid->original_step_y14;
+            grid.dimensionX18=originalGrid->original_dimension_x18;
+            grid.dimensionY1c=originalGrid->original_dimension_y1c;
+            grid.cellOffsets50=std::span<const std::uint16_t>(
+                originalGrid->original_cell_offsets50,
+                originalGrid->original_cell_offset_count);
+            grid.hitBuffer08=std::span<const std::uint16_t>(
+                originalGrid->original_hit_pool08,
+                originalGrid->original_hit_pool_count);
+            selected=ae3::originalStageNearestGrid_21d898(
+                decoded,grid,originalGrid->original_resolved_x,
+                originalGrid->original_resolved_y,native(q));
+        } else {
+            selected=ae3::originalStageNearestAll_21da2c(
+                decoded,native(q));
+        }
+        Ae3OriginalNearestPolygonResultV1 value{};
+        value.original_polygon_index=UINT32_MAX;
+        if (selected) {
+            for (std::size_t i=0;i<decoded.records.size();++i) {
+                if (selected==&decoded.records[i]) {
+                    value.original_polygon_index=
+                        static_cast<std::uint32_t>(i);
+                    break;
+                }
+            }
+            if (value.original_polygon_index==UINT32_MAX)
+                throw std::runtime_error(
+                    "original 0x21D46C spatial selection returned foreign stage record");
+        }
+        *output=value;
+        session->error.clear();
+        success=1;
+    } catch (const std::exception& error) {
+        session->error=error.what();
+    } catch (...) {
+        session->error="unknown original 0x21D46C source spatial query error";
+    }
+    session->busy=false;
+    return success;
+}
+extern "C" int ae3_original_stage_nearest_all_21d46c_21da2c(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalStageNearestSourceV1* source,
+    Ae3OriginalNearestPolygonResultV1* output) {
+    return originalStageNearestImpl(session,source,nullptr,output);
+}
+extern "C" int ae3_original_stage_nearest_grid_21d46c_21d898(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalStageGridNearestSourceV1* source,
+    Ae3OriginalNearestPolygonResultV1* output) {
+    return originalStageNearestImpl(
+        session,source?&source->original:nullptr,source,output);
 }
 
 static int originalManagerInitImpl(
