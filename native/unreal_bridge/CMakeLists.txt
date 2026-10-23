@@ -13,12 +13,15 @@ FetchContent_Declare(Getchu3Lua503
   URL_HASH "SHA256=1193a61b0e08acaa6eee0eecf29709179ee49c71baebc59b682a25c3b5a45671"
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
-# Lua 5.0.3 ships no CMakeLists.txt. FetchContent_MakeAvailable would
-# attempt add_subdirectory on a non-CMake upstream archive on some CMake
-# versions. Populate the verified tarball, then compile its C sources here.
-FetchContent_GetProperties(Getchu3Lua503)
-if(NOT getchu3lua503_POPULATED)
-  FetchContent_Populate(Getchu3Lua503)
+# Lua 5.0.3 has no CMakeLists.txt. Modern FetchContent_MakeAvailable
+# correctly populates sources WITHOUT add_subdirectory for such archives.
+# Verified locally with CMake 3.31 and FETCHCONTENT_SOURCE_DIR override.
+# Avoid deprecated FetchContent_Populate under CMP0169.
+FetchContent_MakeAvailable(Getchu3Lua503)
+if(NOT EXISTS "${getchu3lua503_SOURCE_DIR}/src/lapi.c" OR
+   NOT EXISTS "${getchu3lua503_SOURCE_DIR}/src/lib/lauxlib.c" OR
+   NOT EXISTS "${getchu3lua503_SOURCE_DIR}/include/lua.h")
+  message(FATAL_ERROR "Official Lua 5.0.3 archive missing expected source layout")
 endif()
 set(LUA503_CORE
   lapi lcode ldebug ldo ldump lfunc lgc llex lmem lobject
