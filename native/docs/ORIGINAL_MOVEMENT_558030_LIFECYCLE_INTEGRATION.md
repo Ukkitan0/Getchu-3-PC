@@ -402,9 +402,13 @@ For each permitted pass the native routine:
    state and calls `originalMovementRegenerateOwned_36f8c8`.
 5. Reads the next *genuine* 128-bit VF1, ensures it is exactly
    the newly regenerated VF1 and the remaining movement `f20`
-   agrees, then resumes the next exact source pass. The iteration
-   count is bounded at nine source passes because every unfinished
-   large pass advances `+0xB4` by exactly one eighth.
+   agrees, then resumes the next exact source pass. For genuine
+   original progress in `[0,1)`, the iteration count is bounded
+   at nine source passes because every unfinished large pass
+   advances `+0xB4` by exactly one eighth. Finite **negative**
+   original progress is not subject to that bound and therefore
+   retains the real external `0x36FB18` owner fallback, with
+   no partial child-state mutations.
 
 A regression through `originalMovementMetricStep_557f34`
 demonstrates the real source sequence for original progress
