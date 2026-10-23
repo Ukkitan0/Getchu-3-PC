@@ -133,7 +133,7 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
                         // 36FBE4 flag clearing, 36FC18 JAL 36F8C8.
                         originalMovementCommitFlaggedIteration_36fb5c(
                             child,current,actual);
-                        (void)originalMovementRegenerateOwned_36f8c8(
+                        const auto regenerated=originalMovementRegenerateOwned_36f8c8(
                             child,originalBinding->genuineChildScratchGuestVA,
                             *originalBinding->originalOwner);
                         // Source 36FC20 J 36FB70 and 36FC24
@@ -146,9 +146,10 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
                             throw std::logic_error(
                                 "original 36FC24 regenerated VF1 owner unavailable");
                         if(next->originalMovementF12Bits!=
-                               actual.originalRemainingF20Bits)
+                               actual.originalRemainingF20Bits ||
+                           next->originalLiveVF1!=regenerated.originalVF1After)
                             throw std::invalid_argument(
-                                "original 36FC24 regenerated movement f20 mismatch");
+                                "original 36FC24 VF1/f20 continuation differs from 36F8C8");
                         current=*next;
                     }
                     if(!completed)
