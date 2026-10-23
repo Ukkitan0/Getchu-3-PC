@@ -82,15 +82,30 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
                    genuine->originalChildStatusA4Bits)<0.0f) {
                 step=owner.call_original_36fb18(child,scaledRaw);
             } else {
-                const auto plan=originalMovementFlaggedPass_36fb5c(*genuine);
-                if(plan.originalReturnF0Bits) {
+                // The original game callback can execute genuine PS2
+                // rounding the exact-only native subset cannot.
+                // An unsupported FIRST 36FB70 pass is safe to hand
+                // back to that owner: no VF1 publication or child
+                // state write has happened yet. After an iterative
+                // source commit this fallback would replay movement,
+                // so later unsupported passes must still fail closed.
+                std::optional<OriginalMovementFlaggedPass_36fb5c> plan;
+                try {
+                    plan=originalMovementFlaggedPass_36fb5c(*genuine);
+                } catch(const std::domain_error&) {
+                    step=owner.call_original_36fb18(child,scaledRaw);
+                }
+                if(!plan) {
+                    // Entire original 36FB18 was executed by its
+                    // authoritative owner, including any FP modes.
+                } else if(plan->originalReturnF0Bits) {
                     // 36FB70 VU0 VF1 mutation must be published BEFORE
                     // retail 36FBBC/36FBEC child status writes.
                     owner.publish_original_vf1_after_36fb5c(
-                        plan.originalVF1After);
+                        plan->originalVF1After);
                     originalMovementCommitFlaggedReturn_36fb5c(
-                        child,*genuine,plan);
-                    step=*plan.originalReturnF0Bits;
+                        child,*genuine,*plan);
+                    step=*plan->originalReturnF0Bits;
                 } else {
                     // Source 36FBE0 -> 36FC18 regenerates VF1 and
                     // jumps back to 36FB70 with the remaining f20.
@@ -128,7 +143,7 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
                             // Reuse the already verified first pass
                             // rather than running source arithmetic twice.
                             const auto actual=iteration==0u
-                                ? plan
+                                ? *plan
                                 : originalMovementFlaggedPass_36fb5c(current);
                             owner.publish_original_vf1_after_36fb5c(
                                 actual.originalVF1After);
