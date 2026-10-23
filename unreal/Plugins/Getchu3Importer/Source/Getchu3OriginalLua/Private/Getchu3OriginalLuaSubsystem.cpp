@@ -440,10 +440,18 @@ void UGetchu3OriginalLuaSubsystem::StopOriginalStage() {
     if (NativeState && NativeLibrary) {
         const auto Destroy = GetOriginalLuaFunction<decltype(&ae3_lua_destroy)>(
             NativeLibrary, TEXT("ae3_lua_destroy"));
-        if (Destroy) {
-            bInOriginalManagerCall = true;
-            Destroy(static_cast<Ae3LuaRuntime*>(NativeState));
-            bInOriginalManagerCall = false;
+        if (!Destroy) {
+            LastError = TEXT("Original native Lua DLL is missing its destruction export");
+            bDeferredOriginalStop = true;
+            return; // Never unload a DLL with a live VM.
+        }
+        bInOriginalManagerCall = true;
+        const int bDestroyed = Destroy(static_cast<Ae3LuaRuntime*>(NativeState));
+        bInOriginalManagerCall = false;
+        if (bDestroyed != 1) {
+            LastError = TEXT("Original Lua VM is still executing; DLL unload deferred");
+            bDeferredOriginalStop = true;
+            return; // Caller can safely retry StopOriginalStage after unwind.
         }
     }
     NativeState = nullptr;
