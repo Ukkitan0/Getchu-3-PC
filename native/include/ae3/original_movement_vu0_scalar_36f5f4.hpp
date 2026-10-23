@@ -30,6 +30,24 @@ struct OriginalMovementVU0ScalarResult_36f5f4 {
 OriginalMovementVU0ScalarResult_36f5f4 originalMovementVU0Scalars_36f5f4(
     const OriginalMovementVU0ScalarSource_36f5f4& genuineSource);
 
+// Source 0x36F64C..0x36F68C VU0 vector side effects for ordinary
+// source float lanes. VF7 is zeroed by 0x36F668/0x36F66C PPACW
+// on original t5=0 before 0x36F674 QMTC2. The source branch
+// chooses A2 (large first squared distance) or (A1+A3)*0.5.
+// Original VF1/VF2/VF3/VF4 are returned as four raw float words.
+// This has a stricter input contract than the scalar-only helper:
+// all four VU lanes, including W, must be valid ordinary floats.
+struct OriginalMovementVU0VectorFrame_36f5f4 {
+    OriginalMovementVU0ScalarResult_36f5f4 scalar;
+    std::array<std::uint32_t,4> originalVF1;
+    std::array<std::uint32_t,4> originalVF2;
+    std::array<std::uint32_t,4> originalVF3;
+    std::array<std::uint32_t,4> originalVF4;
+    bool originalFirstLengthUnderOne;
+};
+OriginalMovementVU0VectorFrame_36f5f4 originalMovementVU0VectorFrame_36f5f4(
+    const OriginalMovementVU0ScalarSource_36f5f4& genuineSource);
+
 // Source callsite 0x57C148, end-to-end supported scalar subpath:
 // genuine EE a1/a2/a3 -> original COP2 Vf2.x -> COP1 f1 ->
 // original 0x36F6A8 conditional 0x110 scratch tail. The complete
