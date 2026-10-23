@@ -149,3 +149,49 @@ and live Player/Monkey lifetime. The native control-flow
 translations do not produce a playable game until those real
 systems execute. Full Windows/Unreal Editor compilation has
 not been verified; no proprietary ELF or ISO was committed.
+
+
+### Integrated native original controller-method dispatch
+
+`native/src/original_manager_native_method_router.cpp` now
+connects the source-recovered real **0x57C620** dispatcher to
+the original direct-method VAs:
+
+- `0x57C27C` — original readiness, child creation and next-method assignment
+- `0x57C388` — original route update, VU0-dependent child creation, method assignment
+- `0x57C48C` — original follow-up child update and packed comparison
+- `0x57C554` — original type-two child update and packed comparison
+
+The native router passes the real original `a1` argument to the
+C++ recovered method implementations and delegates genuine
+`0x30FFD0` polygon adoption and source diagnostic globals to the
+actual game-owner callbacks. Original method source
+`+0x08` addresses are used ONLY as explicitly audited dispatch
+**identifiers**, never converted into Windows function pointers.
+
+Tagged original virtual dispatch and nonzero source-subobject
+offsets, as well as unrecovered original methods (including
+`0x57BF5C`), remain delegated to a mandatory real owner. An
+owner without the genuine implementation **must reject** them;
+no synthetic actor movement is performed.
+
+The native CTest `OriginalRecoveredControllerMethodDispatchIntegration`
+covers `0x57C620` -> `0x57C27C` -> `0x57C388` ->
+`0x57C48C`, original type-two `0x57C554`, real
+`0x30FFD0` callback forwarding, virtual-method refusal,
+unavailable method refusal and signed source-this-offset refusal.
+
+The native C++20 tests for `0x57C27C`, `0x57C388`,
+`0x57C48C`, corrected `0x57C554`, and the integrated method
+router were compiled and executed locally under BOTH GCC and
+Clang with UndefinedBehaviorSanitizer. The corrected original
+four-function verification hashes, MMI compare opcode pairs,
+two retail next-method metadata constants and direct JAL sites
+also matched the private USA ELF exactly.
+
+This makes original controller **dispatch and branch sequencing**
+more complete. It does **not** supply the still-needed original
+game-owner allocator methods, actor-specific VU0 operands,
+per-frame behavior, full Player/Monkey object lifecycle, native
+renderer or retail-stage gameplay. The complete Windows native
+DLL, CTest suite and Unreal Editor build have not been verified.
