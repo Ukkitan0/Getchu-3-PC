@@ -62,6 +62,52 @@ OriginalMovementVU0ScalarResult_36f5f4 originalMovementVU0Scalars_36f5f4(
     return {std::bit_cast<std::uint32_t>(first),
             std::bit_cast<std::uint32_t>(second)};
 }
+OriginalMovementVU0VectorFrame_36f5f4 originalMovementVU0VectorFrame_36f5f4(
+    const OriginalMovementVU0ScalarSource_36f5f4& source) {
+    const auto scalars=originalMovementVU0Scalars_36f5f4(source);
+    const bool small=std::bit_cast<float>(scalars.originalFirstLengthSquaredBits)<1.0f;
+    float a[4]{},b[4]{},c[4]{};
+    for(std::size_t i=0;i<4;++i) {
+        a[i]=lane(source.originalA1,i);
+        b[i]=lane(source.originalA2,i);
+        c[i]=lane(source.originalA3,i);
+        requireOrdinaryVU0(a[i]);
+        requireOrdinaryVU0(b[i]);
+        requireOrdinaryVU0(c[i]);
+    }
+    OriginalMovementVU0VectorFrame_36f5f4 result{};
+    result.scalar=scalars;
+    result.originalFirstLengthUnderOne=small;
+    for(std::size_t i=0;i<4;++i) {
+        // 0x36F650..0x36F65C source branch:
+        // QMTC2 VF1.x=0.5, VMULx VF2=VF3*0.5,
+        // VMULx VF1=VF6*0.5, VADD VF4=VF2+VF1.
+        // Otherwise VF4 retains original EE A2.
+        float sourceMiddle=b[i];
+        if(small) {
+            const volatile float left=a[i]*0.5f;
+            const volatile float right=c[i]*0.5f;
+            sourceMiddle=left+right;
+            requireOrdinaryVU0(sourceMiddle);
+        }
+        // 0x36F668/0x36F66C source PPACW zero t5 twice,
+        // followed by 0x36F674 QMTC2 VF7 = all zero.
+        // 0x36F67C: VF3=VF4-VF3 (original source A1)
+        // 0x36F684: VF1=VF5-VF4 (VF5 is original A3)
+        // 0x36F68C: VF2=VF7-VF5 = 0-original A3.
+        const volatile float vf3=sourceMiddle-a[i];
+        const volatile float vf1=c[i]-sourceMiddle;
+        const volatile float vf2=0.0f-c[i];
+        requireOrdinaryVU0(vf3);
+        requireOrdinaryVU0(vf1);
+        requireOrdinaryVU0(vf2);
+        result.originalVF4[i]=std::bit_cast<std::uint32_t>(sourceMiddle);
+        result.originalVF3[i]=std::bit_cast<std::uint32_t>(float(vf3));
+        result.originalVF1[i]=std::bit_cast<std::uint32_t>(float(vf1));
+        result.originalVF2[i]=std::bit_cast<std::uint32_t>(float(vf2));
+    }
+    return result;
+}
 void originalMovementScratchFromVU0Scalar_36f5f4(
     std::span<std::byte,0x110> sourceScratch,
     std::uint64_t originalGuestStackA0,
