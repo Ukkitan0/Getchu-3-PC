@@ -69,6 +69,24 @@ def verify(path):
     }.items():
         if struct.unpack("<I",load_segment(data,pc,4))[0]!=opcode:
             raise ValueError("original controller entry changed "+hex(pc))
+    # Both source 0x57C48C and 0x57C554 share the exact MMI
+    # PCEQW -> PPACB -> NOR -> SLTIU 128-bit equality, followed
+    # by branch-delay return polarity. Distinguish these from any
+    # prior native test expectation that inverted 1 and child+0x14.
+    for pc,op in {
+        0x57C500:0x11E00009,  # BEQZ variant-zero -> word14
+        0x57C510:0x71EE78A8,  # original PCEQW
+        0x57C514:0x700F7DC8,  # original PPACB
+        0x57C528:0x240D0001,  # variant-zero selects source LW
+        0x57C538:0x8E020014,  # word14 return
+        0x57C5CC:0x11E00009,
+        0x57C5DC:0x71EE78A8,
+        0x57C5E0:0x700F7DC8,
+        0x57C5F4:0x240D0001,
+        0x57C604:0x8E020014,
+    }.items():
+        if struct.unpack("<I",load_segment(data,pc,4))[0]!=op:
+            raise ValueError("original packed-vector return branch changed "+hex(pc))
     total_window = load_segment(data,START,END-START)
     if hashlib.sha256(total_window).hexdigest() != SOURCE_SHA256:
         raise ValueError("combined original four-function region differs")
