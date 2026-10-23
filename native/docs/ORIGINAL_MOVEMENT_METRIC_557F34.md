@@ -146,3 +146,16 @@ DLL and Unreal Editor/game startup were **not** executed.
 Real Player/Monkey lifecycle ownership, `0x36FB18`
 positive-movement collision paths, post-`0x557F54`
 animation and native full-game startup remain blockers.
+
+
+### Source parent identity invariant
+
+The original `0x317B34` VU0 branch consumes state from
+the **same parent** used by the resource table lookups.
+The native `0x557F34` owner now rejects any supplied
+`originalParentGuestVA` whose value differs from the
+actual child parent pointer at original child `+0x04`,
+**before** publishing new VF1 register state. A regression
+checks this refusal and verifies no source VF1 publication
+occurred. Neither arbitrary guest virtual addresses nor
+host pointers are interpreted as valid related game objects.
