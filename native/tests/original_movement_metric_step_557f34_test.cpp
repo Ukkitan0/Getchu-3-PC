@@ -27,6 +27,7 @@ struct OriginalOwner : OriginalMovementNormalCalls_557ed8,
     std::uint32_t scaleRaw=0;
     bool foreignOriginalVF1=false;
     bool iterativeFlagged=false,disagreeRegeneratedVF1=false;
+    bool foreignLoopBinding=false;
     int movementCallbacks=0,resourceReads=0,vf1Publications=0;
     int flaggedReads=0,flaggedPublications=0,regenPublications=0;
     OriginalMovementChildD0_30c57c* actualChild=nullptr;
@@ -108,7 +109,7 @@ struct OriginalOwner : OriginalMovementNormalCalls_557ed8,
         if(!iterativeFlagged)return std::nullopt;
         assert(&c==actualChild && c.originalWordAt(0xB8)==2u);
         return OriginalMovementRegenerationBinding_36f8c8{
-            0x01FFF020u,this};
+            foreignLoopBinding?0x01FFF040u:0x01FFF020u,this};
     }
     std::array<std::array<std::uint32_t,4>,8>
     read_original_vf1_through_vf8(std::uint32_t parentVA) override {
@@ -253,6 +254,36 @@ int main() {
            wrongVF.flaggedReads==2 &&
            wrongChild->originalWordAt(0xB8)==2u &&
            wrongVF.movementCallbacks==0);
+
+    // A flagged loop owner for an unrelated EE child scratch
+    // address cannot cause ANY original 36FB70 VF1 state write.
+    // Without the source-equal 36FC18 binding, fall back to
+    // the real external callback only when NO opt-in owner
+    // exists; a present-but-wrong owner is an error.
+    OriginalOwner foreignLoop{};
+    foreignLoop.iterativeFlagged=true;
+    foreignLoop.foreignLoopBinding=true;
+    foreignLoop.floatFields.originalFloatAt374Bits=
+        std::bit_cast<std::uint32_t>(1.0f);
+    foreignLoop.scaleRaw=std::bit_cast<std::uint32_t>(0.5f);
+    auto foreignChild=child();
+    foreignChild->writeWord(0xB0,0x744dd0u);
+    foreignLoop.actualChild=foreignChild.get();
+    originalMovementNormalBegin_557ed8(
+        *foreignChild,0x220000u,foreignLoop);
+    foreignChild->writeWord(0xB4,std::bit_cast<std::uint32_t>(0.5f));
+    foreignChild->writeWord(0xB8,2u);
+    bool foreignLoopRejected=false;
+    try{(void)originalMovementMetricStep_557f34(
+        *foreignChild,foreignLoop);}
+    catch(const std::invalid_argument&){foreignLoopRejected=true;}
+    assert(foreignLoopRejected && foreignLoop.flaggedReads==1 &&
+           foreignLoop.flaggedPublications==0 &&
+           foreignLoop.regenPublications==0 &&
+           foreignLoop.movementCallbacks==0 &&
+           foreignChild->originalWordAt(0xB4)==
+               std::bit_cast<std::uint32_t>(0.5f) &&
+           foreignChild->originalWordAt(0xB8)==2u);
 
     std::cout<<"ORIGINAL_MOVEMENT_557F34_METRIC_PREFIX_PASSED\n";
 }
