@@ -2,6 +2,9 @@
 #include "ae3/original_manager_initializer.hpp"
 #include "ae3/original_actor_route_follower.hpp"
 #include "ae3/original_polygon_raycast.hpp"
+#include "ae3/original_actor_target_dispatch.hpp"
+#include "ae3/original_actor_random_triangle.hpp"
+#include "ae3/original_vu0_geometry.hpp"
 #include <cmath>
 
 #include <array>
@@ -640,4 +643,85 @@ extern "C" int ae3_original_actor_route_step_v2(
     }
     session->busy=false;
     return completed;
+}
+
+
+/* Fully recovered portions of the actual 0x57C8EC dispatch: use the
+ * genuine 0x21B788 predicate and real 0x57C98C RNG/triangle blending.
+ * The original 0x57CA68 fallback VU0 math is not recovered and MUST
+ * reject rather than pretending to generate an accurate target.
+ */
+extern "C" int ae3_original_actor_target_57c8ec(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalActorTargetRequestV1* source,
+    Ae3OriginalActorTargetResultV1* out) {
+    if (!session) return 0;
+    if (session->busy) {
+        session->error = "original target routine cannot reenter actor manager";
+        return 0;
+    }
+    session->error.clear();
+    session->busy = true;
+    int success = 0;
+    try {
+        if (!source || !out || !source->original_record70 ||
+            source->original_point_count == 0 ||
+            source->original_point_count > 3)
+            throw std::invalid_argument(
+                "original 0x57C8EC requires source record and original descriptor point count");
+        const auto& v = source->original_controller20;
+        if (!(std::isfinite(v.x) && std::isfinite(v.y) &&
+              std::isfinite(v.z) && std::isfinite(v.w)))
+            throw std::invalid_argument("original 0x57C8EC controller vector invalid");
+        ae3::OriginalSpatialRecord70 record{};
+        std::memcpy(record.originalFields.data(), source->original_record70,0x70);
+        std::array<ae3::OriginalVU0Vec4,3> vertices{};
+        for (std::size_t i = 0; i < vertices.size(); ++i)
+            std::memcpy(&vertices[i],
+                record.originalFields.data()+0x40+0x10*i,0x10);
+        std::array<std::byte,16> controller{};
+        std::memcpy(controller.data(), &source->original_controller20,16);
+        auto tentativeRandom = session->originalRandom;
+        struct RecoveredTargetGeometry final : ae3::OriginalActorTargetGeometryCalls_57c8ec {
+            std::span<const ae3::OriginalVU0Vec4> vertices;
+            ae3::OriginalVU0Vec4 controller;
+            ae3::OriginalGameRandom_36f3c0& random;
+            RecoveredTargetGeometry(std::span<const ae3::OriginalVU0Vec4> points,
+                ae3::OriginalVU0Vec4 input,ae3::OriginalGameRandom_36f3c0& rng)
+                :vertices(points),controller(input),random(rng){}
+            bool call_original_21b788_eligibility(
+                const ae3::OriginalSpatialRecord70&,float f12) override {
+                return ae3::originalVU0PolygonEligible_21b788(vertices,controller,f12);
+            }
+            std::uint64_t call_original_57ca68_geometry(
+                const ae3::OriginalSpatialRecord70&) override {
+                throw std::runtime_error(
+                    "original 0x57CA68 candidate VU0 transform not recovered");
+            }
+            std::uint64_t call_original_57c98c_three_vertex_transform(
+                const ae3::OriginalSpatialRecord70&,
+                const std::array<std::array<std::byte,16>,3>& points) override {
+                return ae3::originalActorRandomTriangleLow64_57c98c(points,random);
+            }
+        } original(std::span<const ae3::OriginalVU0Vec4>(
+            vertices.data(),source->original_point_count),native(v),tentativeRandom);
+        const auto target = ae3::originalActorTargetVector_57c8ec(
+            record,source->original_variant30 != 0,controller,original);
+        if (target.branch == ae3::OriginalActorTargetBranch_57c8ec::
+                OriginalFallbackGeometry_57ca68)
+            throw std::runtime_error("unrecovered original fallback VU0 not permitted");
+        const int branch = target.branch == ae3::OriginalActorTargetBranch_57c8ec::
+                OriginalVariantVectorPassThrough_57c944 ? 1 : 2;
+        const Ae3OriginalActorTargetResultV1 result{target.originalVectorLow64,branch};
+        session->originalRandom = std::move(tentativeRandom);
+        *out = result;
+        session->error.clear();
+        success = 1;
+    } catch (const std::exception& ex) {
+        session->error = ex.what();
+    } catch (...) {
+        session->error = "unknown original 0x57C8EC target routine failure";
+    }
+    session->busy = false;
+    return success;
 }
