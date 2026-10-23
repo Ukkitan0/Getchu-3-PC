@@ -129,6 +129,9 @@ def check(root: Path) -> dict:
            ).read_text(encoding="utf-8")
     if "static_cast<std::int32_t>(sourceContextLow32)" not in begin:
         raise AssertionError("source 317B9C 32-bit ADDIU result not sign-extended")
+    if ("originalParentWord14SignExtended!=" not in begin or
+        "original 557E68 parent word s4 was not sign-extended" not in begin):
+        raise AssertionError("original 557E68 EE s4 canonical sign extension not checked")
     for method in ("call_original_276b68", "call_original_2767f4",
                    "call_original_2773d4"):
         start=normal_header.find(method+"(")
@@ -180,6 +183,9 @@ def check(root: Path) -> dict:
         raise AssertionError("source 558084 missing regeneration in direct tail")
     if "originalMovementPostTail_557fc8(" not in lifecycle:
         raise AssertionError("genuine full original 557FC8 tail not in lifecycle")
+    if ("originalParentWord14SignExtended!=" not in direct or
+        "original 557FF0 s4 register is not canonical 557E68 LW" not in direct):
+        raise AssertionError("original 557FF0 EE s4 canonical sign extension not checked")
     if "originalGprS3VF2" not in direct:
         raise AssertionError("557FF8 full original EE s3 POR not preserved")
     for method in ("call_original_30c0a0", "call_original_276538",
