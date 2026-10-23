@@ -53,6 +53,22 @@ def verify(path):
         raise ValueError("not the original hash-pinned USA SCUS_975.01")
     if data[:7] != b"\x7fELF\x01\x01\x01" or struct.unpack_from("<H",data,18)[0] != 8:
         raise ValueError("not original MIPS32 little-endian ELF")
+    # Source 0x57C27C publishes the packed original method pair
+    # 0x708A48 -> {0x57C388, 0}. This is the NEXT genuine controller
+    # function, not an external replacement steering method.
+    original_next_method=load_segment(data,0x708A48,8)
+    if original_next_method!=struct.pack("<II",0x57C388,0):
+        raise ValueError("source 0x708A48 controller update pair changed")
+    # Distinct source function prologues; the previous 382-word
+    # region audit mistakenly combined these as one method.
+    for pc,opcode in {
+        0x57BF5C:0x27BDFED0,
+        0x57C27C:0x27BDFFC0,
+        0x57C388:0x27BDFFA0,
+        0x57C48C:0x27BDFFE0,
+    }.items():
+        if struct.unpack("<I",load_segment(data,pc,4))[0]!=opcode:
+            raise ValueError("original controller entry changed "+hex(pc))
     total_window = load_segment(data,START,END-START)
     if hashlib.sha256(total_window).hexdigest() != SOURCE_SHA256:
         raise ValueError("combined original four-function region differs")
