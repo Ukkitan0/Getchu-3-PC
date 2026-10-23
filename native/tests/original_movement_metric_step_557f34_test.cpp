@@ -24,7 +24,8 @@ struct OriginalOwner : OriginalMovementNormalCalls_557ed8,
         0x700000u,1u,
         std::bit_cast<std::uint32_t>(3.0f),std::nullopt};
     std::uint32_t scaleRaw=0;
-    int movementCallbacks=0,resourceReads=0;
+    int movementCallbacks=0,resourceReads=0,vf1Publications=0;
+    std::array<std::uint32_t,4> lastVF1{};
     OriginalManagerResourceFields_317b9c
     read_original_parent_resource_fields(std::uint32_t va) override {
         assert(va==0x240000u);
@@ -54,6 +55,13 @@ struct OriginalOwner : OriginalMovementNormalCalls_557ed8,
                  std::bit_cast<std::uint32_t>(4.0f),0,0},
                 std::bit_cast<std::uint32_t>(2.0f),
                 std::bit_cast<std::uint32_t>(10.0f)};
+    }
+    void publish_original_vf1_after_317b34(
+        std::uint32_t parentVA,
+        const std::array<std::uint32_t,4>& frame) override {
+        assert(parentVA==0x240000u);
+        ++vf1Publications;
+        lastVF1=frame;
     }
     std::uint32_t read_original_parent_float70(std::uint32_t va) override {
         assert(va==0x240000u);
@@ -103,6 +111,9 @@ int main() {
     assert(result.originalF20MetricRaw==
            std::bit_cast<std::uint32_t>(7.0f));
     assert(result.originalMovementF0Raw==0);
+    assert(owner.vf1Publications==1);
+    assert(owner.lastVF1[0]==std::bit_cast<std::uint32_t>(25.0f));
+    assert(owner.lastVF1[1]==std::bit_cast<std::uint32_t>(32.0f));
     // Missing true original +0x374 value cannot fall through.
     owner.floatFields.originalParentWord40=1;
     owner.floatFields.originalFloatAt374Bits.reset();
