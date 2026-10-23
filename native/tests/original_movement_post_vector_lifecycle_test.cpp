@@ -112,10 +112,15 @@ struct Owner final:OriginalMovementParentRead_557e30,
     }
     std::uint32_t call_original_30c0a0(
         std::uint32_t parent,const std::array<std::uint32_t,4>& a1) override {
-        assert(parent==0x234000u && a1[0]==0u);
-        if(child->originalWordAt(0xB8)==3u &&
-           flag0Publications>0 && real30c0a0Calls==0)
-            assert(a1[3]==raw(1.0f));
+        assert(parent==0x234000u);
+        if(real30c0a0Calls==0) {
+            // 558084 regenerates progress=0 -> [0,0,0,1].
+            assert(a1[0]==0u && a1[3]==raw(1.0f));
+        } else {
+            // On bit0-set reentry 557FDC loads genuine child+90;
+            // this test's source original lane0 is exactly 1.
+            assert(a1[0]==raw(1.0f) && a1[3]==0u);
+        }
         ++real30c0a0Calls;
         actualTailCalls.emplace_back("30C0A0");
         return 0x450000u;
