@@ -15,6 +15,22 @@
  * The original Lua 5.0 runtime calls these synchronously on the game thread.
  * Do not implement a generic AActor substitute as if it were the original.
  */
+/** A recovered VOID-return game callback identified by genuine executable VA.
+ * Never list unknown or value-return functions here. The game-manager
+ * implementation must separately recover its original semantics.
+ */
+USTRUCT(BlueprintType)
+struct GETCHU3ORIGINALLUA_API FGetchu3OriginalVoidFunction
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Original Source")
+    FString OriginalName;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Original Source")
+    int32 OriginalVA = 0;
+};
+
 UCLASS(Abstract, BlueprintType, Blueprintable)
 class GETCHU3ORIGINALLUA_API UGetchu3OriginalManagerProvider : public UObject
 {
@@ -37,6 +53,24 @@ public:
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Ape Escape 3|Original Manager")
     void AbortOriginalStageSetup();
     virtual void AbortOriginalStageSetup_Implementation();
+
+    /** Return only independently source-verified, genuinely implemented
+     * void-return Lua callbacks. A CreateBind JAL location is NOT a callback
+     * VA. All results are checked by LuaStage against existing globals.
+     */
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Ape Escape 3|Original Manager")
+    bool CollectVerifiedOriginalVoidFunctions(
+        UPARAM(ref) TArray<FGetchu3OriginalVoidFunction>& OutFunctions);
+    virtual bool CollectVerifiedOriginalVoidFunctions_Implementation(
+        TArray<FGetchu3OriginalVoidFunction>& OutFunctions);
+
+    /** Invoke actual recovered original C++ behavior; false aborts script. */
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Ape Escape 3|Original Manager")
+    bool InvokeRecoveredOriginalVoidFunction(
+        int32 OriginalVA, const FString& OriginalName,
+        const FString& OriginalTypedArgumentsJson);
+    virtual bool InvokeRecoveredOriginalVoidFunction_Implementation(
+        int32, const FString&, const FString&);
 
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Ape Escape 3|Original Manager")
     bool CreateOriginalEntity(const FString& ClassHex, const FString& NameHex,
