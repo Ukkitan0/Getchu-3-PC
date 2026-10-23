@@ -106,6 +106,61 @@ class ImporterTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "same Unreal object"):
                 module.import_glbs_in_editor(folder, FakeUE())
 
+    def test_unreal_shared_materials_do_not_replace_original_model_identity(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            (folder / "ape_a.glb").write_bytes(b"model A")
+            (folder / "ape_b.glb").write_bytes(b"model B")
+            class PrimaryMesh:
+                def __init__(self, identity):
+                    self.identity = identity
+                def get_path_name(self):
+                    return self.identity
+            class SharedMaterial:
+                def get_path_name(self):
+                    return "/Game/ApeEscape3/Original/Materials/Shared"
+            class MultipleAssets:
+                def import_asset_tasks(self, tasks):
+                    for task in tasks:
+                        task.objects = [
+                            PrimaryMesh("/Game/ApeEscape3/Original/Models/" +
+                                        task.destination_name),
+                            SharedMaterial()]
+            class TypedUE(FakeUE):
+                StaticMesh = PrimaryMesh
+                class AssetToolsHelpers:
+                    @staticmethod
+                    def get_asset_tools():
+                        return MultipleAssets()
+            source_records = []
+            result = module.import_glbs_in_editor(
+                folder, TypedUE(), source_records=source_records)
+            self.assertEqual(len(result), 2)
+            self.assertTrue(all("Shared" not in path for path in result))
+            self.assertEqual(len(source_records), 2)
+            self.assertTrue(all(len(row["unreal_object_paths"]) == 1
+                                for row in source_records))
+
+    def test_missing_primary_model_type_fails_instead_of_indexing_material(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            (folder / "ape.glb").write_bytes(b"model")
+            class PrimaryMesh:
+                pass
+            class WrongImporter:
+                def import_asset_tasks(self, tasks):
+                    for task in tasks:
+                        task.objects = [type("MaterialOnly", (), {
+                            "get_path_name": lambda self: "/Game/NotAMesh"})()]
+            class TypedUE(FakeUE):
+                StaticMesh = PrimaryMesh
+                class AssetToolsHelpers:
+                    @staticmethod
+                    def get_asset_tools():
+                        return WrongImporter()
+            with self.assertRaisesRegex(RuntimeError, "no primary"):
+                module.import_glbs_in_editor(folder, TypedUE())
+
     def test_collision_package_alias_preflight_before_import(self):
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp)
