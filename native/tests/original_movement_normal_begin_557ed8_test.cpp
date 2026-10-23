@@ -11,9 +11,15 @@
 #include <cstdint>
 #include <iostream>
 #include <stdexcept>
+#include <type_traits>
 #include <string>
 #include <vector>
 using namespace ae3;
+
+static_assert(std::is_same_v<
+    decltype(&originalMovementNormalBegin_557ed8),
+    void(*)(OriginalMovementChildD0_30c57c&,
+            std::uint64_t,OriginalMovementNormalCalls_557ed8&)>);
 
 namespace {
 std::unique_ptr<OriginalMovementChildD0_30c57c> makeChild(
