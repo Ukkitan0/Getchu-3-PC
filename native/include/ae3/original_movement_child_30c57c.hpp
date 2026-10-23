@@ -29,9 +29,13 @@ void originalMovementCommitFlaggedReturn_36fb5c(
     OriginalMovementChildD0_30c57c&,
     const OriginalMovementFlaggedInputs_36fb5c&,
     const OriginalMovementFlaggedPass_36fb5c&);
+void originalMovementCommitFlaggedIteration_36fb5c(
+    OriginalMovementChildD0_30c57c&,
+    const OriginalMovementFlaggedInputs_36fb5c&,
+    const OriginalMovementFlaggedPass_36fb5c&);
 void originalMovementNormalBegin_557ed8(
     OriginalMovementChildD0_30c57c& child,
-    std::uint32_t originalParentWord14,
+    std::uint64_t originalParentWord14SignExtended,
     OriginalMovementNormalCalls_557ed8& genuineOwner);
 
 // Original 0x30C57C..0x30C670, exactly 61 EE instruction words.
@@ -76,11 +80,15 @@ private:
         OriginalMovementChildD0_30c57c&,
         const OriginalMovementFlaggedInputs_36fb5c&,
         const OriginalMovementFlaggedPass_36fb5c&);
+    friend void originalMovementCommitFlaggedIteration_36fb5c(
+        OriginalMovementChildD0_30c57c&,
+        const OriginalMovementFlaggedInputs_36fb5c&,
+        const OriginalMovementFlaggedPass_36fb5c&);
     // This friend is narrowly limited to the source 0x557ED8..0x557F30
     // writes (+0xB4/+0xB8/+0xC0). It is NOT a public arbitrary guest
     // memory patch method or a replacement animation updater.
     friend void originalMovementNormalBegin_557ed8(
-        OriginalMovementChildD0_30c57c&,std::uint32_t,
+        OriginalMovementChildD0_30c57c&,std::uint64_t,
         OriginalMovementNormalCalls_557ed8&);
     friend std::unique_ptr<OriginalMovementChildD0_30c57c>
     originalMovementChildCreate_30c57c(
