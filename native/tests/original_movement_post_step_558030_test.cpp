@@ -33,7 +33,7 @@ struct Owner:OriginalMovementPostStepOwner_558030 {
         return 0x880000u;
     }
     void call_original_314c44(
-        std::uint32_t p,std::uint64_t s5,std::uint32_t mode) override {
+        std::uint64_t p,std::uint64_t s5,std::uint32_t mode) override {
         assert(p==0x880000u && s5==expectedS5 && mode==3u);
         operations.emplace_back("314c44");
     }
