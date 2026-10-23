@@ -503,6 +503,27 @@ if(BUILD_TESTING)
   add_test(NAME OriginalMovementRegenerationOwned36F8C8
     COMMAND Getchu3OriginalMovementRegenerateOwnedTests)
 
+  # Original 557F34 -> 36FB18 positive -> 36FC18 ->
+  # 36F8C8 unflagged regeneration -> genuine movement owner.
+  # Genuine child and VU state, no repeated regeneration on
+  # subsequent flagged updates, reject failed VU publication.
+  add_executable(Getchu3OriginalMovementRegenMetricIntegrationTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_regeneration_metric_integration_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_36f8c8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_owned_36f8c8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_flagged_36fb5c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp")
+  target_include_directories(Getchu3OriginalMovementRegenMetricIntegrationTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementRegenMetricIntegration36F8C8
+    COMMAND Getchu3OriginalMovementRegenMetricIntegrationTests)
+
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
   # source actor child callbacks; never invent missing movements.
