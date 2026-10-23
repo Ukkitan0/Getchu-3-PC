@@ -101,3 +101,46 @@ AI, gadget, collision and progression managers remain unfinished, so it
 **does not enable gameplay or the disabled Play button**. The new integrity
 tests passed locally with synthetic structural scripts; no genuine retail
 ISO or Windows Unreal build has been verified in this environment.
+
+## Original native callback gaps — actionable per-stage report
+
+After owner-ISO import, if the verified original `SCUS_975.01` Lua
+registration audit succeeds, the importer writes the private file
+`getchu3_original_native_stage_readiness.json` under the current
+`Saved/Getchu3Private/<import-id>/` workspace.
+
+The Unreal import panel exposes **View Original Gameplay Binding Gaps**,
+which opens the owner-private report. The source comparison distinguishes:
+
+- Direct Lua function calls missing from recovered native host registrations;
+- Original USA ELF CreateBind registrations that still have no host callback;
+- Functions already registered by name but whose **original behavior is not
+  verified**;
+- Original script-defined functions, original actor class literals and
+  controller commands per stage; and
+- Source-verified PLC-to-imported-model associations versus unresolved
+  placements.
+
+Each result is stage-specific; information from another stage is not
+silently assigned to it. The parser uses the existing original USA executable
+and Lua bytecode audit tools. It never reports a stage playable based on a
+function name match, imported mesh, or recovered address.
+
+If the ELF/source audit is unavailable, the importer records an explicit
+blocked diagnostics status while leaving independent owner-asset conversion
+available. The report-opening control stays disabled until a verified
+owner-private report exists. No original game data is included in Git.
+New synthetic evidence regressions cover missing callbacks, duplicate
+original registrations, unknown stage scripts, conflicting source-asset
+inventories, and stage isolation.
+
+## Isolated recovered Lua build verification
+
+The separate `native/unreal_bridge` CMake project now uses a pinned,
+SHA-256-verified official Lua 5.0.3 source archive. Modern
+`FetchContent_MakeAvailable` is used correctly for a source archive
+without its own CMakeLists.txt; the archive layout is checked before
+compiling. On Linux CMake 3.31, the no-CMake upstream source handling was
+tested with a local source override; two structural CTest targets passed
+using synthetic stub sources. **Those tests do not establish that the
+real native Lua engine or the Unreal project compile or run.**
