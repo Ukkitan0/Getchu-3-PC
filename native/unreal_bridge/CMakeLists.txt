@@ -66,6 +66,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_routed_update_57c388.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_native_method_router.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_movement_57bf5c.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_polygon_selector_30ffd0.cpp"
   # Original actor navigation initializer 0x57BCB8, source route-edge
   # lookup, type-2 target, exact source RNG / VU0 and 0x70 polygon views.
@@ -154,6 +155,16 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalControllerRouted57C388
     COMMAND Getchu3OriginalRouted57C388Tests)
+
+  # Genuine original 0x316174 virtual update depth/global and
+  # 0x3161B8 child+0x10 pointer/status+0x14 lifecycle.
+  add_executable(Getchu3OriginalManager316174TickTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_update_316174_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp")
+  target_include_directories(Getchu3OriginalManager316174TickTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalControllerUpdate3161743161B8
+    COMMAND Getchu3OriginalManager316174TickTests)
 
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
