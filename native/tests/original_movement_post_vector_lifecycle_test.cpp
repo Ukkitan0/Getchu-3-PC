@@ -3,6 +3,7 @@
 #include "ae3/original_movement_metric_step_557f34.hpp"
 #include "ae3/original_movement_post_vector_557f54.hpp"
 #include "ae3/original_movement_post_step_558030.hpp"
+#include "ae3/original_movement_flag0_regenerate_36f83c.hpp"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -20,11 +21,14 @@ struct Owner final:OriginalMovementParentRead_557e30,
                    OriginalMovementMetricOwner_557f34,
                    OriginalMovementRegenerationOwner_36f8c8,
                    OriginalMovementPostVectorOwner_557f54,
-                   OriginalMovementPostStepContinuation_558030 {
+                   OriginalMovementPostStepContinuation_558030,
+                   OriginalMovementFlag0Owner_36f83c {
     OriginalMovementChildD0_30c57c* child{};
     int setups=0,regenerations=0,moves=0,post=0;
     bool failPost=false,allowPostStep=false,failSource314c44=false;
+    bool allowFlag0=true,failFlag0=false;
     int postStepReads=0,source314c44Calls=0,sourceParentWord1cReads=0;
+    int flag0Reads=0,flag0Publications=0,flag0Bindings=0;
     std::uint32_t sourceParentFloat70Last=0u;
     std::uint32_t read_original_parent_word14(std::uint32_t va) override {
         assert(va==0x234000u);return 0x340000u;
@@ -85,10 +89,26 @@ struct Owner final:OriginalMovementParentRead_557e30,
         ++moves;
         return 0u; // Test owner; not a real-game movement substitute
     }
+    std::optional<OriginalMovementFlag0Binding_36f83c>
+    read_original_flag0_binding_36f83c(
+        const OriginalMovementChildD0_30c57c& c) override {
+        assert(&c==child && c.originalWordAt(0xB8)==2u);
+        ++flag0Bindings;
+        if(!allowFlag0)return std::nullopt;
+        return OriginalMovementFlag0Binding_36f83c{0x01FFF020u,this};
+    }
+    void publish_original_36f83c_vu0(
+        const OriginalMovementRegenerateResult_36f8c8& result) override {
+        assert(result.originalFlagsA8After==3u);
+        ++flag0Reads;
+        if(failFlag0)
+            throw std::runtime_error("original 36F83C VF0 publication failed");
+        ++flag0Publications;
+    }
     std::optional<OriginalMovementPostStep_558030>
     read_original_post_step_after_557fc8(
         const OriginalMovementChildD0_30c57c& c) override {
-        assert(&c==child && c.originalWordAt(0xB8)==2u);
+        assert(&c==child && (c.originalWordAt(0xB8)&3u)==3u);
         ++postStepReads;
         if(!allowPostStep)return std::nullopt;
         // Test-double values for an ALREADY COMPLETED source 557FC8..
@@ -156,7 +176,8 @@ int main() {
            first.moves==1 && first.post==1);
     // Genuine 557FBC distance early status1 must take precedence:
     // never call a post-step source owner after original return.
-    assert(first.postStepReads==0 && first.source314c44Calls==0);
+    assert(first.postStepReads==0 && first.source314c44Calls==0 &&
+           first.flag0Bindings==0 && first.flag0Publications==0);
 
     // Length 1.0 must NOT claim a completed original frame.
     Owner second{};
@@ -209,6 +230,9 @@ int main() {
     assert(continuationOwner.postStepReads==1 &&
            continuationOwner.sourceParentWord1cReads==1 &&
            continuationOwner.source314c44Calls==1);
+    assert(continuationOwner.flag0Bindings==1 &&
+           continuationOwner.flag0Publications==1 &&
+           continuationOwner.child->originalWordAt(0xB8)==3u);
     // The original C0 initialized-child branch must preserve the
     // state and re-enter post-step without repeating 557ED8 or 36F8C8.
     assert(originalManagerChildUpdate_3161b8(
@@ -217,6 +241,8 @@ int main() {
            continuationOwner.regenerations==1 &&
            continuationOwner.source314c44Calls==2 &&
            continuationOwner.postStepReads==2 && depth.depth==0u);
+    assert(continuationOwner.flag0Bindings==1 &&
+           continuationOwner.flag0Publications==1);
     // A claimed post-step owner without the preceding original 557F54
     // vector publication MUST NOT skip that original source segment.
     Owner missingVector{};
@@ -268,6 +294,44 @@ int main() {
     assert(refused && controller.word14==77u &&
            controller.child10==continuationOwner.child &&
            continuing.ownsOriginalChild() && depth.depth==0u);
+
+    // Original 557FC8 bit0-clear cannot jump to source 558030
+    // without original 558084 -> 36F83C regeneration.
+    Owner noFlag0{};
+    noFlag0.allowPostStep=true;
+    noFlag0.allowFlag0=false;
+    OriginalMovementChildLifecycle_557e30 needsFlag0(
+        child(1.0f),noFlag0,&noFlag0,&noFlag0,&noFlag0,&noFlag0);
+    controller.child10=needsFlag0.originalChildPointer();
+    controller.word14=55u;
+    noFlag0.child=static_cast<OriginalMovementChildD0_30c57c*>(controller.child10);
+    refused=false;
+    try{(void)originalManagerChildUpdate_3161b8(
+        controller,0,0,0,depth,needsFlag0);}
+    catch(const std::logic_error&){refused=true;}
+    assert(refused && noFlag0.flag0Bindings==1 &&
+           noFlag0.flag0Publications==0 && noFlag0.postStepReads==0 &&
+           noFlag0.child->originalWordAt(0xB8)==2u &&
+           controller.word14==55u && depth.depth==0u);
+
+    // A failed live VF publication must leave original bit0 clear;
+    // status and child ownership cannot claim success.
+    Owner failFlag0{};
+    failFlag0.allowPostStep=true;
+    failFlag0.failFlag0=true;
+    OriginalMovementChildLifecycle_557e30 refusedRegeneration(
+        child(1.0f),failFlag0,&failFlag0,&failFlag0,&failFlag0,&failFlag0);
+    controller.child10=refusedRegeneration.originalChildPointer();
+    controller.word14=66u;
+    failFlag0.child=static_cast<OriginalMovementChildD0_30c57c*>(controller.child10);
+    refused=false;
+    try{(void)originalManagerChildUpdate_3161b8(
+        controller,0,0,0,depth,refusedRegeneration);}
+    catch(const std::runtime_error&){refused=true;}
+    assert(refused && failFlag0.flag0Publications==0 &&
+           failFlag0.postStepReads==0 &&
+           failFlag0.child->originalWordAt(0xB8)==2u &&
+           controller.word14==66u && depth.depth==0u);
 
     std::cout<<"ORIGINAL_POST_VECTOR_LIFECYCLE_557F54_PASSED\n";
 }
