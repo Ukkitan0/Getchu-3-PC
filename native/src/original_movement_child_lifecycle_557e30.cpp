@@ -1,13 +1,16 @@
 #include "ae3/original_movement_child_lifecycle_557e30.hpp"
 #include "ae3/original_movement_child_early_36f954.hpp"
+#include "ae3/original_movement_normal_begin_557ed8.hpp"
 #include <stdexcept>
 #include <utility>
 
 namespace ae3 {
 OriginalMovementChildLifecycle_557e30::OriginalMovementChildLifecycle_557e30(
     std::unique_ptr<OriginalMovementChildD0_30c57c> child,
-    OriginalMovementParentRead_557e30& originalParent)
-    :child_(std::move(child)),parent_(originalParent) {
+    OriginalMovementParentRead_557e30& originalParent,
+    OriginalMovementNormalCalls_557ed8* normalOwner)
+    :child_(std::move(child)),parent_(originalParent),
+     normalOwner_(normalOwner) {
     if(!child_ || child_->originalWordAt(0)!=
        OriginalMovementChildD0_30c57c::originalVtableVA)
         throw std::invalid_argument(
@@ -30,7 +33,8 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
     // the actual original game parent; do not skip it merely
     // because source status will be one.
     const auto originalParentVA=child_->originalWordAt(4);
-    (void)parent_.read_original_parent_word14(originalParentVA);
+    const auto originalParentWord14 =
+        parent_.read_original_parent_word14(originalParentVA);
 
     // Source 0x557E34: ANDI a1,1 -> early status 1 at 0x557E80.
     // Source 0x557E6C..0x557E78: (a1>>1)&1 -> same early status1.
@@ -55,9 +59,22 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
         // v0=2. Real controller 0x3161B8 then owns deletion.
         if(originalMovementChildTerminal36F954(*child_))
             return 2u;
+        if(normalOwner_) {
+            // Source 0x557ED8..0x557F30: genuinely enter the
+            // original nonterminal reset/resource/collision setup
+            // through real source callback methods. Parent+0x14
+            // came from mandatory 0x557E68 delay-slot load.
+            const auto originals=normalOwner_->
+                read_original_parent_resource_fields(originalParentVA);
+            originalMovementNormalBegin_557ed8(
+                *child_,originalParentWord14,originals,*normalOwner_);
+        }
     }
+    // A successfully executed prefix is NOT an actor update:
+    // 0x557F34 invokes original 0x317B34 / 0x36FB18 and
+    // subsequent collision/animation paths we have not recovered.
     throw std::logic_error(
-        "original 0x557E30 nonterminal actor update requires unrecovered gameplay methods");
+        "original 0x557F34 gameplay continuation requires unrecovered source methods");
 }
 void OriginalMovementChildLifecycle_557e30::
 call_original_child_vtable1_delete(void* object) {
