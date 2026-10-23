@@ -34,7 +34,7 @@ struct Owner final:OriginalMovementNormalCalls_557ed8 {
     OriginalManagerResourceFields_317b9c fields{0x701000u,0u,0u};
     std::vector<std::string> calls{};
     OriginalMovementChildD0_30c57c* observedChild=nullptr;
-    std::uint32_t collisionResult=0;
+    std::uint64_t collisionResult=0;
     std::uint64_t expectedParentWord14=0x345000u;
     bool failCollision=false, failRecalc=false, failReset=false;
     OriginalManagerResourceFields_317b9c
@@ -48,7 +48,7 @@ struct Owner final:OriginalMovementNormalCalls_557ed8 {
         calls.emplace_back("read-parent");
         return fields;
     }
-    std::uint32_t call_original_276b68(
+    std::uint64_t call_original_276b68(
         std::uint64_t parentWord14,std::uint32_t resourceVA) override {
         assert(parentWord14==expectedParentWord14);
         const auto expected=originalManagerSelectResource_317b9c(fields,2);
