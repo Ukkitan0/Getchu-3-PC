@@ -131,3 +131,12 @@ Both independent original initializer tests now supply the actual
 variant-one SQ explicitly. The Unreal C++ test also rejects both a
 missing source SQ and a one-byte-mismatched vector, preserving the
 previous source update method and game RNG cursor on failure.
+
+The existing `Getchu3OriginalManagerInitializerTests` CTest now
+links `original_manager_child.cpp` and calls the actual recovered
+`originalManagerChildCtor_57baf8`, whose source-order callback invokes
+the real translated `originalManagerInitialize_57bcb8`. The regression
+verifies the pre-initializer controller vector, flags, method pair,
+source near-owner result and unchanged original RNG cursor. This is a
+linked source constructor/initializer path, **not** a complete actor
+factory or Unreal Player/Monkey game instance.
