@@ -151,6 +151,8 @@ class ImporterTests(unittest.TestCase):
                 self.assertFalse(outcome['gameplay_ready'])
                 self.assertIn('gameplay_not_implemented',outcome['status'])
                 self.assertEqual(outcome['original_files'],3994)
+                self.assertEqual(outcome['original_binding_evidence_status'], 'blocked')
+                self.assertIn('original_binding_evidence_error', outcome)
                 again=module.run(str(disk),ue=FakeUE(),repo=base,private_root=base/'saved')
                 self.assertNotEqual(again['workspace'],outcome['workspace'])
 
