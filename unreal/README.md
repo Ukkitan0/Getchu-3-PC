@@ -306,3 +306,34 @@ one- and two-polygon initializer paths. **The tests have been committed
 but not executed on Windows in this environment**. Unreal game-manager
 lifetime, real actor construction and runtime tick integration are
 still unfinished, and the game remains unplayable.
+
+## Original polygon raycast is now native inside route following
+
+The standalone DLL now builds the fully recovered original
+`0x4C1B3C → 0x21BD3C → 0x21EE00` polygon raycast chain. Two C ABI
+functions expose the original geometry: a direct projection of an
+owner-decoded 0x70-byte polygon registry and graph adjacency, and a
+**route follower v2** that uses that projection while running the
+original `0x57C7CC` route controller.
+
+The native route path retains the original incoming A1,
+controller+0x40 first projection vector, and the subsequently returned
+low-64-bit target vector from original `0x57C8EC` (the high 64 bits
+are zeroed, as in the recovered controller). It executes original
+edge clipping, neighbor recursion and route comparisons rather than
+an Unreal line trace or an invented collision policy. A source owner
+must provide the actual spatial records, adjacency and remaining
+genuine target-update routine; invalid inputs are rejected.
+
+A second safety correction makes shared original game RNG updates
+transactional in actor initialization: invalid stage records and
+failed native callbacks cannot accidentally advance the preserved
+`0x36F3C0` random state.
+
+The build now includes `OriginalPolygonRaycast4C1B3CHostAbi` and
+`OriginalRoute57C7CCNativeRaycast4C1B3C` CTests. Their sources are
+committed and the Windows build will run them, but **neither test
+has been executed inside Unreal 5.6 in this environment**. The
+original player/monkey object manager, `0x21B854` and the complete
+`0x57C8EC` target-update implementation remain incomplete.
+The game is still not playable.
