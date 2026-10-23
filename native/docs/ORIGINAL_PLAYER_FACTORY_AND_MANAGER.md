@@ -48,7 +48,7 @@ Locally the new Player lookup, child-controller C++, and the corrected manager r
 
 The original **0x21D898** nearest-polygon calculation is translated and now callable from the mounted stage native bridge. The native original **0x21D46C** stage loader also exposes source-accurate 0x70 polygon records and pending type-1/type-2 descriptors (original record index, action slot, type and argument). This is sufficient to hand the genuine stage data to a future Player/Monkey actor manager, but **not** to implement the still-unrecovered actor spawning semantics by guesswork.
 
-The largest remaining dependencies are the real persistent Player/Monkey factory and owner, original **0x57C620** controller state update, original actor-owned runtime input/route setup and complete update/render/animation integration. Original **0x57BCB8** is translated at source level but is not yet connected to a working live owner. The source executable and all game assets stay private.
+The largest remaining dependencies are the real persistent Player/Monkey factory and owner, real implementations of the original **0x57C620** dispatch's owner callbacks and source actor movement methods, original actor-owned runtime input/route setup and complete update/render/animation integration. The original **0x57BCB8** initializer is translated at source level but is not yet connected to a working live actor owner. The source executable and all game assets stay private.
 
 ## Corrected original controller function boundaries and source recovery
 
@@ -99,8 +99,53 @@ passed on both. A separate direct audit against the exact owner-private
 USA executable passed all four function region hashes, prologues,
 method constant, and each 8/4/4/2 original JAL count.
 
-The original `0x57BF5C`, `0x57C388`, `0x57C48C` bodies and
-most original child owner and movement/animation methods remain
-unimplemented. These native tests are **not** evidence of a playable
-game or a successful Windows/Unreal Editor build. No proprietary
-ELF or ISO bytes have been committed.
+### Original 0x57C388 route-to-child and 0x57C48C follow-up
+
+`native/src/original_manager_routed_update_57c388.cpp` recovers
+the 65-instruction controller method that precedes the source
+`0x57C48C` follow-up. It captures genuine parent+0x14->+0x40
+packed source vector bytes BEFORE invoking recovered original
+`0x57C7CC` (when source flag+0x1C is set). Actual VU0 transforms
+and original `0x30C21C` child construction remain mandatory game-owner
+callbacks, not invented native steering. It rechecks/destroys an
+existing child+0x10 after source construction, calls real `0x3161B8`,
+then publishes retail `0x708A38` pair `{0x57C48C,0}` only after a
+successful source update and delegates to `0x316174`.
+
+`native/src/original_manager_followup_57c48c.cpp` recovers the
+full 50-instruction next-method body with original `0x30C520`
+creation, child virtual destruction, `0x3161B8` update and the
+shared packed `PCEQW/PPACB` vector comparison. Missing actual
+parent and actor VU0 owner state causes the callback to reject.
+Both C++20 regression targets passed GCC and Clang `-O2` with
+UndefinedBehaviorSanitizer:
+
+- `OriginalControllerRouted57C388`
+- `OriginalControllerFollowup57C48C`
+
+The two source constants are now individually verified:
+`0x708A48 = {0x57C388,0}` and
+`0x708A38 = {0x57C48C,0}`.
+
+### Corrected original type-two 0x57C554 return semantics
+
+The previous port inverted this method's final result. Direct
+USA disassembly confirms original `0x57C5CC` variant-zero branch
+falls through `0x57C604` LW and returns source controller field
+`+0x14`, **not** constant one. With variant-one and successful
+four-lane packed equality, the result is also original `+0x14`;
+inequality returns constant one through the `0x57C600`
+branch-delay slot. Source `0x57C48C` uses the same packed
+comparison/return tail with matching instructions. Native code,
+tests, source comments and the ELF verifier now reflect these
+verified source returns; zero-valued real `+0x14` is not replaced
+with a synthetic boolean success.
+
+**Still not recovered:** the full 200-instruction original
+`0x57BF5C` function, the actual real source owner methods
+`0x3176AC`, `0x30C1D4`, `0x3161B8`, `0x316174`,
+`0x30C21C`, `0x30C520`, actor-specific VU0 operand publication
+and live Player/Monkey lifetime. The native control-flow
+translations do not produce a playable game until those real
+systems execute. Full Windows/Unreal Editor compilation has
+not been verified; no proprietary ELF or ISO was committed.
