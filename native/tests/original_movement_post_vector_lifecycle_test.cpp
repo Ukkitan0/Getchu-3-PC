@@ -23,7 +23,7 @@ struct Owner final:OriginalMovementParentRead_557e30,
                    OriginalMovementPostStepContinuation_558030 {
     OriginalMovementChildD0_30c57c* child{};
     int setups=0,regenerations=0,moves=0,post=0;
-    bool failPost=false,allowPostStep=false;
+    bool failPost=false,allowPostStep=false,failSource314c44=false;
     int postStepReads=0,source314c44Calls=0,sourceParentWord1cReads=0;
     std::uint32_t sourceParentFloat70Last=0u;
     std::uint32_t read_original_parent_word14(std::uint32_t va) override {
@@ -106,6 +106,8 @@ struct Owner final:OriginalMovementParentRead_557e30,
         std::uint32_t word1c,std::uint32_t s5,std::uint32_t mode) override {
         assert(word1c==0x880000u && s5==0x450000u && mode==2u);
         ++source314c44Calls;
+        if(failSource314c44)
+            throw std::runtime_error("actual original 314C44 owner failed");
     }
     void store_original_parent_float70(
         std::uint32_t va,std::uint32_t rawValue) override {
@@ -230,5 +232,38 @@ int main() {
            controller.child10==missingVector.child &&
            noVector.ownsOriginalChild() && depth.depth==0u &&
            missingVector.postStepReads==0);
+    // If the real 557FC8..55802C original implementation is absent,
+    // do not infer the source state or report a successful actor frame.
+    Owner unavailable{};
+    OriginalMovementChildLifecycle_557e30 noSource(
+        child(1.0f),unavailable,&unavailable,
+        &unavailable,&unavailable,&unavailable);
+    controller.child10=noSource.originalChildPointer();
+    controller.word14=99u;
+    unavailable.child=static_cast<
+        OriginalMovementChildD0_30c57c*>(controller.child10);
+    refused=false;
+    try{(void)originalManagerChildUpdate_3161b8(
+        controller,0,0,0,depth,noSource);}
+    catch(const std::logic_error&){refused=true;}
+    assert(refused && unavailable.postStepReads==1 &&
+           unavailable.source314c44Calls==0 &&
+           controller.word14==99u &&
+           controller.child10==unavailable.child &&
+           noSource.ownsOriginalChild() && depth.depth==0u);
+
+    // Failure of the genuine 314C44 owner must not be confused with
+    // original status zero, which would write the manager controller.
+    continuationOwner.failSource314c44=true;
+    controller.child10=continuing.originalChildPointer();
+    controller.word14=77u;
+    refused=false;
+    try{(void)originalManagerChildUpdate_3161b8(
+        controller,0,0,0,depth,continuing);}
+    catch(const std::runtime_error&){refused=true;}
+    assert(refused && controller.word14==77u &&
+           controller.child10==continuationOwner.child &&
+           continuing.ownsOriginalChild() && depth.depth==0u);
+
     std::cout<<"ORIGINAL_POST_VECTOR_LIFECYCLE_557F54_PASSED\n";
 }
