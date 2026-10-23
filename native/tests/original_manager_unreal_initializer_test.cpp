@@ -115,6 +115,65 @@ void checkVariantOneRejectsMissingOrContradictorySQ() {
             OriginalManagerInitBranch_57bcb8::nearOwnerReturn,
             "Genuine source SQ must enter recovered original initializer");
 }
+// Calls the real recovered 0x57BAF8 constructor, which MUST invoke the
+// real translated 0x57BCB8 initializer after installing the source SQ.
+void checkSourceConstructorToInitializerChain() {
+    struct ConstructorCalls final : OriginalManagerChildCalls {
+        std::array<std::byte,16> sourceVector{};
+        unsigned initializations=0;
+        OriginalManagerInitBranch_57bcb8 originalBranch=
+            OriginalManagerInitBranch_57bcb8::generalProjection;
+        void call_57bcb8(OriginalManagerChild70& child) override {
+            ++initializations;
+            require(child.controller20 && *child.controller20==sourceVector &&
+                    child.alternative30==1 && child.flag1c==0 &&
+                    child.flag1d==0xF2, "Source constructor SQ or flags missing BEFORE native 0x57BCB8");
+            OriginalManagerInitState_57bcb8 state{
+                child,{1,2,3,4},{7,8,9,10}};
+            OriginalManagerInitSource_57bcb8 source{};
+            source.ownerPosition40={1.5f,2,3,4};
+            OriginalGameRandom_36f3c0 rng(5489);
+            OriginalCalls originalCalls{};
+            const auto before=rng.originalCursor();
+            originalBranch=originalManagerInitialize_57bcb8(
+                state,source,rng,originalCalls);
+            require(originalBranch==
+                    OriginalManagerInitBranch_57bcb8::nearOwnerReturn &&
+                    child.word08==std::bit_cast<uint32_t>(-0.5f) &&
+                    child.word0c==0 &&
+                    rng.originalCursor()==before &&
+                    originalCalls.projections==0 &&
+                    originalCalls.followed==0,
+                    "Real original constructor-to-initializer near-owner chain differed");
+        }
+        void call_child_virtual1_delete(void*) override {
+            throw std::runtime_error("unexpected original child destructor");
+        }
+        uint32_t call_child_virtual2(void*) override {
+            throw std::runtime_error("unexpected original child status");
+        }
+        uint32_t call_child_virtual4(void*,uint32_t,uint32_t) override {
+            throw std::runtime_error("unexpected original child forward");
+        }
+        void call_child_virtual3(void*) override {
+            throw std::runtime_error("unexpected original child notify");
+        }
+        void call_41a3b0(void*) override {
+            throw std::runtime_error("unexpected original allocator free");
+        }
+    } hook;
+    const OriginalVU0Vec4 controller{1,2,3,4};
+    std::memcpy(hook.sourceVector.data(),&controller,sizeof(controller));
+    OriginalManagerChild70 child{};
+    originalManagerChildCtor_57baf8(child,&hook,&hook,1,
+                                    hook.sourceVector,0xF2,hook);
+    require(hook.initializations==1 &&
+            child.word08==std::bit_cast<uint32_t>(-0.5f) &&
+            child.word0c==0 &&
+            child.controller20 &&
+            *child.controller20==hook.sourceVector,
+            "Recovered 0x57BAF8 did not complete the exact native 0x57BCB8 chain");
+}
 void checkGeneralProjectionAndUnavailableSource() {
     OriginalSpatialRecord70 polygon{};
     std::array<OriginalSpatialRecord70,1> polygonOwner{polygon};
@@ -208,6 +267,7 @@ int main() {
     try {
         checkNearOwnerReturn();
         checkVariantOneRejectsMissingOrContradictorySQ();
+        checkSourceConstructorToInitializerChain();
         checkGeneralProjectionAndUnavailableSource();
         checkRealOriginalTypeTwoRouteAndRng();
         std::cout << "ORIGINAL_MANAGER_INIT_57BCB8_SOURCE_BRANCHES_PASSED\n";
