@@ -286,6 +286,15 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         outcome["original_stage_count"] = stages["stage_count"]
         outcome["original_stage_script_count"] = stages["stage_scripts"]
         outcome["original_stage_catalog"] = str(folder / "getchu3_original_stages.json")
+        outcome["phase"] = "verify_original_stage_bytecode_hashes"
+        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        from getchu3_stage_integrity import validate_stage_catalog
+        verified_stages = validate_stage_catalog(extracted / "vfi", stages)
+        stage_index_path = folder / "getchu3_verified_stage_index.json"
+        stage_index_path.write_text(
+            json.dumps(verified_stages, indent=2) + "\n", encoding="utf-8")
+        outcome["source_sha256_verified_area_scripts"] = verified_stages["verified_area_scripts"]
+        outcome["verified_original_stage_index"] = str(stage_index_path)
         outcome["phase"] = "audit_original_lua_manager_bindings"
         report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         from getchu3_original_bindings import create_original_binding_report
