@@ -91,7 +91,7 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
                 // live VF1 after regeneration. The old owner fallback
                 // remains for an unavailable original register owner.
                 const auto originalBinding=
-                    owner.read_original_regeneration_binding_36f8c8(child);
+                    owner.read_original_flagged_loop_binding_36fc18(child);
                 if(!originalBinding) {
                     step=owner.call_original_36fb18(child,scaledRaw);
                 } else {
