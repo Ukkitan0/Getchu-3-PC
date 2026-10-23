@@ -236,6 +236,51 @@ def check(root: Path) -> dict:
         raise AssertionError("source 36FC14 intermediate child commit missing")
     if "read_original_flagged_loop_binding_36fc18(" not in metric_hpp:
         raise AssertionError("genuine flagged iterative 36FC18 owner opt-in missing")
+    # The typed 30C57C child deliberately exposes no public
+    # mutation methods. C++ friend declarations MUST match the
+    # exact signature of the normal-setup and iterative-commit
+    # definitions, or the actual CTest fails to compile.
+    child_hpp=(root/"include"/"ae3"/"original_movement_child_30c57c.hpp").read_text(
+        encoding="utf-8"
+    )
+    child_impl=(root/"src"/"original_movement_flagged_36fb5c.cpp").read_text(
+        encoding="utf-8"
+    )
+    normal_impl=(root/"src"/"original_movement_normal_begin_557ed8.cpp").read_text(
+        encoding="utf-8"
+    )
+    for signature in (
+        "friend void originalMovementCommitFlaggedReturn_36fb5c(",
+        "friend void originalMovementCommitFlaggedIteration_36fb5c(",
+        "friend void originalMovementNormalBegin_557ed8(",
+    ):
+        if signature not in child_hpp:
+            raise AssertionError("original 30C57C private writer has missing friend: "+signature)
+    if "OriginalMovementChildD0_30c57c&,std::uint64_t," not in child_hpp:
+        raise AssertionError("original 557ED8 friend uses stale narrow EE s4")
+    if "originalMovementCommitFlaggedIteration_36fb5c(" not in child_impl:
+        raise AssertionError("original 36FC14 private child write implementation missing")
+    if "std::uint64_t originalParentWord14SignExtended" not in normal_impl:
+        raise AssertionError("original normal setup definition has stale uint32 ABI")
+    # Inexact PS2 rounding for the FIRST flagged VF1 frame
+    # belongs to the genuine 36FB18 engine owner, before any
+    # native source child +A4/+A8 mutations. Once a partial
+    # pass was committed, the loop cannot safely be replayed.
+    firstpass=metric_src.find("plan=originalMovementFlaggedPass_36fb5c(*genuine)")
+    roundingFallback=metric_src.find(
+        "} catch(const std::domain_error&) {",firstpass)
+    firstMutation=metric_src.find(
+        "originalMovementCommitFlaggedReturn_36fb5c(",firstpass)
+    if (min(firstpass,roundingFallback,firstMutation)<0 or
+        not firstpass<roundingFallback<firstMutation):
+        raise AssertionError("original first-pass FP fallback must precede child writes")
+    metric_test=(root/"tests"/"original_movement_metric_step_557f34_test.cpp").read_text(
+        encoding="utf-8"
+    )
+    if ("irrationalFirst.allowIterativeExternalFallback=true" not in metric_test or
+        "irrationalFirst.flaggedPublications==0" not in metric_test):
+        raise AssertionError("first-pass genuine 36FB18 rounding fallback not regressed")
+
     # The bounded native path is valid only for original
     # nonnegative progress; negative progress may need any
     # number of source 1/8 steps and also has inexact VU0
