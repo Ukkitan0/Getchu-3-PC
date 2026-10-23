@@ -13,6 +13,12 @@ namespace ae3 {
 struct OriginalManagerResourceFields_317b9c;
 class OriginalMovementNormalCalls_557ed8;
 class OriginalMovementChildD0_30c57c;
+struct OriginalMovementFlaggedInputs_36fb5c;
+struct OriginalMovementFlaggedPass_36fb5c;
+void originalMovementCommitFlaggedReturn_36fb5c(
+    OriginalMovementChildD0_30c57c&,
+    const OriginalMovementFlaggedInputs_36fb5c&,
+    const OriginalMovementFlaggedPass_36fb5c&);
 void originalMovementNormalBegin_557ed8(
     OriginalMovementChildD0_30c57c& child,
     std::uint32_t originalParentWord14,
@@ -50,6 +56,10 @@ public:
         return value;
     }
 private:
+    friend void originalMovementCommitFlaggedReturn_36fb5c(
+        OriginalMovementChildD0_30c57c&,
+        const OriginalMovementFlaggedInputs_36fb5c&,
+        const OriginalMovementFlaggedPass_36fb5c&);
     // This friend is narrowly limited to the source 0x557ED8..0x557F30
     // writes (+0xB4/+0xB8/+0xC0). It is NOT a public arbitrary guest
     // memory patch method or a replacement animation updater.
