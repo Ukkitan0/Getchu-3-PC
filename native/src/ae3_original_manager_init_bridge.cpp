@@ -977,8 +977,12 @@ extern "C" int ae3_original_actor_route_step_v3(
                 const ae3::OriginalSpatialRecord70* actor) override {
                 const auto& rayEnd=updatedProjectionA2
                     ?*updatedProjectionA2:controller40;
+                const auto rayStartFromSource=updatedProjectionA2
+                    ?ae3::originalActorPackedSubsequentRayStart_57c88c(rayStart)
+                    :rayStart;
                 const auto ray=ae3::originalPolygonRaycast_4c1b3c(
-                    records,links,index(actor),rayStart,rayEnd,recursionLimit);
+                    records,links,index(actor),rayStartFromSource,rayEnd,
+                    recursionLimit);
                 return ray.originalTraversal.originalLastAcceptedPolygon;
             }
             void call_original_57c8ec_update_target(
