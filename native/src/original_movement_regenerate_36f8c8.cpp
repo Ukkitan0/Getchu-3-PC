@@ -25,6 +25,12 @@ float mul(float x,float y) {
     return value;
 }
 float add(float x,float y) {
+    // A binary64 comparison is not a proof of exact binary32
+    // addition when the smaller nonzero operand vanishes in double.
+    if(x!=0.0f && y!=0.0f &&
+       std::abs(std::ilogb(x)-std::ilogb(y))>24)
+        throw std::domain_error(
+            "original 0x36F8C8 VU0 ADD rounding unresolved");
     const volatile float value=x+y;
     checkedResult(value);
     if(static_cast<double>(value)!=static_cast<double>(x)+static_cast<double>(y))
@@ -32,6 +38,12 @@ float add(float x,float y) {
     return value;
 }
 float sub(float x,float y) {
+    // VSUBAw has the same exactness condition as VADD: subtraction
+    // of a nonzero far-smaller operand must not be silently lost.
+    if(x!=0.0f && y!=0.0f &&
+       std::abs(std::ilogb(x)-std::ilogb(y))>24)
+        throw std::domain_error(
+            "original 0x36F8C8 VU0 SUB rounding unresolved");
     const volatile float value=x-y;
     checkedResult(value);
     if(static_cast<double>(value)!=static_cast<double>(x)-static_cast<double>(y))
