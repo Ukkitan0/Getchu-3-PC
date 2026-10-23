@@ -540,6 +540,15 @@ extern "C" int ae3_original_actor_route_step_v2(
             source->original_max_recursions>4096)
             throw std::invalid_argument(
                 "original 0x57C7CC stage registry, adjacency or target invalid");
+        // This legacy v2 callback only returns QMFC2 LOW64. Original
+        // 0x57C894 uses QMFC2 HIGH64 for follow-up route projections.
+        // Never produce a plausible but wrong projection after route[1].
+        // Use the full-width, transactional route v3 for three+ entries.
+        if (info.original_has_multiple_polygons1c &&
+            info.original_route_count > 2)
+            throw std::runtime_error(
+                "original route v2 cannot represent full 128-bit target; "
+                "use original route v3 before route[2] projection");
         const auto& v1=source->original_incoming_a1;
         const auto& v2=source->original_controller40;
         if (!std::isfinite(v1.x)||!std::isfinite(v1.y)||
@@ -595,11 +604,13 @@ extern "C" int ae3_original_actor_route_step_v2(
             }
             const ae3::OriginalSpatialRecord70* call_original_4c1b3c_project(
                 const ae3::OriginalSpatialRecord70* actor) override {
-                // Original 0x57C814 uses controller+0x40 until 0x57C8EC
-                // supplies the packed low64 update; 0x57C894 zeroes high64.
-                const auto& end=targetRayA2?*targetRayA2:controller40;
+                // A subsequent projection is not representable using
+                // v2's low64-only target ABI. The source uses the high64.
+                if (targetRayA2)
+                    throw std::runtime_error(
+                        "original route v2 missing QMFC2 high64 target; use v3");
                 const auto projected=ae3::originalPolygonRaycast_4c1b3c(
-                    records,links,at(actor),originalRayA1,end,recursions);
+                    records,links,at(actor),originalRayA1,controller40,recursions);
                 return projected.originalTraversal.originalLastAcceptedPolygon;
             }
             void call_original_57c8ec_update_target(
@@ -609,11 +620,10 @@ extern "C" int ae3_original_actor_route_step_v2(
                         owner.user,at(target),&bits)!=1)
                     throw std::runtime_error(
                         "original source 0x57C8EC manager failed to produce target vector");
-                targetRayA2=ae3::OriginalVU0Vec4{
-                    std::bit_cast<float>(static_cast<uint32_t>(bits)),
-                    std::bit_cast<float>(static_cast<uint32_t>(bits>>32)),
-                    0,0
-                };
+                // Deliberately never use LOW64 to construct original
+                // 0x57C894 projection lanes. The genuine next ray requires
+                // the HIGH64 half, available only in the route v3 contract.
+                targetRayA2=ae3::OriginalVU0Vec4{};
             }
         } math(records,links,*owner,native(v1),native(v2),
                source->original_max_recursions);
