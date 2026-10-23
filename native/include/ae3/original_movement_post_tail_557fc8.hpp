@@ -14,6 +14,11 @@ class OriginalMovementPostTailOwner_557fc8:
     public OriginalMovementPostStepOwner_558030 {
 public:
     virtual ~OriginalMovementPostTailOwner_557fc8()=default;
+    // The real EE a0 for 36F83C/36FC28 is child+0x10 as
+    // a GUEST VA. Never derive this from the native host
+    // object pointer; the live original game owner supplies it.
+    virtual std::uint64_t read_original_child_scratch_guest_va_557fc8(
+        const OriginalMovementChildD0_30c57c& originalChild)=0;
     // Source 557FE4 JAL: original EE a0=parent and complete
     // 128-bit EE a1 from MMI3 POR original child+0x90 or VF1.
     virtual std::uint32_t call_original_30c0a0(
