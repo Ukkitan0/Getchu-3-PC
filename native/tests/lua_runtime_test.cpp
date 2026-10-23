@@ -402,8 +402,8 @@ void exactOriginalLuaEntityClassBytes(){
     stage.callSetupArea("owner_spawn");
     check(world.entities().size()==1,
           "Original Lua 5.0 entity with embedded zero byte was lost");
-    const std::string expectedClass("Mon\\0key", 7);
-    const std::string expectedName("source\\0name", 11);
+    const std::string expectedClass("Mon\0key", 7);
+    const std::string expectedName("source\0name", 11);
     check(world.entities()[0].entityClass==expectedClass,
           "Lua actor class was truncated at embedded zero byte");
     check(world.entities()[0].name==expectedName,
