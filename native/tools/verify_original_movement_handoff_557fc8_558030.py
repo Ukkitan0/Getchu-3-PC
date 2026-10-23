@@ -30,6 +30,9 @@ def check(root: Path) -> dict:
     step = runpy.run_path(
         str(tools / "verify_original_movement_post_step_558030.py")
     )
+    tail = runpy.run_path(
+        str(tools / "verify_original_movement_post_tail_557fc8.py")
+    )
 
     # Genuine 557F48: MOV.S f20,f0
     # Genuine 557F60: MOV.S f21,f0 (36FB18's returned f0)
@@ -63,6 +66,12 @@ def check(root: Path) -> dict:
         raise AssertionError("original 36F83C missing bit0 ORI")
     if regen["WORDS"][0x36F894] != 0xAC8F00A8:
         raise AssertionError("original 36F83C missing flags store")
+    # Original 557FD4 dispatches to 558084, and 558084 calls
+    # authentic 36F83C. No guest/host pointer substitution.
+    if tail["WORDS"][0x557FD4] != 0x11E0002B:
+        raise AssertionError("original 557FD4 bit0 gate changed")
+    if tail["EXTRA"][0x558084] != 0x0C0DBE0F:
+        raise AssertionError("original 558084 36F83C JAL changed")
     lifecycle = (root / "src" / "original_movement_child_lifecycle_557e30.cpp"
                  ).read_text(encoding="utf-8")
     header = (root / "include" / "ae3" /
@@ -76,7 +85,19 @@ def check(root: Path) -> dict:
     if "originalF21MovementReturnBits!=originalF21MovementReturn" not in lifecycle:
         raise AssertionError("557F60 f21 source continuity missing")
     if "read_original_flag0_binding_36f83c" not in header:
-        raise AssertionError("genuine original source VU0 owner missing")
+        raise AssertionError("genuine original legacy VU0 owner missing")
+    direct = (root / "src" / "original_movement_post_tail_557fc8.cpp"
+              ).read_text(encoding="utf-8")
+    if "originalMovementRegenerateFlag0Owned_36f83c(" not in direct:
+        raise AssertionError("source 558084 missing regeneration in direct tail")
+    if "originalMovementPostTail_557fc8(" not in lifecycle:
+        raise AssertionError("genuine full original 557FC8 tail not in lifecycle")
+    if "originalGprS3VF2" not in direct:
+        raise AssertionError("557FF8 full original EE s3 POR not preserved")
+    for method in ("call_original_30c0a0", "call_original_276538",
+                   "call_original_36fc28", "originalMovementPostStep_558030"):
+        if method not in direct:
+            raise AssertionError("genuine post-tail missing " + method)
 
     cmake = (root / "unreal_bridge" / "CMakeLists.txt").read_text(
         encoding="utf-8"
@@ -91,7 +112,8 @@ def check(root: Path) -> dict:
     ]
     if len(lifecycle_targets) != 6 or any(
         "original_movement_post_step_558030.cpp" not in b or
-        "original_movement_flag0_regenerate_36f83c.cpp" not in b
+        "original_movement_flag0_regenerate_36f83c.cpp" not in b or
+        "original_movement_post_tail_557fc8.cpp" not in b
         for b in lifecycle_targets
     ):
         raise AssertionError("one or more original child lifecycle tests not linked")
@@ -106,7 +128,8 @@ def check(root: Path) -> dict:
         "source_lifecycle_ctest_targets_linked": len(lifecycle_targets),
         "source_register_provenance_checks_present": True,
         "source_flag0_regeneration_required": True,
-        "original_557fc8_55802c_collision_body_translated": False,
+        "original_557fc8_55802c_control_translated": True,
+        "original_external_30c0a0_276538_36fc28_implemented_here": False,
         "windows_game_playable_verified": False,
     }
 
