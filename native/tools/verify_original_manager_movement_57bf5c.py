@@ -149,6 +149,21 @@ def verify(path):
         0x240E0003,0x25CEFFFF,0x240FFFFF,0,0,0,0,0,
         0x55CFFFFA,0x25CEFFFF,0x03E00008,0):
         raise ValueError("original 0x441F40 unexpected source memory effects")
+    # Original source 0x57C148 calls 0x36F5F4 with the FIRST
+    # scratch address at stack+0x20. That real function writes as far
+    # as +0xAC (original stack+0xCC), outside two 0x40 blocks.
+    # Pin the actual store offsets; native typed frame is 0x110
+    # contiguous bytes and never treats guest offsets as host VAs.
+    scratch_stores={
+        0x36F6A8:0xAC8000A8,
+        0x36F6AC:0xAC8D00A4,
+        0x36F6B0:0xAC8C00A0,
+        0x36F6C4:0xAC8B00AC,
+        0x36F6D0:0xE48000A4,
+    }
+    for pc,expected in scratch_stores.items():
+        if struct.unpack("<I",load_segment(data,pc,4))[0]!=expected:
+            raise ValueError("source 0x36F5F4 +0xA0/+0xAC store layout changed "+hex(pc))
     total_window = load_segment(data,START,END-START)
     if hashlib.sha256(total_window).hexdigest() != SOURCE_SHA256:
         raise ValueError("combined original four-function region differs")
@@ -183,6 +198,7 @@ def verify(path):
         "route_update_call_at_57c3d0":"0x57C7CC (belongs to 0x57C388)",
         "complete_57c27c_translated":True,
         "original_441f40_verified_noop":True,
+        "original_36f5f4_store_offsets_verified":["+0xA0","+0xA4","+0xA8","+0xAC"],
         "movement_owner_native_recovery_complete":False,
         "playable_windows_game":False,
     }
