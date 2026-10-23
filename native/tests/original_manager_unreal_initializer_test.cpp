@@ -62,6 +62,9 @@ void checkNearOwnerReturn() {
     child.word08 = 0x1234;
     child.word0c = 0x5678;
     OriginalManagerInitState_57bcb8 state{child,{1,2,3,4},{7,8,9,10}};
+    std::array<std::byte,16> originalSQ{};
+    std::memcpy(originalSQ.data(),&state.controller20,sizeof(state.controller20));
+    child.controller20=originalSQ;
     OriginalManagerInitSource_57bcb8 source{};
     source.ownerPosition40 = {1.5f,2,3,4};
     OriginalGameRandom_36f3c0 gameRng(5489);
