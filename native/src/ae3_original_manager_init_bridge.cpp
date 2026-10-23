@@ -1,6 +1,8 @@
 #include "ae3/ae3_unreal_lua_bridge.h"
 #include "ae3/original_manager_initializer.hpp"
 #include "ae3/original_actor_route_follower.hpp"
+#include "ae3/original_polygon_raycast.hpp"
+#include <cmath>
 
 #include <array>
 #include <cstddef>
@@ -388,4 +390,103 @@ extern "C" int ae3_original_actor_route_step(
     }
     session->busy=false;
     return succeeded;
+}
+
+/* This runs the original complete source polygon raycast chain, not an
+ * Unreal-engine ray or an imported collision-mesh substitute. The owner
+ * supplies decoded 0x70 original records and source graph-edge metadata.
+ */
+extern "C" int ae3_original_polygon_project_4c1b3c(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalPolygonRaySourceV1* source,
+    Ae3OriginalPolygonRayResultV1* out) {
+    if (!session) return 0;
+    if (session->busy) {
+        session->error = "original polygon raycast cannot reenter live actor manager";
+        return 0;
+    }
+    session->error.clear();
+    session->busy = true;
+    int success = 0;
+    try {
+        if (!source || !out ||
+            source->original_record_count == 0 ||
+            source->original_record_count > 8192 ||
+            !source->original_records70 || !source->original_degree ||
+            !source->original_neighbor3 || !source->original_action_kind3 ||
+            source->original_start_polygon >= source->original_record_count ||
+            source->original_max_recursions == 0 ||
+            source->original_max_recursions > 4096)
+            throw std::invalid_argument(
+                "actual original polygon records, adjacency, and recursion budget required");
+        const auto& a=source->original_ray_start;
+        const auto& b=source->original_ray_end;
+        if (!(std::isfinite(a.x) && std::isfinite(a.y) &&
+              std::isfinite(a.z) && std::isfinite(a.w) &&
+              std::isfinite(b.x) && std::isfinite(b.y) &&
+              std::isfinite(b.z) && std::isfinite(b.w)))
+            throw std::invalid_argument("original polygon projection operands are not finite");
+        std::vector<ae3::OriginalSpatialRecord70> records(
+            source->original_record_count);
+        std::vector<ae3::OriginalPolygonLinks_21bd3c> adjacency(
+            source->original_record_count);
+        const auto* polygonBytes =
+            static_cast<const std::byte*>(source->original_records70);
+        for (std::size_t polygon = 0; polygon < records.size(); ++polygon) {
+            std::memcpy(records[polygon].originalFields.data(),
+                        polygonBytes + polygon*0x70,0x70);
+            const auto degree=source->original_degree[polygon];
+            if(degree>3)
+                throw std::out_of_range(
+                    "original polygon navigation degree exceeds 3");
+            adjacency[polygon].edgeCount=degree;
+            for (std::size_t edge=0; edge<degree; ++edge) {
+                const auto i=3*polygon+edge;
+                const auto neighbor=source->original_neighbor3[i];
+                const auto kind=source->original_action_kind3[i];
+                if (neighbor>=records.size() || kind>2)
+                    throw std::out_of_range(
+                        "original source graph neighbor/action kind invalid");
+                adjacency[polygon].edges[edge]={neighbor,kind};
+            }
+        }
+        const auto result=ae3::originalPolygonRaycast_4c1b3c(
+            records,adjacency,source->original_start_polygon,
+            native(a),native(b),source->original_max_recursions);
+        Ae3OriginalPolygonRayResultV1 value{};
+        value.last_original_polygon=UINT32_MAX;
+        if (result.originalTraversal.originalLastAcceptedPolygon) {
+            bool identified=false;
+            for (std::uint32_t i=0;i<records.size();++i) {
+                if (result.originalTraversal.originalLastAcceptedPolygon==
+                    &records[i]) {
+                    value.last_original_polygon=i;
+                    identified=true;
+                    break;
+                }
+            }
+            if (!identified)
+                throw std::runtime_error(
+                    "original 0x4C1B3C traversal returned foreign polygon");
+        }
+        const auto& traversal=result.originalTraversal;
+        value.original_polygons_tested=
+            static_cast<std::uint32_t>(traversal.sourcePolygonsTested);
+        value.original_edge_tests=
+            static_cast<std::uint32_t>(traversal.sourceEdgeTests);
+        value.original_zero_kind_recursions=
+            static_cast<std::uint32_t>(traversal.sourceZeroKindRecursions);
+        value.original_hit_point_available=traversal.sourceHitPoint?1:0;
+        if (traversal.sourceHitPoint)
+            value.original_hit_point=external(*traversal.sourceHitPoint);
+        *out=value;
+        session->error.clear();
+        success=1;
+    } catch (const std::exception& ex) {
+        session->error=ex.what();
+    } catch (...) {
+        session->error="unknown original 0x4C1B3C polygon raycast failure";
+    }
+    session->busy=false;
+    return success;
 }
