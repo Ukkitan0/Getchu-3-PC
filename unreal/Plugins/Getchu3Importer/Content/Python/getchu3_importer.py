@@ -195,7 +195,7 @@ def import_assets_in_editor(folder: Path, ue: Any, suffix: str,
             task.destination_name = clean_stem
             task.automated = True
             task.async_ = False
-            task.replace_existing = True
+            task.replace_existing = False
             task.save = True
             manager.import_asset_tasks([task])
             objects = list(task.get_objects())
@@ -219,6 +219,7 @@ def import_assets_in_editor(folder: Path, ue: Any, suffix: str,
 
 
 def import_collision_in_editor(folder: Path, ue: Any, *,
+                               destination: str = "/Game/ApeEscape3/Original/Collision",
                                source_records: list[dict] | None = None) -> list[str]:
     """Import real I3C mesh triangles; static physics may collide per polygon.
 
@@ -230,7 +231,7 @@ def import_collision_in_editor(folder: Path, ue: Any, *,
     if not hasattr(ue, "StaticMesh") or not hasattr(ue, "CollisionTraceFlag"):
         raise RuntimeError("Unreal StaticMesh collision editing is unavailable")
     # Fail before modifying editor packages on any source filename collision.
-    plans = _planned_imports(folder, files, "/Game/ApeEscape3/Original/Collision")
+    plans = _planned_imports(folder, files, destination)
     manager = ue.AssetToolsHelpers.get_asset_tools()
     result = []
     observed_objects: set[str] = set()
@@ -249,7 +250,7 @@ def import_collision_in_editor(folder: Path, ue: Any, *,
             task.destination_name = name
             task.automated = True
             task.async_ = False
-            task.replace_existing = True
+            task.replace_existing = False
             task.save = True
             manager.import_asset_tasks([task])
             original_meshes = [obj for obj in task.get_objects() if isinstance(obj, ue.StaticMesh)]
@@ -315,7 +316,10 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         repo = Path(repo) if repo else locate_repo()
         # Unique owner-private staging on each verified attempt.
         folder = Path(tempfile.mkdtemp(prefix=source.digest[:16] + "-", dir=saved))
+        from getchu3_import_namespace import original_import_package_root
+        asset_root = original_import_package_root(source.digest, folder)
         outcome.update({"disc_sha256": source.digest, "workspace": str(folder),
+                        "unreal_asset_root": asset_root,
                         "phase": "extract_source"})
         report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         extracted = folder / "original"
@@ -388,7 +392,7 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         outcome["original_i3c_files"] = collision["original_i3c_files"]
         outcome["phase"] = "unreal_editor_asset_import"
         report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
-        base = "/Game/ApeEscape3/Original"
+        base = asset_root
         imported_sources: dict[str, list[dict]] = {
             "models": [], "textures": [], "streams": [], "collision": []}
         assets = import_glbs_in_editor(converted / "models", ue,
@@ -404,7 +408,8 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         outcome["unreal_texture_assets"] = pngs
         outcome["unreal_stream_audio_assets"] = wavs
         outcome["unreal_collision_mesh_assets"] = import_collision_in_editor(
-            converted / "collision", ue, source_records=imported_sources["collision"])
+            converted / "collision", ue, destination=base + "/Collision",
+            source_records=imported_sources["collision"])
         outcome["source_collision_mesh_assets_imported"] = True
         outcome["phase"] = "link_original_stage_source_objects"
         report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
