@@ -127,7 +127,7 @@ struct Owner final:OriginalMovementParentRead_557e30,
         return useWideS5 ? 0x12345678450000ull : 0x450000ull;
     }
     void call_original_276538(
-        std::uint32_t parentWord14,
+        std::uint64_t parentWord14,
         const std::array<std::uint32_t,4>& s3) override {
         assert(parentWord14==0x340000u && s3[0]==raw(1.0f));
         ++real276538Calls;
