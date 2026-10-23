@@ -85,6 +85,8 @@ int main() {
     // Failure must not publish a new route result; the real owning
     // manager is responsible for undoing any earlier callback side effects.
     owner.applied.clear();
+    owner.projected={UINT32_MAX};
+    owner.cursor=0;
     owner.rejectUpdate=true;
     const auto previous=result;
     assert(ae3_original_actor_route_step(session,&src,&calls,&result)==0);
