@@ -177,6 +177,23 @@ class NativeReadinessTests(unittest.TestCase):
                 original_catalog(), evidence, original_registry(), self.output)
         self.assertFalse(self.output.exists())
 
+    def test_name_only_native_registration_does_not_count_as_complete(self):
+        evidence = original_elf_evidence()
+        evidence["original_stage_inputs"] = [{
+            "path": "woods_c/area.luc",
+            "direct_global_calls": ["new_ent", "gw_get_flag"],
+            "observed_actor_class_literals": ["monkey"],
+            "observed_controller_command_literals": []}]
+        report = readiness.build_original_native_readiness(
+            original_catalog(), evidence, original_registry(), self.output)
+        self.assertEqual(report["stages_with_unresolved_calls"], 1)
+        self.assertEqual(report["stages_with_unverified_native_semantics"], 1)
+        self.assertEqual(report["stages_without_original_actor_manager"], 1)
+        self.assertFalse(report["gameplay_ready"])
+        self.assertEqual(
+            report["stages"][0]["native_host_name_exists_semantics_unverified"],
+            ["gw_get_flag", "new_ent"])
+
     def test_no_calls_still_does_not_claim_original_gameplay(self):
         evidence = original_elf_evidence()
         evidence["original_stage_inputs"] = [
