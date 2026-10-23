@@ -38,7 +38,7 @@ The genuine virtual table **0x6B1820** contains six methods. We translated the f
 - `0x57BC54` forward original arguments to child virtual slot 4, or return its original third argument if no child
 - `0x57BC88` invoke child virtual slot 3 if present
 
-The sixth method **0x57C620** has now been audited in full against the verified USA ELF (107 exact instructions), and its source controller-method dispatch and candidate-polygon+0x50 handling are translated in `native/src/original_manager_dispatch_57c620.cpp`. The callee **0x30FFD0** is also translated (51 original instructions) and connected to original source VU0/grid polygon selection. The remaining dependencies are the actual Player/Monkey owner method bodies, actor-owned VU0 and grid operands, game diagnostics and real actor state publication—not a replacement Unreal controller.
+The sixth method **0x57C620** has now been audited in full against the verified USA ELF (107 exact instructions), and its source controller-method dispatch and candidate-polygon+0x50 handling are translated in `native/src/original_manager_dispatch_57c620.cpp`. The callee **0x30FFD0** is also translated (51 original instructions) and connected to original source VU0/grid polygon selection. The **0x57C554** type-2 controller child update is source-recovered as an additional 51-instruction native C++ function, including original child constructor/destructor and `0x3161B8` update sequencing. These methods still require original Player/Monkey owner method bodies, actor-owned VU0 and grid operands, exact source diagnostics and real actor-state publication—not a replacement Unreal controller.
 
 ## Verified and not yet verified
 
