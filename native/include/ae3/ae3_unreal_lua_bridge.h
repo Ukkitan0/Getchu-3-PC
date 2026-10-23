@@ -134,6 +134,43 @@ AE3_LUA_EXPORT int ae3_original_manager_init_step_v2(
 AE3_LUA_EXPORT const char* ae3_original_manager_init_last_error(
     const Ae3OriginalManagerInitSession* session);
 
+/* Original actor-stage polygon selection, direct native versions of
+ * 0x21D898 (0x4E3C14 grid-hit list) and 0x21DA2C (all records).
+ * The caller supplies ORIGINAL stage-loader 0x70 records, per-polygon
+ * 0x1E descriptor point counts and, for 0x21D898, the real original
+ * 16-bit candidate indices returned by the still-unported 0x4E3C14.
+ * No spatial grid/candidate source is synthesized by this ABI.
+ * Both use recovered 0x21B468 centroid and VU0 XYZ distance; 0x21D898
+ * additionally applies the source 0x21B788 XZ plane eligibility check.
+ * Point count must be 1..3, record_count 1..8192. The source buffers
+ * are read during this synchronous call; none are retained afterward.
+ */
+typedef struct Ae3OriginalNearestPolygonSourceV1 {
+    const void* original_records70;
+    size_t original_record_count;
+    const uint16_t* original_point_counts;
+    const uint16_t* original_hit_indices; /* exact source 0x4E3C14 hits */
+    size_t original_hit_count;
+    Ae3OriginalVec4 original_query;
+} Ae3OriginalNearestPolygonSourceV1;
+typedef struct Ae3OriginalNearestPolygonResultV1 {
+    uint32_t original_polygon_index; /* UINT32_MAX: no eligible result */
+} Ae3OriginalNearestPolygonResultV1;
+
+/* A return of 1 means a source query ran (including a no-hit result);
+ * 0 means invalid original inputs or an exception. The output is never
+ * modified on failure. Session last_error describes failed validation.
+ * Reject reentrant use, including attempts to destroy the active session.
+ */
+AE3_LUA_EXPORT int ae3_original_polygon_nearest_hits_21d898(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalNearestPolygonSourceV1* original,
+    Ae3OriginalNearestPolygonResultV1* output);
+AE3_LUA_EXPORT int ae3_original_polygon_nearest_all_21da2c(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalNearestPolygonSourceV1* original,
+    Ae3OriginalNearestPolygonResultV1* output);
+
 /* Recovered original 0x57C8EC controller target-vector dispatch.
  * Variant !=0: original 0x21B788 polygon eligibility and source low64
  * controller pass-through, only if polygon accepts source point.
