@@ -62,5 +62,13 @@ int main() {
     try{(void)originalManagerResourceVU0_317b34(parent,1,v);}
     catch(const std::domain_error&){refused=true;}
     assert(refused && "source sqrt(2) needs non-host COP1 rounding");
+    // Binary64 loses 2^-70 when added to 1. The original
+    // VADD cannot be declared exact just because double agrees.
+    v.originalVF1Raw[0]=std::bit_cast<std::uint32_t>(1.0f);
+    v.originalVF1Raw[1]=std::bit_cast<std::uint32_t>(0x1p-35f);
+    refused=false;
+    try{(void)originalManagerResourceVU0_317b34(parent,1,v);}
+    catch(const std::domain_error&){refused=true;}
+    assert(refused);
     std::cout<<"ORIGINAL_RESOURCE_VU0_317B34_EXACT_SUBSET_PASSED\n";
 }
