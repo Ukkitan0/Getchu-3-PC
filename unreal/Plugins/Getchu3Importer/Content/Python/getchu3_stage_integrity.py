@@ -72,7 +72,9 @@ def validate_stage_catalog(extracted_vfi: Path, catalog: dict) -> dict:
         if not isinstance(expected, str) or not HEX64.fullmatch(expected):
             raise ValueError("Original stage script SHA-256 absent or malformed")
         path = extracted_vfi.joinpath(*relative.parts)
-        if path.is_symlink() or not path.is_file():
+        if not path.resolve().is_relative_to(extracted_vfi) or path.is_symlink():
+            raise ValueError("Original stage source resolves outside the private ISO extraction")
+        if not path.is_file():
             raise FileNotFoundError("Owner-original source Lua stage file unavailable")
         length = path.stat().st_size
         if length < 14 or length > MAX_SCRIPT_BYTES:
