@@ -90,6 +90,9 @@ $TestPython = if (Test-Path -LiteralPath (Join-Path $Repo ".getchu3\ae3sdk-venv\
     throw "Python 3 is required for original ISO importer verification."
 }
 $PyPrefix = if ($TestPython -eq "py") { @("-3") } else { @() }
+MustRun $TestPython ($PyPrefix + @("-c",
+    "import sys; assert sys.version_info >= (3,10), 'Original importer requires Python 3.10 or later'")) `
+    "Python 3.10+ is required for native stage PCK recovery and Unreal importer"
 MustRun $TestPython ($PyPrefix + @("-m", "unittest", "discover", "-s",
                                   (Join-Path $UnrealDir "tests"), "-v")) `
     "Original ISO/asset/Lua binding importer regressions failed"
