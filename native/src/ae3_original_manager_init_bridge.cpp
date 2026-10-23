@@ -939,15 +939,35 @@ extern "C" int ae3_original_actor_route_step_v3(
                 links[polygon].edges[edge]={neighbor,kind};
             }
         }
-        const auto& a=source->original.original_incoming_a1;
-        const auto& b=source->original.original_controller40;
+        // A manager Begin callback can trigger engine events. All input used
+        // by a route transaction must therefore be fixed BEFORE that call.
+        // Spatial records were already copied above; snapshot the original
+        // point-count descriptors and route indices as well. Target staging
+        // must never reread mutable caller buffers after Begin.
+        const std::vector<std::uint16_t> fixedPointCounts(
+            source->original_polygon_point_counts,
+            source->original_polygon_point_counts+s.original_record_count);
+        std::vector<std::uint32_t> fixedRouteIndices;
+        if (s.original_route_count)
+            fixedRouteIndices.assign(
+                s.original_route_indices,
+                s.original_route_indices+s.original_route_count);
+        Ae3OriginalRouteSourceV3 fixedSource=*source;
+        fixedSource.original.original.original_records70=records.data();
+        fixedSource.original.original.original_route_indices=
+            fixedRouteIndices.data();
+        fixedSource.original_polygon_point_counts=fixedPointCounts.data();
+        const auto& fixedRoute=fixedSource.original.original;
+
+        const auto& a=fixedSource.original.original_incoming_a1;
+        const auto& b=fixedSource.original.original_controller40;
         if (!std::isfinite(a.x)||!std::isfinite(a.y)||
             !std::isfinite(a.z)||!std::isfinite(a.w)||
             !std::isfinite(b.x)||!std::isfinite(b.y)||
             !std::isfinite(b.z)||!std::isfinite(b.w))
             throw std::invalid_argument("original route projection vectors invalid");
 
-        OriginalRouteTargetOwnerV3 proposed(*session,*source,*manager);
+        OriginalRouteTargetOwnerV3 proposed(*session,fixedSource,*manager);
         struct OriginalFullWidthRoute final :
             ae3::OriginalActorRouteFollowerCalls_57c7cc {
             std::span<const ae3::OriginalSpatialRecord70> records;
@@ -1008,12 +1028,11 @@ extern "C" int ae3_original_actor_route_step_v3(
 
         ae3::OriginalActorRouteFollowerState_57c7cc originalRoute{
             records,
-            std::span<const std::uint32_t>(
-                s.original_route_indices,s.original_route_count),
-            &records[s.actor_polygon_index],
-            s.active_target_polygon_index==UINT32_MAX
-                ?nullptr:&records[s.active_target_polygon_index],
-            s.original_has_multiple_polygons1c!=0
+            std::span<const std::uint32_t>(fixedRouteIndices),
+            &records[fixedRoute.actor_polygon_index],
+            fixedRoute.active_target_polygon_index==UINT32_MAX
+                ?nullptr:&records[fixedRoute.active_target_polygon_index],
+            fixedRoute.original_has_multiple_polygons1c!=0
         };
         // This executes the ACTUAL recovered original branch and callback
         // order. The host's output is not touched until Commit completes.
