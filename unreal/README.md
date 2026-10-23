@@ -249,3 +249,30 @@ actual DLL-to-Unreal Lua registration/dispatch path, **not a completed
 original actor factory, AI, gameplay loop or playable game**. Synthetic
 native tests for the registration contract are committed; the native Windows
 and UE5.6 builds remain unverified here.
+
+## Original Player factory/resource lookup and actor-child lifecycle recovery
+
+The native Unreal bridge now **compiles recovered original actor-manager
+code**, not only the Lua interface. The existing source
+`original_player_factory.cpp` and `original_manager_child.cpp` are
+included in the isolated native DLL. Original Player virtual slot 2
+(`0x34A014`) is exposed as
+`ae3_original_player_resource_lookup`, taking genuine source-owned Player
+subobject pointers, the exact original 16-byte key and a real secondary
+factory pointer. It returns the original borrowed subobject pointer if
+present; it refuses unknown keys and preserves the original factory gating
+instead of creating new Unreal Components.
+
+The recovered manager-child constructor/destructor and virtual forwarding
+routines are also compiled. Both original Player resource lookup and child
+lifecycle source tests are now wired to `BuildAndOpen.bat` as
+`OriginalPlayerResourceVirtual2` and `OriginalManagerChildCtorLifecycle`;
+additional C ABI tests cover the Player lookup through the actual DLL.
+
+These are recoveries of **real original routines**, but they require a
+real original Player instance, child controller owner and the remaining
+`0x57BCB8` navigation initializer dependencies before they can create or
+update actors in a playable stage. No Player or Monkey instance is
+invented, and gameplay remains unavailable. These Win64 tests have not
+been executed here; the source/integration consistency review passes,
+but UE5.6 Editor compilation and genuine ISO execution remain unverified.
