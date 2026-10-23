@@ -145,6 +145,31 @@ def _planned_imports(folder: Path, files: list[Path],
     return plans
 
 
+def _primary_imported_objects(objects: list, ue: Any, suffix: str) -> list:
+    """Select only genuine primary Unreal source assets, not reused materials.
+
+    A GLB importer may return a mesh plus supporting materials and textures.
+    The mesh is the original source's identity; common supporting resources
+    must not create spurious cross-model alias errors.
+    """
+    primary = {
+        ".glb": ("SkeletalMesh", "StaticMesh"),
+        ".png": ("Texture2D",),
+        ".wav": ("SoundWave",),
+    }.get(suffix, ())
+    supported = tuple(getattr(ue, name) for name in primary
+                      if isinstance(getattr(ue, name, None), type))
+    if not supported:
+        # Synthetic unit-test stubs or older API versions without primary
+        # classes cannot establish type identity; keep all returned paths.
+        return objects
+    filtered = [obj for obj in objects if isinstance(obj, supported)]
+    if not filtered:
+        raise RuntimeError(
+            f"Unreal import returned no primary {suffix} source asset")
+    return filtered
+
+
 def import_assets_in_editor(folder: Path, ue: Any, suffix: str,
                             destination: str, *,
                             source_records: list[dict] | None = None) -> list[str]:
@@ -176,6 +201,7 @@ def import_assets_in_editor(folder: Path, ue: Any, suffix: str,
             objects = list(task.get_objects())
             if not objects:
                 raise RuntimeError(f"Unreal failed to import original {suffix} {relative}")
+            objects = _primary_imported_objects(objects, ue, suffix)
             paths = [str(obj.get_path_name()) for obj in objects]
             # Interchange may ignore task.destination_name. An actual returned
             # UObject path is the only reliable import identity.
