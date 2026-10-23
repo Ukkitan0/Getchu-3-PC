@@ -56,7 +56,12 @@ public:
     // Publish the complete real VF2 and VF1 register changes.
     // The default throws until the actual runtime owner supplies
     // its genuine VU0 publication implementation.
+    // The original a0 is the signed EE address parent+0x50,
+    // NOT the host object. Publish exact VF2/VF1 regardless
+    // of branch, but write 0(a0) ONLY when originalPerformedNormalize
+    // is true: 2749D4 BC1F otherwise skips 2749FC SQ.
     virtual void publish_original_274988_vu0(
+        std::uint64_t,
         const OriginalMovementNormalizeResult_274988&) {
         throw std::logic_error(
             "original 274988 VU0 VF1/VF2 publication unavailable");
@@ -75,7 +80,7 @@ public:
                 "original 274988 requires real prior physical VF1 register");
         const auto source=originalMovementNormalizeExact_274988(
             {originalStackVector,*prior});
-        publish_original_274988_vu0(source);
+        publish_original_274988_vu0(originalParentPlus50,source);
     }
     virtual std::uint8_t read_original_6354e7()=0;
     virtual std::uint8_t read_original_6354e0()=0;
