@@ -193,3 +193,35 @@ and collision package aliases. The Unreal 5.6 importer has **not** been
 executed in this container, and those committed Python tests have not
 been run against a real Unreal Editor here. The gameplay Play button is
 unchanged and remains disabled until the genuine actor managers are ready.
+
+## Safe repeat imports and interrupted-run recovery
+
+Every successful SHA-verified owner-ISO attempt gets a unique Unreal
+package namespace under
+`/Game/ApeEscape3/Original/Imports/Disc_<hash>_Run_<id>`.
+This namespace is derived from the authentic disc SHA-256 and the import
+session's private `Saved/Getchu3Private` workspace. The importer records
+the resulting `unreal_asset_root` in its import status; all source registry
+UObject paths still point to the actual imported models, textures, WAVs and
+I3C collision. An aborted or incomplete import's packages are never reused
+by the next run.
+
+`AssetImportTask.replace_existing` is disabled for every source type.
+The importer preflights its intended package names against existing editor
+assets and refuses destructive imports. It also checks actual returned
+UObject identity to catch rename or Interchange aliasing. These protections
+favor preserving existing user-modified assets over silently overwriting
+them. Incomplete attempt assets may still need owner-initiated cleanup;
+nothing automatically deletes user project content.
+
+The importer now updates `Getchu3ImportStatus.json` by writing and
+fsyncing a temporary JSON snapshot, then atomically replacing the current
+status file. Interrupted replacements preserve the previous valid report
+and leave no temporary-file residue. The `gameplay_ready` flag remains
+false, including for successful source asset imports.
+
+New tests cover five owner-original import namespace cases and two status
+atomicity/cancellation cases. Both groups passed locally using the
+committed algorithm and Python's filesystem APIs. Additional Unreal import
+preflight/regression cases were committed but **the full suite has not run
+against a real Unreal 5.6 Editor or an original disc here**.
