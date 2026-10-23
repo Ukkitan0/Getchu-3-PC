@@ -46,16 +46,24 @@ def _cli(ae3: str, *, runner: Callable = subprocess.run) -> str:
 
 
 def convert_textures(source: Path, dest: Path, ae3: str, *,
+                     material_alias_root: Path | None = None,
                      runner: Callable = subprocess.run) -> dict:
     source = Path(source).resolve(strict=True)
     dest = Path(dest).resolve()
     if dest == source or source in dest.parents or dest in source.parents:
         raise ValueError("Converted textures must live in a separate private directory")
+    if material_alias_root is not None:
+        material_alias_root = Path(material_alias_root).resolve()
+        if (material_alias_root == source or source in material_alias_root.parents or
+            material_alias_root == dest or dest in material_alias_root.parents or
+            material_alias_root in dest.parents):
+            raise ValueError("Pack material aliases require a separate owner-private destination")
     files = _candidates(source, ".tm2", b"TIM2")
     if not files:
         raise RuntimeError("No original TIM2 textures available")
     tool = _cli(ae3, runner=runner)
     converted = []
+    aliases = []
     dest.mkdir(parents=True, exist_ok=True)
     for file in files:
         rel = file.relative_to(source)
@@ -71,8 +79,27 @@ def convert_textures(source: Path, dest: Path, ae3: str, *,
                                f"exit={result.returncode}; stderr={result.stderr[-400:]}")
         for png in outputs:
             converted.append(png.relative_to(dest).as_posix())
+            # The genuine PCK exporter records index and original name as
+            # 0003_material.tm2. ae3 gltf asks for material.png, not
+            # 0003_material.png. Emit a pack-local alias only, so a matching
+            # material from another pack or stage is never chosen by glob.
+            if (material_alias_root is not None and
+                "pck_assets" in rel.parts and len(file.stem) > 5 and
+                file.stem[:4].isdigit() and file.stem[4] == "_"):
+                suffix = png.name[len(file.stem):]
+                name = file.stem[5:] + suffix
+                destination = material_alias_root / rel.parent / name
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                if destination.exists():
+                    if destination.read_bytes() != png.read_bytes():
+                        raise RuntimeError(
+                            f"Ambiguous original texture material within one PCK: {destination}")
+                else:
+                    shutil.copyfile(png, destination)
+                aliases.append(destination.relative_to(material_alias_root).as_posix())
     result = {"source_files": len(files), "converted_png_files": len(converted),
-              "files": converted, "source": "genuine TIM2", "gameplay_ready": False}
+              "files": converted, "pack_local_material_aliases": aliases,
+              "source": "genuine TIM2", "gameplay_ready": False}
     (dest / "getchu3_textures.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return result
 
