@@ -10,7 +10,7 @@
 // Unreal versions. Use the Windows CNG SHA-256 provider directly instead.
 #if PLATFORM_WINDOWS
 #include "Windows/AllowWindowsPlatformTypes.h"
-#include <bcrypt.h>
+#include "ae3/windows_source_sha256.hpp"
 #include "Windows/HideWindowsPlatformTypes.h"
 #endif
 #include "Dom/JsonObject.h"
@@ -239,22 +239,12 @@ bool UGetchu3OriginalLuaSubsystem::StartImportedOriginalStage(
     LastError = TEXT("The original SHA-256 stage verifier is supported on Windows only");
     return false;
 #else
-    // Windows CNG BCryptHash is available on supported Win10/Win11 systems.
-    // Never call FPlatformMisc::GetSHA256Signature: its generic fallback
-    // raises a fatal Unreal check instead of returning false on Windows.
-    BCRYPT_ALG_HANDLE ShaProvider = nullptr;
-    const NTSTATUS OpenStatus = BCryptOpenAlgorithmProvider(
-        &ShaProvider, BCRYPT_SHA256_ALGORITHM, nullptr, 0);
-    if (OpenStatus < 0 || !ShaProvider) {
-        LastError = TEXT("Windows SHA-256 provider could not be initialized");
-        return false;
-    }
+    // The same CNG helper is exercised by native Windows CTest before the
+    // Unreal editor is opened. A missing provider fails safely.
     uint8 DigestBytes[32] = {};
-    const NTSTATUS HashStatus = BCryptHash(
-        ShaProvider, nullptr, 0, LuaBytes.GetData(),
-        static_cast<ULONG>(LuaBytes.Num()), DigestBytes, sizeof(DigestBytes));
-    const NTSTATUS CloseStatus = BCryptCloseAlgorithmProvider(ShaProvider, 0);
-    if (HashStatus < 0 || CloseStatus < 0) {
+    if (!ae3::originalSourceSha256(LuaBytes.GetData(),
+                                  static_cast<size_t>(LuaBytes.Num()),
+                                  DigestBytes)) {
         LastError = TEXT("Windows SHA-256 verification failed");
         return false;
     }
