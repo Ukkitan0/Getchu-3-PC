@@ -52,10 +52,10 @@ int main() {
     controller.flag1d=0x51;
     controller.word14=0x1234;
 
-    // Original 0x57C570 null child creates the real 0x30C360 child,
-    // then calls 0x3161B8, returning 1 for variant-zero.
+    // Source 0x57C5CC branch to 0x57C5F4 and 0x57C604 LW:
+    // variant-zero returns the EXACT controller+0x14 value.
     assert(originalManagerType2Update_57c554(
-               controller,0xABCD,original)==1);
+               controller,0xABCD,original)==0x1234);
     assert(controller.child10==&original.created &&
            original.actualOriginalA1==0xABCD &&
            original.allocated==1 && original.updated==1 &&
@@ -65,7 +65,7 @@ int main() {
     // A preexisting original child is updated without creating another.
     original.events.clear();
     assert(originalManagerType2Update_57c554(
-               controller,0x55AA,original)==1);
+               controller,0x55AA,original)==0x1234);
     assert(original.allocated==1 && original.updated==2 &&
            original.actualOriginalA1==0x55AA);
     assert(original.events==std::vector<std::string>{"3161b8"});
@@ -78,16 +78,17 @@ int main() {
     assert(original.compared==0 && original.events==
         std::vector<std::string>{"3161b8"});
 
-    // Variant-one returned source controller+0x14 on VU mismatch.
+    // Original PCEQW + PPACB compares all four lanes; on mismatch
+    // source 0x57C5FC branch delay returns one, NOT field +0x14.
     original.events.clear();original.updateResult=1;
     original.equal=false;
     assert(originalManagerType2Update_57c554(
-               controller,0x17,original)==0x1234);
+               controller,0x17,original)==1);
     assert(original.compared==1 && original.events==
         std::vector<std::string>({"3161b8","vu-compare"}));
     original.equal=true;original.events.clear();
     assert(originalManagerType2Update_57c554(
-               controller,0x18,original)==1);
+               controller,0x18,original)==0x1234);
     assert(original.compared==2);
 
     // Original construction can synchronously publish an old child
@@ -98,11 +99,28 @@ int main() {
     controller.alternative30=0;
     original.events.clear();
     assert(originalManagerType2Update_57c554(
-               controller,1,original)==1);
+               controller,1,original)==0x1234);
     assert(controller.child10==&original.created &&
            original.deleted==1 &&
            original.events==std::vector<std::string>(
                 {"30c360","child-delete","3161b8"}));
+
+    // The source returns field +0x14, including when it is zero.
+    // Never substitute an invented generic boolean "updated" result.
+    original.events.clear();
+    original.missingVectorOperands=false;
+    controller.alternative30=0;
+    controller.word14=0;
+    assert(originalManagerType2Update_57c554(
+               controller,0x19,original)==0);
+    controller.alternative30=1;
+    original.equal=true;
+    assert(originalManagerType2Update_57c554(
+               controller,0x1A,original)==0);
+    original.equal=false;
+    assert(originalManagerType2Update_57c554(
+               controller,0x1B,original)==1);
+    controller.word14=0x1234;
 
     // Missing original packed VU comparison must not claim success.
     original.missingVectorOperands=true;
