@@ -67,6 +67,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_native_method_router.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_movement_57bf5c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_scratch_tail_36f6a8.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_tick_bridge_3161b8.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_controller_owner_base.cpp"
@@ -211,6 +212,18 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalMovementScratchTail36F6A8
     COMMAND Getchu3OriginalMovementScratchTailTests)
+
+  # Complete actual retail 0x30C57C object construction:
+  # 0xD0 allocation, guest parent/vtable fields, 0xB0 source
+  # scratch transfer, byte C0 reset and unknown bytes masked.
+  add_executable(Getchu3OriginalMovementChild30C57CTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_child_30c57c_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_scratch_tail_36f6a8.cpp")
+  target_include_directories(Getchu3OriginalMovementChild30C57CTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementChild30C57CSourceCopy
+    COMMAND Getchu3OriginalMovementChild30C57CTests)
 
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
