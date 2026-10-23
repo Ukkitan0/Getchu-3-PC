@@ -259,7 +259,7 @@ handle), and 0 if it is still active. Unreal must **not** unload the DLL on
 A native ABI test calls destruction recursively from the original
 PlayerProgress provider during `ae3_lua_reset` and verifies rejection.
 The same runtime retains atomic Begin/Commit/Abort manager rollback.
-Headers, test code and Unreal share the named `Ae3LuaManagerV4` structure.
+Headers, test code and Unreal share the named `Ae3LuaManagerV5` structure.
 
 ## Recovered original ChangeHP gameplay routine (ABI v4)
 
@@ -271,7 +271,7 @@ whose health field is at offset +8. The native code calls the existing
 `clamp(life + delta, 0, 100)` behavior; it does not use Unreal's
 default health component or invent an independent health variable.
 
-The expanded `Ae3LuaManagerV4` source ABI requires both
+The expanded `Ae3LuaManagerV5` source ABI requires both
 `read_original_player_progress` and
 `write_original_player_progress` callbacks. The manager must provide
 the complete 1,033 bytes and **atomically persist** the updated record to
@@ -297,3 +297,44 @@ one-click source build now includes that test.
 but it has not yet been run against the real bridge on Windows or inside
 Unreal 5.6. This is one recovered native gameplay function, not a
 complete playable Player, actor factory, or stage simulation.
+
+## Original native actor/controller Lua callback dispatch — ABI v5
+
+The existing authentic `LuaStage::registerOriginalFunction` implementation
+can install source-recovered original game native function names+addresses,
+but the Unreal DLL interface previously had **no way** to register those
+functions. ABI **v5** adds `ae3_lua_register_original_void` and the host
+`invoke_original_void` callback. Registration is allowed only before an
+original Lua stage bytecode execution attempt, only for ASCII Lua global
+names with an aligned nonzero independently recovered original function VA,
+and only if the host actually supports native implementation dispatch.
+Built-in globals (`new_ent`, etc.), duplicates, invalid names, missing
+manager callbacks and late registrations are rejected by the real Lua VM.
+
+In Unreal, an explicit source manager may report up to 256
+`FGetchu3OriginalVoidFunction` entries via
+`CollectVerifiedOriginalVoidFunctions`. Each must contain a verified
+original callback VA (NOT a registration `jal` call-site address).
+The Unreal subsystem validates those entries before executing `area.luc`
+and forwards later source Lua calls through
+`InvokeRecoveredOriginalVoidFunction(VA, Name, TypedArgumentsJson)`.
+Every Lua argument is marshaled using the same lossless type-tagged original
+value representation. A native callback returns **zero Lua values** only
+after the actual recovered C++ routine reports success. Any refusal throws
+a Lua binding failure, causing the existing transactional stage setup to
+abort. No callback name is automatically imported from the ELF report
+because observed CreateBind names alone do NOT prove original behavior.
+
+Both new manager events default to **false**, and no source-specific
+actor class or controller routine has been fabricated. This is a
+**functional registration and dispatch bridge** for future recovered
+native original game routines, not a finished actor factory. Actual
+stage lifecycle, player, monkey, controller and capture behavior remain
+unimplemented until the original manager function bodies are recovered
+and registered with verified addresses.
+
+`native/tests/ae3_unreal_lua_bridge_test.cpp` adds ABI regressions
+for missing native invoke owner, invalid name/VA, duplicate registration,
+built-in global collision, rejecting late registration after an incomplete
+retail chunk, and stage VM reset. Those tests are committed but have
+not yet been compiled against genuine Lua 5.0.3 or run under UE5.6 Win64.
