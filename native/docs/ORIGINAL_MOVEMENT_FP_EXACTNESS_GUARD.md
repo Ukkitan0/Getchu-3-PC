@@ -11,6 +11,8 @@ audit of that rule for the already recovered original function windows:
   `0x317B68` and `0x317B6C` VADD operations;
 - `0x36FB70..0x36FC24` positive-movement VF1 norm, particularly
   `0x36FB80/0x36FB84`;
+- `0x557F54..0x557FC8` child post-movement VU0 squared norm, especially
+  its `0x557F70/0x557F74` VADD operations;
 - `0x36F8C8..0x36F954` original movement-vector regeneration with
   VU0 accumulator `VMADDA` and `VSUBA` operations.
 
@@ -41,7 +43,7 @@ If the exponents differ by **at most 24**, the exact two-input sum fits inside
 binary64's 53-bit significand, so the existing binary64 comparison is
 sufficient for the ordinary finite subset. Subtraction obeys the same rule.
 
-The three native functions listed above now reject large-exponent-gap
+The four native functions listed above now reject large-exponent-gap
 additions **before** the existing binary64 equality check, and `0x36F8C8`
 does likewise for VU0 accumulator subtraction. This corrects false
 exactness claims without guessing the PS2's rounding or special FP modes.
@@ -55,13 +57,14 @@ The existing native test files now include the following adversarial cases:
 | --- | --- | --- |
 | `original_manager_resource_vu0_317b34_test.cpp` | squared norm `1 + 2^-70` | `std::domain_error` |
 | `original_movement_flagged_36fb5c_test.cpp` | squared norm `1 + 2^-70` | `std::domain_error` |
+| `original_movement_post_vector_557f54_test.cpp` | child VF1 squared norm `1 + 2^-70` | `std::domain_error` |
 | `original_movement_regenerate_36f8c8_test.cpp` | progress `2^-35`: cube `2^-105`, square `2^-70` | `std::domain_error` |
 | `original_movement_regenerate_36f8c8_test.cpp` | original `0x36F934` VSUBAw `2.625 - 2^-70` | `std::domain_error` |
 
 Each regression forces a case previously liable to pass the double check
 despite losing a nonzero operand. GCC and Clang C++20 compilation plus
 UndefinedBehaviorSanitizer were run for a **standalone equivalent guard
-check**, not for the complete changed repository. The actual three
+check**, not for the complete changed repository. The actual four
 production test targets, full CMake/CTest suite, original ELF verification
 in this session and Windows/Unreal build remain **unverified**.
 
@@ -74,7 +77,8 @@ To increase native movement coverage without inventing results:
    establish a source-backed normal-range rounded implementation.
 2. Recover the repeated `0x36FB70 -> 0x36FC18 -> 0x36F8C8` loop with
    genuinely owned VU0 registers and original child status/flag commits.
-3. Complete the subsequent `0x557F54+` animation/collision actor updates
+3. Continue beyond the recovered `0x557F54` early-vector and
+   `0x558030` post-step subsets to finish original actor/collision updates
    and real Windows runtime integration.
 
 Until then, inexact and unsupported branches must continue to refuse
