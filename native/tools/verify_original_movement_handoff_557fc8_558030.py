@@ -60,6 +60,36 @@ def check(root: Path) -> dict:
         ((terminal_divide >> 6) & 31)) != (20, 21, 0):
         raise AssertionError("original 558060 wrong f21/f20 registers")
 
+    # Source 557FEC: DADDU s5,v0,zero (full low 64-bit EE v0).
+    # Source 558070: DADDU a1,s5,zero. A uint32_t host
+    # callback truncates original high s5 bits before 314C44.
+    def require_original_ee_daddu(raw: int, rs: int, rd: int, at: int):
+        if (raw >> 26 or (raw & 63) != 0x2D or
+            ((raw >> 21) & 31) != rs or
+            ((raw >> 16) & 31) != 0 or
+            ((raw >> 11) & 31) != rd or
+            ((raw >> 6) & 31) != 0):
+            raise AssertionError(
+                f"original {at:#x} DADDU register or width changed"
+            )
+    require_original_ee_daddu(tail["WORDS"][0x557FEC],
+                              rs=2,rd=21,at=0x557FEC)
+    require_original_ee_daddu(step["WORDS"][0x558070],
+                              rs=21,rd=5,at=0x558070)
+    header_tail = (root / "include" / "ae3" /
+                   "original_movement_post_tail_557fc8.hpp").read_text(
+                       encoding="utf-8"
+                   )
+    if "std::uint64_t call_original_30c0a0" not in header_tail:
+        raise AssertionError("original EE v0->s5 return truncated to 32 bits")
+    header_step = (root / "include" / "ae3" /
+                   "original_movement_post_step_558030.hpp").read_text(
+                       encoding="utf-8"
+                   )
+    if ("std::optional<std::uint64_t> originalS5From30C0A0" not in header_step or
+        "std::uint64_t originalS5From30C0A0" not in header_step):
+        raise AssertionError("original 558070 s5->a1 callback truncated")
+
     # The existing original source windows establish the specialized
     # bit0 regeneration and its source ORI of 1 (not 2).
     if regen["WORDS"][0x36F890] != 0x35EF0001:
@@ -124,6 +154,8 @@ def check(root: Path) -> dict:
             "0x558060 DIV.S f0,f21,f20",
             "0x36F890 ORI bit0",
             "0x36F894 SW flags",
+            "0x557FEC DADDU s5,v0,zero 64-bit",
+            "0x558070 DADDU a1,s5,zero 64-bit",
         ],
         "source_lifecycle_ctest_targets_linked": len(lifecycle_targets),
         "source_register_provenance_checks_present": True,
