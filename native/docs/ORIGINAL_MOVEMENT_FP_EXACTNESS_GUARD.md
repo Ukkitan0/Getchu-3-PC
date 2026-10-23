@@ -56,6 +56,7 @@ The existing native test files now include the following adversarial cases:
 | `original_manager_resource_vu0_317b34_test.cpp` | squared norm `1 + 2^-70` | `std::domain_error` |
 | `original_movement_flagged_36fb5c_test.cpp` | squared norm `1 + 2^-70` | `std::domain_error` |
 | `original_movement_regenerate_36f8c8_test.cpp` | progress `2^-35`: cube `2^-105`, square `2^-70` | `std::domain_error` |
+| `original_movement_regenerate_36f8c8_test.cpp` | original `0x36F934` VSUBAw `2.625 - 2^-70` | `std::domain_error` |
 
 Each regression forces a case previously liable to pass the double check
 despite losing a nonzero operand. GCC and Clang C++20 compilation plus
