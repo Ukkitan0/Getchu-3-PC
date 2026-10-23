@@ -1,4 +1,5 @@
 #include "ae3/original_manager_native_method_router.hpp"
+#include "ae3/original_manager_update_316174.hpp"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -127,6 +128,29 @@ struct M final:OriginalManagerMovementCalls_57bf5c {
         throw std::runtime_error("unexpected source diagnostic");
     }
 };
+// Fixture wraps the genuine 0x316174 child vtable[5] call through
+// our verified native 0x57C620 dispatcher. The input is a real typed
+// controller in this test, never an unverified 32-bit source VA cast.
+struct RecoveredTickOwner final:OriginalManagerUpdateOwner_316174 {
+    OriginalManagerNativeMethodOwner& methods;
+    OriginalUpdateDepth_696c98& depth;
+    OriginalManagerChild70* originalChild;
+    int updates=0,deletions=0;
+    RecoveredTickOwner(OriginalManagerNativeMethodOwner& m,
+                       OriginalUpdateDepth_696c98& d,
+                       OriginalManagerChild70& child)
+      :methods(m),depth(d),originalChild(&child) {}
+    std::uint32_t call_original_vtable5(
+        void* child,std::uint32_t a1) override {
+        assert(child==originalChild && depth.depth==1);
+        ++updates;
+        return originalManagerDispatchNativeMethods_57c620(
+            *originalChild,a1,methods);
+    }
+    void call_original_child_vtable1_delete(void* child) override {
+        assert(child==originalChild);++deletions;
+    }
+};
 int main(){
     O outer;R r;G g;F f;T t;
     OriginalManagerNativeMethodOwner methods{r,g,f,t,outer};
@@ -174,6 +198,19 @@ int main(){
     try{(void)originalManagerDispatchNativeMethods_57c620(c,0,methods);}
     catch(const std::runtime_error&){refused=true;}
     assert(refused && outer.virtuals==1);
+    // Real native original chain, no synthetic success:
+    // 0x3161B8 -> 0x316174 -> real 0x57C620 slot5 -> source
+    // result2 at word14, deleting original active child+0x10.
+    OriginalManagerChild70 actualChild{};
+    actualChild.word08=0; // source dispatcher returns genuine 2
+    OriginalUpdateDepth_696c98 depth{};
+    RecoveredTickOwner tick(methods,depth,actualChild);
+    c.child10=&actualChild;c.word14=77;
+    assert(originalManagerChildUpdate_3161b8(
+               c,0x20,0,1,depth,tick)==1);
+    assert(c.word14==2 && c.child10==nullptr &&
+           depth.depth==0 && tick.updates==1 && tick.deletions==1);
+
     c.word08=0;
     assert(originalManagerDispatchNativeMethods_57c620(c,0,methods)==2);
     std::cout<<"ORIGINAL_MANAGER_NATIVE_METHOD_ROUTER_57C620_PASSED\n";
