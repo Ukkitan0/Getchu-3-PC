@@ -23,6 +23,12 @@ public:
     // branch. Real original VF1 and resource table words required.
     virtual OriginalResourceVU0Inputs_317b34
     read_original_resource_vu0_inputs(std::uint32_t originalParentGuestVA)=0;
+    // Source original 0x317B60/0x317B68/0x317B6C updates
+    // physical VF1, not only COP1 f0. Required on the VU0
+    // branch to keep the genuine persistent VU0 register state.
+    virtual void publish_original_vf1_after_317b34(
+        std::uint32_t originalParentGuestVA,
+        const std::array<std::uint32_t,4>& originalVF1After)=0;
     virtual std::uint32_t read_original_parent_float70(
         std::uint32_t originalParentGuestVA)=0;
     // Required for movement f12 positive below threshold.
