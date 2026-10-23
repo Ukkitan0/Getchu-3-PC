@@ -27,14 +27,16 @@ struct Owner:OriginalMovementPostStepOwner_558030 {
     std::vector<std::string> operations{};
     std::uint32_t published{};
     std::uint64_t expectedS5=0x450000u;
+    std::uint32_t parentWord1CBits=0x880000u;
+    std::uint64_t expectedA0=0x880000u;
     std::uint32_t read_original_parent_word1c(std::uint32_t va) override {
         assert(va==0x123400u);
         operations.emplace_back("read1c");
-        return 0x880000u;
+        return parentWord1CBits;
     }
     void call_original_314c44(
         std::uint64_t p,std::uint64_t s5,std::uint32_t mode) override {
-        assert(p==0x880000u && s5==expectedS5 && mode==3u);
+        assert(p==expectedA0 && s5==expectedS5 && mode==3u);
         operations.emplace_back("314c44");
     }
     void store_original_parent_float70(
@@ -69,6 +71,17 @@ int main() {
         *makeChild(0.875f),{bits(2),bits(4),o.expectedS5},o)==0u);
     assert(o.operations==std::vector<std::string>({"read1c","314c44"}));
     o.expectedS5=0x450000u;
+    o.operations.clear();
+    // Original 558054 is LW a0,parent+1C: a negative 32-bit
+    // source memory word MUST reach 314C44 sign-extended in EE a0.
+    // This source field is a word read, not a host pointer.
+    o.parentWord1CBits=0x81234000u;
+    o.expectedA0=0xffffffff81234000ull;
+    assert(originalMovementPostStep_558030(
+        *makeChild(0.875f),{bits(2),bits(4),o.expectedS5},o)==0u);
+    assert(o.operations==std::vector<std::string>({"read1c","314c44"}));
+    o.parentWord1CBits=0x880000u;
+    o.expectedA0=0x880000u;
     o.operations.clear();
     bool refused=false;
     try {(void)originalMovementPostStep_558030(
