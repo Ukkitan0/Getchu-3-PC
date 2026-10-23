@@ -83,6 +83,50 @@ struct T:OriginalManagerType2Calls_57c554 {
     bool call_original_variant_vector_equal_57c5d4(
         const OriginalManagerChild70&) override{return true;}
 };
+// This unit-test owner provides the exact source direction predicate
+// for the early branch only; no fabricated 0x30C57C child is created.
+struct M final:OriginalManagerMovementCalls_57bf5c {
+    std::uint32_t continuation=0x123;
+    int comparisons=0,continued=0;
+    float call_original_vu0_direction_57bfac(OriginalManagerChild70&) override {
+        ++comparisons;return -0.8f;
+    }
+    void call_original_21b854(OriginalManagerChild70&) override {
+        throw std::runtime_error("unexpected original projection");
+    }
+    float call_original_vu0_metric_57c090(OriginalManagerChild70&) override {
+        throw std::runtime_error("unexpected original VU metric");
+    }
+    void call_original_441f40(std::array<std::byte,0x40>&) override {
+        throw std::runtime_error("unexpected original stack initialization");
+    }
+    void call_original_36f5f4(OriginalMovementScratch_57bf5c&) override {
+        throw std::runtime_error("unexpected original 36F5F4");
+    }
+    void* call_original_30c57c(OriginalManagerChild70&,
+        const OriginalMovementScratch_57bf5c&) override {
+        throw std::runtime_error("unexpected source 30C57C actor construction");
+    }
+    void call_original_child_vtable1_delete(void*) override {
+        throw std::runtime_error("unexpected original child deletion");
+    }
+    std::uint32_t call_original_3161b8(void*&,std::uint32_t) override {
+        throw std::runtime_error("unexpected original child update");
+    }
+    std::uint32_t call_original_316174(OriginalManagerChild70& c,
+        std::uint32_t) override {
+        ++continued;assert(c.word08==0x57C27C&&c.word0c==0);
+        return continuation;
+    }
+    bool call_original_vectors_equal_57c1e0(const OriginalManagerChild70&) override {
+        throw std::runtime_error("unexpected original VU equality");
+    }
+    std::uint8_t read_original_6354e7() override {return 0;}
+    std::uint8_t read_original_6354e0() override {return 0;}
+    void call_original_21db64(OriginalManagerChild70&) override {
+        throw std::runtime_error("unexpected source diagnostic");
+    }
+};
 int main(){
     O outer;R r;G g;F f;T t;
     OriginalManagerNativeMethodOwner methods{r,g,f,t,outer};
@@ -114,6 +158,18 @@ int main(){
     try{(void)originalManagerDispatchNativeMethods_57c620(c,0,methods);}
     catch(const std::runtime_error&){refused=true;}
     assert(refused && outer.unknown==2);
+    // A source owner explicitly provides original 0x57BF5C VU0:
+    // native 0x57C620 now calls the recovered source movement branch.
+    M movement{};
+    methods.movement=&movement;
+    c.child10=nullptr;c.word08=0x57BF5C;c.word0c=0;
+    assert(originalManagerDispatchNativeMethods_57c620(c,0,methods)==
+           movement.continuation);
+    assert(movement.comparisons==1 && movement.continued==1 &&
+           c.word08==0x57C27C && c.word0c==0 &&
+           outer.unknown==2);
+    methods.movement=nullptr; // missing owner still requires refusal.
+
     c.word0c=1;refused=false;
     try{(void)originalManagerDispatchNativeMethods_57c620(c,0,methods);}
     catch(const std::runtime_error&){refused=true;}
