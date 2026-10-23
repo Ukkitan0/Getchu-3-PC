@@ -54,6 +54,10 @@ private:
     void* NativeLibrary = nullptr;
     void* NativeState = nullptr;
     bool bOriginalSetupOpen = false;
+    // A game manager may request StopOriginalStage from within a source Lua
+    // callback. Never unload the native DLL while its stack is still live.
+    bool bInOriginalManagerCall = false;
+    bool bDeferredOriginalStop = false;
     UPROPERTY(Transient)
     TObjectPtr<UGetchu3OriginalManagerProvider> Manager = nullptr;
     FString LastError;
