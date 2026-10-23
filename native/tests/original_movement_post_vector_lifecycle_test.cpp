@@ -176,7 +176,7 @@ struct Owner final:OriginalMovementParentRead_557e30,
         return 0x880000u;
     }
     void call_original_314c44(
-        std::uint32_t word1c,std::uint64_t s5,std::uint32_t mode) override {
+        std::uint64_t word1c,std::uint64_t s5,std::uint32_t mode) override {
         assert(word1c==0x880000u &&
                s5==(useWideS5?0x12345678450000ull:0x450000ull) && mode==2u);
         ++source314c44Calls;
