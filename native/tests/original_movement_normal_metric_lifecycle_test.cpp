@@ -29,14 +29,14 @@ struct Owner final:OriginalMovementParentRead_557e30,
         calls.emplace_back("317B9C-fields");
         return {0x700000u,1u,std::nullopt};
     }
-    std::uint32_t call_original_276b68(std::uint32_t parent,std::uint32_t resource) override {
+    std::uint32_t call_original_276b68(std::uint64_t parent,std::uint32_t resource) override {
         assert(parent==0x340000u && resource==0x7001C0u);
         calls.emplace_back("276B68");return 0;
     }
-    void call_original_2767f4(std::uint32_t) override {
+    void call_original_2767f4(std::uint64_t) override {
         throw std::runtime_error("unexpected source callback 2767F4");
     }
-    void call_original_2773d4(std::uint32_t parent) override {
+    void call_original_2773d4(std::uint64_t parent) override {
         assert(parent==0x340000u);calls.emplace_back("2773D4");
     }
     OriginalManagerResourceFloatFields_317b34
