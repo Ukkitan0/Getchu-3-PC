@@ -77,6 +77,11 @@ def verify_retail(path:Path)->dict:
     if disp>=0x8000:disp-=0x10000
     if 0x2749D4+4+disp*4!=0x274A00:
         raise AssertionError("original near-zero branch does not return directly")
+    # This is the source-critical distinction: near-zero
+    # 2749D4 BC1F goes to JR, bypassing 2749FC SQ VF1 to
+    # parent+0x50. The output memory is NOT always written.
+    if WORDS[0x2749FC]!=0xF8810000:
+        raise AssertionError("original normalized branch 2749FC SQ changed")
     # The original data table is source evidence; no original
     # constants are inferred from approximate host math.
     epsilon=struct.unpack("<I",source_range(data,0x6ED7C0,4))[0]
@@ -123,6 +128,8 @@ def verify_native(root:Path)->dict:
         "publish_original_274988_vu0",
         "originalMovementNormalizeExact_274988(",
         "originalMovementForward_276538(",
+        "publish_original_274988_vu0(originalParentPlus50,source)",
+        "if(result.originalPerformedNormalize)",
     ):
         if piece not in caller:
             raise AssertionError("original 557FC8 owner not connected to "+piece)
@@ -149,6 +156,7 @@ def verify_native(root:Path)->dict:
         "native_exact_finite_vu0_subset_connected":True,
         "post_tail_test_targets_linked":len(tails),
         "standalone_normalizer_ctest_registered":True,
+        "source_nearzero_skips_parent_50_store":True,
         "original_special_ps2_rounding_recovered":False,
         "original_windows_game_playable_verified":False
     }
