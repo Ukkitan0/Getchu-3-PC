@@ -76,6 +76,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_movement_flagged_36fb5c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_tick_bridge_3161b8.cpp"
@@ -437,6 +438,16 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalMovementNormalMetricLifecycle
     COMMAND Getchu3OriginalMetricLifecycleTests)
+
+  # Original 0x36FB5C..0x36FC24 flagged +A8 bit1
+  # movement advance, with a separate required 36F8C8 path.
+  add_executable(Getchu3OriginalFlaggedMovementTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_flagged_36fb5c_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_flagged_36fb5c.cpp")
+  target_include_directories(Getchu3OriginalFlaggedMovementTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementFlaggedPass36FB5C
+    COMMAND Getchu3OriginalFlaggedMovementTests)
 
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
