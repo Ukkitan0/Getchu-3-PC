@@ -9,6 +9,16 @@
 
 namespace {
 bool verify(const void* data, std::size_t size, std::string_view expected) {
+    // The Unreal stage resolver checks an original file on disk, then
+    // loads bytes into memory. A modified buffer must not be accepted just
+    // because a prior on-disk source hash was valid.
+    originalScriptHeader[20] ^= 0x01;
+    if (verify(originalScriptHeader.data(), originalScriptHeader.size(),
+               "a1a605515b9784d09063bb206240f5b7"
+               "83e219a3cf3fdae0f7f8df6d6256b54b")) {
+        std::cerr << "original stage SHA256: modified Lua bytes accepted\n";
+        return 1;
+    }
     std::uint8_t digest[32] = {};
     if (!ae3::originalSourceSha256(data, size, digest))
         return false;
