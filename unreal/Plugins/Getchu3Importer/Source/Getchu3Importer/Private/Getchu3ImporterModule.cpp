@@ -17,6 +17,7 @@
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SBoxPanel.h"
+#include "HAL/PlatformProcess.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
 #include "Serialization/JsonReader.h"
@@ -109,6 +110,15 @@ public:
                             .OnClicked(this, &SGetchu3ImporterPanel::Import)
                             [SNew(STextBlock).Text(LOCTEXT("ImportGame", "Import Original ISO"))]
                     ]
+                    + SVerticalBox::Slot().AutoHeight().Padding(0, 0, 0, 12)[
+                        SNew(SButton).HAlign(HAlign_Center)
+                            .IsEnabled_Lambda([this]() {
+                                return !bImporting && FPaths::FileExists(NativeReadinessPath);
+                            })
+                            .OnClicked(this, &SGetchu3ImporterPanel::OpenNativeReadiness)
+                            [SNew(STextBlock).Text(
+                                LOCTEXT("OriginalGaps", "View Original Gameplay Binding Gaps"))]
+                    ]
                     + SVerticalBox::Slot().AutoHeight()[
                         SNew(SButton).HAlign(HAlign_Center).IsEnabled(false)
                             [SNew(STextBlock).Text(LOCTEXT("Play", "▷  Play Ape Escape 3"))]
@@ -141,6 +151,7 @@ public:
 
 private:
     FString SelectedIso;
+    FString NativeReadinessPath; // Only valid owner-private original source report.
     FString Status = TEXT("Not ready: original gameplay runtime is not implemented. Select an owned USA ISO to import available assets.");
     bool bImporting = false;
 
@@ -165,8 +176,18 @@ private:
         return FReply::Handled();
     }
 
+    FReply OpenNativeReadiness()
+    {
+        if (FPaths::FileExists(NativeReadinessPath))
+            FPlatformProcess::LaunchFileInDefaultExternalApplication(*NativeReadinessPath);
+        else
+            Status = TEXT("No verified original stage native binding report exists.");
+        return FReply::Handled();
+    }
+
     FReply Import()
     {
+        NativeReadinessPath.Empty(); // Never show a previous attempt's result.
         if (bImporting || !FPaths::FileExists(SelectedIso))
         {
             Status = TEXT("No existing ISO was selected.");
@@ -198,9 +219,40 @@ private:
         if (FFileHelper::LoadFileToString(Json, *ReportFile) &&
             FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(Json), Report) && Report.IsValid())
         {
-            const FString Result = Report->GetStringField(TEXT("status"));
+            FString Result;
+            Report->TryGetStringField(TEXT("status"), Result);
             if (Result == TEXT("original_models_textures_streams_i3c_imported_gameplay_not_implemented") && bOkay)
-                Status = TEXT("Original model, texture, stream and I3C static meshes imported. Gameplay collision responses, Lua, actors, gadgets and live sound are still incomplete.");
+            {
+                Status = TEXT("Original source assets imported; live original gameplay is incomplete.");
+                FString Candidate;
+                const FString PrivateRoot = FPaths::ConvertRelativePathToFull(
+                    FPaths::ProjectSavedDir() / TEXT("Getchu3Private"));
+                if (Report->TryGetStringField(
+                        TEXT("native_stage_readiness_report"), Candidate))
+                {
+                    Candidate = FPaths::ConvertRelativePathToFull(Candidate);
+                    FPaths::NormalizeFilename(Candidate);
+                    FString NormalRoot = PrivateRoot;
+                    FPaths::NormalizeFilename(NormalRoot);
+                    if (Candidate.StartsWith(NormalRoot + TEXT("/"),
+                            ESearchCase::IgnoreCase) &&
+                        FPaths::GetCleanFilename(Candidate) ==
+                            TEXT("getchu3_original_native_stage_readiness.json") &&
+                        FPaths::FileExists(Candidate))
+                        NativeReadinessPath = Candidate;
+                }
+                double MissingStageCount = 0;
+                if (!NativeReadinessPath.IsEmpty() &&
+                    Report->TryGetNumberField(
+                        TEXT("stages_with_unresolved_native_calls"), MissingStageCount))
+                    Status += FString::Printf(
+                        TEXT(" Original Lua native gaps remain in %d stage(s). "
+                             "Open the gameplay binding report for source evidence."),
+                        FMath::RoundToInt(MissingStageCount));
+                else
+                    Status += TEXT(" Original native callback audit unavailable; "
+                                   "gameplay is not verified.");
+            }
             else
             {
                 if (!bOkay && Result != TEXT("blocked"))
