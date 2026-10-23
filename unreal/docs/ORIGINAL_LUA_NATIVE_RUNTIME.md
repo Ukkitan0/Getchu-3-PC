@@ -8,7 +8,7 @@ representation retargeter, and existing LuaStage from the native source tree
 are compiled into a standalone Windows Getchu3OriginalLuaBridge DLL. The DLL
 does NOT execute Sony MIPS/PS2 hardware or replace original Lua gameplay.
 
-- native/include/ae3/ae3_unreal_lua_bridge.h : version 2 C callback ABI.
+- native/include/ae3/ae3_unreal_lua_bridge.h : version 3 C callback ABI.
 - native/src/ae3_unreal_lua_bridge.cpp : native Lua 5.0 execution and forwarding.
 - native/tests/ae3_unreal_lua_bridge_test.cpp : fail-closed ABI tests.
 - native/CMakeLists.txt : Getchu3OriginalLuaBridge target and test.
@@ -45,7 +45,7 @@ original game stages must fail and the Play button remains disabled.
 
 ## Lossless original Lua transport
 
-The C ABI version 2 has no C++ STL objects across DLL boundaries. Entity
+The C ABI version 3 has no C++ STL objects across DLL boundaries. Entity
 class/name/tag and flag scope/key are exact byte-hex strings. Lua values are
 represented in typed JSON with explicit type tags (nil, boolean, number, text,
 array, object), byte-hex string contents and byte-hex object keys. This avoids
@@ -228,8 +228,9 @@ execution, `setupArea` and the final manager commit. If an original game
 manager re-enters the subsystem to Stop or replace the stage while any
 such call is active, cleanup is deferred until the call unwinds. A rejected
 or cancelled stage transaction is then aborted before the VM and its DLL
-are destroyed. The native C ABI additionally refuses direct VM destruction
-while executing a callback. This prevents invalidating the native Lua stack
+are destroyed. The native C ABI returns an explicit failure code if destruction is attempted
+while a callback is still executing; Unreal retains the DLL and VM when it
+receives that failure instead of unloading live native code. This prevents invalidating the native Lua stack
 from an Unreal manager callback but is NOT yet proven in UE5 on Windows.
 
 The original actor factory, monster/monkey update logic, player gadget
