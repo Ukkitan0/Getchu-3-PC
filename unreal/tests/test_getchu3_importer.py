@@ -41,6 +41,31 @@ class FakeUE:
             return FakeManager()
 
 class ImporterTests(unittest.TestCase):
+    def test_atomic_status_commit_has_valid_json_and_no_temp_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "private" / "Getchu3ImportStatus.json"
+            state = {"phase": "original_stage_catalog",
+                     "gameplay_ready": False, "original_files": 3994}
+            module.write_import_status(destination, state)
+            self.assertEqual(json.loads(destination.read_text()), state)
+            self.assertEqual(list(destination.parent.glob("*.tmp")), [])
+            state["phase"] = "unreal_editor_asset_import"
+            module.write_import_status(destination, state)
+            self.assertEqual(json.loads(destination.read_text()), state)
+
+    def test_interrupted_atomic_status_preserves_previous_snapshot(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "Getchu3ImportStatus.json"
+            initial = {"status": "blocked", "gameplay_ready": False}
+            module.write_import_status(destination, initial)
+            with patch.object(module.os, "replace",
+                              side_effect=OSError("simulated interrupted status replace")):
+                with self.assertRaisesRegex(OSError, "interrupted"):
+                    module.write_import_status(destination, {
+                        "status": "running", "gameplay_ready": False})
+            self.assertEqual(json.loads(destination.read_text()), initial)
+            self.assertEqual(list(Path(tmp).glob(".Getchu3ImportStatus-*.tmp")), [])
+
     def test_digest_and_size_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             disk = Path(d) / 'my.iso'
