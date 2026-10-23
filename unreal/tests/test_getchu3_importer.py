@@ -58,6 +58,65 @@ class ImporterTests(unittest.TestCase):
             (base/'debug/us/stage/Hero One.glb').write_bytes(b'glb test')
             self.assertEqual(module.import_glbs_in_editor(base, FakeUE()),
                              ['/Game/ApeEscape3/Original/Models/debug/us/stage/SourceMesh'])
+    def test_unreal_import_sets_sanitized_source_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            original = folder / "woods_c" / "Hero One.glb"
+            original.parent.mkdir(parents=True)
+            original.write_bytes(b"glb test fixture")
+            requests = []
+            class InspectManager:
+                def import_asset_tasks(self, tasks):
+                    for task in tasks:
+                        requests.append((task.destination_path, task.destination_name))
+                        task.objects = [type("OneObject", (), {
+                            "get_path_name": lambda self: (
+                                "/Game/ApeEscape3/Original/Models/woods_c/Hero_One")})()]
+            class InspectUE(FakeUE):
+                class AssetToolsHelpers:
+                    @staticmethod
+                    def get_asset_tools():
+                        return InspectManager()
+            results = module.import_glbs_in_editor(folder, InspectUE())
+            self.assertEqual(requests, [
+                ("/Game/ApeEscape3/Original/Models/woods_c", "Hero_One")])
+            self.assertEqual(len(results), 1)
+
+    def test_source_package_collision_detected_before_any_unreal_import(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            (folder / "Hero One.glb").write_bytes(b"model A")
+            (folder / "Hero-One.glb").write_bytes(b"model B")
+            class MustNotImport:
+                def import_asset_tasks(self, _):
+                    raise AssertionError("Unreal import should not have started")
+            class SilentUE(FakeUE):
+                class AssetToolsHelpers:
+                    @staticmethod
+                    def get_asset_tools():
+                        return MustNotImport()
+            with self.assertRaisesRegex(RuntimeError, "identical Unreal package"):
+                module.import_glbs_in_editor(folder, SilentUE())
+
+    def test_interchange_same_uobject_path_from_distinct_sources_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            (folder / "ape_a.glb").write_bytes(b"model A")
+            (folder / "ape_b.glb").write_bytes(b"model B")
+            with self.assertRaisesRegex(RuntimeError, "same Unreal object"):
+                module.import_glbs_in_editor(folder, FakeUE())
+
+    def test_collision_package_alias_preflight_before_import(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            (folder / "floor One.obj").write_text("v 0 0 0\n")
+            (folder / "floor-One.obj").write_text("v 0 0 0\n")
+            class CollisionUE(FakeUE):
+                StaticMesh = type("Mesh", (), {})
+                CollisionTraceFlag = type("Trace", (), {})
+            with self.assertRaisesRegex(RuntimeError, "identical Unreal package"):
+                module.import_collision_in_editor(folder, CollisionUE())
+
     def test_original_animation_association_is_never_guessed(self):
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)
