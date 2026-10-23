@@ -20,6 +20,10 @@ struct OriginalManagerChild70 {
     void* context18=nullptr;
     std::uint8_t flag1c=0,flag1d=0;
     std::uint8_t alternative30=0;
+    // Original 0x57C620 consumes the game-owned resource pointer at
+    // controller+0x50. Neither 0x57BA98 nor 0x57BAF8 is verified to
+    // write this field: preserve any owner-provided value at construction.
+    void* originalPendingResource50=nullptr;
 };
 class OriginalManagerChildCalls {
 public:
