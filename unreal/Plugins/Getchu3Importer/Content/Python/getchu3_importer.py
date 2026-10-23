@@ -203,24 +203,24 @@ def import_collision_in_editor(folder: Path, ue: Any, *,
         raise RuntimeError("No original I3C collision meshes available to import")
     if not hasattr(ue, "StaticMesh") or not hasattr(ue, "CollisionTraceFlag"):
         raise RuntimeError("Unreal StaticMesh collision editing is unavailable")
+    # Fail before modifying editor packages on any source filename collision.
+    plans = _planned_imports(folder, files, "/Game/ApeEscape3/Original/Collision")
     manager = ue.AssetToolsHelpers.get_asset_tools()
     result = []
-    progress = ue.ScopedSlowTask(len(files), "Importing Ape Escape 3 original collision assets") if hasattr(ue, "ScopedSlowTask") and files else None
+    observed_objects: set[str] = set()
+    progress = ue.ScopedSlowTask(len(plans), "Importing Ape Escape 3 original collision assets") if hasattr(ue, "ScopedSlowTask") and plans else None
     with (progress if progress is not None else nullcontext()):
         if progress is not None:
             progress.make_dialog(True)
-        for source in files:
+        for source, relative, dest, name in plans:
             if progress is not None:
                 if progress.should_cancel():
                     raise InterruptedError("Original collision import cancelled; partial assets may remain")
-                progress.enter_progress_frame(1, f"Importing collision: {source.relative_to(folder)}")
-            relative = source.relative_to(folder)
-            parts = ["".join(c if c.isascii() and (c.isalnum() or c == "_") else "_"
-                             for c in part) for part in relative.parent.parts if part not in (".", "")]
-            dest = "/Game/ApeEscape3/Original/Collision" + ("/" + "/".join(parts) if parts else "")
+                progress.enter_progress_frame(1, f"Importing collision: {relative}")
             task = ue.AssetImportTask()
             task.filename = str(source)
             task.destination_path = dest
+            task.destination_name = name
             task.automated = True
             task.async_ = False
             task.replace_existing = True
@@ -231,6 +231,12 @@ def import_collision_in_editor(folder: Path, ue: Any, *,
                 raise RuntimeError(f"No Unreal StaticMesh was created from original I3C mesh {relative}")
             imported_meshes = []
             for obj in original_meshes:
+                object_path = str(obj.get_path_name())
+                folded = object_path.casefold()
+                if folded in observed_objects:
+                    raise RuntimeError(
+                        f"Two original I3C collision files map to the same UObject: {object_path}")
+                observed_objects.add(folded)
                 body = obj.get_editor_property("body_setup")
                 if body is None:
                     raise RuntimeError(f"Original collision StaticMesh has no BodySetup: {relative}")
