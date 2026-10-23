@@ -148,8 +148,14 @@ def build_original_native_readiness(
         "scripts_analyzed": sum(len(s) for s in source_calls.values()),
         "stages_with_unresolved_calls": sum(
             bool(item["unresolved_original_calls"] or
-                 item["original_elf_registered_but_not_host_implemented"])
+                 item["original_elf_registered_but_not_host_implemented"] or
+                 item["native_host_name_exists_semantics_unverified"])
             for item in results),
+        "stages_with_unverified_native_semantics": sum(
+            bool(item["native_host_name_exists_semantics_unverified"])
+            for item in results),
+        "stages_without_original_actor_manager": sum(
+            not item["original_actor_manager_complete"] for item in results),
         "gameplay_ready": False,
         "stages": results,
         "critical_caveat": (
