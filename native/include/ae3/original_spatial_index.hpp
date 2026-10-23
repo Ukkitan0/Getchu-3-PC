@@ -39,10 +39,14 @@ struct OriginalSpatialGridHits {
 class OriginalSpatialEngineCalls {
 public:
     virtual ~OriginalSpatialEngineCalls()=default;
-    // Original 0x21B788 contains as-yet-unrecovered VU0 eligibility math.
+    // Original 0x21B788 VU0 eligibility now has a native translation
+    // in original_vu0_geometry.cpp; this interface also supports callers
+    // that must obtain the source decision from an external game owner.
     virtual bool call_original_21b788_eligibility(
         const OriginalSpatialRecord70& record)=0;
-    // Original 0x21B468 and original VU0 distance calculation are pending.
+    // Source 0x21B468 centroid and 0x21B234 VU0 XYZ distance are
+    // recovered in original_vu0_geometry.cpp. The caller must supply
+    // genuine source polygon vertices, never synthetic host geometry.
     virtual float call_original_21b468_and_VU_distance(
         const OriginalSpatialRecord70& record)=0;
 };
