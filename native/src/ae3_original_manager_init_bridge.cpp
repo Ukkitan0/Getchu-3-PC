@@ -29,6 +29,10 @@
 namespace {
 static_assert(sizeof(Ae3OriginalVec4) == sizeof(ae3::OriginalVU0Vec4));
 static_assert(sizeof(ae3::OriginalSpatialRecord70) == 0x70);
+static_assert(sizeof(Ae3OriginalStagePendingActionV1)==12,
+    "Original stage pending action C ABI must be 12 bytes");
+static_assert(sizeof(Ae3OriginalStageSpatialRecordV1)==0x78,
+    "Original 0x70 spatial record plus source header metadata must be 120 bytes");
 
 ae3::OriginalVU0Vec4 native(const Ae3OriginalVec4& src) noexcept {
     return {src.x,src.y,src.z,src.w};
