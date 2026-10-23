@@ -147,3 +147,39 @@ when an original route/collision callback subsequently fails.
 The previous two-argument child lifecycle constructor remains
 source-compatible, with an optional genuine normal owner as
 the third argument.
+
+
+## Subsequent initialized-child movement and genuine resource metric
+
+The original 0x557EB4 **BNEZL** instruction is now recovered
+for the original child state byte `+0xC0`:
+
+- `+0xC0 == 0`: run the one-time source
+  `0x557ED8..0x557F30` setup, with actual parent resource
+  reads and original manager calls.
+- `+0xC0 != 0`: jump **directly to `0x557F34`**,
+  executing the original LBU child+0x09 mode delay slot,
+  and do **not** clear `+0xB4/+0xB8` or rerun
+  `0x276B68/0x2773D4` on every update.
+
+Source `0x317B34` now also has its ordinary exact-number
+VF1 VU0 branch, including source VMUL/VADDy/VADDz,
+SQRT.S, ADD.S and the **MIN.S return delay slot**.
+Its changed VF1 register lanes are published back through
+the real game-owner contract. `0x557F40` reads the
+parent's genuine +0x70 movement scale; `0x557F50`
+multiplies it into f12 before real `0x36FB18`.
+
+The source `0x36FB18` original early returns are
+recovered for status threshold reached or nonpositive
+scaled movement. Positive movement below the threshold
+continues through real, still-unrecovered collision code
+and can only execute with the genuine original game-owner
+callback. The `0x557F54+` game animation/update
+continuation is also unresolved, so neither path
+falsely reports a completed actor frame.
+
+Source and tests:
+`native/docs/ORIGINAL_MOVEMENT_METRIC_557F34.md`,
+`native/tools/verify_original_movement_metric_557f34.py`,
+CTest `OriginalMovementNormalMetricLifecycle`.
