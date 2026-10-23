@@ -45,7 +45,7 @@ private:
     friend std::unique_ptr<OriginalMovementChildD0_30c57c>
     originalMovementChildCreate_30c57c(
         std::uint32_t,std::span<const std::byte,0x110>,
-        std::uint32_t,std::uint32_t);
+        const std::bitset<0x110>&,std::uint32_t,std::uint32_t);
     void writeByte(std::size_t offset,std::byte value) noexcept {
         bytes_[offset]=value;
         initialized_.set(offset);
@@ -67,5 +67,18 @@ std::unique_ptr<OriginalMovementChildD0_30c57c>
 originalMovementChildCreate_30c57c(
     std::uint32_t originalParentGuestVA,
     std::span<const std::byte,0x110> originalScratch,
+    std::uint32_t originalA2,std::uint32_t originalA3);
+
+// Identical retail 0x30C57C write/copy sequence, but the source
+// 0x110-byte stack scratch may contain uninitialized/unknown bytes.
+// The game performs the full 0xB0 copy, yet native callers must
+// NOT treat copied unknown bytes as grounded original actor state.
+// Source `knownSourceBytes` marks ONLY data proven initialized by
+// the original game. Unknown bytes remain unreadable in the child.
+std::unique_ptr<OriginalMovementChildD0_30c57c>
+originalMovementChildCreate_30c57c(
+    std::uint32_t originalParentGuestVA,
+    std::span<const std::byte,0x110> originalScratch,
+    const std::bitset<0x110>& knownSourceBytes,
     std::uint32_t originalA2,std::uint32_t originalA3);
 } // namespace ae3
