@@ -602,6 +602,16 @@ if(BUILD_TESTING)
   add_test(NAME OriginalMovementPostVectorLifecycle557F54
     COMMAND Getchu3OriginalPostVectorLifecycleTests)
 
+  # Complete 9-instruction retail 276538 wrapper around the
+  # original 274988 normalization: 128-bit SQ a1 stack copy and
+  # signed 32-bit ADDIU source a0+0x50. No game binary needed.
+  add_executable(Getchu3OriginalMovementForward276538Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_forward_276538_test.cpp")
+  target_include_directories(Getchu3OriginalMovementForward276538Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovement276538NativeVectorForward
+    COMMAND Getchu3OriginalMovementForward276538Tests)
+
   # 26 original source words at 557FC8..558030: original
   # bit0 flag regen, full 128-bit EE POR to 30C0A0/276538,
   # 6354E7 diagnostic and genuine post-step status 0/2.
