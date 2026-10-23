@@ -37,6 +37,7 @@ public:
     void setOriginalFallbackOwnerVector_57ca68(
         const std::array<std::byte,16>& originalOwner14Vector40);
     void setOriginalFallbackQBits_57ca68(std::uint32_t rawOriginalQ);
+    void setOriginalFallbackRState_57ca68(OriginalActorFallbackVu0R_57ca68* sourceR);
 
     // The route span belongs to the caller and must remain valid
     // through advance(). Returned polygon identities belong to stage.
