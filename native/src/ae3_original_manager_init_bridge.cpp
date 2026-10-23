@@ -166,6 +166,10 @@ extern "C" int ae3_original_manager_init_step(
                 static_cast<uint32_t>(sourceState.target50-first);
         }
         *state = completed;
+        // A callback can correctly try (and fail) to destroy its live
+        // session. That rejection must not leave a stale last_error on
+        // a successfully completed original branch.
+        session->error.clear();
         result = branch == ae3::OriginalManagerInitBranch_57bcb8::nearOwnerReturn ? 1
                : branch == ae3::OriginalManagerInitBranch_57bcb8::typeTwoTarget ? 2
                : 3;
