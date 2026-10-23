@@ -46,4 +46,16 @@ void originalMovementCommitFlaggedReturn_36fb5c(
     OriginalMovementChildD0_30c57c& originalChild,
     const OriginalMovementFlaggedInputs_36fb5c& source,
     const OriginalMovementFlaggedPass_36fb5c& completed);
+
+// Retail source 36FC10/36FC14 (status +1/8) -> 36FBE0
+// clears child+A8 flags, then 36FC18 regenerates VF1 using
+// 36F8C8 and source 36FC20 branches back to 36FB70.
+// This narrow transition commits ONLY that genuine iteration:
+// it is not a completed f0 return and cannot be substituted
+// for a missing real 36F8C8/VU0 register owner.
+// Caller must first publish pass.originalVF1After into real VU0.
+void originalMovementCommitFlaggedIteration_36fb5c(
+    OriginalMovementChildD0_30c57c& originalChild,
+    const OriginalMovementFlaggedInputs_36fb5c& source,
+    const OriginalMovementFlaggedPass_36fb5c& iteration);
 } // namespace ae3
