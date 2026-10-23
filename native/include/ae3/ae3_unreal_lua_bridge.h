@@ -46,7 +46,7 @@ typedef struct Ae3LuaRuntime Ae3LuaRuntime;
  * This is not a guessed gameplay schema. No source bytes are lost by Unicode
  * transcoding, embedded NUL, or JSON key normalization.
  */
-typedef struct Ae3LuaManagerV2 {
+typedef struct Ae3LuaManagerV3 {
     uint32_t api_version;
     uint32_t struct_size;
     void* user;
@@ -64,7 +64,7 @@ typedef struct Ae3LuaManagerV2 {
     int (*select_weapon)(void*, int original_selection);
     /* Returns 1 only when 1033 original source bytes were provided. */
     int (*read_original_player_progress)(void*, void* destination, size_t exact_size);
-} Ae3LuaManagerV2;
+} Ae3LuaManagerV3;
 
 /* All API functions return 1 on success, 0 on failure.
  * On failure ae3_lua_last_error provides the error text while the handle
@@ -72,7 +72,7 @@ typedef struct Ae3LuaManagerV2 {
  * and must run on the Unreal game thread. Callbacks MUST NOT re-enter.
  */
 AE3_LUA_EXPORT uint32_t ae3_lua_api_version(void);
-AE3_LUA_EXPORT Ae3LuaRuntime* ae3_lua_create(const Ae3LuaManagerV2* manager);
+AE3_LUA_EXPORT Ae3LuaRuntime* ae3_lua_create(const Ae3LuaManagerV3* manager);
 /* Returns 0 without destroying if Lua or a manager callback is executing.\n * Callers MUST NOT unload the host DLL or discard the handle after 0.\n */\nAE3_LUA_EXPORT int ae3_lua_destroy(Ae3LuaRuntime* runtime);
 AE3_LUA_EXPORT int ae3_lua_reset(Ae3LuaRuntime* runtime);
 AE3_LUA_EXPORT int ae3_lua_execute_original_chunk(
