@@ -28,6 +28,7 @@ struct OriginalOwner : OriginalMovementNormalCalls_557ed8,
     bool foreignOriginalVF1=false;
     bool iterativeFlagged=false,disagreeRegeneratedVF1=false;
     bool foreignLoopBinding=false,allowIterativeExternalFallback=false;
+    bool inexactFirstVF1=false;
     int movementCallbacks=0,resourceReads=0,vf1Publications=0;
     int flaggedReads=0,flaggedPublications=0,regenPublications=0;
     OriginalMovementChildD0_30c57c* actualChild=nullptr;
@@ -88,8 +89,9 @@ struct OriginalOwner : OriginalMovementNormalCalls_557ed8,
             // attempting the source VU0 SQRT: norm(1,1,0,0)
             // requires irrational sqrt(2), and cannot be refused
             // by the restricted native exact-only arithmetic path.
-            const auto vf1=c.originalWordAt(0xB4)==
-                             std::bit_cast<std::uint32_t>(-1.0f)
+            const auto vf1=(inexactFirstVF1 ||
+                             c.originalWordAt(0xB4)==
+                                 std::bit_cast<std::uint32_t>(-1.0f))
                 ? std::array<std::uint32_t,4>{one,one,0u,0u}
                 : std::array<std::uint32_t,4>{
                     std::bit_cast<std::uint32_t>(2.0f),0u,0u,0u};
@@ -328,6 +330,36 @@ int main() {
            negativeChild->originalWordAt(0xB4)==
                std::bit_cast<std::uint32_t>(-1.0f) &&
            negativeChild->originalWordAt(0xB8)==2u);
+
+    // Genuine original collision-owner fallback for an ordinary
+    // nonnegative first pass whose SQRT.S requires real PS2
+    // rounding. The native exact subset must not throw before
+    // the authoritative owner gets its original 36FB18 call.
+    OriginalOwner irrationalFirst{};
+    irrationalFirst.iterativeFlagged=true;
+    irrationalFirst.inexactFirstVF1=true;
+    irrationalFirst.allowIterativeExternalFallback=true;
+    irrationalFirst.floatFields.originalFloatAt374Bits=
+        std::bit_cast<std::uint32_t>(1.0f);
+    irrationalFirst.scaleRaw=std::bit_cast<std::uint32_t>(0.5f);
+    auto irrationalChild=child();
+    irrationalChild->writeWord(0xB0,0x744dd0u);
+    irrationalFirst.actualChild=irrationalChild.get();
+    originalMovementNormalBegin_557ed8(
+        *irrationalChild,0x220000u,irrationalFirst);
+    irrationalChild->writeWord(0xB4,std::bit_cast<std::uint32_t>(0.5f));
+    irrationalChild->writeWord(0xB8,2u);
+    const auto irrationalResult=originalMovementMetricStep_557f34(
+        *irrationalChild,irrationalFirst);
+    assert(irrationalResult.originalMovementF0Raw==
+               std::bit_cast<std::uint32_t>(1.25f) &&
+           irrationalFirst.flaggedReads==1 &&
+           irrationalFirst.movementCallbacks==1 &&
+           irrationalFirst.flaggedPublications==0 &&
+           irrationalFirst.regenPublications==0 &&
+           irrationalChild->originalWordAt(0xB4)==
+               std::bit_cast<std::uint32_t>(0.5f) &&
+           irrationalChild->originalWordAt(0xB8)==2u);
 
     std::cout<<"ORIGINAL_MOVEMENT_557F34_METRIC_PREFIX_PASSED\n";
 }
