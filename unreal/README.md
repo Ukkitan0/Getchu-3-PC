@@ -70,3 +70,11 @@ The source tree includes unit/regression tests for PLC record parsing, original 
 ### Fidelity gate: original animation binding
 
 The ae3-sdk command supports a heuristic `--anims` auto-pairing mode, but original retail model-to-animation ownership has not been recovered sufficiently for frame-accurate game use. This importer deliberately does **not** enable heuristic pairing. It retains the original I3M files privately for source-backed association and later precise animation import. This is an intentional correctness restriction, not an animation implementation.
+
+## Original stage PCK extraction (implemented in this branch)
+
+The owner-ISO importer now unpacks the genuine stage `.pck` member index **before** attempting texture, model and collision conversions. This fixes a major source-data gap: genuine I3D models, I3M animation sources, TIM2 textures and I3D_I3C collision are often members of the PCK, not direct standalone VFI files. The existing `native/tools/unpack_original_stage_pck.py` is reused, and the Unreal pipeline explicitly requests `include_collision=True` to expose the source collision bytes for I3C-to-OBJ conversion.
+
+Unreal's opt-in collision path writes the original `I3D_I3C\x00` bytes into private `.i3d` members, preserving their magic identity. The preexisting native runtime's default PCK behavior **still leaves I3C inside PCK**: the new option does not change that path. All extracted and converted files stay in `Saved/Getchu3Private` and are excluded from source control. A missing stage PCK reports a blocked source-data import, never an invented model or collision mesh.
+
+The integrated Windows build now runs both `unreal/tests` and the original PCK extractor regressions. Locally, equivalent structural PCK extraction logic passed six synthetic-fixture checks for identity preservation, collision opt-in/default behavior, repeated extraction, upgrade from the native mode and corrupt input rejection. The full repository test suite and genuine owner ISO-to-Unreal import have **not** yet run here.
