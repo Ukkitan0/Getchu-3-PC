@@ -10,6 +10,12 @@ struct OriginalActorProjectionRay_4c1b3c {
     float originalLengthF12=0.0f;
     OriginalVU0Vec4 originalNormalizedRay{};
 };
+// In original route advance, only FOLLOW-UP projection uses
+// 0x57C7E4 PCPYUD s5,zero,a1 and 0x57C88C PCPYUD a1,zero,s5.
+// First ray at 0x57C814 uses original caller a1 unchanged.
+OriginalVU0Vec4 originalActorPackedSubsequentRayStart_57c88c(
+    const OriginalVU0Vec4& originalIncomingA1) noexcept;
+
 // Source 0x4C1B3C..0x4C1BA4: VSUB.xyzw, XYZ squared dot,
 // SQRT.S, 1.0f/length and VMULx.xyzw. This is the verified
 // preparation for original 0x21BD3C polygon intersection, which
