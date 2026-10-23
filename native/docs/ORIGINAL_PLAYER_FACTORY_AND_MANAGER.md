@@ -359,3 +359,56 @@ Windows DLL, Unreal Editor, or game itself. The owner-private
 original executable was not mounted in this current environment,
 so no new retail-machine-code claims are based on fresh local ELF
 verification.
+
+
+### Original 0x36F5F4 / 0x30C57C native source recovery (USA ELF reavailable)
+
+The original pinned `SCUS_975.01` executable was retrieved
+from the user's **private prior handoff archive** and verified
+byte-for-byte against project SHA-256; it is NOT being copied to
+GitHub. This restored actual retail machine-code inspection for
+the movement scratch and child constructor chain.
+
+The first entry/return window of original `0x36F5F4`
+is 58 instructions and contains real VU0 math and five
+cross-entry branch destinations. Its exact scalar/store tail
+at `0x36F6A8..0x36F6D8` is now translated for the actual
+`0x57C148` caller (`t0=0`, source 32-bit EE stack
+pointer). It sets original scratch `+0xA0` to the source
+runtime BSS address `0x744DD0`, `+0xA8/+0xAC` to zero
+and `+0xA4` to 1.0f only on original ordered
+`f1 < 1.0f`; otherwise +0xA4 stays zero.
+Missing actual VU0 `f1` is NOT guessed.
+
+The immediately following original `0x30C57C..0x30C670`
+function **has now been completely recovered at the original
+data-initialization level**: source allocation size 0xD0,
+original vtable VA 0x006B0B20, guest parent pointer at +0x04,
+two low-byte parameters +0x08/+0x09, exact 0xB0-byte source
+scratch copy at +0x10..+0xBF, and +0xC0 cleared.
+The native typed owner preserves the untouched original
+allocation bytes as *unknown*, not synthesized zeros.
+
+New native CTest targets
+`OriginalMovementScratchTail36F6A8` and
+`OriginalMovementChild30C57CSourceCopy` are linked in the
+Unreal native bridge CMake. The latter verifies that the source
+0x36F5F4 scratch-tail results survive the complete original
+0x30C57C constructor copy and source scratch release.
+GCC and Clang C++20 UndefinedBehaviorSanitizer isolated
+compilation and regressions passed for both. The genuine ELF
+verified **all 61 constructor words**, its callsite and 28
+specific opcode sites; it also verified the source movement
+entry window and runtime-BSS placement.
+
+**Still required:** original 0x36F5F4 complete VU0 vector
+computations and cross-entry branches, original 0x30C57C
+vtable **methods and ownership integration**, real actor
+lifecycle/destruction, persistent Player/Monkey creation,
+stage movement, rendering/animation and original game loop.
+The native constructor data translation by itself is NOT a
+live original actor. The full Windows DLL, Unreal Editor
+build and playable game have not been verified here.
+
+See `native/docs/ORIGINAL_MOVEMENT_36F5F4_RECOVERY.md` and
+`native/docs/ORIGINAL_MOVEMENT_30C57C_CONSTRUCTOR.md`.
