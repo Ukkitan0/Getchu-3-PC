@@ -236,3 +236,27 @@ from an Unreal manager callback but is NOT yet proven in UE5 on Windows.
 The original actor factory, monster/monkey update logic, player gadget
 systems, stage and camera scheduler, animation bindings and sound engine
 remain unimplemented and the Play control is still disabled.
+
+## Verified stage bytes, not just verified file names
+
+`StartImportedOriginalStage` first verifies the owner-private stage catalog
+and SHA-256 of `area.luc` on disk. The private `StartOriginalStage` loader
+now requires that exact original SHA-256 as an argument and checks the actual
+bytes loaded into the `TArray<uint8>` it passes to the native Lua runtime.
+If the source file changed between the two loads, the call fails before
+loading the DLL or invoking any game manager. This prevents a previously
+verified script path from becoming a stale authorization for different bytes.
+
+`Getchu3OriginalWindowsSha256Tests` now tests both a known synthetic Lua
+header digest and rejects a one-bit change to that input. This test is wired
+into the Windows build gate but has not yet run under Win64 here.
+
+## Explicit native VM destruction contract (ABI v3)
+
+`ae3_lua_destroy` now returns 1 when the VM is gone (including a null
+handle), and 0 if it is still active. Unreal must **not** unload the DLL on
+0; it retains both the VM handle and library for a later safe cleanup.
+A native ABI test calls destruction recursively from the original
+PlayerProgress provider during `ae3_lua_reset` and verifies rejection.
+The same runtime retains atomic Begin/Commit/Abort manager rollback.
+Headers, test code and Unreal share the named `Ae3LuaManagerV3` structure.
