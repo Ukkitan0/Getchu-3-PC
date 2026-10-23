@@ -103,6 +103,76 @@ void verifyGeneralRouteAndRequiredOwners() {
            manager.continuations==2 && manager.reentrantDestroy==0);
     assert(ae3_original_manager_init_destroy(session)==1);
 }
+struct RecoveredRouteCalls {
+    int targetUpdates=0;
+    int projected=0;
+    bool acceptTarget=true;
+};
+int recoveredProject21b854(void*, const void* polygon,
+                           const Ae3OriginalVec4* from,
+                           const Ae3OriginalVec4* to,
+                           Ae3OriginalVec4* projected) {
+    assert(polygon && from && to && projected);
+    assert(from->x==1 && from->y==2 && to->x==26 && to->y==52);
+    *projected={30,40,50,60};
+    return 1;
+}
+int recoveredProjection4c1b3c(void* context,uint32_t actor,
+                               uint32_t* out) {
+    auto& callbacks=*static_cast<RecoveredRouteCalls*>(context);
+    assert(actor==0 && out);
+    callbacks.projected++;
+    *out=UINT32_MAX;
+    return 1;
+}
+int recoveredApply57c8ec(void* context,uint32_t target) {
+    auto& callbacks=*static_cast<RecoveredRouteCalls*>(context);
+    assert(target==0);
+    callbacks.targetUpdates++;
+    return callbacks.acceptTarget?1:0;
+}
+void verifyRecoveredRouteFollowerRunsInsideOriginalInitializer() {
+    auto* session=ae3_original_manager_init_create(5489);
+    assert(session);
+    std::array<uint8_t,0x70> realPolygon{};
+    Ae3OriginalManagerInitSourceV1 source{};
+    source.original_records70=realPolygon.data();
+    source.original_record_count=1;
+    source.original_actor_polygon_index=0;
+    source.original_owner_direction50={1,2,3,4};
+    Ae3OriginalManagerInitStateV1 state{};
+    state.source_method08=0x1234;
+    state.source_method0c=0x5678;
+    state.target_polygon_index=UINT32_MAX;
+    state.controller20={1,2,3,4};
+    RecoveredRouteCalls actualOwner{};
+    Ae3OriginalManagerInitCallsV2 realHooks{
+        &actualOwner,
+        recoveredProject21b854,
+        recoveredProjection4c1b3c,
+        recoveredApply57c8ec
+    };
+    actualOwner.acceptTarget=false;
+    // The 0x57BCB8 midpoint is calculated, then genuine 0x57C7CC
+    // branches to the original one-polygon target update 0x57C8EC.
+    // Owner rejection stops native init without publishing controller state.
+    assert(ae3_original_manager_init_step_v2(
+        session,&source,&state,&realHooks)==0);
+    assert(state.source_method08==0x1234 &&
+           state.target_polygon_index==UINT32_MAX &&
+           actualOwner.targetUpdates==1);
+    actualOwner.acceptTarget=true;
+    assert(ae3_original_manager_init_step_v2(
+        session,&source,&state,&realHooks)==3);
+    assert(state.source_method08==0x57bf5c &&
+           state.target_polygon_index==0 &&
+           state.midpoint60.x==15.5f &&
+           actualOwner.targetUpdates==2 &&
+           actualOwner.projected==0);
+    // The legacy opaque callback is no longer needed for the new path.
+    assert(ae3_original_manager_init_destroy(session)==1);
+}
+
 void verifyOriginalKindTwoTarget() {
     auto* session=ae3_original_manager_init_create(5489);
     assert(session);
@@ -159,6 +229,7 @@ void verifyUnsafeInputs() {
 int main() {
     verifyNearOwner();
     verifyGeneralRouteAndRequiredOwners();
+    verifyRecoveredRouteFollowerRunsInsideOriginalInitializer();
     verifyOriginalKindTwoTarget();
     verifyUnsafeInputs();
     std::cout<<"ORIGINAL_MANAGER_57BCB8_HOST_ABI_PASSED\n";
