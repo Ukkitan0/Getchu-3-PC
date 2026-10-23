@@ -202,6 +202,59 @@ AE3_LUA_EXPORT int ae3_original_polygon_nearest_grid_4e3c14_21d898(
     const Ae3OriginalGridNearestSourceV1* original,
     Ae3OriginalNearestPolygonResultV1* output);
 
+/* Higher-confidence original spatial-data path: no detached caller
+ * point counts. Source 0x21B468 reads the guest header pointer at each
+ * 0x70-byte record+0x30, then the 16-bit count at header+0x16.
+ * The original stage loader supplies the true allocation base VA and
+ * unmodified allocation bytes. These are SOURCE addresses, not pointers
+ * to PS2 emulated memory or host process addresses.
+ *
+ * In both entry points, actual source polygon vertices are read from
+ * each record's +0x40/+0x50/+0x60 16-byte VU0 fields. Headers with
+ * count 0 or >3, unresolved/ambiguous source addresses, and invalid
+ * allocation data are rejected. Original source records/allocations
+ * remain owned by the caller and are only borrowed during the call.
+ */
+typedef struct Ae3OriginalSourceAllocationV1 {
+    uint32_t original_base_va;
+    const void* original_bytes;
+    size_t original_byte_count;
+} Ae3OriginalSourceAllocationV1;
+typedef struct Ae3OriginalRawNearestSourceV1 {
+    const void* original_records70;
+    size_t original_record_count;
+    const Ae3OriginalSourceAllocationV1* original_allocations;
+    size_t original_allocation_count;
+    Ae3OriginalVec4 original_query;
+} Ae3OriginalRawNearestSourceV1;
+typedef struct Ae3OriginalRawGridNearestSourceV1 {
+    Ae3OriginalRawNearestSourceV1 original;
+    float original_origin_x00, original_origin_y04;
+    float original_step_x10, original_step_y14;
+    int32_t original_dimension_x18, original_dimension_y1c;
+    const uint16_t* original_cell_offsets50;
+    size_t original_cell_offset_count;
+    const uint16_t* original_hit_pool08;
+    size_t original_hit_pool_count;
+    /* Original 0x4E3C14 source scalar grid operands after the
+     * still-owner-dependent actor VU0 packed-coordinate extraction. */
+    float original_resolved_x, original_resolved_y;
+} Ae3OriginalRawGridNearestSourceV1;
+
+/* Both APIs execute the actual recovered source-header resolution and
+ * source VU0 selector. Outputs are INDEX-only; success with no polygon
+ * returns UINT32_MAX. Failed calls leave output unchanged and preserve
+ * the session. No guessed Player/Monkey ownership or Unreal raycasting.
+ */
+AE3_LUA_EXPORT int ae3_original_polygon_nearest_original_data_all_21da2c(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalRawNearestSourceV1* original,
+    Ae3OriginalNearestPolygonResultV1* output);
+AE3_LUA_EXPORT int ae3_original_polygon_nearest_original_data_grid_21d898(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalRawGridNearestSourceV1* original,
+    Ae3OriginalNearestPolygonResultV1* output);
+
 /* Legacy LOW64-only view of original 0x57C8EC target dispatch.
  * Genuine 0x21B788 eligibility, 0x57C98C three-vertex random blend,
  * persistent 0x36F3C0 RNG, and 0x57CA68 fallback VU0 transformations
