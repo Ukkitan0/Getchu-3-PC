@@ -205,6 +205,19 @@ if(BUILD_TESTING)
   add_test(NAME OriginalControllerFollowup57C48C
     COMMAND Getchu3OriginalFollowup57C48CTests)
 
+  # Recovered exact four-lane PCEQW packed SQ equality at
+  # 0x57C1E0, 0x57C508 and 0x57C5D4. No float comparison or
+  # guessed missing +0x20/+0x40 source operand is permitted.
+  add_executable(Getchu3OriginalPackedPceqwTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_packed_compare_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_movement_57bf5c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_followup_57c48c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_type2_update_57c554.cpp")
+  target_include_directories(Getchu3OriginalPackedPceqwTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalControllerPackedPCEQW128Bit
+    COMMAND Getchu3OriginalPackedPceqwTests)
+
   # Original action-type-2 0x57C554 owner child lifecycle/dispatch.
   add_executable(Getchu3OriginalType2Controller57C554Tests
     "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_type2_update_57c554_test.cpp"
