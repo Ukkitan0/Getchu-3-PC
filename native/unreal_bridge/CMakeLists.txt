@@ -57,7 +57,17 @@ set(ORIGINAL_LUA_STAGE_SOURCES
 # source recoveries, not generic Unreal Actor replacements.
 set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_player_factory.cpp"
-  "${ORIGINAL_NATIVE_SOURCE}/original_manager_child.cpp")
+  "${ORIGINAL_NATIVE_SOURCE}/original_manager_child.cpp"
+  # Original actor navigation initializer 0x57BCB8, source route-edge
+  # lookup, type-2 target, exact source RNG / VU0 and 0x70 polygon views.
+  # These are real recovered original functions, not actor substitutes.
+  "${ORIGINAL_NATIVE_SOURCE}/original_manager_initializer.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_actor_nav_route.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_actor_type2_target.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_actor_random_triangle.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_actor_ray_geometry.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_game_random.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_spatial_index.cpp")
 add_library(Getchu3OriginalLuaBridge SHARED
   "${ORIGINAL_NATIVE_SOURCE}/ae3_unreal_lua_bridge.cpp"
   ${ORIGINAL_LUA_STAGE_SOURCES}
@@ -100,6 +110,22 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalManagerChildCtorLifecycle
     COMMAND Getchu3OriginalManagerChildTests)
+
+  # Test the translated ORIGINAL 0x57BCB8 actor initialization control
+  # flow in all three branches without requiring the unfinished renderer.
+  add_executable(Getchu3OriginalManagerInitializerTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_unreal_initializer_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_initializer.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_actor_nav_route.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_actor_type2_target.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_actor_random_triangle.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_actor_ray_geometry.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_game_random.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_spatial_index.cpp")
+  target_include_directories(Getchu3OriginalManagerInitializerTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalManagerInitializer57BCB8
+    COMMAND Getchu3OriginalManagerInitializerTests)
 
   add_executable(Getchu3OriginalHealthBridgeTests
     "${ORIGINAL_NATIVE_ROOT}/tests/ae3_unreal_health_bridge_test.cpp")
