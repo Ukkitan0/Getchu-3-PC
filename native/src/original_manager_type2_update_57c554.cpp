@@ -24,17 +24,20 @@ std::uint32_t originalManagerType2Update_57c554(
     if (source.call_original_3161b8(controller.child10,originalA1)==0)
         return 0;
 
-    // 0x57C5C8..0x57C608: source variant+0x30 zero =>1.
+    // Source 0x57C5CC BEQZ variant+0x30 jumps to 0x57C5F4.
+    // Source 0x57C5F4 sets t5=1; 0x57C5FC sees nonzero and
+    // the 0x57C604 LW in its fallthrough RETURNS controller+0x14.
+    // An earlier translation reversed this source result.
     if (!controller.alternative30)
-        return 1;
+        return controller.word14;
 
-    // 0x57C5D4..0x57C5FC: EE/VU packed vector equality from
-    // original controller+0x40 and +0x20, not an approximation
-    // based on host position or Unreal transforms.
+    // 0x57C5D4..0x57C5E8: four original 32-bit PCEQW lane
+    // comparisons, packed with PPACB, NOR and SLTIU. When ALL
+    // lanes match, 0x57C5EC does not branch and the 0x57C604 LW
+    // returns word14. Nonmatch takes 0x57C5FC branch with the
+    // delay-slot ADDIU v0,1: the original result is ONE.
     if (source.call_original_variant_vector_equal_57c5d4(controller))
-        return 1;
-
-    // Original 0x57C604 returns EXACT controller+0x14 field.
-    return controller.word14;
+        return controller.word14;
+    return 1;
 }
 } // namespace ae3
