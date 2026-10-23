@@ -412,3 +412,45 @@ build and playable game have not been verified here.
 
 See `native/docs/ORIGINAL_MOVEMENT_36F5F4_RECOVERY.md` and
 `native/docs/ORIGINAL_MOVEMENT_30C57C_CONSTRUCTOR.md`.
+
+
+### Original 0x36F5F4 VU0 operand and vector math advanced (USA source pinned)
+
+The original `0x36F5F4..0x36F698` source VU0 math is
+now recovered for its ordinary-float movement-call operand path:
+genuine original EE A1/A2/A3 packed vectors enter VSUB, VMUL,
+VADDy, VADDz and produce the exact **separate source VF1.x
+and VF2.x squared XYZ distances** used in the two original
+COP1 comparisons. The second VF2.x scalar feeds the verified
+`0x36F6A8` original source scratch tail and then the already
+recovered `0x30C57C` 0xD0-byte child copy.
+
+The original first-COP1-comparison branch now also has a native
+source translation: first squared distance below 1.0f selects
+the original VF4 midpoint of A1 and A3; otherwise VF4
+retains A2. Original PPACW zero t5 register packing establishes
+VF7=0 before the source final VF3/VF1/VF2 subtractions.
+The result preserves original full VF1/VF2/VF3/VF4 vector
+values rather than replacing the movement with host-steering.
+
+This source translation accepts only ordinary finite floating-point
+operands where the PS2's special status, denormal and overflow
+semantics need not be guessed; the rest are refused.
+The source original callsite `0x57C148` and the vector
+opcodes were verified against the user's private real
+USA executable, which is not committed to GitHub.
+
+The newly registered CTests are
+`OriginalMovementVU0SourceScalar36F5F4`,
+`OriginalMovementVU0SourceVectors36F5F4`, and
+`OriginalMovementVectorScratchChildChain`. Local
+GCC and Clang C++20 UndefinedBehaviorSanitizer tests
+passed for these three native code paths. The complete
+repo-wide CTest, Windows DLL and Unreal Editor remain
+unverified; no playable game is claimed.
+
+**Still blocking actual source actor control:** retail packed
+operand ownership into this VU0 function, PS2 hardware-specific
+edge-case behavior, other 0x36F5F4 entry branches, real
+0x30C57C child vtable/lifetime, original animation and
+complete Player/Monkey stage/game runtime.
