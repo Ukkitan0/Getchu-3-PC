@@ -79,11 +79,13 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
                 // original 0x317B34 metric and source 0x36FB18
                 // call, but post-call child state at 0x557F54
                 // still needs source collision/animation recovery.
-                (void)originalMovementMetricStep_557f34(
+                const auto movement=originalMovementMetricStep_557f34(
                     *child_,*metricOwner_);
                 if(const auto early=try_original_post_vector_557f54(originalParentWord14))
                     return *early;
-                if(const auto post=try_original_post_step_558030())
+                if(const auto post=try_original_post_step_558030(
+                       movement.originalF20MetricRaw,
+                       movement.originalMovementF0Raw))
                     return *post;
             }
         }
@@ -97,11 +99,13 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
         // that exact typed child mode before calling 317B34.
         // The actual 36FB18 movement step still requires source
         // owner callbacks when the genuine fast path is absent.
-        (void)originalMovementMetricStep_557f34(
+        const auto movement=originalMovementMetricStep_557f34(
             *child_,*metricOwner_);
         if(const auto early=try_original_post_vector_557f54(originalParentWord14))
             return *early;
-        if(const auto post=try_original_post_step_558030())
+        if(const auto post=try_original_post_step_558030(
+               movement.originalF20MetricRaw,
+               movement.originalMovementF0Raw))
             return *post;
     }
     // A successfully executed prefix is NOT a complete actor
@@ -126,7 +130,9 @@ try_original_post_vector_557f54(std::uint32_t originalParentWord14) {
     return source.originalSlot5EarlyStatus;
 }
 std::optional<std::uint32_t> OriginalMovementChildLifecycle_557e30::
-try_original_post_step_558030() {
+try_original_post_step_558030(
+    std::uint32_t originalF20ResourceMetric,
+    std::uint32_t originalF21MovementReturn) {
     if(!postStepOwner_)
         return std::nullopt;
     // This owner is not a replacement for the unported original
@@ -153,6 +159,15 @@ try_original_post_step_558030() {
     const auto original=postStepOwner_->read_original_post_step_after_557fc8(*child_);
     if(!original)
         return std::nullopt;
+    // Original 557F48 stores the 317B34 resource metric in f20,
+    // while 557F60 MOV.S f21,f0 captures the genuine 36FB18
+    // movement return. Those caller-owned COP1 registers are the
+    // exact operands consumed by 558060 DIV.S. A continuation
+    // cannot quietly substitute a different resource or movement.
+    if(original->originalF20ResourceMetricBits!=originalF20ResourceMetric ||
+       original->originalF21MovementReturnBits!=originalF21MovementReturn)
+        throw std::invalid_argument(
+            "original 558030 f20/f21 continuation mismatches 557F48/557F60 source");
     // The continuation owner certifies source-backed intermediate
     // processing and supplies f20/f21/s5, never placeholder physics.
     // Return source status 0 or 2 without inventing completion.
