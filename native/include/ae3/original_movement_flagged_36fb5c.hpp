@@ -4,6 +4,7 @@
 #include <optional>
 
 namespace ae3 {
+class OriginalMovementChildD0_30c57c;
 
 // Source 0x36FB5C..0x36FC24 positive movement, with original
 // child scratch +0xA8 bit1 already set. Does NOT approximate
@@ -37,4 +38,12 @@ struct OriginalMovementFlaggedPass_36fb5c {
 // PS2 flush/overflow/rounding special modes are not approximated.
 OriginalMovementFlaggedPass_36fb5c originalMovementFlaggedPass_36fb5c(
     const OriginalMovementFlaggedInputs_36fb5c& source);
+
+// Only for source-completed original passes: commits the exact
+// source child +0xB4/+0xB8 words, requiring matching genuine
+// old fields and a known return. Does not emulate 36F8C8.
+void originalMovementCommitFlaggedReturn_36fb5c(
+    OriginalMovementChildD0_30c57c& originalChild,
+    const OriginalMovementFlaggedInputs_36fb5c& source,
+    const OriginalMovementFlaggedPass_36fb5c& completed);
 } // namespace ae3
