@@ -3,6 +3,7 @@
 #include "ae3/original_manager_resource_vu0_317b34.hpp"
 #include "ae3/original_movement_step_fast_36fb18.hpp"
 #include "ae3/original_movement_flagged_36fb5c.hpp"
+#include "ae3/original_movement_regenerate_owned_36f8c8.hpp"
 #include <cstdint>
 
 namespace ae3 {
@@ -10,6 +11,10 @@ namespace ae3 {
 // 0x317B34, source f0 -> f20, load parent+0x70 as f12,
 // multiply in 0x36FB18 JAL delay slot, then real 36FB18.
 // No guest VA is directly dereferenced on the host.
+struct OriginalMovementRegenerationBinding_36f8c8 {
+    std::uint64_t genuineChildScratchGuestVA;
+    OriginalMovementRegenerationOwner_36f8c8* originalOwner;
+};
 struct OriginalMovementMetricStepResult_557f34 {
     std::uint32_t originalF20MetricRaw;
     std::uint32_t originalF12ScaledRaw;
@@ -32,6 +37,12 @@ public:
         const std::array<std::uint32_t,4>& originalVF1After)=0;
     virtual std::uint32_t read_original_parent_float70(
         std::uint32_t originalParentGuestVA)=0;
+    // Optional genuine unflagged 36FC18 regeneration before
+    // resuming full source 36FB18. Never guess guest scratch
+    // addresses or any VF register values.
+    virtual std::optional<OriginalMovementRegenerationBinding_36f8c8>
+    read_original_regeneration_binding_36f8c8(
+        const OriginalMovementChildD0_30c57c&) {return std::nullopt;}
     // Opt-in original 36FB5C flagged positive-movement path:
     // the owner supplies actual 128-bit VF1, source scratch
     // guest address and actual child status/flags. Default
