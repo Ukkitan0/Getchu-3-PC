@@ -211,13 +211,12 @@ bool UGetchu3OriginalLuaSubsystem::StartImportedOriginalStage(
     }
 
     SourceRelative.ReplaceInline(TEXT("\\"), TEXT("/"));
-    FString ExpectedPrefix = TEXT("debug/us/stage/") + OriginalStageId.ToLower() + TEXT("/");
-    // Paths come from the verified ISO import manifest, but do not trust
-    // arbitrary local JSON to open scripts outside the owner's private tree.
-    if (!SourceRelative.ToLower().StartsWith(ExpectedPrefix) ||
-        !SourceRelative.EndsWith(TEXT("/area.luc"), ESearchCase::IgnoreCase) ||
-        SourceRelative.Contains(TEXT("..")) || SourceRelative.Contains(TEXT(":")) ||
-        SourceRelative.Contains(TEXT("//")) || SourceRelative.StartsWith(TEXT("/"))) {
+    const FString ExactSource = TEXT("debug/us/stage/") + OriginalStageId.ToLower() +
+        TEXT("/area.luc");
+    // The Python ISO importer accepts exactly this original 5-component
+    // source path. Native execution must use the identical contract rather
+    // than accepting arbitrary nested files or locally edited JSON.
+    if (!SourceRelative.Equals(ExactSource, ESearchCase::IgnoreCase)) {
         LastError = TEXT("Original Lua source path failed stage-local containment check");
         return false;
     }
