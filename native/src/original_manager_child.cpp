@@ -4,12 +4,18 @@ namespace ae3 {
 namespace {
 void originalInitialFields(OriginalManagerChild70& obj,void* parent,void* context,
                            std::int32_t at04,std::uint8_t mode,bool alternative,
+                           const std::array<std::byte,16>* sourceController20,
                            OriginalManagerChildCalls& calls) {
     // 0x57BA98/0x57BAF8 original stores +0,+4,+8,+C,+10,+14,+18,
     // +1C,+1D,+30, then calls the real 0x57BCB8 initializer.
     obj.parent04=parent;
     obj.word08=0;obj.word0c=0;obj.child10=nullptr;obj.word14=0;
     obj.context18=context;
+    // Original 0x57BAF8 SQ writes ALL four original 32-bit lanes
+    // before calling 0x57BCB8. Variant-zero 0x57BA98 does not
+    // touch +0x20, even if an existing native owner retains a value.
+    if (alternative)
+        obj.controller20=*sourceController20;
     // Original SLTI signed config[+4],2; XORI result with 1.
     obj.flag1c=at04>=2 ? 1 : 0;
     obj.flag1d=mode;
@@ -19,11 +25,14 @@ void originalInitialFields(OriginalManagerChild70& obj,void* parent,void* contex
 }
 void originalManagerChildCtor_57ba98(OriginalManagerChild70& obj,void* parent,
     void* context,std::int32_t word04,std::uint8_t mode,OriginalManagerChildCalls& calls) {
-    originalInitialFields(obj,parent,context,word04,mode,false,calls);
+    originalInitialFields(obj,parent,context,word04,mode,false,nullptr,calls);
 }
 void originalManagerChildCtor_57baf8(OriginalManagerChild70& obj,void* parent,
-    void* context,std::int32_t word04,std::uint8_t mode,OriginalManagerChildCalls& calls) {
-    originalInitialFields(obj,parent,context,word04,mode,true,calls);
+    void* context,std::int32_t word04,
+    const std::array<std::byte,16>& sourceController20,
+    std::uint8_t mode,OriginalManagerChildCalls& calls) {
+    originalInitialFields(obj,parent,context,word04,mode,true,
+                          &sourceController20,calls);
 }
 std::unique_ptr<OriginalManagerChild70> originalManagerChildNew_317538(
     void* parent,void* context,std::int32_t word04,std::uint8_t mode,OriginalManagerChildCalls& calls) {
@@ -33,9 +42,12 @@ std::unique_ptr<OriginalManagerChild70> originalManagerChildNew_317538(
     return obj;
 }
 std::unique_ptr<OriginalManagerChild70> originalManagerChildNew_31759c(
-    void* parent,void* context,std::int32_t word04,std::uint8_t mode,OriginalManagerChildCalls& calls) {
+    void* parent,void* context,std::int32_t word04,
+    const std::array<std::byte,16>& sourceController20,
+    std::uint8_t mode,OriginalManagerChildCalls& calls) {
     auto obj=std::make_unique<OriginalManagerChild70>();
-    originalManagerChildCtor_57baf8(*obj,parent,context,word04,mode,calls);
+    originalManagerChildCtor_57baf8(*obj,parent,context,word04,
+                                    sourceController20,mode,calls);
     return obj;
 }
 void originalManagerChildDestroy_57bb60(OriginalManagerChild70& obj,OriginalManagerChildCalls& calls) {
