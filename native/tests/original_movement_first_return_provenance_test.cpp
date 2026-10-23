@@ -49,6 +49,14 @@ int main() {
     assert(asFloat(frame.originalVF3[0])==2.0f);
     assert(asFloat(frame.originalVF1[0])==-1.5f);
     assert(asFloat(frame.originalVF2[0])==-1.5f);
+    // The original first-return leaves source VF5/VF6 as a3
+    // and sets VF7 to genuine zero via two PPACW + QMTC2.
+    for(std::size_t lane=0;lane<4;++lane) {
+        assert(frame.originalVF5[lane]==frame.originalVF6[lane]);
+        assert(frame.originalVF7[lane]==0);
+    }
+    assert(asFloat(frame.originalVF5[0])==1.5f);
+    assert(asFloat(frame.originalVF5[3])==4.0f);
 
     for(std::size_t i=0;i<known.size();++i) {
         assert(known.test(i)==(i==5||(i>=0xA0 && i<0xB0)));
