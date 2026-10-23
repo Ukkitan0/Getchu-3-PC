@@ -82,6 +82,39 @@ void checkNearOwnerReturn() {
             gameRng.originalCursor() == before,
             "Near-owner branch consumed stage resources or altered RNG");
 }
+void checkVariantOneRejectsMissingOrContradictorySQ() {
+    OriginalManagerChild70 child{};
+    child.alternative30=1;
+    child.word08=0x1234;
+    child.word0c=0x5678;
+    OriginalManagerInitState_57bcb8 state{child,{1,2,3,4}};
+    OriginalManagerInitSource_57bcb8 source{};
+    source.ownerPosition40={1.5f,2,3,4};
+    OriginalGameRandom_36f3c0 rng(5489);
+    OriginalCalls calls{};
+    const auto initialCursor=rng.originalCursor();
+    auto mustReject=[&] {
+        bool rejected=false;
+        try {
+            (void)originalManagerInitialize_57bcb8(state,source,rng,calls);
+        } catch(const std::invalid_argument&) { rejected=true; }
+        require(rejected && child.word08==0x1234 &&
+                child.word0c==0x5678 && calls.projections==0 &&
+                calls.followed==0 && rng.originalCursor()==initialCursor,
+                "Missing or mismatched original SQ changed native actor/RNG state");
+    };
+    mustReject(); // Source 0x57BAF8 SQ not provided.
+    std::array<std::byte,16> copied{};
+    std::memcpy(copied.data(),&state.controller20,sizeof(state.controller20));
+    copied[0]^=std::byte{0x01};
+    child.controller20=copied;
+    mustReject(); // Different vector cannot impersonate the constructor.
+    copied[0]^=std::byte{0x01};
+    child.controller20=copied;
+    require(originalManagerInitialize_57bcb8(state,source,rng,calls)==
+            OriginalManagerInitBranch_57bcb8::nearOwnerReturn,
+            "Genuine source SQ must enter recovered original initializer");
+}
 void checkGeneralProjectionAndUnavailableSource() {
     OriginalSpatialRecord70 polygon{};
     std::array<OriginalSpatialRecord70,1> polygonOwner{polygon};
@@ -174,6 +207,7 @@ void checkRealOriginalTypeTwoRouteAndRng() {
 int main() {
     try {
         checkNearOwnerReturn();
+        checkVariantOneRejectsMissingOrContradictorySQ();
         checkGeneralProjectionAndUnavailableSource();
         checkRealOriginalTypeTwoRouteAndRng();
         std::cout << "ORIGINAL_MANAGER_INIT_57BCB8_SOURCE_BRANCHES_PASSED\n";
