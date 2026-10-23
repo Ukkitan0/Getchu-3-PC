@@ -1,4 +1,5 @@
 #include "ae3/original_movement_flagged_36fb5c.hpp"
+#include "ae3/original_movement_child_30c57c.hpp"
 #include <bit>
 #include <cmath>
 #include <stdexcept>
@@ -113,5 +114,21 @@ OriginalMovementFlaggedPass_36fb5c originalMovementFlaggedPass_36fb5c(
         }
     }
     return out;
+}
+void originalMovementCommitFlaggedReturn_36fb5c(
+    OriginalMovementChildD0_30c57c& child,
+    const OriginalMovementFlaggedInputs_36fb5c& in,
+    const OriginalMovementFlaggedPass_36fb5c& pass) {
+    if(pass.requiresOriginal36F8C8 || !pass.originalReturnF0Bits)
+        throw std::logic_error(
+            "original 36FB5C cannot commit without the source 36F8C8 continuation");
+    if(child.originalWordAt(0xB4)!=in.originalChildStatusA4Bits ||
+       child.originalWordAt(0xB8)!=in.originalChildFlagsA8)
+        throw std::invalid_argument(
+            "original movement source plan no longer matches live child status/flags");
+    // The source stores status+0xA4 and clears flags+0xA8
+    // before returning f0. The typed child starts at +0x10.
+    child.writeWord(0xB4,pass.originalStatusA4AfterBits);
+    child.writeWord(0xB8,pass.originalFlagsA8After);
 }
 } // namespace ae3
