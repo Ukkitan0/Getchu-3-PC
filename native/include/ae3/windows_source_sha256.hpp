@@ -11,6 +11,12 @@
 #error Original stage Win64 SHA-256 helper is only compiled on Windows
 #endif
 
+#ifndef NOMINMAX
+#define NOMINMAX 1 // Windows max macro must not break std::numeric_limits.
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN 1
+#endif
 #include <windows.h>
 #include <bcrypt.h>
 #include <cstddef>
