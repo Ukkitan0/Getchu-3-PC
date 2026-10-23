@@ -73,7 +73,10 @@ typedef struct Ae3LuaManagerV3 {
  */
 AE3_LUA_EXPORT uint32_t ae3_lua_api_version(void);
 AE3_LUA_EXPORT Ae3LuaRuntime* ae3_lua_create(const Ae3LuaManagerV3* manager);
-/* Returns 0 without destroying if Lua or a manager callback is executing.\n * Callers MUST NOT unload the host DLL or discard the handle after 0.\n */\nAE3_LUA_EXPORT int ae3_lua_destroy(Ae3LuaRuntime* runtime);
+/* Returns 0 without destroying if Lua or a manager callback is executing.
+ * Callers MUST NOT unload the host DLL or discard the handle after 0.
+ */
+AE3_LUA_EXPORT int ae3_lua_destroy(Ae3LuaRuntime* runtime);
 AE3_LUA_EXPORT int ae3_lua_reset(Ae3LuaRuntime* runtime);
 AE3_LUA_EXPORT int ae3_lua_execute_original_chunk(
     Ae3LuaRuntime* runtime, const void* bytes, size_t length,
