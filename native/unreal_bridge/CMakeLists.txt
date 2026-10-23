@@ -62,6 +62,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_dispatch_57c620.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_type2_update_57c554.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_route_child_57c27c.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_manager_followup_57c48c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_polygon_selector_30ffd0.cpp"
   # Original actor navigation initializer 0x57BCB8, source route-edge
   # lookup, type-2 target, exact source RNG / VU0 and 0x70 polygon views.
@@ -140,6 +141,16 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalRouteChildController57C27C
     COMMAND Getchu3OriginalRouteChild57C27CTests)
+
+  # Distinct original 0x57C48C controller method, installed by
+  # source 0x57C388. Complete 50-instruction original behavior.
+  add_executable(Getchu3OriginalFollowup57C48CTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_followup_57c48c_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_followup_57c48c.cpp")
+  target_include_directories(Getchu3OriginalFollowup57C48CTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalControllerFollowup57C48C
+    COMMAND Getchu3OriginalFollowup57C48CTests)
 
   # Original action-type-2 0x57C554 owner child lifecycle/dispatch.
   add_executable(Getchu3OriginalType2Controller57C554Tests
