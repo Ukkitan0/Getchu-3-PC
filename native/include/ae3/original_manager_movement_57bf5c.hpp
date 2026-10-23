@@ -1,5 +1,6 @@
 #pragma once
 #include "ae3/original_manager_child.hpp"
+#include "ae3/original_manager_packed_compare.hpp"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -68,7 +69,9 @@ public:
     // Original 0x57C1E0..0x57C1F4 128-bit PCEQW/PPACB equality.
     // Must compare genuine source +0x20 and +0x40 vectors.
     virtual bool call_original_vectors_equal_57c1e0(
-        const OriginalManagerChild70&)=0;
+        const OriginalManagerChild70& originalController) {
+        return originalManagerPackedPceqwEqual_57c1e0(originalController);
+    }
     virtual std::uint8_t read_original_6354e7()=0;
     virtual std::uint8_t read_original_6354e0()=0;
     // Diagnostic/source fallback at 0x57C264 called only on
