@@ -86,3 +86,31 @@ integration complete.
 
 The safe snapshot layer makes these later connections more reliable; it does
 not replace or approximate any missing source engine behavior.
+
+## Original actor controller constructor 0x57BAF8: complete SQ field
+
+A second source-backed constructor fix now connects the existing
+`OriginalActorRouteControllerPrepared_57baf8` evidence to the active
+`OriginalManagerChild70` lifecycle representation:
+
+- Original `0x57BAF8` stores the full source EE `$a3` 16-byte vector at
+  controller `+0x20..+0x2F` **before** calling original `0x57BCB8`.
+  The host-native variant-one constructor `originalManagerChildCtor_57baf8`
+  and allocator `originalManagerChildNew_31759c` now REQUIRE those exact
+  bytes as an input; no fabricated zero controller is accepted as a
+  substitute for an unavailable original owner vector.
+- Original `0x57BA98` variant-zero construction does NOT write `+0x20`.
+  A distinct optional source-vector field preserves the difference between
+  missing/uninitialized and the real zero vector, and does not overwrite
+  an already present source vector on the variant-zero path.
+- The native Unreal initializer bridge populates this field from the
+  host-provided original controller vector for the variant-one path.
+  Its lifecycle and vector ownership are still transient until a source
+  Player/Monkey manager allocates a genuinely persistent game actor.
+- `native/tests/original_manager_child_test.cpp` checks all 16 copied
+  bytes **inside** the pre-initializer callback and afterward, the variant
+  zero non-write rule, source flags, and child dispatch/teardown ordering.
+
+This is a recovered source field transfer, **not** a complete Player/Monkey
+factory or `0x57C620` update loop. It neither invents the unported original
+animation/movement operations nor supplies a synthetic Unreal actor.
