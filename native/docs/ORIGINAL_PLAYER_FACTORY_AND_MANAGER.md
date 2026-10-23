@@ -50,22 +50,57 @@ The original **0x21D898** nearest-polygon calculation is translated and now call
 
 The largest remaining dependencies are the real persistent Player/Monkey factory and owner, original **0x57C620** controller state update, original actor-owned runtime input/route setup and complete update/render/animation integration. Original **0x57BCB8** is translated at source level but is not yet connected to a working live owner. The source executable and all game assets stay private.
 
-## Direct source audit of original 0x57BF5C movement owner
+## Corrected original controller function boundaries and source recovery
 
-`native/tools/verify_original_manager_movement_57bf5c.py` now
-SHA-pins the **complete** original USA code window
-`0x57BF5C..0x57C554` (382 MIPS instruction words) and verifies
-all **18 original direct JAL call edges** with the exact
-owner-private executable SHA-256. The function dispatches several
-original dependencies including `0x316174`, `0x21B854`,
-`0x441F40`, `0x36F5F4`, `0x30C57C`, `0x3161B8`,
-`0x21DB64`, `0x3176AC`, `0x30C1D4`, `0x30C21C`,
-`0x30C520`, and the recovered original route controller
-`0x57C7CC` (called at `0x57C3D0`).
+Direct source disassembly found **four independent original routines** in
+the previously labeled 382-instruction `0x57BF5C..0x57C554` region:
 
-This preserves a concrete, reproducible source map for recovering
-the remaining original type-zero/general movement owner. It does
-**not** claim the 382 instruction body has been translated or
-that the game is playable. The complete original-game movement
-and owner lifecycle, including these dependent original methods,
-remain required.
+| Original entry | End exclusive | MIPS words | Direct JAL calls | SHA-256 (full method body) |
+| --- | --- | ---: | ---: | --- |
+| `0x57BF5C` | `0x57C27C` | 200 | 8 | `c625b3ad27bba0b2658f037bc4c5f53dd11096896fe28408eb5fe922e43ae4d4` |
+| `0x57C27C` | `0x57C388` | 67 | 4 | `c276349407171b78e83ba5af50aa92c980ced0f638cdf333d670fd3805790b4f` |
+| `0x57C388` | `0x57C48C` | 65 | 4 | `c37ced8f115b217f5c79114344cbec86e3745c755bacebc3ff63c87b5614a4fb` |
+| `0x57C48C` | `0x57C554` | 50 | 2 | `889e3c33b087048da2eaca86df93c03bb62b4dfbe76baafab3be537540bf609a` |
+
+The original code contains **18** source JAL sites total (8+4+4+2),
+including `0x57C3D0 -> 0x57C7CC` in the third function, NOT
+in `0x57BF5C`. The earlier single-function attribution was wrong.
+
+The corrected `native/tools/verify_original_manager_movement_57bf5c.py`
+SHA-pins all four entrypoint prologues and individual function windows
+as well as the previously verified combined region. It also asserts
+that original constant `0x708A48` contains the packed method pair
+`{0x57C388, 0}`, written by source routine `0x57C27C`.
+
+### Newly translated complete original 0x57C27C function
+
+`native/src/original_manager_route_child_57c27c.cpp` implements the
+real 67-instruction route-child controller update with source-specific
+callbacks for the still-owner-dependent methods `0x3176AC`,
+`0x30C1D4`, the child deleting destructor, `0x3161B8`, and
+`0x316174`. It reproduces:
+
+- Source readiness `0x3176AC` checked only when child +0x10 is null.
+- False readiness writes method pair `{0x57C388,0}` and immediately
+  delegates to original `0x316174`, skipping child creation/update.
+- True readiness calls original `0x30C1D4`, rechecks the child
+  pointer after the callback, deletes a reentrantly-installed original
+  child via virtual slot 1, then stores the new genuine child.
+- `0x3161B8` zero result returns zero without changing the original
+  method pair or invoking `0x316174`.
+- Successful child update installs `{0x57C388,0}` and forwards the
+  real source return from `0x316174`; unimplemented owner callbacks
+  propagate failure, never claim a synthetic update.
+
+The independent `OriginalRouteChildController57C27C` CTest was
+compiled locally with **GCC and Clang** using C++20,
+`-O2 -Wall -Wextra -Werror -pedantic -fsanitize=undefined` and
+passed on both. A separate direct audit against the exact owner-private
+USA executable passed all four function region hashes, prologues,
+method constant, and each 8/4/4/2 original JAL count.
+
+The original `0x57BF5C`, `0x57C388`, `0x57C48C` bodies and
+most original child owner and movement/animation methods remain
+unimplemented. These native tests are **not** evidence of a playable
+game or a successful Windows/Unreal Editor build. No proprietary
+ELF or ISO bytes have been committed.
