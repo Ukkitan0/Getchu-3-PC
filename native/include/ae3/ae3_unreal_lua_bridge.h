@@ -259,12 +259,11 @@ AE3_LUA_EXPORT int ae3_original_actor_route_step(
     const Ae3OriginalRouteCallsV1* genuine_manager,
     Ae3OriginalRouteResultV1* output);
 
-/* Version 2: actually execute original 0x4C1B3C projection inside the
- * recovered 0x57C7CC follower, using original 0x21BD3C adjacency and
- * 0x21EE00 edge intersection. The real 0x57C8EC owner must return the
- * exact LOW 64 original target-vector bits produced by its routine.
- * Initial projection uses controller+0x40; subsequent projections use
- * DMFC2 source low 64 bits with zero high 64, as original 0x57C894.
+/* Legacy route v2 executes original 0x4C1B3C / 0x21BD3C /
+ * 0x21EE00 projection, but its external target callback exposes LOW64
+ * only. Source 0x57C894 uses the target's HIGH64 for follow-up rays,
+ * so this ABI rejects routes requiring that unavailable information.
+ * Use the full-width, transactional v3 for those routes.
  */
 typedef struct Ae3OriginalRouteSourceV2 {
     Ae3OriginalRouteSourceV1 original;
@@ -287,13 +286,16 @@ AE3_LUA_EXPORT int ae3_original_actor_route_step_v2(
     const Ae3OriginalRouteCallsV2* actual_target_manager,
     Ae3OriginalRouteResultV1* output);
 
-/* Version 3: no guessed source target vectors. Call the native
- * originalActorTargetVector_57c8ec implementation for each route update,
- * including original 0x21B788 eligibility and 0x57C98C game RNG.
- * point_counts[] MUST match original 0x1E-byte stage descriptor counts.
- * Owner commits computed source low64 to its real actor controller.
- * Reject if original 0x57CA68 fallback VU0 is required or owner refuses.
- * Return failure without advancing shared original RNG or publishing output.
+/* Version 3: source-derived full 128-bit target vectors from the
+ * native 0x57C8EC dispatch, including original 0x21B788 eligibility,
+ * 0x57C98C game RNG and recovered 0x57CA68 fallback VU0 math.
+ * The fallback requires genuine actor owner vector and Q/R operands;
+ * missing original inputs reject rather than using invented steering.
+ * point_counts[] MUST match original 0x1E-byte stage descriptors.
+ * The invocation snapshots source records, counts and route indices
+ * before calling the external manager's Begin callback, then atomically
+ * commits target low64, high64 and VU0 R with original RNG advancement.
+ * On failure, the manager must Abort; result and shared RNG stay unchanged.
  */
 typedef struct Ae3OriginalRouteSourceV3 {
     Ae3OriginalRouteSourceV2 original;
