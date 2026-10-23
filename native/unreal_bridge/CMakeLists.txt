@@ -161,6 +161,15 @@ if(BUILD_TESTING)
   add_test(NAME OriginalPolygonRaycast4C1B3CHostAbi
     COMMAND Getchu3OriginalPolygonRayHostAbiTests)
 
+  add_executable(Getchu3OriginalActorRouteRaycastV2Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_actor_unreal_route_raycast_v2_test.cpp")
+  target_include_directories(Getchu3OriginalActorRouteRaycastV2Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  target_link_libraries(Getchu3OriginalActorRouteRaycastV2Tests
+    PRIVATE Getchu3OriginalLuaBridge)
+  add_test(NAME OriginalRoute57C7CCNativeRaycast4C1B3C
+    COMMAND Getchu3OriginalActorRouteRaycastV2Tests)
+
   add_executable(Getchu3OriginalHealthBridgeTests
     "${ORIGINAL_NATIVE_ROOT}/tests/ae3_unreal_health_bridge_test.cpp")
   target_include_directories(Getchu3OriginalHealthBridgeTests
