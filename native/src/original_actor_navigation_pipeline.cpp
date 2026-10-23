@@ -54,19 +54,23 @@ bool OriginalActorNavigationPipeline_57c7cc::call_original_21b788_eligibility(
 std::uint64_t OriginalActorNavigationPipeline_57c7cc::call_original_57ca68_geometry(
     const OriginalSpatialRecord70& target) {
     sourceIndex(target);
-    // Original 0x57CA68 outer game RNG and best-of-six loop is
-    // now recovered when the caller supplies the original VU0
-    // candidate transform. The latter is still untranslated.
-    if(originalSharedRandom_ && originalFallbackTransform_) {
+    // Native fixed-instruction 0x57CB4C/0x57CC48 transform by default.
+    // The original EE RNG and caller-owned owner/Q are mandatory.
+    latestFallbackHigh64_=0;
+    if(originalSharedRandom_) {
         if(!originalOwner14Vector40_)
             throw std::invalid_argument(
                 "Original 0x57CA68 owner+0x14->+0x40 vector missing; cannot reuse controller+0x20");
         if(!originalFallbackQBits_)
             throw std::invalid_argument("Original VU0 Q input not supplied for VMULq fallback transform");
-        return originalActorFallbackSelect_57ca68(
+        auto& sourceTransform=originalFallbackTransform_?
+            *originalFallbackTransform_:nativeFallbackTransform_;
+        const auto selected=originalActorFallbackSelect_57ca68(
             target,*originalOwner14Vector40_,controllerVector20_,
-            *originalFallbackQBits_,*originalSharedRandom_,*originalFallbackTransform_)
-            .originalWinningPackedTargetLow64;
+            *originalFallbackQBits_,*originalSharedRandom_,sourceTransform,
+            originalFallbackR_?originalFallbackR_:&localSourceVu0R_);
+        latestFallbackHigh64_=selected.originalWinningPackedTargetHigh64;
+        return selected.originalWinningPackedTargetLow64;
     }
     return math_.call_original_57ca68_fallback(target);
 }
@@ -76,8 +80,16 @@ std::uint64_t OriginalActorNavigationPipeline_57c7cc::call_original_57c98c_three
     sourceIndex(target);
     // Original source 0x57C98C is now fully recovered when the
     // actor owns its original game-global RNG state.
-    if(originalSharedRandom_)
-        return originalActorRandomTriangleLow64_57c98c(vertices,*originalSharedRandom_);
+    latestTriangleHigh64_=0;
+    if(originalSharedRandom_) {
+        // 0x57C994/C9A8/C9B8 PCPYUD masks original vertices.
+        // This source-native helper returns the same FULL QMFC2 result,
+        // with no fabricated source vector and one genuine RNG sequence.
+        const auto target=originalActorRandomTrianglePacked_57c98c(
+            vertices,*originalSharedRandom_);
+        latestTriangleHigh64_=target.originalHigh64;
+        return target.originalLow64;
+    }
     return math_.call_original_57c98c_random_vertex_transform(target,vertices);
 }
 const OriginalSpatialRecord70* OriginalActorNavigationPipeline_57c7cc::call_original_4c1b3c_project(
@@ -90,11 +102,18 @@ const OriginalSpatialRecord70* OriginalActorNavigationPipeline_57c7cc::call_orig
         // 0x57C814 uses controller+0x40 for the first projection.
         // 0x57C890 instead uses packed result from 0x57C8EC
         // after selecting the next route target.
-        const auto& sourceEnd=latestTargetRayA2_?*latestTargetRayA2_:*originalController40_;
+        const bool later=latestTargetRayA2_.has_value();
+        const auto& sourceEnd=later?*latestTargetRayA2_:*originalController40_;
+        // 0x57C814: first ray passes original a1 in full;
+        // 0x57C88C: later rays PCPYUD a1,zero,s5, where s5
+        // was already derived with PCPYUD from original a1.
+        const auto sourceStart=later?
+            originalActorPackedSubsequentRayStart_57c88c(*originalIncomingRayA1_):
+            *originalIncomingRayA1_;
         const auto ray=originalPolygonRaycast_4c1b3c(
             records_,originalSourceAdjacency_,
             static_cast<std::uint32_t>(sourceIndex(*actorPolygon)),
-            *originalIncomingRayA1_,sourceEnd);
+            sourceStart,sourceEnd);
         return ray.originalTraversal.originalLastAcceptedPolygon;
     }
     return math_.call_original_4c1b3c_projection(*actorPolygon,point_);
@@ -106,14 +125,11 @@ void OriginalActorNavigationPipeline_57c7cc::call_original_57c8ec_update_target(
     const auto output=originalActorTargetVector_57c8ec(
         *target,variant30_,controllerVector20_,*this);
     targetResults_.push_back(output);
-    // Source 0x57C894 builds $a2 from original 64-bit $v0,
-    // zeroing the high EE GPR half. Do not treat +0x20 as this
-    // generated target; source 0x57C8EC owns its packed result.
-    OriginalVU0Vec4 packed{};
-    const auto bits=output.originalVectorLow64;
-    packed.x=std::bit_cast<float>(std::uint32_t(bits));
-    packed.y=std::bit_cast<float>(std::uint32_t(bits>>32));
-    latestTargetRayA2_=packed;
+    // 0x57C894 PCPYUD a2,zero,v0 constructs {0,0,v0.z,v0.w}.
+    // Retail QMFC2 and QMTC2 transfer all 128 bits; the target's
+    // *upper* 64-bit GPR half feeds subsequent 0x4C1B3C projection.
+    // Its lower 64 bits MUST NOT become the projection X/Y lanes.
+    latestTargetRayA2_=originalActorTargetProjectionOperand_57c894(output);
 }
 OriginalActorRouteFollowResult_57c7cc OriginalActorNavigationPipeline_57c7cc::advance(
     OriginalActorRouteFollowerState_57c7cc& route) {
