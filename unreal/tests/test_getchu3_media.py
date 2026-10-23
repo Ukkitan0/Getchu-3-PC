@@ -57,6 +57,43 @@ class MediaTests(unittest.TestCase):
         self.assertTrue((self.out / "stage/a/a_face.png").is_file())
         self.assertTrue((self.out / "stage/b/a_face.png").is_file())
 
+    def test_original_pck_texture_alias_is_pack_local_and_keeps_indexed_source(self):
+        self.original("stage/woods_c/pck_assets/bg/0003_fur.tm2", b"TIM2" + b"a" * 32)
+        self.original("stage/toyhouse_c/pck_assets/bg/0002_fur.tm2", b"TIM2" + b"b" * 32)
+        alias_root = self.root / "material_aliases"
+        result = media.convert_textures(self.vfi, self.out, str(self.ae3),
+                                        material_alias_root=alias_root,
+                                        runner=self.conversion)
+        self.assertEqual(result["converted_png_files"], 2)
+        self.assertEqual(len(result["pack_local_material_aliases"]), 2)
+        self.assertTrue((self.out / "stage/woods_c/pck_assets/bg/0003_fur.png").is_file())
+        self.assertTrue((self.out / "stage/toyhouse_c/pck_assets/bg/0002_fur.png").is_file())
+        self.assertTrue((alias_root / "stage/woods_c/pck_assets/bg/fur.png").is_file())
+        self.assertTrue((alias_root / "stage/toyhouse_c/pck_assets/bg/fur.png").is_file())
+        self.assertFalse((alias_root / "fur.png").exists())
+
+    def test_ambiguous_original_material_names_in_one_pack_are_blocked(self):
+        self.original("stage/a/pck_assets/bg/0001_fur.tm2", b"TIM2" + b"1" * 32)
+        self.original("stage/a/pck_assets/bg/0002_fur.tm2", b"TIM2" + b"2" * 32)
+        def per_source_pixels(command, **kwargs):
+            folder = Path(command[command.index("--out") + 1])
+            folder.mkdir(parents=True, exist_ok=True)
+            stem = Path(command[2]).stem
+            (folder / (stem + ".png")).write_bytes(b"PNG" + stem.encode("ascii"))
+            return subprocess.CompletedProcess(command, 0, "", "")
+        with self.assertRaisesRegex(RuntimeError, "Ambiguous original texture material"):
+            media.convert_textures(self.vfi, self.out, str(self.ae3),
+                                   material_alias_root=self.root / "aliases",
+                                   runner=per_source_pixels)
+
+    def test_material_alias_destination_must_not_enter_original_or_png_source(self):
+        self.original("stage/a/pck_assets/bg/0000_fur.tm2", b"TIM2" + b"f" * 32)
+        for bad in [self.vfi / "material_names", self.out / "material_names"]:
+            with self.subTest(destination=bad):
+                with self.assertRaisesRegex(ValueError, "separate"):
+                    media.convert_textures(self.vfi, self.out, str(self.ae3),
+                                           material_alias_root=bad, runner=self.conversion)
+
     def test_invalid_retail_magic_rejected_before_conversion(self):
         self.original("stage/a/bad.tm2", b"XXXX123456")
         with self.assertRaisesRegex(ValueError, "magic"):
