@@ -5,7 +5,7 @@ namespace ae3 {
 std::uint32_t originalMovementPostTail_557fc8(
     OriginalMovementChildD0_30c57c& child,
     std::uint64_t scratchGuestVA,
-    std::uint32_t originalParentWord14,
+    std::uint64_t originalParentWord14SignExtended,
     const OriginalMovementPostVector_557f54& postVector,
     const OriginalMovementPostStep_558030& movementReturn,
     OriginalMovementPostTailOwner_557fc8& owner) {
@@ -36,7 +36,7 @@ std::uint32_t originalMovementPostTail_557fc8(
     // 557FF8 original MMI3 POR in the JAL delay slot
     // copies entire 128-bit s3=557F8C DMFC2 VF2 to EE a1.
     owner.call_original_276538(
-        originalParentWord14,postVector.originalGprS3VF2);
+        originalParentWord14SignExtended,postVector.originalGprS3VF2);
     // Source BSS debug byte 0x6354E0 is read ONLY if
     // 0x6354E7 is nonzero; if E0 equals zero call
     // genuine 0x36FC28(child+0x10) once before post-step.
