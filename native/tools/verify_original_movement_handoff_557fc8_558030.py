@@ -236,6 +236,17 @@ def check(root: Path) -> dict:
         raise AssertionError("source 36FC14 intermediate child commit missing")
     if "read_original_flagged_loop_binding_36fc18(" not in metric_hpp:
         raise AssertionError("genuine flagged iterative 36FC18 owner opt-in missing")
+    # The bounded native path is valid only for original
+    # nonnegative progress; negative progress may need any
+    # number of source 1/8 steps and also has inexact VU0
+    # cases. Verify the owner fallback precedes the exact-only
+    # flagged VU0 arithmetic, not merely its iteration loop.
+    neg=metric_src.find("genuine->originalChildStatusA4Bits)<0.0f")
+    first=metric_src.find("const auto plan=originalMovementFlaggedPass_36fb5c(*genuine)")
+    if neg<0 or first<0 or neg>=first:
+        raise AssertionError("negative original progress bypass occurs after VU0 arithmetic")
+    if "for(unsigned iteration=0;iteration<9u;++iteration)" not in metric_src:
+        raise AssertionError("source nonnegative 1/8 loop cap removed")
 
     # The existing original source windows establish the specialized
     # bit0 regeneration and its source ORI of 1 (not 2).
