@@ -479,9 +479,20 @@ bool UGetchu3OriginalLuaSubsystem::ApplyOriginalHealthDelta(
         static_cast<Ae3LuaRuntime*>(NativeState), Delta, &CommittedHealth);
     bInOriginalManagerCall = false;
     if (bDeferredOriginalStop) {
-        LastError = TEXT("Original player manager stopped the stage during ChangeHP");
+        // A real manager can request shutdown after atomically committing the
+        // original PlayerProgress. Report that successful write accurately.
+        // Capture native failure *before* the VM/DLL is unloaded.
+        const FString ErrorBeforeStop = Applied == 1 ? FString()
+            : Utf8String(NativeError(static_cast<Ae3LuaRuntime*>(NativeState)));
         StopOriginalStage();
-        return false;
+        if (Applied != 1) {
+            LastError = ErrorBeforeStop.IsEmpty()
+                ? TEXT("Original ChangeHP aborted during source manager shutdown")
+                : ErrorBeforeStop;
+            return false;
+        }
+        LastError.Empty();
+        return true;
     }
     if (Applied != 1) {
         LastError = Utf8String(NativeError(static_cast<Ae3LuaRuntime*>(NativeState)));
