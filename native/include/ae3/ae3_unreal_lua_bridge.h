@@ -111,6 +111,26 @@ AE3_LUA_EXPORT int ae3_original_manager_init_step(
     const Ae3OriginalManagerInitSourceV1* original,
     Ae3OriginalManagerInitStateV1* state,
     const Ae3OriginalManagerInitCallsV1* real_calls);
+/* Version 2 runs recovered 0x57C7CC internally, using its exact original
+ * target/route branch logic. Only the independently original-coded
+ * 0x21B854, 0x4C1B3C and 0x57C8EC owner operations remain callbacks.
+ */
+typedef struct Ae3OriginalManagerInitCallsV2 {
+    void* user;
+    int (*project_original_21b854)(
+        void* user, const void* original_polygon70,
+        const Ae3OriginalVec4* start, const Ae3OriginalVec4* end,
+        Ae3OriginalVec4* projected);
+    int (*original_project_4c1b3c)(
+        void* user, uint32_t actor_polygon, uint32_t* projected_polygon);
+    int (*original_apply_target_57c8ec)(
+        void* user, uint32_t target_polygon);
+} Ae3OriginalManagerInitCallsV2;
+AE3_LUA_EXPORT int ae3_original_manager_init_step_v2(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalManagerInitSourceV1* original,
+    Ae3OriginalManagerInitStateV1* state,
+    const Ae3OriginalManagerInitCallsV2* original_calls);
 AE3_LUA_EXPORT const char* ae3_original_manager_init_last_error(
     const Ae3OriginalManagerInitSession* session);
 
