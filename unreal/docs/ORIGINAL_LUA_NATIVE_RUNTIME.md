@@ -546,6 +546,19 @@ unchanged and the owner transaction is aborted.
 The original Unreal Player/Monkey manager does NOT yet supply these
 transactional callbacks, and original `0x21B854` projection plus the
 complete gameplay/tick/actor object ownership remain unfinished.
+
+**Callback lifetime and source steering corrections:** The native
+route v3 session remains marked active for the ENTIRE original
+Begin → Stage (one or more target updates) → Commit/Abort sequence,
+not just while Begin and Commit are running. This prevents an owner
+from destroying the native session reentrantly during Stage and then
+resuming a freed original C++ stack. The source test attempts
+destruction during Begin, Stage, Commit, and Abort and expects
+explicit rejection. Source route v2, whose callback can only return
+the original low64 target, now rejects any route requiring a route[2]
+follow-up projection BEFORE invoking an owner callback, because source
+0x57C894 requires the target's QMFC2 HIGH64. Use v3 for full-width
+steering; there is no synthetic fallback.
 The native target and route regressions were updated for correct
 full-128-bit behavior and are wired into the Windows test gate;
 **they have not yet run successfully with real MSVC/Lua/Unreal 5.6
