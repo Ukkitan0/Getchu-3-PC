@@ -98,9 +98,6 @@ struct M final:OriginalManagerMovementCalls_57bf5c {
     float call_original_vu0_metric_57c090(OriginalManagerChild70&) override {
         throw std::runtime_error("unexpected original VU metric");
     }
-    void call_original_441f40(std::array<std::byte,0x40>&) override {
-        throw std::runtime_error("unexpected original stack initialization");
-    }
     void call_original_36f5f4(OriginalMovementScratch_57bf5c&) override {
         throw std::runtime_error("unexpected original 36F5F4");
     }
