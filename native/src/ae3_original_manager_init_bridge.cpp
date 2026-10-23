@@ -901,23 +901,13 @@ extern "C" int ae3_original_actor_route_step_v3(
         session->error="original actor route has invalid owner polygon records/adjacency";
         return 0;
     }
-    // Shield the source session whenever calling external manager code.
-    auto guarded=[&](auto&& action) -> int {
-        session->busy=true;
-        try {
-            const int answer=action();
-            session->busy=false;
-            return answer;
-        } catch (...) {
-            session->busy=false;
-            throw;
-        }
-    };
+    // The entire native route, including the gap BETWEEN Begin and
+    // Commit, has live pointers into this session. In particular, Stage
+    // callbacks must not be allowed to destroy it mid-stack.
+    session->busy=true;
     auto abortSafely=[&]() {
-        session->busy=true;
         try {manager->abort_original_actor_update(manager->user);}
-        catch (...) {} // preserve the original failure at the C ABI boundary
-        session->busy=false;
+        catch (...) {} // preserve original error at the C ABI boundary
     };
     bool began=false;
     try {
@@ -1012,9 +1002,7 @@ extern "C" int ae3_original_actor_route_step_v3(
                native(a),native(b),source->original.original_max_recursions);
 
         began=true; // Even rejected Begin may have allocated owner state.
-        if (guarded([&]{
-                return manager->begin_original_actor_update(manager->user);
-            })!=1)
+        if (manager->begin_original_actor_update(manager->user)!=1)
             throw std::runtime_error("original game actor owner refused Begin");
 
         ae3::OriginalActorRouteFollowerState_57c7cc originalRoute{
@@ -1039,14 +1027,13 @@ extern "C" int ae3_original_actor_route_step_v3(
             static_cast<std::uint32_t>(followed.followingRouteIndicesTested),
             followed.returnedEarlyBecauseCurrentTargetMatched?1:0
         };
-        if (guarded([&]{
-                return manager->commit_original_actor_update(manager->user);
-            })!=1)
+        if (manager->commit_original_actor_update(manager->user)!=1)
             throw std::runtime_error("original game actor owner refused Commit");
         began=false;
         session->originalRandom=std::move(proposed.proposed.originalRandom);
         *out=result;
         session->error.clear();
+        session->busy=false;
         return 1;
     } catch (const std::exception& e) {
         const std::string failure=e.what();
@@ -1056,5 +1043,6 @@ extern "C" int ae3_original_actor_route_step_v3(
         if (began) abortSafely();
         session->error="original native full-width actor route failed";
     }
+    session->busy=false;
     return 0;
 }
