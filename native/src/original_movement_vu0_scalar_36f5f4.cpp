@@ -105,6 +105,12 @@ OriginalMovementVU0VectorFrame_36f5f4 originalMovementVU0VectorFrame_36f5f4(
         result.originalVF3[i]=std::bit_cast<std::uint32_t>(float(vf3));
         result.originalVF1[i]=std::bit_cast<std::uint32_t>(float(vf1));
         result.originalVF2[i]=std::bit_cast<std::uint32_t>(float(vf2));
+        // Retail DMTC2 a3->VF5 (0x36F614) and a3->VF6
+        // (0x36F604) survive to the original first return.
+        // PPACW of zero t5, then QMTC2 t6->VF7 (0x36F674).
+        result.originalVF5[i]=std::bit_cast<std::uint32_t>(c[i]);
+        result.originalVF6[i]=std::bit_cast<std::uint32_t>(c[i]);
+        result.originalVF7[i]=0;
     }
     return result;
 }
