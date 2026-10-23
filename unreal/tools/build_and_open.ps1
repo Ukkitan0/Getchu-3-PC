@@ -93,6 +93,10 @@ $PyPrefix = if ($TestPython -eq "py") { @("-3") } else { @() }
 MustRun $TestPython ($PyPrefix + @("-m", "unittest", "discover", "-s",
                                   (Join-Path $UnrealDir "tests"), "-v")) `
     "Original ISO/asset/Lua binding importer regressions failed"
+MustRun $TestPython ($PyPrefix + @("-m", "unittest", "discover", "-s",
+                                  (Join-Path $Native "tools"), "-p",
+                                  "test_unpack_original_stage_pck.py", "-v")) `
+    "Original PCK member source extraction or collision identity tests failed"
 
 MustRun "cmake" @("-S", $Native, "-B", $BuildDir, "-G", "Visual Studio 17 2022",
                   "-A", "x64") "Native Lua 5.0 bridge configuration failed"
