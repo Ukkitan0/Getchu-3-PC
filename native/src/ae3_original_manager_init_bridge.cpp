@@ -8,6 +8,7 @@
 #include "ae3/original_actor_fallback_vu0_native.hpp"
 #include "ae3/original_vu0_geometry.hpp"
 #include "ae3/original_spatial_support.hpp"
+#include "ae3/original_spatial_raw_bridge.hpp"
 #include <cmath>
 
 #include <array>
@@ -344,6 +345,155 @@ extern "C" int ae3_original_polygon_nearest_grid_4e3c14_21d898(
     Ae3OriginalNearestPolygonResultV1* output) {
     return originalNearestSourceImpl(
         session,original?&original->original:nullptr,output,false,original);
+}
+
+/* Source-backed actor spatial query: record+0x30 -> original header+0x16
+ * -> record +0x40 VU0 vertices -> source grid (when requested) ->
+ * original 0x21B788 eligibility / 0x21B468 mean / 0x21D898 or 0x21DA2C.
+ * Do not decode counts from disconnected host-side polygon metadata.
+ */
+static int originalRawNearestImpl(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalRawNearestSourceV1* source,
+    const Ae3OriginalRawGridNearestSourceV1* originalGrid,
+    Ae3OriginalNearestPolygonResultV1* output) {
+    if (!session) return 0;
+    if (session->busy) {
+        session->error="reentrant original resolved-header spatial query refused";
+        return 0;
+    }
+    session->busy=true;
+    session->error.clear();
+    int success=0;
+    try {
+        if (!source || !output || !source->original_records70 ||
+            !source->original_allocations ||
+            source->original_record_count==0 ||
+            source->original_record_count>8192 ||
+            source->original_allocation_count==0 ||
+            source->original_allocation_count>8192)
+            throw std::invalid_argument(
+                "original resolved-header selector requires genuine stage records and allocations");
+        const auto q=source->original_query;
+        if (!std::isfinite(q.x) || !std::isfinite(q.y) ||
+            !std::isfinite(q.z))
+            throw std::invalid_argument(
+                "original resolved-header query has nonfinite XYZ");
+
+        // Preserve 0x70 original record identities without type punning or
+        // reading host pointer fields from the guest's 32-bit addresses.
+        std::vector<ae3::OriginalSpatialRecord70> records(
+            source->original_record_count);
+        const auto* raw=static_cast<const std::byte*>(source->original_records70);
+        for (std::size_t i=0;i<records.size();++i)
+            std::memcpy(records[i].originalFields.data(),
+                        raw+i*0x70,0x70);
+
+        std::vector<ae3::OriginalSpatialSourceAllocation> allocations;
+        allocations.reserve(source->original_allocation_count);
+        for (std::size_t i=0;i<source->original_allocation_count;++i) {
+            const auto& allocation=source->original_allocations[i];
+            if (!allocation.original_bytes ||
+                allocation.original_byte_count<0x18 ||
+                allocation.original_byte_count>16*1024*1024)
+                throw std::invalid_argument(
+                    "invalid original header allocation bytes or span");
+            allocations.push_back({
+                allocation.original_base_va,
+                std::span<const std::byte>(
+                    static_cast<const std::byte*>(allocation.original_bytes),
+                    allocation.original_byte_count)});
+        }
+
+        const ae3::OriginalSpatialRecord70* chosen=nullptr;
+        if (originalGrid) {
+            if (!originalGrid->original_cell_offsets50 ||
+                !originalGrid->original_hit_pool08 ||
+                !std::isfinite(originalGrid->original_resolved_x) ||
+                !std::isfinite(originalGrid->original_resolved_y) ||
+                !std::isfinite(originalGrid->original_origin_x00) ||
+                !std::isfinite(originalGrid->original_origin_y04) ||
+                !std::isfinite(originalGrid->original_step_x10) ||
+                !std::isfinite(originalGrid->original_step_y14) ||
+                originalGrid->original_step_x10==0.0f ||
+                originalGrid->original_step_y14==0.0f ||
+                originalGrid->original_dimension_x18<=0 ||
+                originalGrid->original_dimension_y1c<=0 ||
+                originalGrid->original_dimension_x18>65535 ||
+                originalGrid->original_dimension_y1c>65535 ||
+                originalGrid->original_hit_pool_count>1048576)
+                throw std::invalid_argument(
+                    "invalid original 0x4E3C14 resolved-header grid metadata");
+            const auto requiredCells=
+                static_cast<std::size_t>(originalGrid->original_dimension_x18)*
+                static_cast<std::size_t>(originalGrid->original_dimension_y1c);
+            if (requiredCells>1048576 ||
+                originalGrid->original_cell_offset_count<requiredCells)
+                throw std::out_of_range(
+                    "original resolved-header grid cell map truncated");
+            ae3::OriginalSpatialGridFields grid{};
+            grid.originX00=originalGrid->original_origin_x00;
+            grid.originY04=originalGrid->original_origin_y04;
+            grid.stepX10=originalGrid->original_step_x10;
+            grid.stepY14=originalGrid->original_step_y14;
+            grid.dimensionX18=originalGrid->original_dimension_x18;
+            grid.dimensionY1c=originalGrid->original_dimension_y1c;
+            grid.cellOffsets50=std::span<const std::uint16_t>(
+                originalGrid->original_cell_offsets50,
+                originalGrid->original_cell_offset_count);
+            grid.hitBuffer08=std::span<const std::uint16_t>(
+                originalGrid->original_hit_pool08,
+                originalGrid->original_hit_pool_count);
+            // The existing raw bridge resolves EVERY record+0x30 pointer
+            // to an original allocated header, reading LHU +0x16.
+            // Candidate generation then executes genuine 0x4E3C14.
+            chosen=ae3::originalSpatialNearestOriginalDataGrid_21d898(
+                records,allocations,grid,
+                originalGrid->original_resolved_x,
+                originalGrid->original_resolved_y,native(q));
+        } else {
+            // Original 0x21DA2C scans the full registry without a
+            // spatial hit list or the 0x21B788 plane filter.
+            chosen=ae3::originalSpatialNearestOriginalDataAll_21da2c(
+                records,allocations,native(q));
+        }
+        Ae3OriginalNearestPolygonResultV1 value{};
+        value.original_polygon_index=UINT32_MAX;
+        if (chosen) {
+            for (std::size_t i=0;i<records.size();++i) {
+                if (chosen==&records[i]) {
+                    value.original_polygon_index=
+                        static_cast<std::uint32_t>(i);
+                    break;
+                }
+            }
+            if (value.original_polygon_index==UINT32_MAX)
+                throw std::runtime_error(
+                    "original resolved-header selector returned foreign record");
+        }
+        *output=value;
+        session->error.clear();
+        success=1;
+    } catch (const std::exception& error) {
+        session->error=error.what();
+    } catch (...) {
+        session->error="unknown original header-resolved actor nearest failure";
+    }
+    session->busy=false;
+    return success;
+}
+extern "C" int ae3_original_polygon_nearest_original_data_all_21da2c(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalRawNearestSourceV1* original,
+    Ae3OriginalNearestPolygonResultV1* output) {
+    return originalRawNearestImpl(session,original,nullptr,output);
+}
+extern "C" int ae3_original_polygon_nearest_original_data_grid_21d898(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalRawGridNearestSourceV1* original,
+    Ae3OriginalNearestPolygonResultV1* output) {
+    return originalRawNearestImpl(
+        session,original?&original->original:nullptr,original,output);
 }
 
 static int originalManagerInitImpl(
