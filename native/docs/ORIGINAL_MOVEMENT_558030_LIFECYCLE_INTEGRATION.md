@@ -202,3 +202,40 @@ rs `s5` `21`, rd `a1` `5`, function `0x2D`.
 The updated C++ tests still require an actual compile and CTest
 run. No private game binary or original resource data were
 committed.
+
+## EE 64-bit sign extension of original parent +0x14
+
+The retail `0x557E68` instruction is
+`LW s4,0x14(s1)` (word `0x8E340014`). It loads an
+**original signed 32-bit word**, sign-extended into the EE's
+64-bit GPR `s4`. Later source `0x557FF0` is
+`DADDU a0,s4,zero` (word `0x0280202D`): the full
+signed-extended 64-bit register is passed to original
+`0x276538`, not a zero-extended `uint32_t`.
+
+The persistent child lifecycle now explicitly sign-extends the
+original parent word before providing it to the `0x557F54`
+tagged-branch check and to the native `0x557FC8` post-tail.
+The post-tail's parent-register argument and
+`call_original_276538` owner interface now use `uint64_t`.
+An original parent word like `0x81234000` therefore reaches
+the source EE callback as `0xFFFFFFFF81234000`. The
+tagged-pointer branch of `0x557F90` remains **unrecovered**:
+the native post-vector implementation refuses its ordinary
+mode path rather than mistakenly accepting a zero-extended
+high-bit parent value.
+
+The updated post-vector tests reject both zero-extended and
+sign-extended unsupported tagged-parent inputs when the
+source tagged comparison is selected. The post-tail regression
+uses source child mode `+8 = 0`, which legitimately skips
+`0x557F90`, to test preservation of the signed-extended
+`0x276538` argument through the original EE DADDU path.
+`native/tools/verify_original_movement_handoff_557fc8_558030.py`
+pins the original `LW` and `DADDU` words and validates
+the native wide interface.
+
+**Still unverified:** a full compiled CTest run and the native
+Windows game. These changes correct documented register
+semantics; they do not fabricate the unported
+`0x276538` engine implementation.
