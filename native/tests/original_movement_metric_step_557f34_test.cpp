@@ -27,7 +27,7 @@ struct OriginalOwner : OriginalMovementNormalCalls_557ed8,
     std::uint32_t scaleRaw=0;
     bool foreignOriginalVF1=false;
     bool iterativeFlagged=false,disagreeRegeneratedVF1=false;
-    bool foreignLoopBinding=false;
+    bool foreignLoopBinding=false,allowIterativeExternalFallback=false;
     int movementCallbacks=0,resourceReads=0,vf1Publications=0;
     int flaggedReads=0,flaggedPublications=0,regenPublications=0;
     OriginalMovementChildD0_30c57c* actualChild=nullptr;
@@ -131,8 +131,14 @@ struct OriginalOwner : OriginalMovementNormalCalls_557ed8,
     }
     std::uint32_t call_original_36fb18(
         OriginalMovementChildD0_30c57c& child,std::uint32_t f12) override {
-        if(iterativeFlagged)
-            throw std::logic_error("native original 36FC18 loop must not use owner fallback");
+        if(iterativeFlagged) {
+            if(!allowIterativeExternalFallback)
+                throw std::logic_error(
+                    "native original 36FC18 loop must not use owner fallback");
+            assert(f12==std::bit_cast<std::uint32_t>(0.5f));
+            ++movementCallbacks;
+            return std::bit_cast<std::uint32_t>(1.25f);
+        }
         assert(child.originalByteAt(0xC0)==std::byte{1});
         assert(f12==std::bit_cast<std::uint32_t>(3.0f));
         ++movementCallbacks;
@@ -284,6 +290,35 @@ int main() {
            foreignChild->originalWordAt(0xB4)==
                std::bit_cast<std::uint32_t>(0.5f) &&
            foreignChild->originalWordAt(0xB8)==2u);
+
+    // The original 36FB70 accepts finite negative progress.
+    // Native nine-pass cap is source-proven only for status>=0;
+    // negative source states must delegate to the REAL owner's
+    // complete 36FB18 method rather than silently stop early.
+    OriginalOwner negativeOwner{};
+    negativeOwner.iterativeFlagged=true;
+    negativeOwner.allowIterativeExternalFallback=true;
+    negativeOwner.floatFields.originalFloatAt374Bits=
+        std::bit_cast<std::uint32_t>(1.0f);
+    negativeOwner.scaleRaw=std::bit_cast<std::uint32_t>(0.5f);
+    auto negativeChild=child();
+    negativeChild->writeWord(0xB0,0x744dd0u);
+    negativeOwner.actualChild=negativeChild.get();
+    originalMovementNormalBegin_557ed8(
+        *negativeChild,0x220000u,negativeOwner);
+    negativeChild->writeWord(0xB4,std::bit_cast<std::uint32_t>(-1.0f));
+    negativeChild->writeWord(0xB8,2u);
+    const auto negativeResult=originalMovementMetricStep_557f34(
+        *negativeChild,negativeOwner);
+    assert(negativeResult.originalMovementF0Raw==
+               std::bit_cast<std::uint32_t>(1.25f) &&
+           negativeOwner.movementCallbacks==1 &&
+           negativeOwner.flaggedReads==1 &&
+           negativeOwner.flaggedPublications==0 &&
+           negativeOwner.regenPublications==0 &&
+           negativeChild->originalWordAt(0xB4)==
+               std::bit_cast<std::uint32_t>(-1.0f) &&
+           negativeChild->originalWordAt(0xB8)==2u);
 
     std::cout<<"ORIGINAL_MOVEMENT_557F34_METRIC_PREFIX_PASSED\n";
 }
