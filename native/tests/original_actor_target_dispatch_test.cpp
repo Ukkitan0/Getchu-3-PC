@@ -1,6 +1,7 @@
 #include "ae3/original_actor_target_dispatch.hpp"
 #include <array>
 #include <bit>
+#include <cstring>
 #include <cstddef>
 #include <cstdint>
 #include <fstream>
@@ -50,14 +51,25 @@ int main(int argc,char**argv){
  auto a=originalActorTargetVector_57c8ec(polygon,true,stored,c);
  ck(a.branch==OriginalActorTargetBranch_57c8ec::OriginalVariantVectorPassThrough_57c944,
     "original positive eligibility direct-vector branch");
- ck(a.originalVectorLow64==0x0807060504030201ULL,
-    "LQC2/DMFC2 original stored vector low 64 bits");
+ ck(a.originalVectorLow64==0x0807060504030201ULL &&
+    a.originalVectorHigh64==0x100f0e0d0c0b0a09ULL,
+    "LQC2/QMFC2 original stored full 128 bits");
+ const auto projection=originalActorTargetProjectionOperand_57c894(a);
+ ck(std::bit_cast<std::uint32_t>(projection.x)==0 &&
+    std::bit_cast<std::uint32_t>(projection.y)==0,
+    "0x57C894 PCPYUD must zero both low projection lanes");
+ ck(std::bit_cast<std::uint32_t>(projection.z)==0x0c0b0a09u &&
+    std::bit_cast<std::uint32_t>(projection.w)==0x100f0e0du,
+    "0x57C894 must forward original controller z/w lanes");
  ck(c.eligibleCalls==1&&c.geometryCalls==0&&c.threeVertexCalls==0,
     "direct stored-vector branch avoids geometry");
  c.allow=false;
  auto b=originalActorTargetVector_57c8ec(polygon,true,stored,c);
  ck(b.branch==OriginalActorTargetBranch_57c8ec::OriginalFallbackGeometry_57ca68,
     "original fallback branch after false eligibility");
+ const auto fb=originalActorTargetProjectionOperand_57c894(b);
+ ck(fb.x==0.0f&&fb.y==0.0f&&fb.z==0.0f&&fb.w==0.0f,
+    "Legacy callback without genuine high-half provenance must not invent it");
  ck(b.originalVectorLow64==0xdeadbeef01020304ULL&&c.geometryCalls==1,
     "forward authentic geometry-result bits");
  auto d=originalActorTargetVector_57c8ec(polygon,false,stored,c);
@@ -90,7 +102,8 @@ int main(int argc,char**argv){
     Calls call;call.expected=&record;
     const auto pass=originalActorTargetVector_57c8ec(record,true,stored,call);
     ck(pass.branch==OriginalActorTargetBranch_57c8ec::OriginalVariantVectorPassThrough_57c944
-       &&pass.originalVectorLow64==0x0807060504030201ULL,
+       &&pass.originalVectorLow64==0x0807060504030201ULL
+       &&pass.originalVectorHigh64==0x100f0e0d0c0b0a09ULL,
        "source polygon stored-vector pass-through");
     ++direct;
     call.allow=false;
