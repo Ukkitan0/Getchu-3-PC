@@ -10,15 +10,24 @@ namespace ae3 {
 // game-owned child constructors and diagnostics remain REQUIRED source
 // operations, not host-calculated movement substitutes.
 //
-// 0x57C120 creates two original 0x441F40 scratch objects at stack
-// +0x20 and +0x60 (source spacing 0x40). These opaque host-owned
-// buffers are untouched by genuine original 0x441F40 (no-op).
-// They may be consumed only AFTER original 0x36F5F4 has supplied
-// the actual original data needed by the 0x30C57C constructor.
+// 0x57BF5C supplies original stack+0x20 to 0x36F5F4 after
+// calling two original 0x441F40 no-ops at stack+0x20/+0x60.
+// Actual 0x36F5F4 stores at a0+0xA0/+0xA4/+0xA8/+0xAC,
+// so the two 0x40 blocks alone were NOT sufficient. Keep the
+// entire source argument region contiguous; this is a native
+// source-frame POD, not a guest RAM emulator or invented geometry.
+// The real original 0x36F5F4 owner must supply actual source data
+// before original 0x30C57C is allowed to consume it.
 struct OriginalMovementScratch_57bf5c {
     std::array<std::byte,0x40> sourceStack20{};
     std::array<std::byte,0x40> sourceStack60{};
+    std::array<std::byte,0x90> sourceStackA0{};
+    std::byte* sourceBase20() noexcept {return sourceStack20.data();}
+    const std::byte* sourceBase20() const noexcept {return sourceStack20.data();}
 };
+static_assert(offsetof(OriginalMovementScratch_57bf5c,sourceStack60)==0x40);
+static_assert(offsetof(OriginalMovementScratch_57bf5c,sourceStackA0)==0x80);
+static_assert(sizeof(OriginalMovementScratch_57bf5c)==0x110);
 class OriginalManagerMovementCalls_57bf5c {
 public:
     virtual ~OriginalManagerMovementCalls_57bf5c()=default;
