@@ -78,6 +78,15 @@ if(BUILD_TESTING)
   add_test(NAME OriginalLua50UnrealHostBridgeFailClosed
     COMMAND Getchu3OriginalUnrealLuaBridgeTests)
 
+  add_executable(Getchu3OriginalHealthBridgeTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/ae3_unreal_health_bridge_test.cpp")
+  target_include_directories(Getchu3OriginalHealthBridgeTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  target_link_libraries(Getchu3OriginalHealthBridgeTests
+    PRIVATE Getchu3OriginalLuaBridge)
+  add_test(NAME OriginalChangeHPSourceStateReadWrite
+    COMMAND Getchu3OriginalHealthBridgeTests)
+
   add_executable(Getchu3OriginalLuaStageBindingTests
     "${ORIGINAL_NATIVE_ROOT}/tests/lua_runtime_test.cpp"
     ${ORIGINAL_LUA_STAGE_SOURCES})
