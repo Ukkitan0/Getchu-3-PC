@@ -114,6 +114,50 @@ AE3_LUA_EXPORT int ae3_original_manager_init_step(
 AE3_LUA_EXPORT const char* ae3_original_manager_init_last_error(
     const Ae3OriginalManagerInitSession* session);
 
+/* Source recovered 0x57C7CC original route traversal. This is the real
+ * source actor's route control flow, not a newly invented path follower.
+ * Polygon IDs and 0x70-byte records belong to the source-decoded stage.
+ * UINT32_MAX is the original missing polygon sentinel at the host ABI.
+ * Calls to unavailable original 0x4C1B3C/0x57C8EC owner operations reject.
+ */
+typedef struct Ae3OriginalRouteSourceV1 {
+    const void* original_records70;
+    size_t original_record_count;
+    uint32_t actor_polygon_index;
+    uint32_t active_target_polygon_index;
+    const uint32_t* original_route_indices;
+    size_t original_route_count;
+    int original_has_multiple_polygons1c;
+} Ae3OriginalRouteSourceV1;
+typedef struct Ae3OriginalRouteCallsV1 {
+    void* user;
+    /* Genuine original projection must return a valid source polygon ID
+     * or UINT32_MAX for no hit; returning zero rejects the original call.
+     */
+    int (*original_project_4c1b3c)(void* user,
+        uint32_t source_actor_polygon, uint32_t* projected_polygon);
+    /* Genuine original 0x57C8EC target update, 1 only after performed. */
+    int (*original_apply_target_57c8ec)(void* user,
+        uint32_t target_polygon);
+} Ae3OriginalRouteCallsV1;
+typedef struct Ae3OriginalRouteResultV1 {
+    uint32_t active_target_polygon_index;
+    uint32_t original_targets_applied;
+    uint32_t original_projections_performed;
+    uint32_t original_following_indices;
+    int original_early_current_target_match;
+} Ae3OriginalRouteResultV1;
+/* Uses the same native session guard as source initializer, forbidding
+ * reentrant route operations and protecting real game manager ownership.
+ * On success, output reflects exact original 0x57C7CC branch behavior.
+ */
+AE3_LUA_EXPORT int ae3_original_actor_route_step(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalRouteSourceV1* original,
+    const Ae3OriginalRouteCallsV1* genuine_manager,
+    Ae3OriginalRouteResultV1* output);
+
+
 
 
 /* Every user string is copied into this library; callbacks must not keep the
