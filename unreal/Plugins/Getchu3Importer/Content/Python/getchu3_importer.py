@@ -111,38 +111,63 @@ def convert_original_models(source: Path, destination: Path, repo: Path,
     return outcome
 
 
+def _unreal_name(text: str) -> str:
+    """Deterministically sanitize a source package segment without losing identity."""
+    if not text or text in (".", ".."):
+        raise ValueError("Original source asset has an invalid Unreal name")
+    cleaned = "".join(
+        c if c.isascii() and (c.isalnum() or c == "_") else "_"
+        for c in text)
+    if not cleaned.strip("_") or len(cleaned) > 128:
+        raise ValueError(f"Original source asset name cannot safely map to Unreal: {text!r}")
+    return cleaned
+
+
+def _planned_imports(folder: Path, files: list[Path],
+                     destination: str) -> list[tuple[Path, Path, str, str]]:
+    """Check all source-to-package collisions BEFORE the first Unreal import."""
+    plans = []
+    packages = set()
+    for file in files:
+        if file.is_symlink() or not file.is_file():
+            raise ValueError(f"Source asset cannot be a symlink: {file}")
+        relative = file.relative_to(folder)
+        parent = [_unreal_name(part) for part in relative.parent.parts
+                  if part not in (".", "")]
+        target = destination + ("/" + "/".join(parent) if parent else "")
+        stem = _unreal_name(file.stem)
+        key = (target + "/" + stem).casefold()
+        if key in packages:
+            raise RuntimeError(
+                f"Original sources map to an identical Unreal package: {relative}")
+        packages.add(key)
+        plans.append((file, relative, target, stem))
+    return plans
+
+
 def import_assets_in_editor(folder: Path, ue: Any, suffix: str,
                             destination: str, *,
                             source_records: list[dict] | None = None) -> list[str]:
     files = sorted(p for p in folder.rglob("*") if p.is_file() and p.suffix.lower() == suffix)
     if not files and suffix == ".glb":
         raise RuntimeError("No converted original GLB files were found")
+    plans = _planned_imports(folder, files, destination)
     imported: list[str] = []
-    destinations: set[str] = set()
+    observed_objects: set[str] = set()
     manager = ue.AssetToolsHelpers.get_asset_tools()
-    progress = ue.ScopedSlowTask(len(files), "Importing original Ape Escape 3 assets") if hasattr(ue, "ScopedSlowTask") and files else None
+    progress = ue.ScopedSlowTask(len(plans), "Importing original Ape Escape 3 assets") if hasattr(ue, "ScopedSlowTask") and plans else None
     with (progress if progress is not None else nullcontext()):
         if progress is not None:
             progress.make_dialog(True)
-        for file in files:
+        for file, relative, target, clean_stem in plans:
             if progress is not None:
                 if progress.should_cancel():
                     raise InterruptedError("Original assets import cancelled; prior imported assets may remain")
-                progress.enter_progress_frame(1, f"Importing assets: {file.relative_to(folder)}")
-            relative = file.relative_to(folder)
-            # Unreal package segments are restricted; mapping is stable and case-preserving.
-            parts = ["".join(c if c.isascii() and (c.isalnum() or c == "_") else "_"
-                             for c in part) for part in relative.parent.parts if part not in (".", "")]
-            target = destination + ("/" + "/".join(parts) if parts else "")
-            clean_stem = "".join(c if c.isascii() and (c.isalnum() or c == "_") else "_"
-                                 for c in file.stem)
-            key = (target + "/" + clean_stem).casefold()
-            if key in destinations:
-                raise RuntimeError(f"Different original source models map to the same Unreal asset: {relative}")
-            destinations.add(key)
+                progress.enter_progress_frame(1, f"Importing assets: {relative}")
             task = ue.AssetImportTask()
             task.filename = str(file)
             task.destination_path = target
+            task.destination_name = clean_stem
             task.automated = True
             task.async_ = False
             task.replace_existing = True
@@ -152,6 +177,14 @@ def import_assets_in_editor(folder: Path, ue: Any, suffix: str,
             if not objects:
                 raise RuntimeError(f"Unreal failed to import original {suffix} {relative}")
             paths = [str(obj.get_path_name()) for obj in objects]
+            # Interchange may ignore task.destination_name. An actual returned
+            # UObject path is the only reliable import identity.
+            if len(paths) != len(set(p.casefold() for p in paths)):
+                raise RuntimeError(f"One original source generated duplicate Unreal objects: {relative}")
+            collisions = observed_objects.intersection(p.casefold() for p in paths)
+            if collisions:
+                raise RuntimeError(f"Distinct original sources produced the same Unreal object: {sorted(collisions)!r}")
+            observed_objects.update(p.casefold() for p in paths)
             imported.extend(paths)
             if source_records is not None:
                 source_records.append({"source_relative": relative.as_posix(),
