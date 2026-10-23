@@ -46,15 +46,15 @@ std::uint32_t originalManagerDispatch_57c620(
         }
     }
 
-    // 0x57C6AC..0x57C6CC: release +0x50 only when both the
-    // source resource exists AND $s3 (source dispatch result)
+    // 0x57C6AC..0x57C6CC: update original actor polygon through 0x30FFD0 only when both the
+    // source candidate exists AND $s3 (source dispatch result)
     // is nonzero. Original parent+0x04 is the first argument.
-    if (controller.originalPendingResource50 && dispatchResult!=0) {
+    if (controller.originalPendingPolygon50 && dispatchResult!=0) {
         calls.call_original_30ffd0(
-            controller.parent04,controller.originalPendingResource50);
-        controller.originalPendingResource50=nullptr;
+            controller.parent04,controller.originalPendingPolygon50);
+        controller.originalPendingPolygon50=nullptr;
     }
-    if (!controller.originalPendingResource50)
+    if (!controller.originalPendingPolygon50)
         return dispatchResult;
 
     // 0x57C6D0..0x57C6F8: the source reads these two globals
