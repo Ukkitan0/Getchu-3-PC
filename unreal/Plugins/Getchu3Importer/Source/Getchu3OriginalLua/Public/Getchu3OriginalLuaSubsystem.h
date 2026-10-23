@@ -30,11 +30,6 @@ public:
                                     UGetchu3OriginalManagerProvider* SourceManager);
 
     UFUNCTION(BlueprintCallable, Category="Ape Escape 3|Original Lua")
-    bool StartOriginalStage(const FString& OriginalLuaFilePath,
-                            const FString& OriginalSpawnTag,
-                            UGetchu3OriginalManagerProvider* SourceManager);
-
-    UFUNCTION(BlueprintCallable, Category="Ape Escape 3|Original Lua")
     void StopOriginalStage();
 
     UFUNCTION(BlueprintPure, Category="Ape Escape 3|Original Lua")
@@ -48,6 +43,12 @@ public:
     UGetchu3OriginalManagerProvider* GetOriginalManager() const { return Manager.Get(); }
 
 private:
+    // Internal only: unverified file paths must not be executable directly
+    // from Blueprint. Call StartImportedOriginalStage with the original ID.
+    bool StartOriginalStage(const FString& OriginalLuaFilePath,
+                            const FString& OriginalSpawnTag,
+                            UGetchu3OriginalManagerProvider* SourceManager);
+
     // The API is resolved by name from the native C ABI DLL at runtime.
     // Keep Unreal's STL ABI/allocator and the native Lua allocator separate.
     void* NativeLibrary = nullptr;
