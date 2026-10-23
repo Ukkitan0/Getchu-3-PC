@@ -35,7 +35,8 @@ OriginalMovementVU0ScalarResult_36f5f4 originalMovementVU0Scalars_36f5f4(
 // source float lanes. VF7 is zeroed by 0x36F668/0x36F66C PPACW
 // on original t5=0 before 0x36F674 QMTC2. The source branch
 // chooses A2 (large first squared distance) or (A1+A3)*0.5.
-// Original VF1/VF2/VF3/VF4 are returned as four raw float words.
+// Original VF1 through VF7 are returned as four raw 32-bit
+// lane words each. This preserves source VF5/VF6 and zero VF7.
 // This has a stricter input contract than the scalar-only helper:
 // all four VU lanes, including W, must be valid ordinary floats.
 struct OriginalMovementVU0VectorFrame_36f5f4 {
@@ -58,7 +59,7 @@ OriginalMovementVU0VectorFrame_36f5f4 originalMovementVU0VectorFrame_36f5f4(
 
 // Complete, source-bounded 0x57C148 -> 0x36F5F4 first-return
 // vector/scalar path on ordinary source EE float lanes. It preserves
-// original VF1/VF2/VF3/VF4 outputs and publishes only the four
+// original VF1 through VF7 outputs and publishes only the four
 // scratch words that 0x36F5F4 actually writes. Source stack bytes
 // not proven initialized remain UNKNOWN in sourceKnownBytes; the
 // retail 0x30C57C constructor must preserve this provenance.
