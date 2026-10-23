@@ -54,6 +54,8 @@ private:
     OriginalMovementPostStepContinuation_558030* postStepOwner_;
     std::optional<std::uint32_t> try_original_post_vector_557f54(
         std::uint32_t originalParentWord14);
-    std::optional<std::uint32_t> try_original_post_step_558030();
+    std::optional<std::uint32_t> try_original_post_step_558030(
+        std::uint32_t originalF20ResourceMetric,
+        std::uint32_t originalF21MovementReturn);
 };
 } // namespace ae3
