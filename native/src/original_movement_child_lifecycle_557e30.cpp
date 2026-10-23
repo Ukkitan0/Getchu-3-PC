@@ -1,4 +1,5 @@
 #include "ae3/original_movement_child_lifecycle_557e30.hpp"
+#include "ae3/original_movement_child_early_36f954.hpp"
 #include <stdexcept>
 #include <utility>
 
@@ -43,9 +44,20 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
     const auto flagC0=child_->originalByteAt(0xC0);
     if(!flagC0)
         throw std::logic_error("original 0x557E7C child +0xC0 is unknown");
-    (void)*flagC0;
+    // Genuine retail 0x557EB4 BNEZL branches to 0x557F34
+    // when +0xC0 is nonzero. Its delay slot loads child+0x09;
+    // that path still needs source movement/gameplay recovery.
+    if (*flagC0==std::byte{0}) {
+        // Retail 0x557EC8 JAL 0x36F954 with a0=child+0x10
+        // and 0x704B04 f12=2.0 in the JAL delay slot.
+        // When original 36F954 returns 1, 0x557ED0 BNEZ
+        // branches to the method epilogue; its delay slot sets
+        // v0=2. Real controller 0x3161B8 then owns deletion.
+        if(originalMovementChildTerminal36F954(*child_))
+            return 2u;
+    }
     throw std::logic_error(
-        "original 0x557E30 non-flag actor update requires unrecovered gameplay methods");
+        "original 0x557E30 nonterminal actor update requires unrecovered gameplay methods");
 }
 void OriginalMovementChildLifecycle_557e30::
 call_original_child_vtable1_delete(void* object) {
