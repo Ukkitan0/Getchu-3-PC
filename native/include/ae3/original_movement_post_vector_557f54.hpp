@@ -14,7 +14,10 @@ struct OriginalMovementPostVector_557f54 {
     std::array<std::uint32_t,4> originalVF1After;
     std::array<std::uint32_t,4> originalVF2After;
     std::uint32_t originalVU0Q;
-    std::uint32_t originalGprS3VF2X;
+    // Original 0x557F8C DMFC2 copies the entire VU0 VF2
+    // into the EE 128-bit GPR s3, not just its scalar X lane.
+    std::array<std::uint32_t,4> originalGprS3VF2;
+    std::uint32_t originalGprS3VF2X; // compatibility scalar view
     std::optional<std::uint32_t> originalSlot5EarlyStatus;
 };
 OriginalMovementPostVector_557f54 originalMovementPostVector_557f54(
