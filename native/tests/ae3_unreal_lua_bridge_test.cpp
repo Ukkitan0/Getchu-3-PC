@@ -41,6 +41,44 @@ Ae3LuaManagerV5 callbacks() {
 }
 }
 int main() {
+    // Original Player virtual[2], recovered VA 0x34A014. Must return genuine
+    // externally owned pointers, never synthesize actor components.
+    int nativeOwned[10]{};
+    Ae3OriginalPlayerResourcePointers resources{
+        &nativeOwned[0], &nativeOwned[1], &nativeOwned[2],
+        &nativeOwned[3], &nativeOwned[4], &nativeOwned[5],
+        &nativeOwned[6], &nativeOwned[7], &nativeOwned[8], &nativeOwned[9]
+    };
+    auto lookup = [&](const char* key, void* secondary) {
+        uint8_t original16[16]{};
+        const std::size_t len = std::strlen(key);
+        assert(len <= 16);
+        std::memcpy(original16, key, len);
+        return ae3_original_player_resource_lookup(
+            &resources, original16, secondary);
+    };
+    assert(lookup("player", nullptr) == &nativeOwned[0]);
+    assert(lookup("main_player", nullptr) == &nativeOwned[1]);
+    assert(lookup("item_chatcher", nullptr) == &nativeOwned[2]);
+    assert(lookup("force", nullptr) == &nativeOwned[3]);
+    assert(lookup("bar_interface", nullptr) == nullptr);
+    assert(lookup("bar_interface", &nativeOwned[0]) == &nativeOwned[4]);
+    assert(lookup("iZone", &nativeOwned[0]) == &nativeOwned[5]);
+    assert(lookup("iHanger", &nativeOwned[0]) == &nativeOwned[6]);
+    assert(lookup("iRope", &nativeOwned[0]) == &nativeOwned[7]);
+    assert(lookup("iDashBall", &nativeOwned[0]) == &nativeOwned[8]);
+    assert(lookup("iHeroSwitch", &nativeOwned[0]) == &nativeOwned[9]);
+    assert(lookup("Main_player", &nativeOwned[0]) == nullptr);
+    uint8_t changedKey[16]{};
+    std::memcpy(changedKey, "main_player", 11);
+    changedKey[15] = 1;
+    assert(ae3_original_player_resource_lookup(
+        &resources, changedKey, &nativeOwned[0]) == nullptr);
+    assert(ae3_original_player_resource_lookup(
+        nullptr, changedKey, &nativeOwned[0]) == nullptr);
+    assert(ae3_original_player_resource_lookup(
+        &resources, nullptr, &nativeOwned[0]) == nullptr);
+
     assert(ae3_lua_api_version() == AE3_LUA_BRIDGE_API_VERSION);
     assert(ae3_lua_create(nullptr) == nullptr);
     auto manager = callbacks();
