@@ -246,6 +246,9 @@ void checkRealOriginalTypeTwoRouteAndRng() {
         state,source,gameRng,calls);
     require(branch == OriginalManagerInitBranch_57bcb8::typeTwoTarget,
             "Original kind-2 actor route branch was not executed");
+    require(child.controller40.has_value() &&
+            std::memcmp(child.controller40->data(),&expected,16)==0,
+            "Original 0x57BED4 SQC2 +0x40 full128 publication missing");
     require(state.target50 == &polygons[1] &&
             same(state.target40,expected) &&
             child.word08 == 0x57c554 && child.word0c == 0 &&
