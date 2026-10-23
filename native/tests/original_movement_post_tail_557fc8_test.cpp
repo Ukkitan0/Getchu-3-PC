@@ -64,7 +64,7 @@ struct Owner:OriginalMovementPostTailOwner_557fc8 {
         return 0x880000u;
     }
     void call_original_314c44(
-        std::uint32_t a0,std::uint64_t a1,std::uint32_t a2) override {
+        std::uint64_t a0,std::uint64_t a1,std::uint32_t a2) override {
         assert(a0==0x880000u && a1==0x12345678450000ull && a2==2u);
         calls.emplace_back("314C44");
     }
