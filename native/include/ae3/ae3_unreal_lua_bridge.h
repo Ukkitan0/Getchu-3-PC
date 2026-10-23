@@ -281,9 +281,16 @@ typedef struct Ae3OriginalRouteSourceV3 {
 } Ae3OriginalRouteSourceV3;
 typedef struct Ae3OriginalRouteCallsV3 {
     void* user;
-    int (*commit_original_target_57c8ec)(
+    /* BEGIN, stage individual updates, COMMIT or ABORT as one actual
+     * actor-owner transaction. Manager must not expose partial updates.
+     * Missing transaction callbacks reject original actor route.
+     */
+    int (*begin_original_actor_update)(void* user);
+    int (*stage_original_target_57c8ec)(
         void* user, uint32_t original_polygon,
         uint64_t original_target_low64);
+    int (*commit_original_actor_update)(void* user);
+    void (*abort_original_actor_update)(void* user);
 } Ae3OriginalRouteCallsV3;
 AE3_LUA_EXPORT int ae3_original_actor_route_step_v3(
     Ae3OriginalManagerInitSession* session,
