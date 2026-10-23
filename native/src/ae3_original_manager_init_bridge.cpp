@@ -807,57 +807,56 @@ extern "C" int ae3_original_actor_target_57c8ec(
     return 1;
 }
 
-/* Direct original controller path:
- * 0x57C7CC route advance -> 0x4C1B3C ray -> 0x57C8EC target vector
- * -> genuine source actor owner commit. A tentative retail RNG belongs
- * to this invocation, and is committed only with the successful route.
+/* Fully recovered target/route path:
+ * original 0x57C7CC → 0x4C1B3C → 0x21BD3C → 0x21EE00
+ * + real 0x57C8EC 128-bit target (0x57C98C or 0x57CA68).
+ * Original controller update remains a real owner transaction.
  */
 struct OriginalRouteTargetOwnerV3 {
     Ae3OriginalManagerInitSession proposed;
     const Ae3OriginalRouteSourceV3& source;
     const Ae3OriginalRouteCallsV3& manager;
-    std::string reason;
+    std::uint32_t latestR;
     OriginalRouteTargetOwnerV3(
         const Ae3OriginalManagerInitSession& live,
         const Ae3OriginalRouteSourceV3& input,
-        const Ae3OriginalRouteCallsV3& owner)
-        : proposed(0),source(input),manager(owner) {
+        const Ae3OriginalRouteCallsV3& originalOwner)
+        :proposed(0),source(input),manager(originalOwner),
+         latestR(input.original_vu0_r_bits) {
         proposed.originalRandom=live.originalRandom;
     }
-    static int apply(void* opaque,uint32_t polygon,std::uint64_t* low64) {
-        auto& self=*static_cast<OriginalRouteTargetOwnerV3*>(opaque);
-        if (!low64 || polygon>=self.source.original.original.original_record_count) {
-            self.reason="original route target polygon outside original source owner";
-            return 0;
-        }
-        if (!self.source.original_polygon_point_counts) {
-            self.reason="original stage 0x1E descriptor vertex counts missing";
-            return 0;
-        }
-        const auto* buffer=static_cast<const std::byte*>(
-            self.source.original.original.original_records70);
-        Ae3OriginalActorTargetRequestV1 request{};
-        request.original_record70=buffer+polygon*0x70;
-        request.original_point_count=self.source.original_polygon_point_counts[polygon];
-        request.original_variant30=self.source.original_controller_variant30;
-        request.original_controller20=self.source.original_controller20;
-        Ae3OriginalActorTargetResultV1 computed{};
-        if (ae3_original_actor_target_57c8ec(
-                &self.proposed,&request,&computed)!=1) {
-            self.reason=ae3_original_manager_init_last_error(&self.proposed);
-            return 0;
-        }
-        // This callback must atomically update the REAL source Player/
-        // Monkey controller. A declined commit cannot publish RNG/output.
-        if (self.manager.stage_original_target_57c8ec(
-                self.manager.user,polygon,computed.original_low64)!=1) {
-            self.reason="real original 0x57C8EC actor owner refused staged target";
-            return 0;
-        }
-        *low64=computed.original_low64;
-        return 1;
+    std::pair<std::uint64_t,std::uint64_t> stage(uint32_t polygon) {
+        if (polygon>=source.original.original.original_record_count)
+            throw std::out_of_range("original actor target outside owner stage");
+        const auto* originalBytes=static_cast<const std::byte*>(
+            source.original.original.original_records70);
+        Ae3OriginalActorTargetRequestV2 request{};
+        request.original.original_record70=originalBytes+polygon*0x70;
+        request.original.original_point_count=
+            source.original_polygon_point_counts[polygon];
+        request.original.original_variant30=source.original_controller_variant30;
+        request.original.original_controller20=source.original_controller20;
+        request.original_owner14_vector40=source.original_owner14_vector40;
+        request.original_q_bits=source.original_q_bits;
+        request.original_vu0_r_bits=latestR;
+        request.original_fallback_operands_available=
+            source.original_fallback_operands_available;
+        Ae3OriginalActorTargetResultV2 calculated{};
+        if (ae3_original_actor_target_57c8ec_v2(
+                &proposed,&request,&calculated)!=1)
+            throw std::runtime_error(proposed.error.empty()
+                ? "original 0x57C8EC target unavailable" : proposed.error);
+        if (manager.stage_original_target_57c8ec(
+                manager.user,polygon,calculated.original_low64,
+                calculated.original_high64,
+                calculated.original_vu0_r_bits)!=1)
+            throw std::runtime_error(
+                "original 0x57C8EC actor owner refused staged full-width target");
+        latestR=calculated.original_vu0_r_bits;
+        return {calculated.original_low64,calculated.original_high64};
     }
 };
+
 extern "C" int ae3_original_actor_route_step_v3(
     Ae3OriginalManagerInitSession* session,
     const Ae3OriginalRouteSourceV3* source,
@@ -865,7 +864,7 @@ extern "C" int ae3_original_actor_route_step_v3(
     Ae3OriginalRouteResultV1* out) {
     if (!session) return 0;
     if (session->busy) {
-        session->error="reentrant original actor route v3 execution rejected";
+        session->error="reentrant original actor route v3 rejected";
         return 0;
     }
     if (!source || !manager || !out ||
@@ -873,74 +872,175 @@ extern "C" int ae3_original_actor_route_step_v3(
         !manager->stage_original_target_57c8ec ||
         !manager->commit_original_actor_update ||
         !manager->abort_original_actor_update ||
-        !source->original_polygon_point_counts ||
-        source->original.original.original_record_count==0 ||
-        source->original.original.original_record_count>8192) {
-        session->error="original actor route needs source geometry and atomic begin/stage/commit/abort owner";
+        !source->original_polygon_point_counts) {
+        session->error="original actor route requires real atomic game manager and source counts";
         return 0;
     }
-    // Guard even BEGIN/COMMIT/ABORT callbacks: the real game owner may
-    // synchronously request VM/stage teardown, but this native session
-    // must not be destroyed with a live ABI stack.
-    auto invokeGuarded=[&](auto&& action) -> int {
+    const auto& s=source->original.original;
+    if (s.original_record_count==0 || s.original_record_count>8192 ||
+        s.original_route_count>8192 || !s.original_records70 ||
+        (s.original_route_count&&!s.original_route_indices) ||
+        s.actor_polygon_index>=s.original_record_count ||
+        (s.active_target_polygon_index!=UINT32_MAX &&
+         s.active_target_polygon_index>=s.original_record_count) ||
+        !source->original.original_degree ||
+        !source->original.original_neighbor3 ||
+        !source->original.original_action_kind3 ||
+        source->original.original_max_recursions==0 ||
+        source->original.original_max_recursions>4096) {
+        session->error="original actor route has invalid owner polygon records/adjacency";
+        return 0;
+    }
+    // Shield the source session whenever calling external manager code.
+    auto guarded=[&](auto&& action) -> int {
         session->busy=true;
         try {
-            const int accepted=action();
+            const int answer=action();
             session->busy=false;
-            return accepted;
+            return answer;
         } catch (...) {
             session->busy=false;
             throw;
         }
     };
-    auto abortSafely=[&] {
+    auto abortSafely=[&]() {
         session->busy=true;
-        try {
-            manager->abort_original_actor_update(manager->user);
-        } catch (...) {
-            // C ABI owner callbacks should not throw; preserve original
-            // failure and prevent an exception from crossing this ABI.
-        }
+        try {manager->abort_original_actor_update(manager->user);}
+        catch (...) {} // preserve the original failure at the C ABI boundary
         session->busy=false;
     };
     bool began=false;
     try {
+        std::vector<ae3::OriginalSpatialRecord70> records(
+            s.original_record_count);
+        std::vector<ae3::OriginalPolygonLinks_21bd3c> links(
+            s.original_record_count);
+        const auto* originalBytes=
+            static_cast<const std::byte*>(s.original_records70);
+        for (std::size_t polygon=0;polygon<records.size();++polygon) {
+            std::memcpy(records[polygon].originalFields.data(),
+                originalBytes+polygon*0x70,0x70);
+            if (source->original_polygon_point_counts[polygon]<1 ||
+                source->original_polygon_point_counts[polygon]>3)
+                throw std::out_of_range(
+                    "original polygon 0x1E descriptor has invalid vertex count");
+            const auto degree=source->original.original_degree[polygon];
+            if (degree>3)
+                throw std::out_of_range("original polygon adjacency degree >3");
+            links[polygon].edgeCount=degree;
+            for (std::size_t edge=0;edge<degree;++edge) {
+                const auto i=polygon*3+edge;
+                const auto neighbor=source->original.original_neighbor3[i];
+                const auto kind=source->original.original_action_kind3[i];
+                if (neighbor>=records.size()||kind>2)
+                    throw std::out_of_range(
+                        "original actor adjacency has invalid neighbor/type");
+                links[polygon].edges[edge]={neighbor,kind};
+            }
+        }
+        const auto& a=source->original.original_incoming_a1;
+        const auto& b=source->original.original_controller40;
+        if (!std::isfinite(a.x)||!std::isfinite(a.y)||
+            !std::isfinite(a.z)||!std::isfinite(a.w)||
+            !std::isfinite(b.x)||!std::isfinite(b.y)||
+            !std::isfinite(b.z)||!std::isfinite(b.w))
+            throw std::invalid_argument("original route projection vectors invalid");
+
         OriginalRouteTargetOwnerV3 proposed(*session,*source,*manager);
-        began=true; // Even a failed Begin may have allocated owner state.
-        if (invokeGuarded([&] {
+        struct OriginalFullWidthRoute final :
+            ae3::OriginalActorRouteFollowerCalls_57c7cc {
+            std::span<const ae3::OriginalSpatialRecord70> records;
+            std::span<const ae3::OriginalPolygonLinks_21bd3c> links;
+            OriginalRouteTargetOwnerV3& owner;
+            ae3::OriginalVU0Vec4 rayStart,controller40;
+            std::optional<ae3::OriginalVU0Vec4> updatedProjectionA2;
+            std::uint32_t recursionLimit;
+            OriginalFullWidthRoute(
+                std::span<const ae3::OriginalSpatialRecord70> sourceRecords,
+                std::span<const ae3::OriginalPolygonLinks_21bd3c> sourceLinks,
+                OriginalRouteTargetOwnerV3& owner,
+                ae3::OriginalVU0Vec4 start,
+                ae3::OriginalVU0Vec4 originalController40,
+                std::uint32_t maximum)
+                :records(sourceRecords),links(sourceLinks),owner(owner),
+                 rayStart(start),controller40(originalController40),
+                 recursionLimit(maximum){}
+            std::uint32_t index(
+                const ae3::OriginalSpatialRecord70* sourcePolygon) const {
+                for (std::size_t i=0;i<records.size();++i)
+                    if (sourcePolygon==&records[i])
+                        return static_cast<std::uint32_t>(i);
+                throw std::invalid_argument(
+                    "original actor returned polygon outside its stage");
+            }
+            const ae3::OriginalSpatialRecord70* call_original_4c1b3c_project(
+                const ae3::OriginalSpatialRecord70* actor) override {
+                const auto& rayEnd=updatedProjectionA2
+                    ?*updatedProjectionA2:controller40;
+                const auto ray=ae3::originalPolygonRaycast_4c1b3c(
+                    records,links,index(actor),rayStart,rayEnd,recursionLimit);
+                return ray.originalTraversal.originalLastAcceptedPolygon;
+            }
+            void call_original_57c8ec_update_target(
+                const ae3::OriginalSpatialRecord70* target) override {
+                const auto [low,high]=owner.stage(index(target));
+                // Source 0x57C894 PCPYUD a2,zero,v0:
+                // the original QMFC2 UPPER 64 bits become VF.z/w.
+                // Do not use v0 low64 as a fictitious XY target.
+                updatedProjectionA2=ae3::OriginalVU0Vec4{
+                    0.0f,0.0f,
+                    std::bit_cast<float>(static_cast<std::uint32_t>(high)),
+                    std::bit_cast<float>(static_cast<std::uint32_t>(high>>32))
+                };
+                (void)low; // owner receives both genuine doublewords.
+            }
+        } math(records,links,proposed,
+               native(a),native(b),source->original.original_max_recursions);
+
+        began=true; // Even rejected Begin may have allocated owner state.
+        if (guarded([&]{
                 return manager->begin_original_actor_update(manager->user);
             })!=1)
-            throw std::runtime_error("original actor owner refused Begin");
-        Ae3OriginalRouteCallsV2 targetCallbacks{
-            &proposed,&OriginalRouteTargetOwnerV3::apply
+            throw std::runtime_error("original game actor owner refused Begin");
+
+        ae3::OriginalActorRouteFollowerState_57c7cc originalRoute{
+            records,
+            std::span<const std::uint32_t>(
+                s.original_route_indices,s.original_route_count),
+            &records[s.actor_polygon_index],
+            s.active_target_polygon_index==UINT32_MAX
+                ?nullptr:&records[s.active_target_polygon_index],
+            s.original_has_multiple_polygons1c!=0
         };
-        // The underlying recovered route routine may issue MANY target
-        // updates. It receives a TEMPORARY output; no caller-visible
-        // controller result is published until the owner commits them all.
-        Ae3OriginalRouteResultV1 proposedResult{};
-        const int succeeded=ae3_original_actor_route_step_v2(
-            session,&source->original,&targetCallbacks,&proposedResult);
-        if (succeeded!=1) {
-            const auto cause=session->error;
-            throw std::runtime_error(proposed.reason.empty() ? cause
-                : proposed.reason+"; "+cause);
-        }
-        if (invokeGuarded([&] {
+        // This executes the ACTUAL recovered original branch and callback
+        // order. The host's output is not touched until Commit completes.
+        const auto followed=ae3::originalActorAdvanceRoute_57c7cc(
+            originalRoute,math);
+        const Ae3OriginalRouteResultV1 result{
+            originalRoute.activePolygonAtController50
+                ?math.index(originalRoute.activePolygonAtController50)
+                :UINT32_MAX,
+            static_cast<std::uint32_t>(followed.sourceTargetsApplied),
+            static_cast<std::uint32_t>(followed.sourceProjectionsPerformed),
+            static_cast<std::uint32_t>(followed.followingRouteIndicesTested),
+            followed.returnedEarlyBecauseCurrentTargetMatched?1:0
+        };
+        if (guarded([&]{
                 return manager->commit_original_actor_update(manager->user);
             })!=1)
-            throw std::runtime_error("real original actor target owner rejected Commit");
+            throw std::runtime_error("original game actor owner refused Commit");
         began=false;
         session->originalRandom=std::move(proposed.proposed.originalRandom);
-        *out=proposedResult;
+        *out=result;
         session->error.clear();
         return 1;
-    } catch (const std::exception& ex) {
-        const std::string failure=ex.what();
+    } catch (const std::exception& e) {
+        const std::string failure=e.what();
         if (began) abortSafely();
         session->error=failure;
     } catch (...) {
         if (began) abortSafely();
-        session->error="original actor route v3 failed";
+        session->error="original native full-width actor route failed";
     }
     return 0;
 }
