@@ -21,10 +21,12 @@ public:
     // sign-extended value loaded by original 557E68 LW s4,parent+14.
     // Source 0x557F00: a0=parent+0x14, a1=317B9C result;
     // a2=0, a3=0, f12=0. Preserve return v0 status.
-    virtual std::uint32_t call_original_276b68(
+    // Retail 557F08 BEQZ tests the COMPLETE 64-bit EE v0, not
+    // only its low 32 bits. Genuine return may have high-only bits.
+    virtual std::uint64_t call_original_276b68(
         std::uint64_t originalParentWord14SignExtended,
         std::uint32_t originalResourceVA)=0;
-    // Called only if genuine 0x276B68 returned nonzero.
+    // Called only if genuine 0x276B68 returned nonzero in EE 64-bit v0.
     virtual void call_original_2767f4(
         std::uint64_t originalParentWord14SignExtended)=0;
     // Always called: original (a0=parent+0x14, a1=0,a2=0)
