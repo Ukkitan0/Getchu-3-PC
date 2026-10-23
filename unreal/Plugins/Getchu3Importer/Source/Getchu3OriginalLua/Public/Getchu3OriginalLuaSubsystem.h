@@ -29,6 +29,11 @@ public:
                                     const FString& OriginalSpawnTag,
                                     UGetchu3OriginalManagerProvider* SourceManager);
 
+    // Apply only the original ChangeHP routine to authentic player state.
+    // Fails until a real source-state provider can read AND atomically write.
+    UFUNCTION(BlueprintCallable, Category="Ape Escape 3|Original Player")
+    bool ApplyOriginalHealthDelta(float Delta, float& CommittedHealth);
+
     UFUNCTION(BlueprintCallable, Category="Ape Escape 3|Original Lua")
     void StopOriginalStage();
 
