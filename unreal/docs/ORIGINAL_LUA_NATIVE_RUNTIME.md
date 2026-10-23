@@ -497,47 +497,54 @@ All source paths are committed but these newly added C++ CTests have
 not been executed with the full real Lua/Unreal Windows build. There
 is no claim that the game is playable.
 
-## Genuine original 0x57C8EC target dispatch and atomic actor route (v3)
+## Genuine original full-width target 0x57C8EC + 0x57CA68 native VU0
 
-A new source-backed native C ABI exports the **recovered** portions of
-`0x57C8EC`:
+The native Unreal DLL now incorporates the exact fixed-instruction
+translations recovered on the specialist `parallel/vu0-physics` branch.
+The shared source files and native original actor pipeline were copied to
+`feature/unreal-native-import`; the specialist branch was not edited.
 
-- Original `0x21B788` inside-polygon eligibility with source `0x708A60`
-  margin; when it passes, original controller+0x20 low 64-bit bits
-  are forwarded exactly (the original `0x57C944` fast path).
-- Original `0x57C98C` weighted three-vertex target, reading exact
-  `0x70` record lanes and consuming the actual shared `0x36F3C0` EE
-  game RNG. Its original VU0 operations and source constants are already
-  native C++, not approximations.
-- The original `0x57CA68` candidate VU0 fallback is **not** recovered
-  completely and is always rejected, with no synthesized replacement.
+- Original `0x57C944` controller pass-through copies the complete
+  **128-bit QMFC2 value**, not just XY/lower64.
+- Original `0x57C98C` random triangle transforms **PCPYUD upper
+  doublewords**, so its actual target lives in the high 64 bits;
+  retaining the earlier low-only XY interpretation was incorrect.
+- The source `0x57CA68` fallback runs the six genuine native VU0
+  candidates, with owner+0x14->+0x40, controller+0x20, original
+  COP2 Q bits, VRINIT/VRXOR R state and the authentic seeded EE RNG.
+  The low doubleword is zero and the selected target occupies the
+  **high** doubleword in this branch.
+- Source `0x57C894 PCPYUD` builds the next projection operand
+  (0,0,Z,W) from the returned high64; source follow-up ray start
+  `0x57C88C` retains only incoming source Z/W.
 
-`ae3_original_actor_target_57c8ec` requires the source point count
-from the original `0x1E` polygon descriptor, the exact decoded original
-record, and the original controller+0x20 vector. It preserves the RNG
-and leaves output untouched when a required original dependency fails.
+The versioned `ae3_original_actor_target_57c8ec_v2` returns BOTH
+original doublewords and updated original VU0 R state. Its source
+input requires the decoded original 0x70 record and verified
+0x1E descriptor point count, full controller vector, and the genuine
+owner/Q/R fields for the fallback. It never invents those inputs.
 
-`ae3_original_actor_route_step_v3` integrates target computation
-**inside** recovered `0x57C7CC` route-following and native
-`0x4C1B3C` original polygon raycasting. The route can visit multiple
-original target polygons, therefore the real owning game manager must
-provide all four transaction callbacks: **Begin / Stage / Commit / Abort**.
-Each accepted source target is staged with its exact original low64
-result. The host's controller result and persistent source RNG are
-published only AFTER the entire original actor transaction commits.
-Rejected source math, missing owner, rejected Begin/Stage/Commit, invalid
-polygon count or unfinished fallback aborts the transaction, preserving
-the prior controller and RNG state. The manager is responsible for
-honoring this no-visible-partial-updates contract.
+The original low64-only `ae3_original_actor_target_57c8ec` interface
+remains for binary compatibility, but **fails if the true high64
+result is nonzero**, preventing a truncated steering vector from being
+reported as valid gameplay. Legacy `ae3_original_actor_route_step_v2`
+also retains its historical low64 callback contract and must not be
+used for accurate full-width target projection.
 
-New tests `OriginalActorTarget57C8ECNativeFastAndRandom` and
-`OriginalRoute57C7CCTarget57C8ECNativeCommit` exercise the original
-fast path, real source RNG reproducibility, rejected fallback, owner
-transaction failures, and exact results on repeated seeded calls.
-Both are now included in the one-click Windows CMake/CTest gate.
+`ae3_original_actor_route_step_v3` now performs the actual
+source `0x57C7CC` route and `0x4C1B3C` raycast together with the
+full-width native `0x57C8EC` target. It forwards both 64-bit halves
+AND the original VU0 R bits to a genuine actor-owner
+**Begin / Stage / Commit / Abort** transaction. It only publishes
+source controller output and updated seeded game RNG after the
+entire owner transaction commits. On missing source data, rejected
+manager operation or failed original math, its output and RNG remain
+unchanged and the owner transaction is aborted.
 
-**Status:** No genuine original Player/Monkey manager has yet supplied
-these transactional callbacks in Unreal, nor are the original
-`0x21B854` and `0x57CA68` math fully recovered. These C++ regression
-targets have not been built/run against genuine MSVC/Lua/Unreal 5.6
-in this environment. This is recovered engine logic, not a playable game.
+The original Unreal Player/Monkey manager does NOT yet supply these
+transactional callbacks, and original `0x21B854` projection plus the
+complete gameplay/tick/actor object ownership remain unfinished.
+The native target and route regressions were updated for correct
+full-128-bit behavior and are wired into the Windows test gate;
+**they have not yet run successfully with real MSVC/Lua/Unreal 5.6
+in this environment**. There is no playable build yet.
