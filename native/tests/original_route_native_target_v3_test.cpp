@@ -43,7 +43,7 @@ int main() {
     source.original.original_neighbor3=edges.data();
     source.original.original_action_kind3=kind.data();
     source.original.original_max_recursions=8;
-    source.original_incoming_a1={2,0,2,1};
+    source.original.original_incoming_a1={2,0,2,1};
     source.original.original_controller40={3,0,2,1};
     source.original_polygon_point_counts=actualPoints.data();
     source.original_controller20={2,0,2,1};
