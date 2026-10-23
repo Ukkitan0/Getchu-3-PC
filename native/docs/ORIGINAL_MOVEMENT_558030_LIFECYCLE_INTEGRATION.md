@@ -518,3 +518,48 @@ ownership, and `0x30C0A0 / 0x36FC28 / 0x314C44`
 actor-manager implementations remain outside this patch.
 The entire native Windows port and full CTest suite
 still have **not** been compiled/run.
+
+### Retail `0x276234` complete 128-bit parent-memory copy
+
+Direct disassembly of the now-verified owner-private ELF also
+recovered the entire **three-instruction** helper
+`0x276234..0x276240` (SHA-256
+`0f7121db3eab577e6cd5103201965a66f1a1d805730f691c4979b625e021c034`):
+
+- `0x276234 LQ t7,0(a1)` — load all 128 original EE bits
+- `0x276238 JR ra` — return to the original caller
+- `0x27623C SQ t7,0x40(a0)` — the JR **delay slot**
+  writes the complete 128-bit vector to original
+  guest-memory destination `a0+0x40`
+
+Original `0x30C0A0` calls this helper in **both** observed
+branches, from `0x30C114` and `0x30C14C`, with
+their respective live temporary vectors at original stack
+`+0x20` and `+0x30`. The translated
+`originalMovementVectorCopy_276234` keeps a full
+`std::array<uint32_t,4>` and full 64-bit EE guest
+effective address and asks the genuine owner to write that
+destination; it does not treat the guest address as a host
+pointer or replace the unknown vectors with synthetic data.
+The typed owner rejects unsupported unaligned source SQ
+destinations and propagates actual memory-owner errors.
+
+The committed standalone
+`native/tests/original_movement_vector_copy_276234_test.cpp`
+was compiled and executed as an **exact GitHub blob**
+with GCC and Clang, C++20 strict warnings and
+UndefinedBehaviorSanitizer. Both passed; the test covers
+full high register lanes, negative sign-extended addresses,
+64-bit EE address wrap, refusal of invalid alignment and
+real owner failure. The companion
+`native/tools/verify_original_movement_vector_copy_276234.py`
+can authenticate the private retail ELF SHA, source-window
+SHA, instruction-field semantics, both original
+`0x30C0A0` JAL sites and the registered CTest.
+
+**Remaining manager dependency:** this does not claim
+the entire original `0x30C0A0` actor function is translated.
+Its genuine calls to `0x317798` and `0x312E68`,
+different source branch work and original register
+side effects still require recovery before the native
+post-tail can dispense with `call_original_30c0a0`.
