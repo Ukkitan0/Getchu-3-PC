@@ -338,3 +338,37 @@ for missing native invoke owner, invalid name/VA, duplicate registration,
 built-in global collision, rejecting late registration after an incomplete
 retail chunk, and stage VM reset. Those tests are committed but have
 not yet been compiled against genuine Lua 5.0.3 or run under UE5.6 Win64.
+
+## Recovered original Player resource routing and actor-child lifecycle in native DLL
+
+The standalone native `Getchu3OriginalLuaBridge` target now compiles the
+actual decompiled `original_player_factory.cpp` and
+`original_manager_child.cpp` source files directly alongside `LuaStage`.
+These are **original game logic**, not invented Unreal components.
+
+The exported `ae3_original_player_resource_lookup` calls the recovered
+retail `originalPlayerResourceLookup_34a014` routine. It compares the
+entire **16-byte** zero-padded original name and returns the borrowed
+original source-owned subobject pointer. Source names include `player`,
+`main_player`, `item_chatcher` (original spelling), `force`, and
+six further resources behind the original secondary-factory presence
+check (`bar_interface`, `iZone`, `iHanger`, `iRope`, `iDashBall`,
+`iHeroSwitch`). A missing original resource or gated factory yields
+`nullptr`. The bridge never creates a generic Unreal player or returns
+a fabricated resource. Supplying authentic source-owned pointers remains
+the responsibility of the future original Player manager.
+
+The already-recovered manager-child source implements original constructor
+and vtable-dispatch functions `0x57BA98`, `0x57BAF8`, `0x57BC0C`,
+`0x57BC54`, `0x57BC88`, and destruction routines. Their original
+`0x57BCB8` navigation initializer still needs the genuine actor/stage
+ownership, original geometry, and route callback implementation: this is
+not yet a functioning actor-spawn factory or game update loop.
+
+Two source-backed CTests — `OriginalPlayerResourceVirtual2` and
+`OriginalManagerChildCtorLifecycle` — now compile the actual original
+routines, exercise pointer routing, original flag checks, child virtual
+calls and destructor ordering, and are part of `BuildAndOpen.bat`.
+A separate C ABI regression verifies the public Player lookup wrapper's
+exact 16-byte matching and secondary-factory gate. **These new Win64
+CTests have not been executed in this environment.**
