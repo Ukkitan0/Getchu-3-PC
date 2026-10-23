@@ -365,6 +365,27 @@ AE3_LUA_EXPORT int ae3_original_stage_spatial_pending_actions(
     size_t output_capacity,
     size_t* out_count);
 
+/* Exact 0x21D46C constructed 0x70-byte spatial record snapshot.
+ * Each record's +0x30 source header identity, +0x40..+0x6F VU0
+ * vertices, and owner fields remain unchanged bytes from the native
+ * recovered stage loader. Header metadata is the verified original
+ * descriptor VA / +0x16 source point count, not guessed geometry.
+ * All copies are by VALUE: nothing may retain native session pointers.
+ */
+typedef struct Ae3OriginalStageSpatialRecordV1 {
+    uint8_t original_record70[0x70];
+    uint32_t original_header_va;
+    uint16_t original_point_count;
+    uint16_t reserved;
+} Ae3OriginalStageSpatialRecordV1;
+AE3_LUA_EXPORT int ae3_original_stage_spatial_record_count(
+    Ae3OriginalManagerInitSession* session,
+    size_t* out_count);
+AE3_LUA_EXPORT int ae3_original_stage_spatial_record_copy(
+    Ae3OriginalManagerInitSession* session,
+    uint32_t original_record_index,
+    Ae3OriginalStageSpatialRecordV1* output);
+
 /* Legacy LOW64-only view of original 0x57C8EC target dispatch.
  * Genuine 0x21B788 eligibility, 0x57C98C three-vertex random blend,
  * persistent 0x36F3C0 RNG, and 0x57CA68 fallback VU0 transformations
