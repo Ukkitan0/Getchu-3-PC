@@ -261,6 +261,19 @@ if(BUILD_TESTING)
   add_test(NAME OriginalMovementVectorScratchChildChain
     COMMAND Getchu3OriginalMovementVectorChildChainTests)
 
+  # Complete source-bounded first-return path with ALL real
+  # VF outputs + exact scratch write provenance, then retail
+  # 0x30C57C child copy preserving uninitialized source bytes.
+  add_executable(Getchu3OriginalMovementFirstReturnKnownTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_first_return_provenance_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_vu0_scalar_36f5f4.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_scratch_tail_36f6a8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp")
+  target_include_directories(Getchu3OriginalMovementFirstReturnKnownTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementFirstReturnScratchProvenance
+    COMMAND Getchu3OriginalMovementFirstReturnKnownTests)
+
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
   # source actor child callbacks; never invent missing movements.
