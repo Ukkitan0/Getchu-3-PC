@@ -12,6 +12,7 @@ int rejectParams(void*, const char*) { return 0; }
 int acceptEntity(void*, const char*, const char*, const char*,
                  const char*, const char*) { return 1; }
 int acceptParams(void*, const char*) { return 1; }
+int rejectOriginalVoid(void*, uint32_t, const char*, const char*) { return 0; }
 int rejectPackedProgress(void*, void*, size_t) { return 0; }
 int acceptTestPackedProgress(void*, void* destination, size_t bytes) {
     if (!destination || bytes != 1033) return 0;
@@ -54,6 +55,31 @@ int main() {
     manager = callbacks();
     manager.submit_parameters = nullptr;
     assert(ae3_lua_create(&manager) == nullptr);
+
+    manager = callbacks();
+    // Missing a verified original native implementation must never
+    // turn a source Lua global into an accepting synthetic no-op.
+    auto* absentOriginal = ae3_lua_create(&manager);
+    assert(absentOriginal != nullptr);
+    assert(!ae3_lua_register_original_void(
+        absentOriginal, "enlarge_se_range", 0x00512000u));
+    assert(ae3_lua_destroy(absentOriginal) == 1);
+
+    manager.invoke_original_void = rejectOriginalVoid;
+    auto* registration = ae3_lua_create(&manager);
+    assert(registration != nullptr);
+    assert(!ae3_lua_register_original_void(registration, nullptr, 0x00512000u));
+    assert(!ae3_lua_register_original_void(registration, "", 0x00512000u));
+    assert(!ae3_lua_register_original_void(registration, "1bad", 0x00512000u));
+    assert(!ae3_lua_register_original_void(registration, "bad-name", 0x00512000u));
+    assert(!ae3_lua_register_original_void(registration, "original_void", 0u));
+    assert(!ae3_lua_register_original_void(registration, "original_void", 5u));
+    assert(!ae3_lua_register_original_void(registration, "new_ent", 0x00512000u));
+    assert(ae3_lua_register_original_void(
+        registration, "original_void", 0x00512000u));
+    assert(!ae3_lua_register_original_void(
+        registration, "original_void", 0x00512000u));
+    assert(ae3_lua_destroy(registration) == 1);
 
     manager = callbacks();
     auto* runtime = ae3_lua_create(&manager);
