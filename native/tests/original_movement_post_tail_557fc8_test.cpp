@@ -191,5 +191,20 @@ int main() {
         {raw(2),raw(4),std::nullopt},o)==0u);
     assert(o.calls==std::vector<std::string>({
         "30C0A0","276538","6354e7","parent1c","314C44"}));
+    // A raw zero-extended high-bit s4 is not produced by
+    // 557E68 LW. Even if original mode+8 bypasses 557F90
+    // tagged-pointer check, original 557FF0 must not receive it.
+    // Refuse before calling 30C0A0 or touching any child flags.
+    o.calls.clear();
+    c=makeChild(0.5f,3u,1.0f,true,0);
+    source=originalMovementPostVector_557f54(*c,0xffffffff81234000ull);
+    refused=false;
+    try{(void)originalMovementPostTail_557fc8(
+        *c,0x01FFF020u,0x81234000ull,source,
+        {raw(2),raw(4),std::nullopt},o);}
+    catch(const std::invalid_argument&){refused=true;}
+    assert(refused && o.calls.empty() &&
+           c->originalWordAt(0xB8)==3u);
+
     std::cout<<"ORIGINAL_POST_TAIL_557FC8_TO_558030_PASSED\n";
 }
