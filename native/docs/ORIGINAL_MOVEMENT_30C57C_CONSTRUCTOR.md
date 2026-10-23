@@ -90,3 +90,31 @@ still require source-backed recovery.
 
 No proprietary ELF, ISO, or original game resources
 have been committed in this change.
+
+
+## Data provenance and source child update recovery
+
+The original first-return `0x36F5F4` routine actually writes
+only source scratch **`+0xA0..+0xAF`**. It does not magically
+initialize the entire `0xB0` bytes later copied by
+`0x30C57C`. The source-exact native API now carries a
+`std::bitset<0x110>` initialized-byte mask from
+`originalMovementVU0FirstReturn_36f5f4` to the overloaded
+`originalMovementChildCreate_30c57c`.
+The constructor retains genuine source bytes and explicitly
+withholds unknown copied bytes from callers. An unknown
+source word cannot be read as a fake zero.
+
+A separate original machine-code audit identified actual
+new child vtable at **0x6B0B20**: its deleting
+destructor slot1 is **0x556A0C** and child-update
+slot5 is **0x557E30**. A new native owner recovers the
+flag-driven status-one completion and genuine deletion chain
+through `0x316174` and `0x3161B8`. It preserves
+the source parent `+0x14` delay-slot load. The regular
+per-frame `0x557EB4+` gameplay path remains unrecovered
+and explicitly fails rather than claiming an update.
+
+See `native/docs/ORIGINAL_MOVEMENT_CHILD_557E30_LIFECYCLE.md`
+and CTests `OriginalMovementFirstReturnScratchProvenance`
+and `OriginalMovementChildLifecycle557E30`.
