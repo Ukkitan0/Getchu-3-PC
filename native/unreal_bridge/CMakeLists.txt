@@ -62,6 +62,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   # lookup, type-2 target, exact source RNG / VU0 and 0x70 polygon views.
   # These are real recovered original functions, not actor substitutes.
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_initializer.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_actor_route_follower.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_nav_route.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_type2_target.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_random_triangle.cpp"
@@ -136,6 +137,17 @@ if(BUILD_TESTING)
     PRIVATE Getchu3OriginalLuaBridge)
   add_test(NAME OriginalManagerInitializerHostAbi
     COMMAND Getchu3OriginalManagerHostAbiTests)
+
+  # Test the actual original 0x57C7CC route-selection control flow
+  # through both its native API and source-recovered implementation.
+  add_executable(Getchu3OriginalActorRouteHostAbiTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_actor_unreal_route_abi_test.cpp")
+  target_include_directories(Getchu3OriginalActorRouteHostAbiTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  target_link_libraries(Getchu3OriginalActorRouteHostAbiTests
+    PRIVATE Getchu3OriginalLuaBridge)
+  add_test(NAME OriginalActorRoute57C7CCHostAbi
+    COMMAND Getchu3OriginalActorRouteHostAbiTests)
 
   add_executable(Getchu3OriginalHealthBridgeTests
     "${ORIGINAL_NATIVE_ROOT}/tests/ae3_unreal_health_bridge_test.cpp")
