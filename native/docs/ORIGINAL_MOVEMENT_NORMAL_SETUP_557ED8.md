@@ -57,9 +57,12 @@ operations and their order:
 1. Read source child mode byte at **`+0x09`** (`0x557EE0`).
 2. Set original child status at **`+0xB4=0`**
    (`0x557EE4`).
-3. Invoke completely recovered **`0x317B9C`**, with its
-   original `0x557EEC` JAL delay slot setting
-   original child **`+0xB8=0`**.
+3. Original `0x557EE8 JAL` executes its
+   `0x557EEC` delay slot to set original child
+   **`+0xB8=0`**, **before** the callee
+   `0x317B9C` reads parent resource fields.
+   The now-complete native `0x317B9C` selects the genuine
+   resource using that source-accurate ordering.
 4. Call genuine **`0x276B68`** using original parent
    `+0x14` and the selected resource guest VA,
    `a2=0`, `a3=0`, `f12=0`.
@@ -127,3 +130,20 @@ unverified. The next game-critical functions include original
 `0x36FB18` movement integration after the resource metric.
 Player/Monkey manager ownership, full stage animation,
 renderer and a playable native game are still outstanding.
+
+### Original delay-slot order regression
+
+The initial typed native interface fetched original parent resource
+fields too early, before `0x557EE4`/`0x557EEC` reset
+the child status fields. This was corrected in the source
+`originalMovementNormalBegin_557ed8` API: it now
+reads source child mode **first**, clears original
+`+0xB4/+0xB8`, and only then invokes the genuine parent
+resource callback (the body of JAL `0x317B9C`).
+
+The regression's actual source parent callback asserts both
+child reset fields are zero when it is invoked, including
+when an original route/collision callback subsequently fails.
+The previous two-argument child lifecycle constructor remains
+source-compatible, with an optional genuine normal owner as
+the third argument.
