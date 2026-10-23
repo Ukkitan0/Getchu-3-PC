@@ -108,13 +108,23 @@ struct RecoveredRouteCalls {
     int projected=0;
     bool acceptTarget=true;
     uint32_t expectedTarget=0;
+    uint32_t* mutableRoute=nullptr;
+    uint8_t* mutableNavigation=nullptr;
 };
-int recoveredProject21b854(void*, const void* polygon,
+int recoveredProject21b854(void* opaque, const void* polygon,
                            const Ae3OriginalVec4* from,
                            const Ae3OriginalVec4* to,
                            Ae3OriginalVec4* projected) {
     assert(polygon && from && to && projected);
     assert(from->x==1 && from->y==2 && to->x==26 && to->y==52);
+    if (opaque) {
+        auto& owner=*static_cast<RecoveredRouteCalls*>(opaque);
+        if (owner.mutableRoute) {
+            assert(owner.mutableNavigation);
+            owner.mutableRoute[1]=99;
+            owner.mutableNavigation[0x80+4]=99;
+        }
+    }
     *projected={30,40,50,60};
     return 1;
 }
@@ -206,6 +216,11 @@ void verifyRecoveredRouteFollowerMultiPolygonBranchInInitializer() {
         &owner,recoveredProject21b854,
         recoveredProjection4c1b3c,recoveredApply57c8ec
     };
+    // Mutate the borrower's stage bytes inside 0x21B854. Genuine
+    // 0x57C7CC must still consume the pre-callback route snapshot,
+    // not the now-corrupted 99 index.
+    owner.mutableRoute=route.data();
+    owner.mutableNavigation=navigation.data();
     // Control flow: 0x57BCB8 checks action kind 0, performs original
     // projection and calls source 0x57C7CC. No invented route selector:
     // original 0x57C7CC adopts source route[1] then invokes 0x57C8EC.
@@ -213,7 +228,10 @@ void verifyRecoveredRouteFollowerMultiPolygonBranchInInitializer() {
         session,&source,&state,&hooks)==3);
     assert(state.target_polygon_index==1 &&
            state.source_method08==0x57bf5c &&
-           owner.targetUpdates==1 && owner.projected==0);
+           owner.targetUpdates==1 && owner.projected==0 &&
+           route[1]==99 && navigation[0x80+4]==99);
+    owner.mutableRoute=nullptr;
+    owner.mutableNavigation=nullptr;
     // Missing original route[1] must abort without publishing any state.
     route[1]=99;
     const auto before=state;
