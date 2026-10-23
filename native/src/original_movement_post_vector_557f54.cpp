@@ -77,7 +77,8 @@ OriginalMovementPostVector_557f54 originalMovementPostVector_557f54(
     }
     // Source 557F88 BEQZ child+8, unconditional delay slot
     // 557F8C DMFC2 s3,VF2.x.
-    result.originalGprS3VF2X=result.originalVF2After[0];
+    result.originalGprS3VF2=result.originalVF2After;
+    result.originalGprS3VF2X=result.originalGprS3VF2[0];
     const auto mode8=child.originalByteAt(8);
     if(!mode8)
         throw std::logic_error("original 0x30C57C child mode+8 unknown");
