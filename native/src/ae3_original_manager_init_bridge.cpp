@@ -233,8 +233,13 @@ static int originalManagerInitImpl(
         ae3::OriginalManagerInitCalls_57bcb8& calls = sourceCallbacks
             ? static_cast<ae3::OriginalManagerInitCalls_57bcb8&>(recoveredRouteCalls)
             : static_cast<ae3::OriginalManagerInitCalls_57bcb8&>(oldCalls);
+        // Preserve original global RNG behavior on successful calls, but
+        // do not consume any original random numbers if owner input or a
+        // recovered branch throws before the controller state commits.
+        // The native stage transaction owns this atomicity boundary.
+        auto tentativeRng = session->originalRandom;
         const auto branch = ae3::originalManagerInitialize_57bcb8(
-            sourceState,stage,session->originalRandom,calls);
+            sourceState,stage,tentativeRng,calls);
         // No manager state is published until original computation succeeded.
         Ae3OriginalManagerInitStateV1 completed = initial;
         completed.source_method08 = child.word08;
@@ -251,6 +256,7 @@ static int originalManagerInitImpl(
             completed.target_polygon_index =
                 static_cast<uint32_t>(sourceState.target50-first);
         }
+        session->originalRandom = std::move(tentativeRng);
         *state = completed;
         // A callback can correctly try (and fail) to destroy its live
         // session. That rejection must not leave a stale last_error on
