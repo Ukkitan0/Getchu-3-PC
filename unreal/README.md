@@ -316,10 +316,12 @@ owner-decoded 0x70-byte polygon registry and graph adjacency, and a
 **route follower v2** that uses that projection while running the
 original `0x57C7CC` route controller.
 
-The native route path retains the original incoming A1,
-controller+0x40 first projection vector, and the subsequently returned
-low-64-bit target vector from original `0x57C8EC` (the high 64 bits
-are zeroed, as in the recovered controller). It executes original
+The original route path retains the incoming A1 and
+controller+0x40 first projection vector. The historical v2 ABI
+transports low64 only and must NOT be used for authentic full-width
+target steering. The newer v3 ABI preserves both original 64-bit
+doublewords (the actual QMFC2 result), and source `0x57C894`
+forwards the HIGH 64 bits into subsequent projection Z/W lanes. It executes original
 edge clipping, neighbor recursion and route comparisons rather than
 an Unreal line trace or an invented collision policy. A source owner
 must provide the actual spatial records, adjacency and remaining
@@ -337,3 +339,30 @@ has been executed inside Unreal 5.6 in this environment**. The
 original player/monkey object manager, `0x21B854` and the complete
 `0x57C8EC` target-update implementation remain incomplete.
 The game is still not playable.
+
+## Full original 0x57C8EC / 0x57CA68 VU0 actor target now recovered
+
+The previously missing `0x57CA68` six-candidate fixed VU0 transform
+has now been integrated from `parallel/vu0-physics` into the Unreal
+native DLL, together with the specialist's corrected full-128-bit
+`0x57C8EC`, `0x57C98C`, `0x57C894` and follow-up ray semantics.
+
+The original triangle and fallback target coordinates live in the
+**UPPER 64** source bits, not fabricated XY coordinates. The old
+low64-only target ABI explicitly rejects nonzero upper values rather
+than claiming a valid movement result. The versioned target ABI v2
+preserves both halves and caller-owned original Q/R state.
+
+Original actor route v3 now executes source `0x57C7CC` and
+`0x4C1B3C`, computes source `0x57C8EC` targets (including the
+native VU0 fallback given genuine actor inputs), and stages the
+complete 128-bit result plus R state through the real actor manager's
+Begin/Stage/Commit/Abort contract. The original seeded game RNG and
+route output are published ONLY after the owner transaction commits.
+
+These changes are source-recovered engine implementation, not a
+simulated movement system. The tests are committed into the Windows
+CMake/CTest gates, but real MSVC/Unreal execution remains unverified.
+The original Player/Monkey owner, original `0x21B854`, stage lifecycle
+and complete game update loop are not yet integrated; the game is
+still not playable.
