@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <bitset>
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -46,6 +47,19 @@ struct OriginalMovementVU0VectorFrame_36f5f4 {
     bool originalFirstLengthUnderOne;
 };
 OriginalMovementVU0VectorFrame_36f5f4 originalMovementVU0VectorFrame_36f5f4(
+    const OriginalMovementVU0ScalarSource_36f5f4& genuineSource);
+
+// Complete, source-bounded 0x57C148 -> 0x36F5F4 first-return
+// vector/scalar path on ordinary source EE float lanes. It preserves
+// original VF1/VF2/VF3/VF4 outputs and publishes only the four
+// scratch words that 0x36F5F4 actually writes. Source stack bytes
+// not proven initialized remain UNKNOWN in sourceKnownBytes; the
+// retail 0x30C57C constructor must preserve this provenance.
+OriginalMovementVU0VectorFrame_36f5f4
+originalMovementVU0FirstReturn_36f5f4(
+    std::span<std::byte,0x110> sourceScratch,
+    std::bitset<0x110>& sourceKnownBytes,
+    std::uint64_t originalGuestStackA0,
     const OriginalMovementVU0ScalarSource_36f5f4& genuineSource);
 
 // Source callsite 0x57C148, end-to-end supported scalar subpath:
