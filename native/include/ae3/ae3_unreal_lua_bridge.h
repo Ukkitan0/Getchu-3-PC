@@ -26,7 +26,7 @@
 extern "C" {
 #endif
 
-#define AE3_LUA_BRIDGE_API_VERSION 3u
+#define AE3_LUA_BRIDGE_API_VERSION 4u
 
 typedef struct Ae3LuaRuntime Ae3LuaRuntime;
 
@@ -46,7 +46,7 @@ typedef struct Ae3LuaRuntime Ae3LuaRuntime;
  * This is not a guessed gameplay schema. No source bytes are lost by Unicode
  * transcoding, embedded NUL, or JSON key normalization.
  */
-typedef struct Ae3LuaManagerV3 {
+typedef struct Ae3LuaManagerV4 {
     uint32_t api_version;
     uint32_t struct_size;
     void* user;
@@ -64,7 +64,12 @@ typedef struct Ae3LuaManagerV3 {
     int (*select_weapon)(void*, int original_selection);
     /* Returns 1 only when 1033 original source bytes were provided. */
     int (*read_original_player_progress)(void*, void* destination, size_t exact_size);
-} Ae3LuaManagerV3;
+    /* 1033 bytes; manager MUST atomically commit source-backed player state.
+     * Return 0 if player manager/write ownership is missing or cannot commit.
+     * The native bridge will NEVER synthesize or cache a successful write.
+     */
+    int (*write_original_player_progress)(void*, const void* source, size_t exact_size);
+} Ae3LuaManagerV4;
 
 /* All API functions return 1 on success, 0 on failure.
  * On failure ae3_lua_last_error provides the error text while the handle
@@ -72,7 +77,7 @@ typedef struct Ae3LuaManagerV3 {
  * and must run on the Unreal game thread. Callbacks MUST NOT re-enter.
  */
 AE3_LUA_EXPORT uint32_t ae3_lua_api_version(void);
-AE3_LUA_EXPORT Ae3LuaRuntime* ae3_lua_create(const Ae3LuaManagerV3* manager);
+AE3_LUA_EXPORT Ae3LuaRuntime* ae3_lua_create(const Ae3LuaManagerV4* manager);
 /* Returns 0 without destroying if Lua or a manager callback is executing.
  * Callers MUST NOT unload the host DLL or discard the handle after 0.
  */
@@ -83,6 +88,13 @@ AE3_LUA_EXPORT int ae3_lua_execute_original_chunk(
     const char* original_chunk_path);
 AE3_LUA_EXPORT int ae3_lua_setup_area(Ae3LuaRuntime* runtime,
                                        const char* original_spawn_tag);
+/* Native port of the original ChangeHP delta-and-clamp routine.
+ * Reuses recovered 1033-byte PlayerProgress and refuses mutations unless
+ * the real host provides both read and atomic write managers. On success,
+ * out_health is the committed original player_life, not a simulated value.
+ */
+AE3_LUA_EXPORT int ae3_lua_apply_original_health_delta(
+    Ae3LuaRuntime* runtime, float delta, float* out_health);
 AE3_LUA_EXPORT const char* ae3_lua_last_error(const Ae3LuaRuntime* runtime);
 AE3_LUA_EXPORT size_t ae3_lua_declared_entity_count(const Ae3LuaRuntime* runtime);
 AE3_LUA_EXPORT size_t ae3_lua_parameter_count(const Ae3LuaRuntime* runtime);
