@@ -10,6 +10,10 @@
 
 struct OriginalOwner {
     Ae3OriginalManagerInitSession* activeSession=nullptr;
+    const Ae3OriginalRouteSourceV3* activeSource=nullptr;
+    const Ae3OriginalRouteCallsV3* activeCallbacks=nullptr;
+    Ae3OriginalRouteResultV1* activeOutput=nullptr;
+    int nestedRouteAttempt=-1;
     int destroyDuringBegin=-1,destroyDuringStage=-1,
         destroyDuringCommit=-1,destroyDuringAbort=-1;
     bool allowBegin=true,allowStage=true,allowCommit=true;
@@ -47,6 +51,11 @@ int stage(void* opaque,uint32_t polygon,uint64_t low,uint64_t high,uint32_t r) {
     if (owner.activeSession)
         owner.destroyDuringStage=ae3_original_manager_init_destroy(
             owner.activeSession);
+    if (owner.activeSession && owner.activeSource &&
+        owner.activeCallbacks && owner.activeOutput)
+        owner.nestedRouteAttempt=ae3_original_actor_route_step_v3(
+            owner.activeSession,owner.activeSource,
+            owner.activeCallbacks,owner.activeOutput);
     if(!owner.allowStage)return 0;
     owner.pendingLow=low;
     owner.pendingHigh=high;
@@ -114,6 +123,9 @@ int main() {
     Ae3OriginalRouteCallsV3 control{&other,begin,stage,commit,abort};
     Ae3OriginalRouteResultV1 result{};
     result.active_target_polygon_index=UINT32_MAX;
+    owner.activeSource=&source;
+    owner.activeCallbacks=&callbacks;
+    owner.activeOutput=&result;
 
     // Genuine original 0x57C7CC + 0x57C8EC fast path.
     assert(ae3_original_actor_route_step_v3(a,&source,&callbacks,&result)==1);
@@ -122,7 +134,8 @@ int main() {
            owner.commits==1 && !owner.inTransaction);
     assert(owner.destroyDuringBegin==0 &&
            owner.destroyDuringStage==0 &&
-           owner.destroyDuringCommit==0);
+           owner.destroyDuringCommit==0 &&
+           owner.nestedRouteAttempt==0);
     const std::array<float,2> xy{2,0},zw{2,1};
     uint64_t expectedLow=0,expectedHigh=0;
     std::memcpy(&expectedLow,xy.data(),8);
