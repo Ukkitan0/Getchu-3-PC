@@ -134,6 +134,32 @@ AE3_LUA_EXPORT int ae3_original_manager_init_step_v2(
 AE3_LUA_EXPORT const char* ae3_original_manager_init_last_error(
     const Ae3OriginalManagerInitSession* session);
 
+/* Recovered original 0x57C8EC controller target-vector dispatch.
+ * Variant !=0: original 0x21B788 polygon eligibility and source low64
+ * controller pass-through, only if polygon accepts source point.
+ * Variant ==0: original 0x57C98C three-vertex VU0 weighted random
+ * selection using the PERSISTENT source 0x36F3C0 game RNG.
+ * The unrecovered 0x57CA68 fallback VU0 transform is rejected.
+ * point_count comes from genuine original 0x1E-byte stage descriptor;
+ * 0x70 record bytes must come from the original 0x21D46C stage loader.
+ * A successful result owns ONLY original $v0 low64 bits.
+ */
+typedef struct Ae3OriginalActorTargetRequestV1 {
+    const void* original_record70;
+    uint16_t original_point_count;
+    uint16_t reserved;
+    int original_variant30;
+    Ae3OriginalVec4 original_controller20;
+} Ae3OriginalActorTargetRequestV1;
+typedef struct Ae3OriginalActorTargetResultV1 {
+    uint64_t original_low64;
+    int original_branch; /* 1 = passthrough, 2 = triangle random. */
+} Ae3OriginalActorTargetResultV1;
+AE3_LUA_EXPORT int ae3_original_actor_target_57c8ec(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalActorTargetRequestV1* source,
+    Ae3OriginalActorTargetResultV1* out);
+
 /* Fully recovered original polygon projection chain:
  * 0x4C1B3C ray preparation -> 0x21BD3C traversal -> 0x21EE00 edge clip.
  * Original stage loader must provide 0x70-byte decoded records AND their
