@@ -27,6 +27,7 @@ struct Owner final:OriginalMovementParentRead_557e30,
     int setups=0,regenerations=0,moves=0,post=0;
     bool failPost=false,allowPostStep=false,failSource314c44=false;
     bool allowFlag0=true,failFlag0=false;
+    bool wrongMetricF20=false,wrongMovementF21=false;
     int postStepReads=0,source314c44Calls=0,sourceParentWord1cReads=0;
     int flag0Reads=0,flag0Publications=0,flag0Bindings=0;
     std::uint32_t sourceParentFloat70Last=0u;
@@ -114,7 +115,9 @@ struct Owner final:OriginalMovementParentRead_557e30,
         // Test-double values for an ALREADY COMPLETED source 557FC8..
         // 55802C continuation. No game engine or collision is invented.
         return OriginalMovementPostStep_558030{
-            raw(0.0f),raw(3.0f),0x450000u};
+            wrongMovementF21 ? raw(1.0f):raw(0.0f),
+            wrongMetricF20 ? raw(2.0f):raw(3.0f),
+            0x450000u};
     }
     std::uint32_t read_original_parent_word1c(
         std::uint32_t va) override {
@@ -333,5 +336,28 @@ int main() {
            failFlag0.child->originalWordAt(0xB8)==2u &&
            controller.word14==66u && depth.depth==0u);
 
+    // Original COP1 f20 and f21 come from the same 557F34
+    // resource/movement path; reject post-step source data that
+    // conflicts with 557F48 and 557F60 without calling 314C44.
+    continuationOwner.failSource314c44=false;
+    for(int mismatch=0;mismatch<2;++mismatch) {
+        continuationOwner.wrongMetricF20=(mismatch==0);
+        continuationOwner.wrongMovementF21=(mismatch==1);
+        controller.child10=continuing.originalChildPointer();
+        controller.word14=71u;
+        const int original314c44=continuationOwner.source314c44Calls;
+        const int original1c=continuationOwner.sourceParentWord1cReads;
+        refused=false;
+        try{(void)originalManagerChildUpdate_3161b8(
+            controller,0,0,0,depth,continuing);}
+        catch(const std::invalid_argument&){refused=true;}
+        assert(refused && controller.word14==71u &&
+               controller.child10==continuationOwner.child &&
+               continuing.ownsOriginalChild() && depth.depth==0u &&
+               continuationOwner.source314c44Calls==original314c44 &&
+               continuationOwner.sourceParentWord1cReads==original1c);
+    }
+    continuationOwner.wrongMetricF20=false;
+    continuationOwner.wrongMovementF21=false;
     std::cout<<"ORIGINAL_POST_VECTOR_LIFECYCLE_557F54_PASSED\n";
 }
