@@ -39,11 +39,19 @@ struct Calls final:OriginalManagerMovementCalls_57bf5c {
         // owner, not a fake earlier initializer, supplies data.
         scratch.sourceStack20[0]=std::byte{0x3C};
         scratch.sourceStack60[0]=std::byte{0x3C};
+        // Source 0x36F5F4 writes at +0xA0..+0xAC relative
+        // to original stack+0x20, beyond the two initial blocks.
+        scratch.sourceBase20()[0xA0]=std::byte{0xA0};
+        scratch.sourceBase20()[0xAC]=std::byte{0xAC};
     }
     void* call_original_30c57c(
         OriginalManagerChild70&,const OriginalMovementScratch_57bf5c& scratch) override {
         order.push_back("30C57C");
         assert(scratch.sourceStack20[0]==std::byte{0x3C});
+        assert(scratch.sourceStack60[0]==std::byte{0x3C});
+        assert(scratch.sourceStackA0[0x20]==std::byte{0xA0});
+        assert(scratch.sourceStackA0[0x2C]==std::byte{0xAC});
+        assert(scratch.sourceBase20()[0xAC]==std::byte{0xAC});
         if(publishOldDuringCreate)active->child10=&old;
         return &created;
     }
@@ -97,8 +105,8 @@ int main() {
     assert(run(0)==calls.done);
     same(calls,{"VU-direction","21B854","VU-metric","316174"});
     assert(controller.word08==0x57C27C);
-    // Null child, >=2 source distance, two 441F40 initializers,
-    // original 36F5F4, genuine 30C57C and 3161B8.
+    // Null child, >=2 source distance, two genuine 441F40 no-ops,
+    // original 36F5F4 scratch writes through +0xAC, 30C57C and 3161B8.
     calls.order.clear();calls.direction=0;calls.metric=2;
     controller.flag1c=0;controller.word14=7;
     assert(run(9)==calls.done);
