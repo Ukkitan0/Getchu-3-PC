@@ -259,7 +259,8 @@ static int originalNearestSourceImpl(
                     realGrid->original_dimension_y1c<=0 ||
                     realGrid->original_dimension_x18>65535 ||
                     realGrid->original_dimension_y1c>65535 ||
-                    realGrid->original_hit_pool_count>1048576)
+                    realGrid->original_hit_pool_count>1048576 ||
+                    realGrid->original_cell_offset_count>1048576)
                     throw std::invalid_argument(
                         "invalid original 0x4E3C14 source grid owner metadata");
                 const auto cells=
@@ -422,7 +423,8 @@ static int originalRawNearestImpl(
                 originalGrid->original_dimension_y1c<=0 ||
                 originalGrid->original_dimension_x18>65535 ||
                 originalGrid->original_dimension_y1c>65535 ||
-                originalGrid->original_hit_pool_count>1048576)
+                originalGrid->original_hit_pool_count>1048576 ||
+                originalGrid->original_cell_offset_count>1048576)
                 throw std::invalid_argument(
                     "invalid original 0x4E3C14 resolved-header grid metadata");
             const auto requiredCells=
@@ -558,7 +560,8 @@ static int originalStageNearestImpl(
                 originalGrid->original_dimension_y1c<=0 ||
                 originalGrid->original_dimension_x18>65535 ||
                 originalGrid->original_dimension_y1c>65535 ||
-                originalGrid->original_hit_pool_count>1048576)
+                originalGrid->original_hit_pool_count>1048576 ||
+                originalGrid->original_cell_offset_count>1048576)
                 throw std::invalid_argument(
                     "original stage 0x4E3C14 grid metadata invalid");
             const auto cells=
