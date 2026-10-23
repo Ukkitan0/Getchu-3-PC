@@ -2,6 +2,7 @@
 #include "ae3/original_movement_normal_begin_557ed8.hpp"
 #include "ae3/original_movement_metric_step_557f34.hpp"
 #include "ae3/original_movement_post_vector_557f54.hpp"
+#include "ae3/original_movement_post_step_558030.hpp"
 #ifdef NDEBUG
 #undef NDEBUG
 #endif
@@ -18,10 +19,13 @@ struct Owner final:OriginalMovementParentRead_557e30,
                    OriginalMovementNormalCalls_557ed8,
                    OriginalMovementMetricOwner_557f34,
                    OriginalMovementRegenerationOwner_36f8c8,
-                   OriginalMovementPostVectorOwner_557f54 {
+                   OriginalMovementPostVectorOwner_557f54,
+                   OriginalMovementPostStepContinuation_558030 {
     OriginalMovementChildD0_30c57c* child{};
     int setups=0,regenerations=0,moves=0,post=0;
-    bool failPost=false;
+    bool failPost=false,allowPostStep=false;
+    int postStepReads=0,source314c44Calls=0,sourceParentWord1cReads=0;
+    std::uint32_t sourceParentFloat70Last=0u;
     std::uint32_t read_original_parent_word14(std::uint32_t va) override {
         assert(va==0x234000u);return 0x340000u;
     }
@@ -80,6 +84,33 @@ struct Owner final:OriginalMovementParentRead_557e30,
                scaled==raw(3.0f));
         ++moves;
         return 0u; // Test owner; not a real-game movement substitute
+    }
+    std::optional<OriginalMovementPostStep_558030>
+    read_original_post_step_after_557fc8(
+        const OriginalMovementChildD0_30c57c& c) override {
+        assert(&c==child && c.originalWordAt(0xB8)==2u);
+        ++postStepReads;
+        if(!allowPostStep)return std::nullopt;
+        // Test-double values for an ALREADY COMPLETED source 557FC8..
+        // 55802C continuation. No game engine or collision is invented.
+        return OriginalMovementPostStep_558030{
+            raw(0.0f),raw(3.0f),0x450000u};
+    }
+    std::uint32_t read_original_parent_word1c(
+        std::uint32_t va) override {
+        assert(va==0x234000u);
+        ++sourceParentWord1cReads;
+        return 0x880000u;
+    }
+    void call_original_314c44(
+        std::uint32_t word1c,std::uint32_t s5,std::uint32_t mode) override {
+        assert(word1c==0x880000u && s5==0x450000u && mode==2u);
+        ++source314c44Calls;
+    }
+    void store_original_parent_float70(
+        std::uint32_t va,std::uint32_t rawValue) override {
+        assert(va==0x234000u);
+        sourceParentFloat70Last=rawValue;
     }
     void publish_original_557f54_vu0(
         const OriginalMovementPostVector_557f54& result) override {
@@ -146,5 +177,58 @@ int main() {
     catch(const std::runtime_error&){refused=true;}
     assert(refused && unresolved.ownsOriginalChild() &&
            controller.word14==99 && depth.depth==0);
+    // A verified upstream 557FC8..55802C owner may now hand off to
+    // the genuine translated 558030 code. Status zero must keep the
+    // source child alive through the retail 3161B8 controller.
+    second.failPost=false;
+    second.allowPostStep=true;
+    // Rebind with the opt-in post-step continuation owner.
+    Owner continuationOwner{};
+    continuationOwner.allowPostStep=true;
+    OriginalMovementChildLifecycle_557e30 continuing(
+        child(1.0f),continuationOwner,&continuationOwner,
+        &continuationOwner,&continuationOwner,&continuationOwner);
+    controller.child10=continuing.originalChildPointer();
+    controller.word14=99u;
+    continuationOwner.child=static_cast<
+        OriginalMovementChildD0_30c57c*>(controller.child10);
+    assert(originalManagerChildUpdate_3161b8(
+        controller,0,0,0,depth,continuing)==0u);
+    assert(controller.word14==0u &&
+           controller.child10==continuationOwner.child &&
+           continuing.ownsOriginalChild() && depth.depth==0u);
+    assert(continuationOwner.setups==1 &&
+           continuationOwner.regenerations==1 &&
+           continuationOwner.moves==1 && continuationOwner.post==1);
+    assert(continuationOwner.postStepReads==1 &&
+           continuationOwner.sourceParentWord1cReads==1 &&
+           continuationOwner.source314c44Calls==1);
+    // The original C0 initialized-child branch must preserve the
+    // state and re-enter post-step without repeating 557ED8 or 36F8C8.
+    assert(originalManagerChildUpdate_3161b8(
+        controller,0,0,0,depth,continuing)==0u);
+    assert(continuationOwner.setups==1 &&
+           continuationOwner.regenerations==1 &&
+           continuationOwner.source314c44Calls==2 &&
+           continuationOwner.postStepReads==2 && depth.depth==0u);
+    // A claimed post-step owner without the preceding original 557F54
+    // vector publication MUST NOT skip that original source segment.
+    Owner missingVector{};
+    missingVector.allowPostStep=true;
+    OriginalMovementChildLifecycle_557e30 noVector(
+        child(1.0f),missingVector,&missingVector,
+        &missingVector,nullptr,&missingVector);
+    controller.child10=noVector.originalChildPointer();
+    controller.word14=99u;
+    missingVector.child=static_cast<
+        OriginalMovementChildD0_30c57c*>(controller.child10);
+    refused=false;
+    try{(void)originalManagerChildUpdate_3161b8(
+        controller,0,0,0,depth,noVector);}
+    catch(const std::logic_error&){refused=true;}
+    assert(refused && controller.word14==99u &&
+           controller.child10==missingVector.child &&
+           noVector.ownsOriginalChild() && depth.depth==0u &&
+           missingVector.postStepReads==0);
     std::cout<<"ORIGINAL_POST_VECTOR_LIFECYCLE_557F54_PASSED\n";
 }
