@@ -134,6 +134,40 @@ AE3_LUA_EXPORT int ae3_original_manager_init_step_v2(
 AE3_LUA_EXPORT const char* ae3_original_manager_init_last_error(
     const Ae3OriginalManagerInitSession* session);
 
+/* Fully recovered original polygon projection chain:
+ * 0x4C1B3C ray preparation -> 0x21BD3C traversal -> 0x21EE00 edge clip.
+ * Original stage loader must provide 0x70-byte decoded records AND their
+ * genuine navigation adjacency. No invented graph or Unreal raycast.
+ * A projected_polygon of UINT32_MAX means no accepted source polygon.
+ */
+typedef struct Ae3OriginalPolygonRaySourceV1 {
+    const void* original_records70;
+    size_t original_record_count;
+    const uint8_t* original_degree;
+    const uint32_t* original_neighbor3;
+    const uint16_t* original_action_kind3;
+    uint32_t original_start_polygon;
+    Ae3OriginalVec4 original_ray_start;
+    Ae3OriginalVec4 original_ray_end;
+    uint32_t original_max_recursions;
+} Ae3OriginalPolygonRaySourceV1;
+typedef struct Ae3OriginalPolygonRayResultV1 {
+    uint32_t last_original_polygon;
+    uint32_t original_polygons_tested;
+    uint32_t original_edge_tests;
+    uint32_t original_zero_kind_recursions;
+    int original_hit_point_available;
+    Ae3OriginalVec4 original_hit_point;
+} Ae3OriginalPolygonRayResultV1;
+/* Source raycast through exact original math, no host-supplied result.
+ * Shares initializer session error/lifetime guard. Output untouched on
+ * failure. Valid source polygon IDs and 1..4096 recursion budget required.
+ */
+AE3_LUA_EXPORT int ae3_original_polygon_project_4c1b3c(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalPolygonRaySourceV1* original,
+    Ae3OriginalPolygonRayResultV1* output);
+
 /* Source recovered 0x57C7CC original route traversal. This is the real
  * source actor's route control flow, not a newly invented path follower.
  * Polygon IDs and 0x70-byte records belong to the source-decoded stage.
