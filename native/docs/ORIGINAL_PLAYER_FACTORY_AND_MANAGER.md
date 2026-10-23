@@ -475,3 +475,32 @@ publication and source child deletion. Other original
 0x557EB4+ normal gameplay branches remain deliberately
 unimplemented, as do the live persistent Player/Monkey
 owner and full native game loop.
+
+
+### Genuine normal child-update completion (0x36F954 / 0x557E30)
+
+The recovered original movement-child data now participates
+in a real **zero-flag normal update completion path**, not
+only the prior special flag-driven early exit. The exact
+`0x36F954` source return gate reads child status `+0xB4`
+(previously written to original scratch `+0xA4`
+by `0x36F5F4`). For the verified original
+`0x557EC8` caller, `f12=2.0`; when child status
+is at least 1.0, the original `0x36F954` returns 1,
+the genuine child slot5 `0x557E30` returns 2,
+and native `0x3161B8` destroys the completed child.
+
+Two source-hash-pinned branch windows and 26 instruction
+sites have been independently verified against the
+owner-private USA executable. GCC/Clang UBSan tests
+exercise the direct source branch and a complete
+VU0-vector → scratch → child construction →
+normal completion/deletion chain.
+
+For status below 1.0, nonzero child flag `+0xC0`,
+or unknown source status bytes, normal movement/collision
+continues through still-unrecovered source functions.
+These paths continue to refuse rather than pretending
+the actor moved or completed. The actual per-frame
+Player/Monkey gameplay owner and Windows/Unreal runtime
+remain incomplete.
