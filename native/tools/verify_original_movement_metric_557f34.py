@@ -22,6 +22,8 @@ SOURCE_WINDOWS={
  (0x557F30,0x557F54):"1d6be51ae1fb85db3ac8f83bec9031bd1c7115621ca00b550263d984d8d41d71",
 }
 WORDS={
+ 0x557EB4:0x55E0001F, # source BNEZL child+C0 -> 557F34
+ 0x557EB8:0x92050009, # branch-likely LBU child+9 mode
  0x317B40:0x15CF0003, # BNE parent+0x40 !=1
  0x317B44:0x30A500FF, # mode masked in branch delay
  0x317B50:0x10A00010, # mode zero -> source +0x3B4
@@ -83,7 +85,8 @@ def verify(original_path):
             raise ValueError("original source instruction changed "+hex(at))
 
     branches={0x317B40:0x317B50,0x317B50:0x317B94,
-              0x36FB44:0x36FBF8,0x36FB54:0x36FBFC}
+              0x36FB44:0x36FBF8,0x36FB54:0x36FBFC,
+              0x557EB4:0x557F34}
     for at,target in branches.items():
         disp=WORDS[at]&0xffff
         if disp>=0x8000:disp-=65536
