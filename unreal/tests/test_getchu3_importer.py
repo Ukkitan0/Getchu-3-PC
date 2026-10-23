@@ -75,6 +75,40 @@ class ImporterTests(unittest.TestCase):
             self.assertEqual(len(seen), 1)
             self.assertIs(seen[0]["animations"], False)
 
+    def test_pck_unpack_requests_original_collision_before_conversion(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            vfi = base / "vfi"
+            vfi.mkdir()
+            repo = base / "repo"
+            repo.mkdir()
+            tool = type("FakePckModule", (), {
+                "unpack": staticmethod(lambda root, include_collision=False: {
+                    "original_stage_pck_archives": 2 if root == vfi and include_collision else 0,
+                    "owner_private_i3c_extraction_requested": include_collision,
+                    "new_original_members_written": 6,
+                    "counts": {".i3d": 4, ".tm2": 2}
+                })
+            })
+            with patch.object(module.importlib, 'import_module', return_value=tool):
+                outcome = module.unpack_original_pck_for_unreal(vfi, repo)
+            self.assertEqual(outcome["original_stage_pck_archives"], 2)
+            self.assertTrue(outcome["owner_private_i3c_extraction_requested"])
+
+    def test_missing_original_stage_pck_is_not_marked_as_imported(self):
+        with tempfile.TemporaryDirectory() as d:
+            base=Path(d)
+            root=base / "vfi"; root.mkdir()
+            fake=type("FakePckModule", (), {
+                "unpack": staticmethod(lambda *args, **kwargs: {
+                    "original_stage_pck_archives": 0,
+                    "owner_private_i3c_extraction_requested": True
+                })
+            })
+            with patch.object(module.importlib, 'import_module', return_value=fake):
+                with self.assertRaisesRegex(RuntimeError, "No genuine stage PCK"):
+                    module.unpack_original_pck_for_unreal(root, base)
+
     def test_no_glb_fails(self):
         with tempfile.TemporaryDirectory() as d:
             with self.assertRaisesRegex(RuntimeError, 'No converted'):
@@ -128,6 +162,9 @@ class ImporterTests(unittest.TestCase):
             with patch.object(module,'verify_disc',return_value=module.VerifiedDisc(disk,'a'*64)), \
                  patch('getchu3_media.convert_textures',return_value={"converted_png_files":2}), \
                  patch.object(module,'recover_original',return_value={"original_vfi_files_extracted":3994, "original_lua_scripts":168}), \
+                 patch.object(module,'unpack_original_pck_for_unreal',return_value={
+                     "original_stage_pck_archives": 2, "new_original_members_written": 6,
+                     "counts": {".tm2": 2, ".i3d": 4}}), \
                  patch.object(module,'convert_original_models',side_effect=RuntimeError('conversion unavailable')):
                 with self.assertRaisesRegex(RuntimeError,'conversion unavailable'):
                     module.run(str(disk),ue=FakeUE(),repo=base,private_root=base/'saved')
@@ -143,6 +180,9 @@ class ImporterTests(unittest.TestCase):
                  patch('getchu3_collision.convert_collision',return_value={"original_i3c_files":3}), \
                  patch.object(module,'import_collision_in_editor',return_value=['/Game/Original/Collision']), \
                  patch.object(module,'recover_original',return_value={"original_vfi_files_extracted":3994,"original_lua_scripts":168}), \
+                 patch.object(module,'unpack_original_pck_for_unreal',return_value={
+                     "original_stage_pck_archives": 2, "new_original_members_written": 6,
+                     "counts": {".tm2": 2, ".i3d": 4}}), \
                  patch.object(module,'convert_original_models',return_value={"original_i3d_bin_files":12}), \
                  patch('getchu3_stage_catalog.build_original_stage_catalog',return_value={"stage_count":168,"stage_scripts":168}), \
                  patch('getchu3_asset_registry.build_asset_registry',return_value={"original_stages":[{}] * 168}), \
