@@ -390,11 +390,12 @@ an original polygon INDEX rather than a pointer into expired memory.
 The API returns the executed original branch and publishes source-
 computed controller state only after a successful computation.
 
-The general branch still requires genuinely recovered owner callbacks
-for 0x21B854 projection and 0x57C7CC route continuation. The source
-polygon and exact four-component vectors are forwarded, unchanged,
-and missing/rejected callbacks fail, rather than using Unreal traces
-or invented movement. If a real manager changes game state during
+The initializer's existing legacy hook still requires source owner
+callbacks for 0x21B854 projection and 0x57C7CC route continuation. The
+actual native 0x57C7CC route-control logic has now been recovered and
+compiled into the same DLL as a separate source-backed entry point.
+The projection/target update dependencies still require the real game
+manager; neither is replaced with Unreal traces or invented movement. If a real manager changes game state during
 those callbacks, the game manager must preserve atomic transactions
 and roll back on failure. Reentrant destruction while a source call
 is on the native stack is explicitly rejected.
@@ -411,3 +412,34 @@ data, not proof that the real USA stage is playable. MSVC/UE5.6
 compilation and retail navigation PCK execution remain unverified.
 The original Player/Monkey actor owner and gameplay update loop
 remain missing.
+
+## Recovered original 0x57C7CC route follower now executes in the native DLL
+
+The original 0x57C7CC actor route-selection and update-order routine was
+already translated in native/src/original_actor_route_follower.cpp. This
+recovery is now linked into the isolated native Unreal DLL and exposed via
+ae3_original_actor_route_step. The ABI accepts the exact 0x70-byte source
+spatial registry, actual route polygon indexes, actor polygon identity,
+original controller+0x50 active target, and controller+0x1C branch flag.
+
+The native code now handles the ORIGINAL control flow: direct actor target
+for the one-polygon branch, early return for a matching projected current
+target, unconditional adoption of route[1], followed by in-order target
+updates and source projection comparisons for route[2..]. On success the
+result reports the source-backed target polygon ID and event counters.
+
+Unrecovered 0x4C1B3C ray-projection ownership and 0x57C8EC target-update
+effects are still explicit external **original game manager** callbacks.
+If absent, if a source index is invalid, or if an owner call fails, the
+routine fails. It never silently accepts a synthetic movement target.
+The source callback's effects may occur before later failure, so the
+actual owning game manager must use transactional rollback.
+
+The native public ABI route test covers all principal branches,
+target-update order, early return, rejected updates, invalid routes, and
+attempted reentrant session destruction. The Windows one-click build runs
+the CTest named OriginalActorRoute57C7CCHostAbi; it is committed but not
+yet executed on genuine MSVC/UE5.6 here. The existing 0x57BCB8 initializer
+API retains its original explicit 0x57C7CC continuation hook; the new
+route entry point can supply the recovered routine, but full automatic
+actor-owner wiring is not yet complete.
