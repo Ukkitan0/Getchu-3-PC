@@ -293,6 +293,49 @@ AE3_LUA_EXPORT int ae3_original_stage_nearest_grid_21d46c_21d898(
     const Ae3OriginalStageGridNearestSourceV1* source,
     Ae3OriginalNearestPolygonResultV1* output);
 
+/* Persistent original-stage spatial owner. The session decodes the
+ * source 0x21D46C spatial registry exactly once, preserving source
+ * record identity throughout an actual stage lifetime. No Player/
+ * Monkey actors or gameplay callbacks are manufactured. Stage input
+ * bytes are borrowed only until successful mount returns; afterward
+ * the decoded 0x70-byte records and header bindings are session-owned.
+ * All calls are synchronous and intended for the game manager thread.
+ */
+typedef struct Ae3OriginalStageSpatialMountSourceV1 {
+    const void* original_loaded_stage_bytes;
+    size_t original_loaded_stage_size;
+    uint32_t original_runtime_base_va;
+    uint32_t original_registry_owner_va;
+} Ae3OriginalStageSpatialMountSourceV1;
+typedef struct Ae3OriginalStageSpatialGridSourceV1 {
+    float original_origin_x00, original_origin_y04;
+    float original_step_x10, original_step_y14;
+    int32_t original_dimension_x18, original_dimension_y1c;
+    const uint16_t* original_cell_offsets50;
+    size_t original_cell_offset_count;
+    const uint16_t* original_hit_pool08;
+    size_t original_hit_pool_count;
+    float original_resolved_x, original_resolved_y;
+} Ae3OriginalStageSpatialGridSourceV1;
+/* Replaces the mounted source stage atomically on success; on failure
+ * the previous mounted stage (if any) is still queryable. The source RNG
+ * is NOT reseeded or consumed by the stage spatial mount.
+ */
+AE3_LUA_EXPORT int ae3_original_stage_spatial_mount_21d46c(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalStageSpatialMountSourceV1* original);
+AE3_LUA_EXPORT int ae3_original_stage_spatial_unmount(
+    Ae3OriginalManagerInitSession* session);
+AE3_LUA_EXPORT int ae3_original_stage_spatial_nearest_all_21da2c(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalVec4* original_query,
+    Ae3OriginalNearestPolygonResultV1* output);
+AE3_LUA_EXPORT int ae3_original_stage_spatial_nearest_grid_21d898(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalStageSpatialGridSourceV1* original_grid,
+    const Ae3OriginalVec4* original_query,
+    Ae3OriginalNearestPolygonResultV1* output);
+
 /* Legacy LOW64-only view of original 0x57C8EC target dispatch.
  * Genuine 0x21B788 eligibility, 0x57C98C three-vertex random blend,
  * persistent 0x36F3C0 RNG, and 0x57CA68 fallback VU0 transformations
