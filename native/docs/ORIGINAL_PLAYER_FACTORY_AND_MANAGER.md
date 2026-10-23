@@ -29,7 +29,7 @@ The game sets this Player global during original Player initialization at **0x5B
 
 The original two allocation wrappers **0x317538** and **0x31759C** both allocate **0x70 / 112 guest bytes** and call original constructors **0x57BA98 / 0x57BAF8**. The newly recovered host-native `OriginalManagerChild70` stores the known original fields, including parent +4, child +0x10, context +0x18, flag +0x1C (signed context[+4] >=2), byte +0x1D, and variant byte +0x30.
 
-Both original constructors finish with a call to **0x57BCB8**, the original vector/world initializer, which is **not translated yet**. This call is explicit, not replaced with a guessed result.
+Both original constructors call **0x57BCB8**, whose recovered branch, VU0 vector operations, route selection, and original RNG handling are now translated in `native/src/original_manager_initializer.cpp`. The original actor owner/projection effects remain explicitly dependent on genuine game-manager implementations. Variant-one `0x57BAF8` now also preserves the source `+0x20` full 128-bit controller vector before invoking the initializer; variant-zero `0x57BA98` does not write that field. These native constructors still do **not** create a complete live Player/Monkey.
 
 The genuine virtual table **0x6B1820** contains six methods. We translated the first five:
 
