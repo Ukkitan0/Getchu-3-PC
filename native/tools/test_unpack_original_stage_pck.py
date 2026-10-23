@@ -61,6 +61,30 @@ class OriginalStagePckExtractionTests(unittest.TestCase):
         self.assertEqual(report["counts"]["collision_remains_in_original_pck"],1)
         self.assertFalse(report["synthetic_assets_generated"])
 
+    def test_unreal_opt_in_exports_original_i3c_collision_without_changing_default(self):
+        result=module.unpack(self.root,"woods_c",include_collision=True)
+        self.assertEqual(result["original_stage_pck_archives"],1)
+        self.assertEqual(result["new_original_members_written"],4)
+        self.assertEqual(result["counts"]["collision_exported_for_unreal"],1)
+        self.assertTrue(result["owner_private_i3c_extraction_requested"])
+        self.assertFalse(result["retail_collision_decoded_from_pck_at_runtime"])
+        target=self.stage/"pck_assets"/"bg"
+        # Original I3C retains source extension .i3d, identified by magic,
+        # and the native I3C -> OBJ converter consumes the exact same bytes.
+        self.assertEqual((target/"0001_collision.i3d").read_bytes(),self.data[1])
+        self.assertEqual((target/"0000_mesh.i3d").read_bytes(),self.data[0])
+        again=module.unpack(self.root,"woods_c",include_collision=True)
+        self.assertEqual(again["new_original_members_written"],0)
+        self.assertEqual(again["counts"]["existing_exact_match"],4)
+
+    def test_reusing_default_then_unreal_only_adds_real_collision(self):
+        first=module.unpack(self.root,"woods_c")
+        self.assertEqual(first["new_original_members_written"],3)
+        second=module.unpack(self.root,"woods_c",include_collision=True)
+        self.assertEqual(second["new_original_members_written"],1)
+        self.assertEqual(second["counts"]["existing_exact_match"],3)
+        self.assertEqual(second["counts"]["collision_exported_for_unreal"],1)
+
     def test_reuse_only_identical_private_original_bytes(self):
         module.unpack(self.root)
         result=module.unpack(self.root)
