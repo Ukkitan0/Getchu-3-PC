@@ -58,6 +58,8 @@ set(ORIGINAL_LUA_STAGE_SOURCES
 set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_player_factory.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_child.cpp"
+  # Verified original controller vtable slot 5: 0x57C620 dispatcher.
+  "${ORIGINAL_NATIVE_SOURCE}/original_manager_dispatch_57c620.cpp"
   # Original actor navigation initializer 0x57BCB8, source route-edge
   # lookup, type-2 target, exact source RNG / VU0 and 0x70 polygon views.
   # These are real recovered original functions, not actor substitutes.
@@ -115,6 +117,16 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalPlayerResourceVirtual2
     COMMAND Getchu3OriginalPlayerResourceTests)
+
+  # Exact original USA vtable entry 0x6B1834 -> 0x57C620,
+  # native direct/virtual update dispatch and gated source cleanup.
+  add_executable(Getchu3OriginalManagerDispatch57C620Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_dispatch_57c620_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_dispatch_57c620.cpp")
+  target_include_directories(Getchu3OriginalManagerDispatch57C620Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalControllerDispatch57C620
+    COMMAND Getchu3OriginalManagerDispatch57C620Tests)
 
   add_executable(Getchu3OriginalManagerChildTests
     "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_child_test.cpp"
