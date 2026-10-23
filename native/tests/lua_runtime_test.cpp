@@ -409,6 +409,48 @@ void exactOriginalLuaEntityClassBytes(){
     check(world.entities()[0].name==expectedName,
           "Lua actor name was truncated at embedded zero byte");
 }
+void exactOriginalLuaFlagAndControllerBytes(){
+    // The original Lua interpreter stores these as binary strings. The
+    // game's flag-manager and controller dispatch must receive all bytes,
+    // including zero and non-UTF8 values. No invented character conversion.
+    ae3::NativeStageWorld world;
+    ae3::LuaStage stage(world);
+    ae3::NativeLuaStageBindings bindings;
+    const std::string expectedFlag("save\0flag",9);
+    const std::string expectedCommand("run\0pause",9);
+    int writes=0, reads=0;
+    bindings.writeFlag=[&](std::string_view scope,std::string_view key,bool value){
+        check(scope=="gw" && key==expectedFlag && value,
+              "Original Lua flag write lost source bytes");
+        ++writes;
+    };
+    bindings.readFlag=[&](std::string_view scope,std::string_view key)
+        -> std::optional<bool> {
+        check(scope=="gw" && key==expectedFlag,
+              "Original Lua flag read lost source bytes");
+        ++reads;
+        return true;
+    };
+    stage.setNativeBindings(std::move(bindings));
+    stage.executeSource(
+        "function setupArea(o) "
+        " local k = 'save' .. string.char(0) .. 'flag' "
+        " gw_set_flag(k) "
+        " if gw_get_flag(k) then "
+        "  new_ent('Monkey',{name='from_original'},"
+        "   c_ctrl('run' .. string.char(0) .. 'pause',{})) "
+        " end "
+        "end");
+    stage.callSetupArea("entrance");
+    check(writes==1 && reads==1,
+          "Original Lua byte-safe flag operations did not run");
+    check(world.flag("gw",expectedFlag),
+          "Original Lua flag store truncated embedded zero byte");
+    check(world.entities().size()==1,
+          "Original Lua game controller source entity was not created");
+    check(get(world.entities()[0].controllers,"opcode")==expectedCommand,
+          "Original Lua controller command was truncated at embedded zero byte");
+}
 void errorCases(){
     ae3::NativeStageWorld world;
     ae3::LuaStage lua(world);
@@ -439,6 +481,7 @@ int main(){
         nativeBridgeAndCallbackTests();
         originalRawLuaValuePreservationTests();
         exactOriginalLuaEntityClassBytes();
+        exactOriginalLuaFlagAndControllerBytes();
         errorCases();
         std::cout<<"NATIVE_REAL_LUA50_EXECUTION_PASSED: "
                     "setupArea,new_ent,lua_param,c_order,c_ctrl,flags,control flow\n";
