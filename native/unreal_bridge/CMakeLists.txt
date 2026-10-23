@@ -70,6 +70,8 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_vu0_scalar_36f5f4.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_tick_bridge_3161b8.cpp"
@@ -282,6 +284,8 @@ if(BUILD_TESTING)
   add_executable(Getchu3OriginalMovementChildLifecycleTests
     "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_child_lifecycle_557e30_test.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp")
@@ -297,6 +301,8 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_child_early_36f954_test.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp")
   target_include_directories(Getchu3OriginalNormalChildCompletion36F954Tests
@@ -314,11 +320,40 @@ if(BUILD_TESTING)
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp")
   target_include_directories(Getchu3OriginalNormalVUChildChainTests
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalNormalMovementVUChildLifecycle
     COMMAND Getchu3OriginalNormalVUChildChainTests)
+
+  # Source-complete 14-instruction original 0x317B9C resource
+  # selector: +0x1C0/+0x220/+0x120/+0x140 retail branches.
+  add_executable(Getchu3OriginalResourceSelector317B9CTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_resource_selector_317b9c_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp")
+  target_include_directories(Getchu3OriginalResourceSelector317B9CTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalManagerResourceSelector317B9C
+    COMMAND Getchu3OriginalResourceSelector317B9CTests)
+
+  # Source original 0x557ED8..0x557F30 nonterminal normal child
+  # movement setup: real child status reset, original 317B9C
+  # resource, genuine 276B68/2767F4/2773D4 and child+C0=1.
+  # The game owner must continue original 317B34/36FB18.
+  add_executable(Getchu3OriginalNormalBegin557ED8Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_normal_begin_557ed8_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp")
+  target_include_directories(Getchu3OriginalNormalBegin557ED8Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementNonterminalSetup557ED8
+    COMMAND Getchu3OriginalNormalBegin557ED8Tests)
 
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
