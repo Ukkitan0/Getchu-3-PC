@@ -51,7 +51,11 @@ struct Owner final:OriginalMovementNormalCalls_557ed8 {
     std::uint64_t call_original_276b68(
         std::uint64_t parentWord14,std::uint64_t resourceVA) override {
         assert(parentWord14==expectedParentWord14);
-        const auto expected=originalManagerSelectResource_317b9c(fields,2);
+        const auto low=originalManagerSelectResource_317b9c(fields,2);
+        // 317BB0 ADDIU sign extends its 32-bit result to EE v0,
+        // and original 557EF4 DADDU preserves it into 276B68 a1.
+        const auto expected=static_cast<std::uint64_t>(
+            static_cast<std::int64_t>(static_cast<std::int32_t>(low)));
         assert(resourceVA==expected);
         calls.emplace_back("276B68");
         if(failCollision) throw std::runtime_error("missing source 276B68");
@@ -198,6 +202,35 @@ int main() {
     assert(source.calls==std::vector<std::string>(
         {"read-parent","276B68","2767F4","2773D4"}));
     assert(child->originalByteAt(0xC0)==std::byte{1});
+
+    // A high-bit retail resource address sign-extends even when
+    // the original parent argument and the destination object
+    // are otherwise ordinary. No host pointer is dereferenced.
+    source.fields.originalParentWord10=0x81230000u;
+    source.fields.originalParentWord40=1u;
+    source.collisionResult=0u;
+    source.calls.clear();
+    child=makeChild(2);
+    source.observedChild=child.get();
+    const auto resourceLow32=originalManagerSelectResource_317b9c(source.fields,2);
+    assert(resourceLow32==0x812301c0u);
+    originalMovementNormalBegin_557ed8(
+        *child,source.expectedParentWord14,source);
+    assert(source.calls==std::vector<std::string>(
+        {"read-parent","276B68","2773D4"}));
+    assert(child->originalByteAt(0xC0)==std::byte{1});
+
+    // Also preserve original ADDIU 32-bit wrap before
+    // signed extension; result 0x000001A0 stays positive.
+    source.fields.originalParentWord10=0xffffffe0u;
+    source.calls.clear();
+    child=makeChild(2);
+    source.observedChild=child.get();
+    assert(originalManagerSelectResource_317b9c(source.fields,2)==0x1a0u);
+    originalMovementNormalBegin_557ed8(
+        *child,source.expectedParentWord14,source);
+    assert(source.calls==std::vector<std::string>(
+        {"read-parent","276B68","2773D4"}));
 
     std::cout<<"ORIGINAL_NORMAL_MOVEMENT_557ED8_SETUP_PASSED\n";
 }
