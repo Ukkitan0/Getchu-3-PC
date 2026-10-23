@@ -116,6 +116,11 @@ bool UGetchu3OriginalLuaSubsystem::StartImportedOriginalStage(
         LastError = TEXT("Original Lua stage selection must run on the game thread");
         return false;
     }
+    if (bInOriginalManagerCall) {
+        bDeferredOriginalStop = true;
+        LastError = TEXT("Original stage replacement requested during a native manager callback");
+        return false;
+    }
     StopOriginalStage();
     LastError.Empty();
 
@@ -273,6 +278,11 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
         LastError = TEXT("Original Lua runtime may only execute on Unreal's game thread");
         return false;
     }
+    if (bInOriginalManagerCall) {
+        bDeferredOriginalStop = true;
+        LastError = TEXT("Original stage start requested during a native manager callback");
+        return false;
+    }
     StopOriginalStage();
     LastError.Empty();
 
@@ -341,10 +351,15 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
     // must never leave a partially constructed Player/Monkey world behind.
     Manager = SourceManager; // Retain through callbacks and partial-start rollback.
     bOriginalSetupOpen = true;
-    if (!SourceManager->BeginOriginalStageSetup(
-            OriginalLuaFilePath, OriginalSpawnTag)) {
-        LastError = TEXT("Original actor/parameter manager does not support source-backed atomic stage setup");
-        StopOriginalStage(); // Abort even if Begin failed after allocating resources.
+    bInOriginalManagerCall = true;
+    const bool bBeganSourceTransaction =
+        SourceManager->BeginOriginalStageSetup(OriginalLuaFilePath, OriginalSpawnTag);
+    bInOriginalManagerCall = false;
+    if (!bBeganSourceTransaction || bDeferredOriginalStop) {
+        LastError = bDeferredOriginalStop
+            ? TEXT("Original stage manager cancelled stage setup")
+            : TEXT("Original actor/parameter manager does not support source-backed atomic stage setup");
+        StopOriginalStage(); // Abort even if Begin partially allocated resources.
         return false;
     }
     Ae3LuaManagerV2 Bindings{};
@@ -360,25 +375,41 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
     Bindings.select_weapon = &CallbackSelectWeapon;
     Bindings.read_original_player_progress = &CallbackReadOriginalProgress;
 
+    bInOriginalManagerCall = true; // Creation queries original PlayerProgress.
     NativeState = Create(&Bindings);
-    if (!NativeState) {
-        LastError = TEXT("Original Lua VM rejected manager bindings or failed to initialize");
+    bInOriginalManagerCall = false;
+    if (!NativeState || bDeferredOriginalStop) {
+        LastError = bDeferredOriginalStop
+            ? TEXT("Original source manager cancelled Lua VM initialization")
+            : TEXT("Original Lua VM rejected manager bindings or failed to initialize");
         StopOriginalStage();
         return false;
     }
     const FTCHARToUTF8 NameUtf8(*OriginalLuaFilePath);
     const FTCHARToUTF8 TagUtf8(*OriginalSpawnTag);
-    if (!Execute(static_cast<Ae3LuaRuntime*>(NativeState), Chunk.GetData(),
-                 static_cast<size_t>(Chunk.Num()), NameUtf8.Get()) ||
-        !SetupArea(static_cast<Ae3LuaRuntime*>(NativeState), TagUtf8.Get())) {
-        LastError = Utf8String(Error(static_cast<Ae3LuaRuntime*>(NativeState)));
+    bInOriginalManagerCall = true;
+    const bool bLuaLoaded = Execute(
+        static_cast<Ae3LuaRuntime*>(NativeState), Chunk.GetData(),
+        static_cast<size_t>(Chunk.Num()), NameUtf8.Get());
+    const bool bSourceSetupRan = bLuaLoaded && !bDeferredOriginalStop &&
+        SetupArea(static_cast<Ae3LuaRuntime*>(NativeState), TagUtf8.Get());
+    bInOriginalManagerCall = false;
+    if (!bLuaLoaded || !bSourceSetupRan || bDeferredOriginalStop) {
+        LastError = bDeferredOriginalStop
+            ? TEXT("Original game manager requested stop during native Lua execution")
+            : Utf8String(Error(static_cast<Ae3LuaRuntime*>(NativeState)));
         if (LastError.IsEmpty()) LastError = TEXT("Original Lua 5.0 game initialization failed");
         UE_LOG(LogGetchu3OriginalLua, Error, TEXT("%s"), *LastError);
         StopOriginalStage();
         return false;
     }
-    if (!SourceManager->CommitOriginalStageSetup()) {
-        LastError = TEXT("Original stage managers refused commit; original Lua stage setup was rolled back");
+    bInOriginalManagerCall = true;
+    const bool bSourceCommitted = SourceManager->CommitOriginalStageSetup();
+    bInOriginalManagerCall = false;
+    if (!bSourceCommitted || bDeferredOriginalStop) {
+        LastError = bDeferredOriginalStop
+            ? TEXT("Original manager requested cancellation before stage commit completed")
+            : TEXT("Original stage managers refused commit; original Lua stage setup was rolled back");
         StopOriginalStage();
         return false;
     }
@@ -390,25 +421,37 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
 }
 
 void UGetchu3OriginalLuaSubsystem::StopOriginalStage() {
+    if (bInOriginalManagerCall) {
+        // An original Lua native function is still on the stack. Deferring
+        // cleanup avoids freeing Lua state or unloading code being executed.
+        bDeferredOriginalStop = true;
+        return;
+    }
+    bDeferredOriginalStop = false;
     if (bOriginalSetupOpen) {
-        // This must undo every previously accepted original entity, flag,
-        // stage parameter and equipment change in reverse operation order.
-        if (IsValid(Manager)) {
-            Manager->AbortOriginalStageSetup();
-        }
+        // Clear ownership first: Abort itself can synchronously call Stop.
         bOriginalSetupOpen = false;
+        if (IsValid(Manager)) {
+            bInOriginalManagerCall = true;
+            Manager->AbortOriginalStageSetup();
+            bInOriginalManagerCall = false;
+        }
     }
     if (NativeState && NativeLibrary) {
         const auto Destroy = GetOriginalLuaFunction<decltype(&ae3_lua_destroy)>(
             NativeLibrary, TEXT("ae3_lua_destroy"));
-        if (Destroy)
+        if (Destroy) {
+            bInOriginalManagerCall = true;
             Destroy(static_cast<Ae3LuaRuntime*>(NativeState));
+            bInOriginalManagerCall = false;
+        }
     }
     NativeState = nullptr;
     Manager = nullptr;
     if (NativeLibrary)
         FPlatformProcess::FreeDllHandle(NativeLibrary);
     NativeLibrary = nullptr;
+    bDeferredOriginalStop = false;
 }
 
 void UGetchu3OriginalLuaSubsystem::ReportRuntimeError(const FString& Fallback) {
