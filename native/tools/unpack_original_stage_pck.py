@@ -51,7 +51,7 @@ def clean_name(name: str) -> str:
     return (value or "unnamed")[:80]
 
 
-def scan_pck(path: Path) -> tuple[list[tuple[str,bytes]],Counter]:
+def scan_pck(path: Path, *, include_collision: bool = False) -> tuple[list[tuple[str,bytes]],Counter]:
     if not path.is_file() or path.is_symlink():
         raise ValueError("Original PCK must be a regular private file")
     size=path.stat().st_size
@@ -75,10 +75,16 @@ def scan_pck(path: Path) -> tuple[list[tuple[str,bytes]],Counter]:
     for i,name_id,offset,length in entries:
         prefix=raw[offset:offset+8]
         if prefix==COLLISION_MAGIC:
-            counts["collision_remains_in_original_pck"]+=1
-            continue
-        extension=next((ext for magic,ext in EXPORT_MAGIC.items()
-                        if prefix.startswith(magic)),None)
+            if not include_collision:
+                counts["collision_remains_in_original_pck"]+=1
+                continue
+            # The Unreal importer needs authentic I3C triangle source bytes.
+            # Explicit opt-in preserves the native runtime's zero-copy mode.
+            extension=".i3d"
+            counts["collision_exported_for_unreal"]+=1
+        else:
+            extension=next((ext for magic,ext in EXPORT_MAGIC.items()
+                            if prefix.startswith(magic)),None)
         if extension is None:
             counts["other_original_members"]+=1
             continue
@@ -88,7 +94,7 @@ def scan_pck(path: Path) -> tuple[list[tuple[str,bytes]],Counter]:
     return exported,counts
 
 
-def unpack(extracted: Path, stage: str|None=None) -> dict:
+def unpack(extracted: Path, stage: str|None=None, *, include_collision: bool = False) -> dict:
     root=extracted.resolve(strict=True)
     stage_root=root/"debug"/"us"/"stage"
     if not stage_root.is_dir():
@@ -104,7 +110,7 @@ def unpack(extracted: Path, stage: str|None=None) -> dict:
     totals=Counter()
     touched=0
     for pack in packs:
-        exports,counts=scan_pck(pack)
+        exports,counts=scan_pck(pack, include_collision=include_collision)
         totals.update(counts)
         target=pack.parent/"pck_assets"/clean_name(pack.stem)
         for filename,bytes_ in exports:
@@ -123,7 +129,8 @@ def unpack(extracted: Path, stage: str|None=None) -> dict:
         "original_stage_pck_archives":len(packs),
         "new_original_members_written":touched,
         "counts":dict(sorted(totals.items())),
-        "retail_collision_decoded_from_pck_at_runtime":True,
+        "retail_collision_decoded_from_pck_at_runtime":not include_collision,
+        "owner_private_i3c_extraction_requested":include_collision,
         "synthetic_assets_generated":False,
         "original_files_remain_private":True,
     }
@@ -133,8 +140,11 @@ def main(argv=None)->int:
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--extracted",type=Path,required=True)
     parser.add_argument("--stage",help="Only unpack this original stage ID")
+    parser.add_argument("--include-collision", action="store_true",
+                        help="Export authentic I3D_I3C members for external hosts")
     args=parser.parse_args(argv)
-    print(json.dumps(unpack(args.extracted,args.stage),indent=2))
+    print(json.dumps(unpack(args.extracted,args.stage,
+                            include_collision=args.include_collision),indent=2))
     return 0
 
 
