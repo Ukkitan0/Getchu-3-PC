@@ -33,6 +33,9 @@ def check(root: Path) -> dict:
     tail = runpy.run_path(
         str(tools / "verify_original_movement_post_tail_557fc8.py")
     )
+    child = runpy.run_path(
+        str(tools / "verify_original_movement_child_lifecycle_557e30.py")
+    )
 
     # Genuine 557F48: MOV.S f20,f0
     # Genuine 557F60: MOV.S f21,f0 (36FB18's returned f0)
@@ -76,12 +79,26 @@ def check(root: Path) -> dict:
                               rs=2,rd=21,at=0x557FEC)
     require_original_ee_daddu(step["WORDS"][0x558070],
                               rs=21,rd=5,at=0x558070)
+    # Source 557E68 LW s4,parent+0x14 sign-extends to the EE
+    # 64-bit register, then 557FF0 DADDU a0,s4,zero preserves it.
+    lw = child["OPCODES"][0x557E68]
+    if (lw >> 26 != 0x23 or ((lw >> 21) & 31) != 17 or
+        ((lw >> 16) & 31) != 20 or (lw & 0xffff) != 0x14):
+        raise AssertionError("557E68 is not original LW s4,parent+0x14")
+    require_original_ee_daddu(tail["WORDS"][0x557FF0],
+                              rs=20,rd=4,at=0x557FF0)
     header_tail = (root / "include" / "ae3" /
                    "original_movement_post_tail_557fc8.hpp").read_text(
                        encoding="utf-8"
                    )
     if "std::uint64_t call_original_30c0a0" not in header_tail:
         raise AssertionError("original EE v0->s5 return truncated to 32 bits")
+    if "std::uint64_t originalParentWord14SignExtended" not in header_tail:
+        raise AssertionError("original EE sign-extended parent s4 truncated")
+    if "std::uint64_t originalParentWord14SignExtended" not in (
+        root / "src" / "original_movement_post_tail_557fc8.cpp"
+    ).read_text(encoding="utf-8"):
+        raise AssertionError("original 557FF0 source parent argument truncated")
     header_step = (root / "include" / "ae3" /
                    "original_movement_post_step_558030.hpp").read_text(
                        encoding="utf-8"
@@ -156,6 +173,8 @@ def check(root: Path) -> dict:
             "0x36F894 SW flags",
             "0x557FEC DADDU s5,v0,zero 64-bit",
             "0x558070 DADDU a1,s5,zero 64-bit",
+            "0x557E68 LW s4,parent+0x14 sign-extended",
+            "0x557FF0 DADDU a0,s4,zero 64-bit",
         ],
         "source_lifecycle_ctest_targets_linked": len(lifecycle_targets),
         "source_register_provenance_checks_present": True,
