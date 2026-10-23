@@ -595,3 +595,48 @@ Original `0x36F8C8` VF1 regeneration and the
 rest of `0x557F54+` actor collision/animation
 remain unresolved, so this does not establish
 a full playable Player/Monkey game update.
+
+
+### Source 0x36F8C8 VU0 regeneration: common original callsite integrated
+
+Recovered original USA `0x36F8C8..0x36F954`:
+**35 source machine-code instructions**, SHA-256
+`62aef8aedb73f27eb053c1f294af37dbb35f9550fc48f46293b38e2da2eeb7f6`.
+All individual opcodes and the nine original alternate
+tagged-pointer branch targets were verified directly
+against the genuine private USA executable.
+
+The untagged source path now builds real VU0
+`[status³,status²,status,1]` via original PPACW
+packing, executes both original VMULAx/VMADDAy/
+VMADDAz/VSUBAw accumulator stages, sets the
+actual source flags bit1, and returns the source
+128-bit VF1 register contents. The real original
+VU0 operand registers VF1-VF8 are REQUIRED;
+no replacement engine positions are inferred.
+
+The new original `0x36FC18` owned-child
+regeneration operation reads genuine
+`0x30C57C` child `+0xB0/+0xB4/+0xB8` data,
+requests the original parent's VU0 register state,
+publishes the completed VU outputs, and only
+then writes source flag bit1 into child `+0xB8`.
+The existing `0x557F34` positive-movement
+caller optionally runs this source regeneration
+on bit1-clear first entry, then continues
+through the mandatory original `0x36FB18`
+game-owner callback. Bit1-set later updates
+skip regeneration.
+
+Three native regression targets and a full original
+ELF word/branch verifier cover the source translation,
+owned-child mutations and the 557F34 integration;
+isolated local GCC/Clang UBSan tests passed.
+The full Windows/Unreal executable is unverified.
+
+**Still unresolved:** source 36F8C8 other tagged address
+branches, nonexact PS2 FP modes, original 36FB18
+remaining iterative movement/real collision, original
+557F54+ animation/actor state, and persistent
+playable Player/Monkey. Detailed reconstruction:
+`native/docs/ORIGINAL_MOVEMENT_REGENERATION_36F8C8.md`.
