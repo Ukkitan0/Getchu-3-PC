@@ -52,9 +52,16 @@ set(ORIGINAL_LUA_STAGE_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/retail_lua50.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/player_state.cpp")
 
+# Compile the ACTUAL recovered original Player virtual resource router and
+# child controller lifecycle alongside Lua. These are genuine native C++
+# source recoveries, not generic Unreal Actor replacements.
+set(ORIGINAL_ACTOR_MANAGER_SOURCES
+  "${ORIGINAL_NATIVE_SOURCE}/original_player_factory.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_manager_child.cpp")
 add_library(Getchu3OriginalLuaBridge SHARED
   "${ORIGINAL_NATIVE_SOURCE}/ae3_unreal_lua_bridge.cpp"
-  ${ORIGINAL_LUA_STAGE_SOURCES})
+  ${ORIGINAL_LUA_STAGE_SOURCES}
+  ${ORIGINAL_ACTOR_MANAGER_SOURCES})
 target_include_directories(Getchu3OriginalLuaBridge
   PUBLIC "${ORIGINAL_NATIVE_INCLUDE}")
 target_link_libraries(Getchu3OriginalLuaBridge PRIVATE Getchu3Lua50)
@@ -77,6 +84,22 @@ if(BUILD_TESTING)
     PRIVATE Getchu3OriginalLuaBridge)
   add_test(NAME OriginalLua50UnrealHostBridgeFailClosed
     COMMAND Getchu3OriginalUnrealLuaBridgeTests)
+
+  add_executable(Getchu3OriginalPlayerResourceTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_player_factory_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_player_factory.cpp")
+  target_include_directories(Getchu3OriginalPlayerResourceTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalPlayerResourceVirtual2
+    COMMAND Getchu3OriginalPlayerResourceTests)
+
+  add_executable(Getchu3OriginalManagerChildTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_child_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_child.cpp")
+  target_include_directories(Getchu3OriginalManagerChildTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalManagerChildCtorLifecycle
+    COMMAND Getchu3OriginalManagerChildTests)
 
   add_executable(Getchu3OriginalHealthBridgeTests
     "${ORIGINAL_NATIVE_ROOT}/tests/ae3_unreal_health_bridge_test.cpp")
