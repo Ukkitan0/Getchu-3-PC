@@ -45,7 +45,7 @@ original game stages must fail and the Play button remains disabled.
 
 ## Lossless original Lua transport
 
-The C ABI version 3 has no C++ STL objects across DLL boundaries. Entity
+The C ABI version 4 has no C++ STL objects across DLL boundaries. Entity
 class/name/tag and flag scope/key are exact byte-hex strings. Lua values are
 represented in typed JSON with explicit type tags (nil, boolean, number, text,
 array, object), byte-hex string contents and byte-hex object keys. This avoids
@@ -251,7 +251,7 @@ verified script path from becoming a stale authorization for different bytes.
 header digest and rejects a one-bit change to that input. This test is wired
 into the Windows build gate but has not yet run under Win64 here.
 
-## Explicit native VM destruction contract (ABI v3)
+## Explicit native VM destruction contract (ABI v4)
 
 `ae3_lua_destroy` now returns 1 when the VM is gone (including a null
 handle), and 0 if it is still active. Unreal must **not** unload the DLL on
@@ -259,4 +259,41 @@ handle), and 0 if it is still active. Unreal must **not** unload the DLL on
 A native ABI test calls destruction recursively from the original
 PlayerProgress provider during `ae3_lua_reset` and verifies rejection.
 The same runtime retains atomic Begin/Commit/Abort manager rollback.
-Headers, test code and Unreal share the named `Ae3LuaManagerV3` structure.
+Headers, test code and Unreal share the named `Ae3LuaManagerV4` structure.
+
+## Recovered original ChangeHP gameplay routine (ABI v4)
+
+The source branch now exposes the game's recovered native `ChangeHP(delta)`
+routine directly to Unreal as `UGetchu3OriginalLuaSubsystem::ApplyOriginalHealthDelta`.
+It operates on the established **1,033-byte original PlayerProgress layout**,
+whose health field is at offset +8. The native code calls the existing
+`ae3::changePlayerHealth`, implementing the source-recovered
+`clamp(life + delta, 0, 100)` behavior; it does not use Unreal's
+default health component or invent an independent health variable.
+
+The expanded `Ae3LuaManagerV4` source ABI requires both
+`read_original_player_progress` and
+`write_original_player_progress` callbacks. The manager must provide
+the complete 1,033 bytes and **atomically persist** the updated record to
+the real player manager. Every other source field, including capture
+and shop flags, is preserved verbatim. A missing read/write manager, failed
+write, nonfinite source life/delta, reentrant manager call, or missing active
+committed stage is rejected; the call does not claim success. Only after
+the write succeeds does it update the retained LuaStage progress snapshot.
+
+Unreal exposes the same explicit manager contract through
+`ReadOriginalPlayerProgress` and `WriteOriginalPlayerProgress`
+BlueprintNativeEvents. Both default to rejecting requests. An actual
+source-backed player/save owner is still necessary to make the operation
+usable during gameplay.
+
+New native CTest `OriginalChangeHPSourceStateReadWrite` uses synthetic
+1,033-byte player state to exercise -30 damage, +90 healing,
+negative overflow, clamp to 0/100, unrelated capture/shop flag integrity,
+and rejection of missing or refused source-manager writes. The Windows
+one-click source build now includes that test.
+
+**Verification boundary:** The test has been committed and wired to CMake,
+but it has not yet been run against the real bridge on Windows or inside
+Unreal 5.6. This is one recovered native gameplay function, not a
+complete playable Player, actor factory, or stage simulation.
