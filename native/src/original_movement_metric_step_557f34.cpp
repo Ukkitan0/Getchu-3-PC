@@ -54,7 +54,40 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
     // Original 36FB18 fast return may be computed without its
     // movement/collision engine. Otherwise mandatory source owner.
     const auto fast=originalMovementStepFast_36fb18(child,scaledRaw);
-    const auto step=fast?*fast:owner.call_original_36fb18(child,scaledRaw);
+    std::uint32_t step{};
+    if(fast) {
+        step=*fast;
+    } else {
+        const auto genuine=owner.read_original_flagged_vf1_36fb5c(
+            child,scaledRaw);
+        if(genuine && child.originalWordAt(0xB8)&2u) {
+            // Verify the source original 36FB5C arguments are
+            // THIS owned child's actual status/flags/scale.
+            if(genuine->originalChildStatusA4Bits!=child.originalWordAt(0xB4) ||
+               genuine->originalChildFlagsA8!=child.originalWordAt(0xB8) ||
+               genuine->originalMovementF12Bits!=scaledRaw)
+                throw std::invalid_argument(
+                    "source 36FB5C owner supplied mismatched original child/scale");
+            const auto plan=originalMovementFlaggedPass_36fb5c(*genuine);
+            if(plan.originalReturnF0Bits) {
+                // 36FB70 VU0 VF1 mutation must be published BEFORE
+                // retail 36FBBC/36FBEC child status writes.
+                owner.publish_original_vf1_after_36fb5c(
+                    plan.originalVF1After);
+                originalMovementCommitFlaggedReturn_36fb5c(
+                    child,*genuine,plan);
+                step=*plan.originalReturnF0Bits;
+            } else {
+                // This first pass must call genuine 36F8C8 to
+                // regenerate VF1. We have NOT mutated child or VF1
+                // through our partial plan: delegate full retail
+                // 36FB18 instead of duplicating first-pass effects.
+                step=owner.call_original_36fb18(child,scaledRaw);
+            }
+        } else {
+            step=owner.call_original_36fb18(child,scaledRaw);
+        }
+    }
     return {metric,scaledRaw,step};
 }
 } // namespace ae3
