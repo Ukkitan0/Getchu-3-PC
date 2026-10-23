@@ -75,13 +75,13 @@ int main() {
     // Source a1 flags bit0 or bit1 bypass polymorphic dispatch, return1.
     c.word08=0x57bf5c;c.word0c=0;
     assert(originalManagerDispatch_57c620(c,1,owner)==1);
-    equals(owner.sequence,{"release"});
+    equals(owner.sequence,{"assign30ffd0"});
     assert(owner.parent==&parent && owner.pending==&pending);
     assert(c.originalPendingPolygon50==nullptr);
     owner.sequence.clear();
     c.originalPendingPolygon50=&pending;
     assert(originalManagerDispatch_57c620(c,2,owner)==1);
-    equals(owner.sequence,{"release"});
+    equals(owner.sequence,{"assign30ffd0"});
     assert(c.originalPendingPolygon50==nullptr);
 
     // With no flag bits and no child, controller method+8 is
@@ -103,13 +103,13 @@ int main() {
     owner.dispatchReturn=3;
     c.originalPendingPolygon50=&pending;
     assert(originalManagerDispatch_57c620(c,1,owner)==3);
-    equals(owner.sequence,{"virtual","release"});
+    equals(owner.sequence,{"virtual","assign30ffd0"});
     assert(owner.originalMethod==0x57c554 &&
            owner.originalThisOffset==10 &&
            c.originalPendingPolygon50==nullptr);
     c.child10=nullptr;
 
-    // Returning zero leaves original +0x50 owned, then checks source
+    // Returning zero leaves original pending polygon+0x50 owned, then checks source
     // globals; global E0 must be read ONLY when E7 is nonzero.
     owner.sequence.clear();
     c.word08=0x57bf5c;c.word0c=0;
@@ -132,7 +132,7 @@ int main() {
     equals(owner.sequence,{"direct","e7","e0","warning"});
     assert(c.originalPendingPolygon50==&pending);
 
-    // Fail closed if real original diagnostic or resource cleanup
+    // Fail closed if real original diagnostic or spatial polygon update
     // callback cannot execute. Never silently publish a fake update.
     owner.sequence.clear();owner.throwWarning=true;
     bool refused=false;
