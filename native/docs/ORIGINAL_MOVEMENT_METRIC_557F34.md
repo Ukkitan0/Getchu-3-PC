@@ -115,7 +115,7 @@ One critical corrected lifecycle branch:
 `0x557EB4 BNEZL` reads original child+0xC0.
 When it is **zero**, the child runs the one-time
 `0x557ED8` setup and is marked initialized. When it is
-**nonzero**, the original branches **directly to
+**nonzero (any nonzero byte)**, the original branches **directly to
 `0x557F34`**, executing child-mode read in its
 delay slot and skipping the initial resource/route
 setup. The native `OriginalMovementChildLifecycle_557e30`
