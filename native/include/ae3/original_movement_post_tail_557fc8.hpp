@@ -2,8 +2,10 @@
 #include "ae3/original_movement_flag0_regenerate_36f83c.hpp"
 #include "ae3/original_movement_post_vector_557f54.hpp"
 #include "ae3/original_movement_post_step_558030.hpp"
+#include "ae3/original_movement_forward_276538.hpp"
 #include <array>
 #include <cstdint>
+#include <stdexcept>
 
 namespace ae3 {
 // Original USA 0x557FC8..0x558030 source control flow.
@@ -11,7 +13,8 @@ namespace ae3 {
 // are the genuine original game-owner methods, not substitutes.
 class OriginalMovementPostTailOwner_557fc8:
     public OriginalMovementFlag0Owner_36f83c,
-    public OriginalMovementPostStepOwner_558030 {
+    public OriginalMovementPostStepOwner_558030,
+    public OriginalMovementForwardOwner_274988 {
 public:
     virtual ~OriginalMovementPostTailOwner_557fc8()=default;
     // The real EE a0 for 36F83C/36FC28 is child+0x10 as
@@ -30,9 +33,27 @@ public:
     // 557FF8 MMI3 POR a1,zero,s3 copies ALL four VF2 lanes.
     // 557E68 LW s4,parent+0x14 sign-extends the original word,
     // and 557FF0 DADDU a0,s4,zero passes its full 64-bit bits.
+    // Native source wrapper 276538 is now fully reconstructed
+    // from the verified USA nine-instruction original. Existing
+    // owners may override this method when they already perform
+    // the real original EE wrapper in the game runtime. A new
+    // owner only needs to implement the deeper actual 274988
+    // VU0 routine; neither route substitutes fake movement.
     virtual void call_original_276538(
         std::uint64_t originalParentWord14SignExtended,
-        const std::array<std::uint32_t,4>& originalEES3)=0;
+        const std::array<std::uint32_t,4>& originalEES3) {
+        originalMovementForward_276538(
+            originalParentWord14SignExtended,originalEES3,*this);
+    }
+    // The underlying original 274988 normalization is not yet
+    // translated; throw if an owner tries the reconstructed
+    // wrapper without a real 274988 source implementation.
+    void call_original_274988(
+        std::uint64_t,
+        const std::array<std::uint32_t,4>&) override {
+        throw std::logic_error(
+            "original 274988 VF1 normalization requires genuine owner");
+    }
     virtual std::uint8_t read_original_6354e7()=0;
     virtual std::uint8_t read_original_6354e0()=0;
     virtual void call_original_36fc28(
