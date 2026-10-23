@@ -455,6 +455,18 @@ if(BUILD_TESTING)
   add_test(NAME OriginalMovementFlaggedPass36FB5C
     COMMAND Getchu3OriginalFlaggedMovementTests)
 
+  # Exact original 36FB5C completed-pass commit into typed
+  # 30C57C child status+B4 / flags+B8. Fabricated or stale
+  # caller return values and 36F8C8 continuations are rejected.
+  add_executable(Getchu3OriginalFlaggedChildCommitTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_flagged_child_commit_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_flagged_36fb5c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp")
+  target_include_directories(Getchu3OriginalFlaggedChildCommitTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementFlaggedChildCommit36FB5C
+    COMMAND Getchu3OriginalFlaggedChildCommitTests)
+
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
   # source actor child callbacks; never invent missing movements.
