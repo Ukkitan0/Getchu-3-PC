@@ -18,6 +18,11 @@ struct Calls final:OriginalManagerChildCalls {
     if (obj.alternative30 || expectPreservedVariantZero)
       check(obj.controller20 && *obj.controller20==expectedVector20);
     else check(!obj.controller20);
+    // Neither original constructor stores +0x40. Unknown source SQ
+    // must remain absent, or previously owned genuine bytes survive.
+    if (expectPreservedVariantZero)
+      check(obj.controller40 && *obj.controller40==expectedVector20);
+    else check(!obj.controller40);
   }
   void call_child_virtual1_delete(void* p)override{check(p==this);calls.emplace_back("childdelete");}
   std::uint32_t call_child_virtual2(void* p)override{check(p==this);calls.emplace_back("childv2");return 17;}
@@ -71,10 +76,13 @@ int main(){
  // synthetic zeros over an already owned controller vector.
  OriginalManagerChild70 reused{};
  reused.controller20=calls.expectedVector20;
+ reused.controller40=calls.expectedVector20;
  calls.expectedCtor=&reused;
  calls.expectPreservedVariantZero=true;
  originalManagerChildCtor_57ba98(reused,&calls,&calls,3,4,calls);
  check(reused.controller20 &&
        *reused.controller20==calls.expectedVector20 &&
+       reused.controller40 &&
+       *reused.controller40==calls.expectedVector20 &&
        calls.calls==std::vector<std::string>({"57bcb8"}));
 }
