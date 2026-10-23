@@ -13,6 +13,11 @@ namespace ae3 {
 struct OriginalManagerResourceFields_317b9c;
 class OriginalMovementNormalCalls_557ed8;
 class OriginalMovementChildD0_30c57c;
+class OriginalMovementRegenerationOwner_36f8c8;
+struct OriginalMovementRegenerateResult_36f8c8;
+OriginalMovementRegenerateResult_36f8c8 originalMovementRegenerateOwned_36f8c8(
+    OriginalMovementChildD0_30c57c&,std::uint64_t,
+    OriginalMovementRegenerationOwner_36f8c8&);
 struct OriginalMovementFlaggedInputs_36fb5c;
 struct OriginalMovementFlaggedPass_36fb5c;
 void originalMovementCommitFlaggedReturn_36fb5c(
@@ -56,6 +61,9 @@ public:
         return value;
     }
 private:
+    friend OriginalMovementRegenerateResult_36f8c8 originalMovementRegenerateOwned_36f8c8(
+        OriginalMovementChildD0_30c57c&,std::uint64_t,
+        OriginalMovementRegenerationOwner_36f8c8&);
     friend void originalMovementCommitFlaggedReturn_36fb5c(
         OriginalMovementChildD0_30c57c&,
         const OriginalMovementFlaggedInputs_36fb5c&,
