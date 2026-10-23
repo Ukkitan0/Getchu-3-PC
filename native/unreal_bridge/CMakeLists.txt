@@ -75,6 +75,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_target_dispatch.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_vu0_geometry.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_spatial_support.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_spatial_raw_bridge.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_ray_geometry.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_game_random.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_spatial_index.cpp")
@@ -161,6 +162,15 @@ if(BUILD_TESTING)
 
   # Reuse the recovered 0x21D898 grid-hit + 0x21DA2C full-registry
   # original VU0 selectors directly from the native Unreal bridge.
+  add_executable(Getchu3OriginalRawPolygonNearestHostAbiTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_polygon_nearest_original_data_abi_test.cpp")
+  target_include_directories(Getchu3OriginalRawPolygonNearestHostAbiTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  target_link_libraries(Getchu3OriginalRawPolygonNearestHostAbiTests
+    PRIVATE Getchu3OriginalLuaBridge)
+  add_test(NAME OriginalRawSpatialHeaderGridNearestHostAbi
+    COMMAND Getchu3OriginalRawPolygonNearestHostAbiTests)
+
   add_executable(Getchu3OriginalPolygonNearestHostAbiTests
     "${ORIGINAL_NATIVE_ROOT}/tests/original_polygon_nearest_unreal_abi_test.cpp")
   target_include_directories(Getchu3OriginalPolygonNearestHostAbiTests
