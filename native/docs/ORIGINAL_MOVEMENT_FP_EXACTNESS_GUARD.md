@@ -68,6 +68,19 @@ check**, not for the complete changed repository. The actual four
 production test targets, full CMake/CTest suite, original ELF verification
 in this session and Windows/Unreal build remain **unverified**.
 
+## Reproducible exact-arithmetic check
+
+`python native/tools/verify_original_movement_exact_add_guard.py --cases 40000`
+checks the four original-source arithmetic translation files for their
+actual exponent-gap guards and compares 80,000 deterministic add/sub
+decisions to unbounded exact rational binary32 arithmetic.
+
+An independent equivalent Python checker was executed locally in this
+pass: **80,000/80,000** decisions matched the exact-rational model
+(including the lost-nonzero-operand cases). That is an arithmetic
+property check, **not** a compilation or execution of the C++ source
+files, and does not assert hardware PS2 rounding beyond this subset.
+
 ## Remaining original source work
 
 This pass is source-integrity hardening, **not** a playable movement frame.
