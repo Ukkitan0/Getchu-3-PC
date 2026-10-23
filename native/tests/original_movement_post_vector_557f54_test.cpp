@@ -12,7 +12,8 @@ using namespace ae3;
 namespace {
 std::uint32_t raw(float x){return std::bit_cast<std::uint32_t>(x);}
 std::unique_ptr<OriginalMovementChildD0_30c57c> child(
-    float value,unsigned mode8=1,bool known=true,unsigned flags=2) {
+    float value,unsigned mode8=1,bool known=true,unsigned flags=2,
+    float secondLane=0.0f) {
     std::array<std::byte,0x110> scratch{};
     std::bitset<0x110> mask{};
     const auto bits=raw(value);
@@ -21,6 +22,8 @@ std::unique_ptr<OriginalMovementChildD0_30c57c> child(
     for(unsigned i=0;i<16;++i)if(known)mask.set(0x90+i);
     for(unsigned i=0;i<4;++i) {
         scratch[0x90+i]=std::byte((bits>>(i*8))&255u);
+        const auto yBits=raw(secondLane);
+        scratch[0x94+i]=std::byte((yBits>>(i*8))&255u);
         scratch[0xA8+i]=std::byte((flags>>(i*8))&255u);
         mask.set(0xA8+i);
     }
@@ -63,6 +66,13 @@ int main() {
     rejected=false;
     try{(void)originalMovementPostVector_557f54(*c,0x100340000ull);}
     catch(const std::invalid_argument&){rejected=true;}
+    assert(rejected);
+    // Source 557F70 VADDy: binary32 squares [1,2^-70].
+    // Double comparison alone falsely certifies the addition.
+    rejected=false;
+    try{(void)originalMovementPostVector_557f54(
+        *child(1.0f,1,true,2,0x1p-35f),0x340000u);}
+    catch(const std::domain_error&){rejected=true;}
     assert(rejected);
     std::cout<<"ORIGINAL_557F54_POST_VECTOR_EARLY_STATUS_PASSED\n";
 }
