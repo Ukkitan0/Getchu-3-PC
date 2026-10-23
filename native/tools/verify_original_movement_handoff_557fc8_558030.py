@@ -36,6 +36,9 @@ def check(root: Path) -> dict:
     child = runpy.run_path(
         str(tools / "verify_original_movement_child_lifecycle_557e30.py")
     )
+    normal = runpy.run_path(
+        str(tools / "verify_original_normal_movement_557ed8.py")
+    )
 
     # Genuine 557F48: MOV.S f20,f0
     # Genuine 557F60: MOV.S f21,f0 (36FB18's returned f0)
@@ -87,6 +90,15 @@ def check(root: Path) -> dict:
         raise AssertionError("557E68 is not original LW s4,parent+0x14")
     require_original_ee_daddu(tail["WORDS"][0x557FF0],
                               rs=20,rd=4,at=0x557FF0)
+    for at in (0x557EF8, 0x557F0C, 0x557F14, 0x557F18):
+        require_original_ee_daddu(
+            normal["SOURCE_WORDS"][at],rs=20,rd=4,at=at)
+    # 557F08 BEQZ v0,0x557F1C uses 64-bit EE v0,
+    # regardless of the values in its lower 32 bits.
+    beqz=normal["SOURCE_WORDS"][0x557F08]
+    if ((beqz >> 26) != 4 or ((beqz >> 21) & 31) != 2
+        or ((beqz >> 16) & 31) != 0):
+        raise AssertionError("source 557F08 is not 64-bit EE BEQZ v0")
     header_tail = (root / "include" / "ae3" /
                    "original_movement_post_tail_557fc8.hpp").read_text(
                        encoding="utf-8"
@@ -95,6 +107,19 @@ def check(root: Path) -> dict:
         raise AssertionError("original EE v0->s5 return truncated to 32 bits")
     if "std::uint64_t originalParentWord14SignExtended" not in header_tail:
         raise AssertionError("original EE sign-extended parent s4 truncated")
+    normal_header = (root / "include" / "ae3" /
+                     "original_movement_normal_begin_557ed8.hpp").read_text(
+                         encoding="utf-8"
+                     )
+    if "virtual std::uint64_t call_original_276b68" not in normal_header:
+        raise AssertionError("source 557F08 full 64-bit v0 was narrowed")
+    for method in ("call_original_276b68", "call_original_2767f4",
+                   "call_original_2773d4"):
+        start=normal_header.find(method+"(")
+        if start<0 or "std::uint64_t" not in normal_header[start:start+110]:
+            raise AssertionError("original normal call ABI narrower than EE s4: "+method)
+    if "std::uint64_t originalParentWord14SignExtended" not in normal_header:
+        raise AssertionError("source 557EF8 EE s4 argument truncated")
     if "std::uint64_t originalParentWord14SignExtended" not in (
         root / "src" / "original_movement_post_tail_557fc8.cpp"
     ).read_text(encoding="utf-8"):
@@ -175,6 +200,9 @@ def check(root: Path) -> dict:
             "0x558070 DADDU a1,s5,zero 64-bit",
             "0x557E68 LW s4,parent+0x14 sign-extended",
             "0x557FF0 DADDU a0,s4,zero 64-bit",
+            "0x557EF8 DADDU a0,s4,zero 64-bit",
+            "0x557F0C/14/18 DADDU a0,s4,zero 64-bit",
+            "0x557F08 BEQZ v0 full 64-bit",
         ],
         "source_lifecycle_ctest_targets_linked": len(lifecycle_targets),
         "source_register_provenance_checks_present": True,
