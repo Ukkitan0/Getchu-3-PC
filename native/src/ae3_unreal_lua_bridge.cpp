@@ -246,16 +246,16 @@ extern "C" Ae3LuaRuntime* ae3_lua_create(const Ae3LuaManagerV2* manager) {
         return new Ae3LuaRuntime(*manager);
     } catch (...) { return nullptr; }
 }
-extern "C" void ae3_lua_destroy(Ae3LuaRuntime* runtime) {
-    if (!runtime) return;
+extern "C" int ae3_lua_destroy(Ae3LuaRuntime* runtime) {
+    if (!runtime) return 1;
     if (runtime->busy) {
-        // An original game manager callback can be on a live Lua C stack.
-        // Do not free the Lua state mid-call; owner must retry destruction
-        // after the native execute/setup operation has returned.
+        // Return a verifiable failure: the caller MUST retain the handle
+        // and loaded DLL until the original callback has unwound.
         runtime->error = "refusing reentrant destruction of original Lua VM";
-        return;
+        return 0;
     }
     delete runtime;
+    return 1;
 }
 extern "C" int ae3_lua_reset(Ae3LuaRuntime* runtime) {
     return callSafely(runtime, [&] {
