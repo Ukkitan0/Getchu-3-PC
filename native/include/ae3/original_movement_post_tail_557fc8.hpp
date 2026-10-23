@@ -3,9 +3,11 @@
 #include "ae3/original_movement_post_vector_557f54.hpp"
 #include "ae3/original_movement_post_step_558030.hpp"
 #include "ae3/original_movement_forward_276538.hpp"
+#include "ae3/original_movement_normalize_274988.hpp"
 #include <array>
 #include <cstdint>
 #include <stdexcept>
+#include <optional>
 
 namespace ae3 {
 // Original USA 0x557FC8..0x558030 source control flow.
@@ -45,14 +47,35 @@ public:
         originalMovementForward_276538(
             originalParentWord14SignExtended,originalEES3,*this);
     }
-    // The underlying original 274988 normalization is not yet
-    // translated; throw if an owner tries the reconstructed
-    // wrapper without a real 274988 source implementation.
-    void call_original_274988(
-        std::uint64_t,
-        const std::array<std::uint32_t,4>&) override {
+    // The real VU0 VF1 before 274988 must be read from the
+    // game, not inferred from a host transform. Source 2749A4
+    // VADDy.xyw preserves the old Z lane; 2749A8 reads it.
+    virtual std::optional<std::array<std::uint32_t,4>>
+    read_original_live_vf1_before_274988(
+        std::uint64_t) {return std::nullopt;}
+    // Publish the complete real VF2 and VF1 register changes.
+    // The default throws until the actual runtime owner supplies
+    // its genuine VU0 publication implementation.
+    virtual void publish_original_274988_vu0(
+        const OriginalMovementNormalizeResult_274988&) {
         throw std::logic_error(
-            "original 274988 VF1 normalization requires genuine owner");
+            "original 274988 VU0 VF1/VF2 publication unavailable");
+    }
+    // Default source wrapper now executes recovered original
+    // 274988 EXACT finite binary32 subset. Other originals
+    // (rounded COP1, tagged VAs, special VU0 flags) must use
+    // a genuine complete original owner override instead.
+    void call_original_274988(
+        std::uint64_t originalParentPlus50,
+        const std::array<std::uint32_t,4>& originalStackVector) override {
+        const auto prior=read_original_live_vf1_before_274988(
+            originalParentPlus50);
+        if(!prior)
+            throw std::logic_error(
+                "original 274988 requires real prior physical VF1 register");
+        const auto source=originalMovementNormalizeExact_274988(
+            {originalStackVector,*prior});
+        publish_original_274988_vu0(source);
     }
     virtual std::uint8_t read_original_6354e7()=0;
     virtual std::uint8_t read_original_6354e0()=0;
