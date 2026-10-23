@@ -504,3 +504,33 @@ These paths continue to refuse rather than pretending
 the actor moved or completed. The actual per-frame
 Player/Monkey gameplay owner and Windows/Unreal runtime
 remain incomplete.
+
+
+### Original nonterminal child route setup progressed
+
+The previously blocked normal `0x557E30` update (source
+`0x36F954` returns zero for nonterminal status) now has a
+real source-backed `0x557ED8..0x557F30` setup translation,
+invoked only when actual game-owner methods are supplied.
+
+The original `0x317B9C` parent resource selector has been
+fully translated across all four source method branches
+(parent+0x10/+0x34/+0x40, child mode low8), preserving
+32-bit guest VA identity, branch-likely conditional loads
+and no invented runtime resources. The verified setup writes
+original child+0xB4=0 and +0xB8=0, invokes genuine
+`0x276B68` and conditionally `0x2767F4`, always invokes
+`0x2773D4`, and then sets child+0xC0=1. It leaves
+real `0x557F34/0x36FB18` animation/collision continuation
+unrecovered, never reporting a completed actor frame.
+
+Additionally original `0x317B34` resource float source
+returns from parent+0x08 table offsets +0x374 (kind1)
+or +0x3B4 (mode zero) are now natively recovered;
+the nonzero-mode VU0 path still requires real math.
+See `native/docs/ORIGINAL_MOVEMENT_NORMAL_SETUP_557ED8.md`.
+
+New native regression targets and original ELF hash/opcode
+verifiers cover these behaviors; GCC and Clang isolated
+sanitizer checks passed. Full Windows/Unreal build and
+playable game are **not** verified.
