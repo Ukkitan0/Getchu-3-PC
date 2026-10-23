@@ -44,6 +44,13 @@ struct OriginalMovementVU0VectorFrame_36f5f4 {
     std::array<std::uint32_t,4> originalVF2;
     std::array<std::uint32_t,4> originalVF3;
     std::array<std::uint32_t,4> originalVF4;
+    // Original 0x36F614 explicitly loads a3 into VF5 and
+    // 0x36F604 loads the same a3 into VF6; neither is overwritten
+    // on the 0x57C148 first-return path. Source 0x36F674 writes
+    // a full zero VF7. These must survive for an actor VU owner.
+    std::array<std::uint32_t,4> originalVF5;
+    std::array<std::uint32_t,4> originalVF6;
+    std::array<std::uint32_t,4> originalVF7;
     bool originalFirstLengthUnderOne;
 };
 OriginalMovementVU0VectorFrame_36f5f4 originalMovementVU0VectorFrame_36f5f4(
