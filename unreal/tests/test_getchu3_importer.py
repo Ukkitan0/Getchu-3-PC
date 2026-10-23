@@ -172,6 +172,62 @@ class ImporterTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "identical Unreal package"):
                 module.import_collision_in_editor(folder, CollisionUE())
 
+    def test_existing_editor_asset_is_never_replaced_or_imported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "original.glb").write_bytes(b"test model fixture")
+            class FailManager:
+                def import_asset_tasks(self, tasks):
+                    raise AssertionError("Original asset import should not run")
+            class EditorLibrary:
+                @staticmethod
+                def does_asset_exist(package_path):
+                    return package_path.endswith("/original")
+            class SafeUE(FakeUE):
+                EditorAssetLibrary = EditorLibrary
+                class AssetToolsHelpers:
+                    @staticmethod
+                    def get_asset_tools():
+                        return FailManager()
+            with self.assertRaisesRegex(RuntimeError, "Refusing to overwrite"):
+                module.import_glbs_in_editor(root, SafeUE())
+
+    def test_existing_collision_asset_blocks_all_editor_mutations(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "previous.obj").write_text("v 0 0 0\n")
+            class EditorLibrary:
+                @staticmethod
+                def does_asset_exist(package_path):
+                    return package_path.endswith("/previous")
+            class SafeUE(FakeUE):
+                EditorAssetLibrary = EditorLibrary
+                StaticMesh = type("Mesh", (), {})
+                CollisionTraceFlag = type("Trace", (), {})
+            with self.assertRaisesRegex(RuntimeError, "Refusing to overwrite"):
+                module.import_collision_in_editor(
+                    root, SafeUE(),
+                    destination="/Game/ApeEscape3/Original/Imports/test/Collision")
+
+    def test_asset_import_never_requests_replacement(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "source.glb").write_bytes(b"test model fixture")
+            requests = []
+            class CheckManager:
+                def import_asset_tasks(self, tasks):
+                    for task in tasks:
+                        requests.append(task.replace_existing)
+                        task.objects = [type("Object", (), {
+                            "get_path_name": lambda self: "/Game/New/Source"})()]
+            class SafeUE(FakeUE):
+                class AssetToolsHelpers:
+                    @staticmethod
+                    def get_asset_tools():
+                        return CheckManager()
+            module.import_glbs_in_editor(root, SafeUE())
+            self.assertEqual(requests, [False])
+
     def test_original_animation_association_is_never_guessed(self):
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)
@@ -314,5 +370,9 @@ class ImporterTests(unittest.TestCase):
                 self.assertIn('original_binding_evidence_error', outcome)
                 again=module.run(str(disk),ue=FakeUE(),repo=base,private_root=base/'saved')
                 self.assertNotEqual(again['workspace'],outcome['workspace'])
+                self.assertNotEqual(again['unreal_asset_root'], outcome['unreal_asset_root'])
+                self.assertTrue(outcome['unreal_asset_root'].startswith(
+                    '/Game/ApeEscape3/Original/Imports/Disc_'))
+                self.assertFalse(outcome['gameplay_ready'])
 
 if __name__=='__main__': unittest.main()
