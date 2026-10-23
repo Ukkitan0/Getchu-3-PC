@@ -238,6 +238,17 @@ if(BUILD_TESTING)
   add_test(NAME OriginalMovementVU0SourceScalar36F5F4
     COMMAND Getchu3OriginalMovementVU0ScalarTests)
 
+  # Original 0x36F64C..0x36F68C source VU0 vector side effects
+  # with genuine midpoint branch and PPACW zero VF7.
+  add_executable(Getchu3OriginalMovementVU0VectorFrameTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_vu0_vector_frame_36f5f4_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_vu0_scalar_36f5f4.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_scratch_tail_36f6a8.cpp")
+  target_include_directories(Getchu3OriginalMovementVU0VectorFrameTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementVU0SourceVectors36F5F4
+    COMMAND Getchu3OriginalMovementVU0VectorFrameTests)
+
   # End-to-end original source vectors -> COP1 f1 -> verified
   # 0x36F6A8 scratch -> fully recovered 0x30C57C child.
   add_executable(Getchu3OriginalMovementVectorChildChainTests
