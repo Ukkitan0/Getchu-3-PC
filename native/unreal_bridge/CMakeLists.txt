@@ -159,6 +159,17 @@ if(BUILD_TESTING)
   add_test(NAME OriginalActorRoute57C7CCHostAbi
     COMMAND Getchu3OriginalActorRouteHostAbiTests)
 
+  # Reuse the recovered 0x21D898 grid-hit + 0x21DA2C full-registry
+  # original VU0 selectors directly from the native Unreal bridge.
+  add_executable(Getchu3OriginalPolygonNearestHostAbiTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_polygon_nearest_unreal_abi_test.cpp")
+  target_include_directories(Getchu3OriginalPolygonNearestHostAbiTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  target_link_libraries(Getchu3OriginalPolygonNearestHostAbiTests
+    PRIVATE Getchu3OriginalLuaBridge)
+  add_test(NAME OriginalPolygonNearest21D89821DA2CHostAbi
+    COMMAND Getchu3OriginalPolygonNearestHostAbiTests)
+
   add_executable(Getchu3OriginalPolygonRayHostAbiTests
     "${ORIGINAL_NATIVE_ROOT}/tests/original_polygon_unreal_raycast_abi_test.cpp")
   target_include_directories(Getchu3OriginalPolygonRayHostAbiTests
