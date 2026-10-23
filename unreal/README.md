@@ -78,3 +78,9 @@ The owner-ISO importer now unpacks the genuine stage `.pck` member index **befor
 Unreal's opt-in collision path writes the original `I3D_I3C\x00` bytes into private `.i3d` members, preserving their magic identity. The preexisting native runtime's default PCK behavior **still leaves I3C inside PCK**: the new option does not change that path. All extracted and converted files stay in `Saved/Getchu3Private` and are excluded from source control. A missing stage PCK reports a blocked source-data import, never an invented model or collision mesh.
 
 The integrated Windows build now runs both `unreal/tests` and the original PCK extractor regressions. Locally, equivalent structural PCK extraction logic passed six synthetic-fixture checks for identity preservation, collision opt-in/default behavior, repeated extraction, upgrade from the native mode and corrupt input rejection. The full repository test suite and genuine owner ISO-to-Unreal import have **not** yet run here.
+
+### Original material names from PCK
+
+The pinned `ae3-sdk gltf` converter resolves image materials by their original TIM2 basename (for example `fur.png`), while the true PCK extractor names members with an archive index (`0003_fur.tm2`). The importer now creates **owner-private, source-pack-local** material aliases after TIM2 decoding. A model from `pck_assets/bg` can only resolve those aliases under its own original `pck_assets/bg` directory, not a different archive or another stage. A duplicate original material name in the same pack with different pixels is explicitly rejected. If a PCK model has no verified pack-local material, its conversion records this limitation instead of borrowing a plausible texture. No original game source file is renamed or changed.
+
+The `material_aliases` directory remains owner-private and is used by the source GLB converter; imported PNG assets continue to retain their original indexed identities.
