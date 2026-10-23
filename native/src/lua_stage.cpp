@@ -399,9 +399,13 @@ static void field(lua_State* L,const char* name){
 }
 int LuaStage::control(lua_State* L){
     const char* op=luaL_checkstring(L,1);
+    const std::size_t opSize=lua_strlen(L,1);
     lua_newtable(L);
     lua_pushstring(L,"control");field(L,"kind");
-    lua_pushstring(L,op);field(L,"opcode");
+    // Original Lua 5.0 command strings are binary-safe. lua_pushstring
+    // would silently truncate a command containing a zero byte before
+    // the original actor manager receives its exact controller opcode.
+    lua_pushlstring(L,op,opSize);field(L,"opcode");
     if(lua_istable(L,2)){lua_pushvalue(L,2);field(L,"params");}
     return 1;
 }
@@ -420,7 +424,8 @@ int LuaStage::order(lua_State* L){
     return 1;
 }
 int LuaStage::setFlag(lua_State* L){
-    const char* key=luaL_checkstring(L,1);
+    const char* rawKey=luaL_checkstring(L,1);
+    const std::string key(rawKey,lua_strlen(L,1));
     const char* binding=lua_tostring(L,lua_upvalueindex(2));
     std::string scope=binding?binding:"area_set_flag";
     scope=scope.substr(0,scope.find('_'));
@@ -467,7 +472,8 @@ int LuaStage::getFlag(lua_State* L){
         }
         return 1;
     }
-    const char* key=luaL_checkstring(L,1);
+    const char* rawKey=luaL_checkstring(L,1);
+    const std::string key(rawKey,lua_strlen(L,1));
     const std::string scope=name.substr(0,name.find('_'));
     try{
         if(stage->nativeBindings_.readFlag){
