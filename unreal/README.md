@@ -5,7 +5,7 @@ Unreal Engine 5.6 Windows project and Editor plugin. This folder contains **no r
 ## Recovered Lua 5.0 native runtime integration (new)
 
 This source branch now has a **real Unreal game target**, a packaged-runtime
-Getchu3OriginalLua plugin module and a versioned native C ABI DLL compiled
+Getchu3OriginalLua plugin module and a versioned native C ABI v3 DLL compiled
 from the existing original-game Lua 5.0 interpreter and retail bytecode
 transcoder. See [original Lua engine bridge](docs/ORIGINAL_LUA_NATIVE_RUNTIME.md).
 
