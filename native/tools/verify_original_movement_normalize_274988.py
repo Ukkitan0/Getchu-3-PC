@@ -129,7 +129,6 @@ def verify_native(root:Path)->dict:
         "originalMovementNormalizeExact_274988(",
         "originalMovementForward_276538(",
         "publish_original_274988_vu0(originalParentPlus50,source)",
-        "if(result.originalPerformedNormalize)",
     ):
         if piece not in caller:
             raise AssertionError("original 557FC8 owner not connected to "+piece)
@@ -151,6 +150,14 @@ def verify_native(root:Path)->dict:
     ):
         if needle not in tests:
             raise AssertionError("native normalized state regression absent "+needle)
+    posttail_test=(root/"tests"/"original_movement_post_tail_557fc8_test.cpp").read_text(
+        encoding="utf-8"
+    )
+    if ("if(result.originalPerformedNormalize)" not in posttail_test or
+        "o.storedParent50==1" not in posttail_test or
+        "o.lastParent50==0x340050ull" not in posttail_test):
+        raise AssertionError(
+            "original near-zero branch conditional parent+50 store not regressed")
     return {
         "native_original_mmi_xz_packing_connected":True,
         "native_exact_finite_vu0_subset_connected":True,
