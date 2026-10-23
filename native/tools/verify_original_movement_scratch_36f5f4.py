@@ -51,7 +51,18 @@ WORDS = {
     0x36F640:0x46000834, # C.OLT.S f1,f0
     0x36F648:0x45000005, # conditional original normalisation branch
     0x36F660:0x0000682D, # t5 = 0
+    0x36F64C:0x3C0E3F00, # LUI source scalar 0.5f in t6
+    0x36F650:0x48AE0800, # QMTC2 t6 -> VF1
+    0x36F654:0x4BE11898, # VMULx VF2=VF3*VF1.x
+    0x36F658:0x4BE13058, # VMULx VF1=VF6*VF1.x
+    0x36F65C:0x4BE11128, # VADD.xyzw VF4=VF2+VF1
     0x36F664:0x448F0800, # MTC1 second VU scalar -> f1
+    0x36F668:0x71AD74C8, # PPACW zero t5 -> t6
+    0x36F66C:0x71CE74C8, # PPACW t6 -> t6, remains zero
+    0x36F674:0x48AE3800, # QMTC2 zeroed t6 -> VF7
+    0x36F67C:0x4BE320EC, # VSUB VF3=VF4-VF3
+    0x36F684:0x4BE4286C, # VSUB VF1=VF5-VF4
+    0x36F68C:0x4BE538AC, # VSUB VF2=VF7-VF5
     0x36F678:0x240B0002, # t3 = 2
     0x36F680:0x0008580A, # MOVZ t3,zero,t0 => 0 at retail caller
     0x36F690:0x000B61C0, # t4 = t3 << 7 (128-byte source records)
@@ -156,6 +167,8 @@ def verify(original):
         "native_source_vu0_xyz_reduction_recovered":True,
         "native_source_vu0_reduction_input_policy":"finite normal/zero lanes only",
         "original_vu0_scalar_opcodes_verified":len(VU_SCALAR_OPS),
+        "original_vu0_followup_vector_opcode_sites":12,
+        "native_source_vu0_vector_midpoint_branch_recovered":True,
         "native_tail_only_recovered":False,
         "full_original_vu0_arithmetic_recovered":False,
         "playable_windows_game":False,
