@@ -177,3 +177,29 @@ are unavailable in this execution environment. The source tests must
 execute in the owner's Windows toolchain and may reveal additional
 integration failures. Missing original game managers remain the
 main block on running the actual game.
+
+## Win64 stage SHA-256 crash regression fixed
+
+The imported-stage loader previously invoked
+`FPlatformMisc::GetSHA256Signature`. The generic implementation is a hard
+`checkf` stub on some Windows Unreal engine builds and may terminate the
+editor instead of hashing. Original Lua source authenticity now uses Windows
+CNG `BCryptHash` SHA-256 through a shared source file
+(`native/include/ae3/windows_source_sha256.hpp`). The Unreal Runtime module
+links the Windows SDK `bcrypt.lib`. The native Win64 test target
+`Getchu3OriginalWindowsSha256Tests` exercises **the identical helper**
+with the SHA-256 empty and `abc` reference vectors and a deterministic
+synthetic Lua 5.0 header. Invalid arguments and overflowing buffer sizes
+must be rejected. A malformed stage catalog is also rejected by
+`TryGetBoolField` without assuming a missing JSON field can be read safely.
+
+The one-click Windows build now requires
+`OriginalWindowsSHA256SourceVectors` CTest to pass before launching the
+Unreal Editor, in addition to the native Lua bridge and stage-execution
+tests. No SHA1 downgrade or external network hash verification is used.
+
+Verification performed on the local Linux tooling: all three **reference
+test-vector expectations** independently match Python's `hashlib.sha256`;
+the seven source-catalog Python integrity tests pass. The BCrypt helper
+and Unreal stage loader themselves still require compilation and execution
+on Windows with UE 5.6; they are **not** reported as Windows-tested.
