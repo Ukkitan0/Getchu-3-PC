@@ -40,8 +40,13 @@ OriginalResourceVU0Result_317b34 originalManagerResourceVU0_317b34(
     const OriginalResourceVU0Inputs_317b34& source) {
     if(p.originalParentWord40==1u || (mode&255u)==0u)
         throw std::invalid_argument("original 0x317B34 VU0 branch not selected");
+    // Original parent came from a 32-bit LW into a 64-bit EE
+    // register. Negative low-word parent VAs sign-extend, taking
+    // the original 317B58 tagged path (not this ordinary branch).
+    // Refuse a caller that incorrectly zero-extends such a word.
     if(!source.originalParentGuestVA ||
        (source.originalParentGuestVA>>32)!=0u ||
+       (source.originalParentGuestVA&0x80000000ull)!=0u ||
        (source.originalParentGuestVA&15u)!=0u)
         throw std::invalid_argument("original 0x317B58 tagged/unaligned parent requires other source path");
     if(!p.originalParentWord08 || (p.originalParentWord08&3u)!=0u)
