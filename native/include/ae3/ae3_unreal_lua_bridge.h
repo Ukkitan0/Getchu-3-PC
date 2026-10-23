@@ -171,6 +171,36 @@ AE3_LUA_EXPORT int ae3_original_polygon_nearest_all_21da2c(
     const Ae3OriginalNearestPolygonSourceV1* original,
     Ae3OriginalNearestPolygonResultV1* output);
 
+/* Higher-level source 0x4E3C14 -> 0x21D898 native query.
+ * Accepts genuine grid +0x00/+0x04 origins, +0x10/+0x14 steps,
+ * +0x18/+0x1C dimensions, +0x50 u16 cell offsets and +0x08
+ * u16 hit pool, all recovered in original_spatial_support.cpp.
+ * resolved_x/y are the original two scalar operands supplied to the
+ * spatial grid routine AFTER game-specific VU0 operand extraction;
+ * they are NOT inferred from Unreal world X/Y or collision geometry.
+ * original.original_hit_indices/count are ignored for this entrypoint:
+ * the native source grid routine computes the u16 candidate list.
+ */
+typedef struct Ae3OriginalGridNearestSourceV1 {
+    Ae3OriginalNearestPolygonSourceV1 original;
+    float original_origin_x00;
+    float original_origin_y04;
+    float original_step_x10;
+    float original_step_y14;
+    int32_t original_dimension_x18;
+    int32_t original_dimension_y1c;
+    const uint16_t* original_cell_offsets50;
+    size_t original_cell_offset_count;
+    const uint16_t* original_hit_pool08;
+    size_t original_hit_pool_count;
+    float original_resolved_x;
+    float original_resolved_y;
+} Ae3OriginalGridNearestSourceV1;
+AE3_LUA_EXPORT int ae3_original_polygon_nearest_grid_4e3c14_21d898(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalGridNearestSourceV1* original,
+    Ae3OriginalNearestPolygonResultV1* output);
+
 /* Legacy LOW64-only view of original 0x57C8EC target dispatch.
  * Genuine 0x21B788 eligibility, 0x57C98C three-vertex random blend,
  * persistent 0x36F3C0 RNG, and 0x57CA68 fallback VU0 transformations
