@@ -176,6 +176,16 @@ if(BUILD_TESTING)
   add_test(NAME OriginalRoute57C7CCNativeRaycast4C1B3C
     COMMAND Getchu3OriginalActorRouteRaycastV2Tests)
 
+  # Independent genuine 0x57CB4C/0x57CC48 VU0 instruction
+  # regression with scalar oracle; does NOT need Lua or Unreal.
+  add_executable(Getchu3OriginalFallbackNativeVu0Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_actor_fallback_vu0_native_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_actor_fallback_vu0_native.cpp")
+  target_include_directories(Getchu3OriginalFallbackNativeVu0Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalFallbackVU0FixedInstructionVectors
+    COMMAND Getchu3OriginalFallbackNativeVu0Tests)
+
   add_executable(Getchu3OriginalActorTargetAbiTests
     "${ORIGINAL_NATIVE_ROOT}/tests/original_actor_target_unreal_abi_test.cpp")
   target_include_directories(Getchu3OriginalActorTargetAbiTests
