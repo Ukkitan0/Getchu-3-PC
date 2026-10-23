@@ -12,8 +12,9 @@ namespace ae3 {
 //
 // 0x57C120 creates two original 0x441F40 scratch objects at stack
 // +0x20 and +0x60 (source spacing 0x40). These opaque host-owned
-// buffers may be read only after the true game implementation of
-// 0x441F40 and 0x36F5F4 has populated them.
+// buffers are untouched by genuine original 0x441F40 (no-op).
+// They may be consumed only AFTER original 0x36F5F4 has supplied
+// the actual original data needed by the 0x30C57C constructor.
 struct OriginalMovementScratch_57bf5c {
     std::array<std::byte,0x40> sourceStack20{};
     std::array<std::byte,0x40> sourceStack60{};
@@ -34,8 +35,9 @@ public:
     // actual source FPR f0 tested against the original 2.0f.
     virtual float call_original_vu0_metric_57c090(
         OriginalManagerChild70& originalController)=0;
-    virtual void call_original_441f40(
-        std::array<std::byte,0x40>& originalScratch)=0;
+    // Source 0x441F40 (called twice at 0x57C128/0x57C130) is a
+    // FULLY verified original no-op: no store to either stack block.
+    // No external callback or synthetic scratch initializer exists.
     virtual void call_original_36f5f4(
         OriginalMovementScratch_57bf5c& originalScratch)=0;
     virtual void* call_original_30c57c(
