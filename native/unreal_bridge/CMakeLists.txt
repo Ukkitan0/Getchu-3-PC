@@ -67,6 +67,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_native_method_router.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_movement_57bf5c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_scratch_tail_36f6a8.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_movement_vu0_scalar_36f5f4.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_tick_bridge_3161b8.cpp"
@@ -224,6 +225,30 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalMovementChild30C57CSourceCopy
     COMMAND Getchu3OriginalMovementChild30C57CTests)
+
+  # Original 0x36F608..0x36F62C VSUB/VMUL/VADDy/VADDz
+  # scalar source reduction; genuine EE registers, never inferred
+  # host positions, produce COP1 f1 consumed by scratch status.
+  add_executable(Getchu3OriginalMovementVU0ScalarTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_vu0_scalar_36f5f4_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_vu0_scalar_36f5f4.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_scratch_tail_36f6a8.cpp")
+  target_include_directories(Getchu3OriginalMovementVU0ScalarTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementVU0SourceScalar36F5F4
+    COMMAND Getchu3OriginalMovementVU0ScalarTests)
+
+  # End-to-end original source vectors -> COP1 f1 -> verified
+  # 0x36F6A8 scratch -> fully recovered 0x30C57C child.
+  add_executable(Getchu3OriginalMovementVectorChildChainTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_vu0_scratch_child_integration_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_vu0_scalar_36f5f4.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_scratch_tail_36f6a8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp")
+  target_include_directories(Getchu3OriginalMovementVectorChildChainTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementVectorScratchChildChain
+    COMMAND Getchu3OriginalMovementVectorChildChainTests)
 
   # Original 0x57BF5C source movement controller. Native branch
   # sequencing requires explicit real 0x21B854/0x36F5F4/VU0 and
