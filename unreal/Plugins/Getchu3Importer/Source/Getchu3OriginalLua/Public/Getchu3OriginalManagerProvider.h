@@ -69,6 +69,13 @@ public:
     bool ReadOriginalPlayerProgress(UPARAM(ref) TArray<uint8>& PackedSourceBytes);
     virtual bool ReadOriginalPlayerProgress_Implementation(TArray<uint8>& PackedSourceBytes);
 
+    // Must atomically replace the exact 1033-byte source-backed player state.
+    // A Blueprint or C++ handler that only stores a mock value is not valid.
+    UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Ape Escape 3|Original Manager")
+    bool WriteOriginalPlayerProgress(const TArray<uint8>& PackedSourceBytes);
+    virtual bool WriteOriginalPlayerProgress_Implementation(
+        const TArray<uint8>& PackedSourceBytes);
+
     UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Ape Escape 3|Original Manager")
     bool SelectOriginalPlayerWeapon(int32 OriginalSelection);
     virtual bool SelectOriginalPlayerWeapon_Implementation(int32);
