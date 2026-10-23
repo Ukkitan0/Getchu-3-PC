@@ -36,6 +36,14 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
     // The actual method has more gameplay paths for zero flags:
     // source 0x557EB4 (and onward), which we MUST NOT fake.
     if((a1&3u)!=0u) return 1u;
+    // Source 0x557E78 BEQZL executes 0x557E7C LBU child+0xC0
+    // only when both a1 low bits are clear. The retail constructor
+    // initializes +0xC0 to zero. Preserve the source read before
+    // refusing the still-unrecovered 0x557EB4+ gameplay branches.
+    const auto flagC0=child_->originalByteAt(0xC0);
+    if(!flagC0)
+        throw std::logic_error("original 0x557E7C child +0xC0 is unknown");
+    (void)*flagC0;
     throw std::logic_error(
         "original 0x557E30 non-flag actor update requires unrecovered gameplay methods");
 }
