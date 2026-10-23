@@ -69,6 +69,15 @@ int main() {
     try{(void)originalMovementRegenerate_36f8c8(src);}
     catch(const std::domain_error&){bad=true;}
     assert(bad);
+    // 36F934 VSUBAw also must not lose a genuine tiny VF3.
+    // The earlier ACC value is 2.625; subtracting 2^-70
+    // is inexact even though the binary64 difference is 2.625.
+    src=sample();
+    src.originalVF1ThroughVF8[2][0]=word(0x1p-70f);
+    bad=false;
+    try{(void)originalMovementRegenerate_36f8c8(src);}
+    catch(const std::domain_error&){bad=true;}
+    assert(bad);
     src=sample();src.originalStatusA4Bits=0x7fc01234u;
     bad=false;
     try{(void)originalMovementRegenerate_36f8c8(src);}
