@@ -49,3 +49,23 @@ Locally the new Player lookup, child-controller C++, and the corrected manager r
 The original **0x21D898** nearest-polygon calculation is translated and now callable from the mounted stage native bridge. The native original **0x21D46C** stage loader also exposes source-accurate 0x70 polygon records and pending type-1/type-2 descriptors (original record index, action slot, type and argument). This is sufficient to hand the genuine stage data to a future Player/Monkey actor manager, but **not** to implement the still-unrecovered actor spawning semantics by guesswork.
 
 The largest remaining dependencies are the real persistent Player/Monkey factory and owner, original **0x57C620** controller state update, original actor-owned runtime input/route setup and complete update/render/animation integration. Original **0x57BCB8** is translated at source level but is not yet connected to a working live owner. The source executable and all game assets stay private.
+
+## Direct source audit of original 0x57BF5C movement owner
+
+`native/tools/verify_original_manager_movement_57bf5c.py` now
+SHA-pins the **complete** original USA code window
+`0x57BF5C..0x57C554` (382 MIPS instruction words) and verifies
+all **18 original direct JAL call edges** with the exact
+owner-private executable SHA-256. The function dispatches several
+original dependencies including `0x316174`, `0x21B854`,
+`0x441F40`, `0x36F5F4`, `0x30C57C`, `0x3161B8`,
+`0x21DB64`, `0x3176AC`, `0x30C1D4`, `0x30C21C`,
+`0x30C520`, and the recovered original route controller
+`0x57C7CC` (called at `0x57C3D0`).
+
+This preserves a concrete, reproducible source map for recovering
+the remaining original type-zero/general movement owner. It does
+**not** claim the 382 instruction body has been translated or
+that the game is playable. The complete original-game movement
+and owner lifecycle, including these dependent original methods,
+remain required.
