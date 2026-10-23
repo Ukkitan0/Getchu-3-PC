@@ -110,6 +110,7 @@ struct RecoveredRouteCalls {
     uint32_t expectedTarget=0;
     uint32_t* mutableRoute=nullptr;
     uint8_t* mutableNavigation=nullptr;
+    Ae3OriginalManagerInitCallsV2* mutableHooks=nullptr;
 };
 int recoveredProject21b854(void* opaque, const void* polygon,
                            const Ae3OriginalVec4* from,
@@ -124,6 +125,8 @@ int recoveredProject21b854(void* opaque, const void* polygon,
             owner.mutableRoute[1]=99;
             owner.mutableNavigation[0x80+4]=99;
         }
+        if (owner.mutableHooks)
+            owner.mutableHooks->original_apply_target_57c8ec=nullptr;
     }
     *projected={30,40,50,60};
     return 1;
@@ -221,6 +224,7 @@ void verifyRecoveredRouteFollowerMultiPolygonBranchInInitializer() {
     // not the now-corrupted 99 index.
     owner.mutableRoute=route.data();
     owner.mutableNavigation=navigation.data();
+    owner.mutableHooks=&hooks;
     // Control flow: 0x57BCB8 checks action kind 0, performs original
     // projection and calls source 0x57C7CC. No invented route selector:
     // original 0x57C7CC adopts source route[1] then invokes 0x57C8EC.
@@ -229,9 +233,12 @@ void verifyRecoveredRouteFollowerMultiPolygonBranchInInitializer() {
     assert(state.target_polygon_index==1 &&
            state.source_method08==0x57bf5c &&
            owner.targetUpdates==1 && owner.projected==0 &&
-           route[1]==99 && navigation[0x80+4]==99);
+           route[1]==99 && navigation[0x80+4]==99 &&
+           hooks.original_apply_target_57c8ec==nullptr);
     owner.mutableRoute=nullptr;
     owner.mutableNavigation=nullptr;
+    owner.mutableHooks=nullptr;
+    hooks.original_apply_target_57c8ec=&recoveredApply57c8ec;
     // Missing original route[1] must abort without publishing any state.
     route[1]=99;
     const auto before=state;
