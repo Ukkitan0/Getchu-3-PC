@@ -372,3 +372,42 @@ calls and destructor ordering, and are part of `BuildAndOpen.bat`.
 A separate C ABI regression verifies the public Player lookup wrapper's
 exact 16-byte matching and secondary-factory gate. **These new Win64
 CTests have not been executed in this environment.**
+
+## Direct original actor initializer — 0x57BCB8 and original stage navigation
+
+The native DLL now directly compiles and exports the recovered actor
+controller initializer, originalManagerInitialize_57bcb8, through
+ae3_original_manager_init_create/step/destroy. It uses the genuine
+decompiled C++ path with exact 0x70-byte source polygon records,
+0x1E-byte navigation descriptors, VU0 vectors, original seeded game
+RNG (0x36F3C0), source route-kind lookup (0x221104/0x21B444),
+and type-2 source target calculation (0x57BDB8/0x57C98C).
+
+The C ABI persists genuine RNG state between calls. The real game
+manager must supply the original seed and decoded source records;
+the host copies those into aligned, call-local records and returns
+an original polygon INDEX rather than a pointer into expired memory.
+The API returns the executed original branch and publishes source-
+computed controller state only after a successful computation.
+
+The general branch still requires genuinely recovered owner callbacks
+for 0x21B854 projection and 0x57C7CC route continuation. The source
+polygon and exact four-component vectors are forwarded, unchanged,
+and missing/rejected callbacks fail, rather than using Unreal traces
+or invented movement. If a real manager changes game state during
+those callbacks, the game manager must preserve atomic transactions
+and roll back on failure. Reentrant destruction while a source call
+is on the native stack is explicitly rejected.
+
+Two new Windows CTest targets have been added:
+OriginalManagerInitializer57BCB8 validates original near-owner,
+type-2 source polygon and seeded RNG, plus projection/midpoint order.
+OriginalManagerInitializerHostAbi checks the public C ABI,
+malformed source routes, missing projection/follow-up, and
+reentrant cleanup. Both are invoked from BuildAndOpen.bat.
+
+These are tests of recovered source code with synthetic structural
+data, not proof that the real USA stage is playable. MSVC/UE5.6
+compilation and retail navigation PCK execution remain unverified.
+The original Player/Monkey actor owner and gameplay update loop
+remain missing.
