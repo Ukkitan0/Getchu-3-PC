@@ -388,6 +388,27 @@ void originalRawLuaValuePreservationTests(){
     check(stage.invokeCallback("rawEvent") && rawInvocations==2,
           "Lua VM did not recover after rejected binding arguments");
 }
+void exactOriginalLuaEntityClassBytes(){
+    // Lua 5.0 strings are byte strings. The original game runtime must
+    // not truncate embedded NUL bytes before passing actor identifiers to
+    // the Unreal native manager ABI as hexadecimal source bytes.
+    ae3::NativeStageWorld world;
+    ae3::LuaStage stage(world);
+    stage.executeSource(
+        "function setupArea(o) "
+        " new_ent('Mon' .. string.char(0) .. 'key',"
+        "  {name='source' .. string.char(0) .. 'name'})"
+        "end");
+    stage.callSetupArea("owner_spawn");
+    check(world.entities().size()==1,
+          "Original Lua 5.0 entity with embedded zero byte was lost");
+    const std::string expectedClass("Mon\\0key", 7);
+    const std::string expectedName("source\\0name", 11);
+    check(world.entities()[0].entityClass==expectedClass,
+          "Lua actor class was truncated at embedded zero byte");
+    check(world.entities()[0].name==expectedName,
+          "Lua actor name was truncated at embedded zero byte");
+}
 void errorCases(){
     ae3::NativeStageWorld world;
     ae3::LuaStage lua(world);
@@ -417,6 +438,7 @@ int main(){
         originalEngineBindingsFromElf();
         nativeBridgeAndCallbackTests();
         originalRawLuaValuePreservationTests();
+        exactOriginalLuaEntityClassBytes();
         errorCases();
         std::cout<<"NATIVE_REAL_LUA50_EXECUTION_PASSED: "
                     "setupArea,new_ent,lua_param,c_order,c_ctrl,flags,control flow\n";
