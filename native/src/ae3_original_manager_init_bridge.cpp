@@ -199,6 +199,22 @@ static int originalManagerInitImpl(
             std::memcpy(records[i].originalFields.data(),
                 static_cast<const std::byte*>(source->original_records70) +
                 i*0x70,0x70);
+        // Freeze every externally owned stage input before calling
+        // 0x21B854 or entering the genuine 0x57C7CC route. Those source
+        // manager callbacks may pump Unreal events and mutate original
+        // route/nav buffers, but must not change this invocation halfway.
+        std::vector<std::uint32_t> routeSnapshot;
+        if (source->original_route_count)
+            routeSnapshot.assign(source->original_route_indices,
+                                 source->original_route_indices+
+                                     source->original_route_count);
+        std::vector<std::byte> navigationSnapshot;
+        if (source->original_navigation_size) {
+            const auto* navigationBytes=
+                static_cast<const std::byte*>(source->original_navigation_bytes);
+            navigationSnapshot.assign(navigationBytes,
+                navigationBytes+source->original_navigation_size);
+        }
         auto* originalPolygon = static_cast<const ae3::OriginalSpatialRecord70*>(nullptr);
         if (source->original_actor_polygon_index != UINT32_MAX) {
             if (source->original_actor_polygon_index >= records.size())
@@ -227,16 +243,12 @@ static int originalManagerInitImpl(
             native(source->original_owner_position40),
             native(source->original_owner_direction50),
             originalPolygon,records,
-            std::span<const uint32_t>(
-                source->original_route_indices,source->original_route_count),
-            std::span<const std::byte>(
-                static_cast<const std::byte*>(source->original_navigation_bytes),
-                source->original_navigation_size)
+            std::span<const std::uint32_t>(routeSnapshot),
+            std::span<const std::byte>(navigationSnapshot)
         };
         RealActorCalls oldCalls(oldCallbacks);
         RealActorCallsV2 recoveredRouteCalls(sourceCallbacks,records,
-            std::span<const uint32_t>(source->original_route_indices,
-                source->original_route_count),originalPolygon);
+            std::span<const std::uint32_t>(routeSnapshot),originalPolygon);
         ae3::OriginalManagerInitCalls_57bcb8& calls = sourceCallbacks
             ? static_cast<ae3::OriginalManagerInitCalls_57bcb8&>(recoveredRouteCalls)
             : static_cast<ae3::OriginalManagerInitCalls_57bcb8&>(oldCalls);
