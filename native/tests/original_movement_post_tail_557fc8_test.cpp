@@ -34,13 +34,14 @@ struct Owner:OriginalMovementPostTailOwner_557fc8 {
         calls.emplace_back("publishVF");
         if(failVF)throw std::runtime_error("real VF1/VF4/ACC owner failed");
     }
-    std::uint32_t call_original_30c0a0(
+    std::uint64_t call_original_30c0a0(
         std::uint32_t p,const std::array<std::uint32_t,4>& originalA1) override {
         assert(p==0x234000u && originalA1[0]==raw(1.0f));
         calls.emplace_back("30C0A0");
         if(failManager)
             throw std::runtime_error("actual original 30C0A0 owner failed");
-        return 0x450000u;
+        // Source 557FEC DADDU preserves full EE v0 low 64 bits.
+        return 0x12345678450000ull;
     }
     void call_original_276538(
         std::uint32_t p,const std::array<std::uint32_t,4>& originalS3) override {
@@ -61,8 +62,8 @@ struct Owner:OriginalMovementPostTailOwner_557fc8 {
         return 0x880000u;
     }
     void call_original_314c44(
-        std::uint32_t a0,std::uint32_t a1,std::uint32_t a2) override {
-        assert(a0==0x880000u && a1==0x450000u && a2==2u);
+        std::uint32_t a0,std::uint64_t a1,std::uint32_t a2) override {
+        assert(a0==0x880000u && a1==0x12345678450000ull && a2==2u);
         calls.emplace_back("314C44");
     }
     void store_original_parent_float70(
