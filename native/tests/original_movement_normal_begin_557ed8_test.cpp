@@ -232,5 +232,21 @@ int main() {
     assert(source.calls==std::vector<std::string>(
         {"read-parent","276B68","2773D4"}));
 
+    // A fabricated zero-extended negative parent word is
+    // impossible after the genuine source 557E68 LW. Refuse it
+    // BEFORE original 557EE4/557EEC child status/flag writes.
+    source.calls.clear();
+    child=makeChild(2);
+    source.observedChild=child.get();
+    rejected=false;
+    try{originalMovementNormalBegin_557ed8(
+        *child,0x81234000ull,source);}
+    catch(const std::invalid_argument&){rejected=true;}
+    assert(rejected && source.calls.empty() &&
+           child->originalWordAt(0xB4)==
+               std::bit_cast<std::uint32_t>(0.25f) &&
+           child->originalWordAt(0xB8)==0xF5F5F5F5u &&
+           child->originalByteAt(0xC0)==std::byte{0});
+
     std::cout<<"ORIGINAL_NORMAL_MOVEMENT_557ED8_SETUP_PASSED\n";
 }
