@@ -138,10 +138,11 @@ std::unique_ptr<OriginalMovementChildD0_30c57c> child(float x) {
 }
 int main() {
     Owner first{};
+    first.allowPostStep=true;
     OriginalUpdateDepth_696c98 depth{};
     OriginalManagerChild70 controller{};
     OriginalMovementChildLifecycle_557e30 terminal(
-        child(0.5f),first,&first,&first,&first);
+        child(0.5f),first,&first,&first,&first,&first);
     controller.child10=terminal.originalChildPointer();
     first.child=static_cast<OriginalMovementChildD0_30c57c*>(controller.child10);
     // 557ED8 -> 557F34 -> 36FC18 -> 36F8C8 ->
@@ -153,6 +154,9 @@ int main() {
            !terminal.ownsOriginalChild() && depth.depth==0);
     assert(first.setups==1 && first.regenerations==1 &&
            first.moves==1 && first.post==1);
+    // Genuine 557FBC distance early status1 must take precedence:
+    // never call a post-step source owner after original return.
+    assert(first.postStepReads==0 && first.source314c44Calls==0);
 
     // Length 1.0 must NOT claim a completed original frame.
     Owner second{};
