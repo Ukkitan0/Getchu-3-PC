@@ -78,7 +78,7 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
             }
         }
     }
-    else if (metricOwner_ && *flagC0==std::byte{1}) {
+    else if (metricOwner_ && *flagC0!=std::byte{0}) {
         // Source 0x557EB4 BNEZL: an ALREADY initialized child
         // jumps directly to 0x557F34, skipping 36F954,
         // 557ED8 resets and 276B68/2773D4 setup calls.
