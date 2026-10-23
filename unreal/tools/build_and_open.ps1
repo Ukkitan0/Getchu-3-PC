@@ -114,10 +114,11 @@ MustRun "cmake" @("--build", $BuildDir, "--config", "Release",
                   "Getchu3OriginalManagerHostAbiTests",
                   "Getchu3OriginalActorRouteHostAbiTests",
                   "Getchu3OriginalPolygonRayHostAbiTests",
+                  "Getchu3OriginalActorRouteRaycastV2Tests",
                   "Getchu3OriginalWindowsSha256Tests",
                   "--parallel") "Native Lua 5.0 bridge compilation failed"
 MustRun "ctest" @("--test-dir", $BuildDir, "-C", "Release",
-                  "-R", "^(OriginalLua50UnrealHostBridgeFailClosed|OriginalLua50HostStageBindings|OriginalChangeHPSourceStateReadWrite|OriginalPlayerResourceVirtual2|OriginalManagerChildCtorLifecycle|OriginalManagerInitializer57BCB8|OriginalManagerInitializerHostAbi|OriginalActorRoute57C7CCHostAbi|OriginalPolygonRaycast4C1B3CHostAbi|OriginalWindowsSHA256SourceVectors)$",
+                  "-R", "^(OriginalLua50UnrealHostBridgeFailClosed|OriginalLua50HostStageBindings|OriginalChangeHPSourceStateReadWrite|OriginalPlayerResourceVirtual2|OriginalManagerChildCtorLifecycle|OriginalManagerInitializer57BCB8|OriginalManagerInitializerHostAbi|OriginalActorRoute57C7CCHostAbi|OriginalPolygonRaycast4C1B3CHostAbi|OriginalRoute57C7CCNativeRaycast4C1B3C|OriginalWindowsSHA256SourceVectors)$",
                   "--output-on-failure") "Native Lua 5.0 bridge tests failed"
 
 $OriginalDll = Join-Path $BuildDir "Release\Getchu3OriginalLuaBridge.dll"
