@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include <array>
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -489,4 +490,147 @@ extern "C" int ae3_original_polygon_project_4c1b3c(
     }
     session->busy=false;
     return success;
+}
+
+/* Real original 0x57C7CC -> 0x4C1B3C -> 0x21BD3C -> 0x21EE00.
+ * It uses no arbitrary geometry callback. The only externally owned
+ * routine is the original 0x57C8EC update/low64 result.
+ */
+extern "C" int ae3_original_actor_route_step_v2(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalRouteSourceV2* source,
+    const Ae3OriginalRouteCallsV2* owner,
+    Ae3OriginalRouteResultV1* out) {
+    if (!session) return 0;
+    if (session->busy) {
+        session->error="cannot reenter source original 0x57C7CC route v2";
+        return 0;
+    }
+    session->error.clear();
+    session->busy=true;
+    int completed=0;
+    try {
+        if (!source || !out || !owner || !owner->original_apply_target_57c8ec)
+            throw std::invalid_argument(
+                "original route target manager and source must exist");
+        const auto& info=source->original;
+        if (info.original_record_count==0 ||
+            info.original_record_count>8192 ||
+            info.original_route_count>8192 ||
+            !info.original_records70 ||
+            (info.original_route_count && !info.original_route_indices) ||
+            info.actor_polygon_index>=info.original_record_count ||
+            (info.active_target_polygon_index!=UINT32_MAX &&
+             info.active_target_polygon_index>=info.original_record_count) ||
+            !source->original_degree || !source->original_neighbor3 ||
+            !source->original_action_kind3 ||
+            source->original_max_recursions==0 ||
+            source->original_max_recursions>4096)
+            throw std::invalid_argument(
+                "original 0x57C7CC stage registry, adjacency or target invalid");
+        const auto& v1=source->original_incoming_a1;
+        const auto& v2=source->original_controller40;
+        if (!std::isfinite(v1.x)||!std::isfinite(v1.y)||
+            !std::isfinite(v1.z)||!std::isfinite(v1.w)||
+            !std::isfinite(v2.x)||!std::isfinite(v2.y)||
+            !std::isfinite(v2.z)||!std::isfinite(v2.w))
+            throw std::invalid_argument(
+                "nonfinite original route incoming ray or controller+0x40");
+        std::vector<ae3::OriginalSpatialRecord70> records(
+            info.original_record_count);
+        std::vector<ae3::OriginalPolygonLinks_21bd3c> links(
+            info.original_record_count);
+        const auto* raw=static_cast<const std::byte*>(info.original_records70);
+        for (std::size_t polygon=0;polygon<records.size();++polygon) {
+            std::memcpy(records[polygon].originalFields.data(),
+                        raw+polygon*0x70,0x70);
+            const auto count=source->original_degree[polygon];
+            if (count>3)throw std::out_of_range(
+                "original route polygon degree invalid");
+            links[polygon].edgeCount=count;
+            for (std::size_t j=0;j<count;++j) {
+                const auto i=polygon*3+j;
+                const auto next=source->original_neighbor3[i];
+                const auto kind=source->original_action_kind3[i];
+                if (next>=records.size() || kind>2)
+                    throw std::out_of_range(
+                        "original route adjacency references invalid polygon");
+                links[polygon].edges[j]={next,kind};
+            }
+        }
+        struct ActualSourceMath final:ae3::OriginalActorRouteFollowerCalls_57c7cc {
+            std::span<const ae3::OriginalSpatialRecord70> records;
+            std::span<const ae3::OriginalPolygonLinks_21bd3c> links;
+            const Ae3OriginalRouteCallsV2& owner;
+            ae3::OriginalVU0Vec4 originalRayA1{};
+            ae3::OriginalVU0Vec4 controller40{};
+            std::optional<ae3::OriginalVU0Vec4> targetRayA2{};
+            uint32_t recursions;
+            ActualSourceMath(
+                std::span<const ae3::OriginalSpatialRecord70> r,
+                std::span<const ae3::OriginalPolygonLinks_21bd3c> links,
+                const Ae3OriginalRouteCallsV2& owner,
+                ae3::OriginalVU0Vec4 a1,
+                ae3::OriginalVU0Vec4 controller,
+                uint32_t recursionLimit)
+                :records(r),links(links),owner(owner),
+                 originalRayA1(a1),controller40(controller),
+                 recursions(recursionLimit){}
+            uint32_t at(const ae3::OriginalSpatialRecord70* polygon) const {
+                for (std::size_t i=0;i<records.size();++i)
+                    if (polygon==&records[i])return static_cast<uint32_t>(i);
+                throw std::invalid_argument("original route polygon owner absent");
+            }
+            const ae3::OriginalSpatialRecord70* call_original_4c1b3c_project(
+                const ae3::OriginalSpatialRecord70* actor) override {
+                // Original 0x57C814 uses controller+0x40 until 0x57C8EC
+                // supplies the packed low64 update; 0x57C894 zeroes high64.
+                const auto& end=targetRayA2?*targetRayA2:controller40;
+                const auto projected=ae3::originalPolygonRaycast_4c1b3c(
+                    records,links,at(actor),originalRayA1,end,recursions);
+                return projected.originalTraversal.originalLastAcceptedPolygon;
+            }
+            void call_original_57c8ec_update_target(
+                const ae3::OriginalSpatialRecord70* target) override {
+                std::uint64_t bits=0;
+                if (owner.original_apply_target_57c8ec(
+                        owner.user,at(target),&bits)!=1)
+                    throw std::runtime_error(
+                        "original source 0x57C8EC manager failed to produce target vector");
+                targetRayA2=ae3::OriginalVU0Vec4{
+                    std::bit_cast<float>(static_cast<uint32_t>(bits)),
+                    std::bit_cast<float>(static_cast<uint32_t>(bits>>32)),
+                    0,0
+                };
+            }
+        } math(records,links,*owner,native(v1),native(v2),
+               source->original_max_recursions);
+        ae3::OriginalActorRouteFollowerState_57c7cc actor{
+            records,
+            std::span<const uint32_t>(info.original_route_indices,
+                                      info.original_route_count),
+            &records[info.actor_polygon_index],
+            info.active_target_polygon_index==UINT32_MAX
+                ?nullptr:&records[info.active_target_polygon_index],
+            info.original_has_multiple_polygons1c!=0
+        };
+        const auto followed=ae3::originalActorAdvanceRoute_57c7cc(actor,math);
+        Ae3OriginalRouteResultV1 value{
+            actor.activePolygonAtController50==nullptr
+                ?UINT32_MAX:math.at(actor.activePolygonAtController50),
+            static_cast<uint32_t>(followed.sourceTargetsApplied),
+            static_cast<uint32_t>(followed.sourceProjectionsPerformed),
+            static_cast<uint32_t>(followed.followingRouteIndicesTested),
+            followed.returnedEarlyBecauseCurrentTargetMatched?1:0
+        };
+        *out=value;
+        session->error.clear();
+        completed=1;
+    } catch (const std::exception& ex) {
+        session->error=ex.what();
+    } catch (...) {
+        session->error="unknown original 0x57C7CC native ray route error";
+    }
+    session->busy=false;
+    return completed;
 }
