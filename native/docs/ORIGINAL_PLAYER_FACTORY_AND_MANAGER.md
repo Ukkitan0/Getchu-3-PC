@@ -565,3 +565,33 @@ reentry and owner callback requirements. Further
 `0x557F54+` child animation/collision and
 persistent Player/Monkey runtime remain incomplete.
 See `native/docs/ORIGINAL_MOVEMENT_METRIC_557F34.md`.
+
+
+### Original 0x36FB5C flagged positive movement advanced
+
+The actual `0x36FB5C..0x36FC28` 51-instruction
+original retail USA movement window (SHA-256
+`eba23d30f1f7b8186abebf22a802722e6835be500a5286906420fb02c943c457`)
+is now recovered for child `+0xB8` bit1-set,
+untagged source address, **exact representable ordinary
+binary32 inputs**. The calculation uses the genuine
+VF1 register, original VMUL/VADDy/VADDz and
+0.125f coefficient, and translates original COP1
+SQRT, MUL, DIV, ADD, threshold and overshoot behavior.
+
+A completed single original flagged pass publishes
+the changed VF1 and updates typed child
+`+0xB4/+0xB8` status/flags. A pending source loop
+into `0x36F8C8` is explicitly represented as
+**not completed**, with no invented result. The
+persistent owner may opt into this genuine path
+using source VF1/guest data or delegate to its
+full original method. Typed mutation requires
+recomputing and verifying the original pass,
+rejecting stale or fabricated results.
+
+Source data: `native/docs/ORIGINAL_MOVEMENT_FLAGGED_36FB5C.md`.
+Original `0x36F8C8` VF1 regeneration and the
+rest of `0x557F54+` actor collision/animation
+remain unresolved, so this does not establish
+a full playable Player/Monkey game update.
