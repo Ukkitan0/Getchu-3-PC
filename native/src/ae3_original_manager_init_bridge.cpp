@@ -122,19 +122,23 @@ extern "C" int ae3_original_manager_init_step(
                 throw std::out_of_range("original actor polygon index outside source stage");
             originalPolygon = &records[source->original_actor_polygon_index];
         }
+        // Callbacks may re-enter the owner's Unreal code, so the input
+        // state must be one snapshot. Do not mix pre- and post-callback
+        // fields, and publish a complete result only on source success.
+        const Ae3OriginalManagerInitStateV1 initial = *state;
         ae3::OriginalManagerChild70 child{};
-        child.word08 = state->source_method08;
-        child.word0c = state->source_method0c;
-        child.flag1c = state->source_flag1c;
-        child.alternative30 = state->source_alternative30;
+        child.word08 = initial.source_method08;
+        child.word0c = initial.source_method0c;
+        child.flag1c = initial.source_flag1c;
+        child.alternative30 = initial.source_alternative30;
         ae3::OriginalManagerInitState_57bcb8 sourceState{
-            child, native(state->controller20), native(state->target40),
-            nullptr, native(state->midpoint60)
+            child, native(initial.controller20), native(initial.target40),
+            nullptr, native(initial.midpoint60)
         };
-        if (state->target_polygon_index != UINT32_MAX) {
-            if (state->target_polygon_index >= records.size())
+        if (initial.target_polygon_index != UINT32_MAX) {
+            if (initial.target_polygon_index >= records.size())
                 throw std::out_of_range("original target polygon outside source stage");
-            sourceState.target50 = &records[state->target_polygon_index];
+            sourceState.target50 = &records[initial.target_polygon_index];
         }
         const auto stage = ae3::OriginalManagerInitSource_57bcb8{
             native(source->original_owner_position40),
@@ -150,7 +154,7 @@ extern "C" int ae3_original_manager_init_step(
         const auto branch = ae3::originalManagerInitialize_57bcb8(
             sourceState,stage,session->originalRandom,calls);
         // No manager state is published until original computation succeeded.
-        Ae3OriginalManagerInitStateV1 completed = *state;
+        Ae3OriginalManagerInitStateV1 completed = initial;
         completed.source_method08 = child.word08;
         completed.source_method0c = child.word0c;
         completed.target40 = external(sourceState.target40);
