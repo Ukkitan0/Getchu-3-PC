@@ -725,3 +725,97 @@ extern "C" int ae3_original_actor_target_57c8ec(
     session->busy = false;
     return success;
 }
+
+
+/* Direct original controller path:
+ * 0x57C7CC route advance -> 0x4C1B3C ray -> 0x57C8EC target vector
+ * -> genuine source actor owner commit. A tentative retail RNG belongs
+ * to this invocation, and is committed only with the successful route.
+ */
+struct OriginalRouteTargetOwnerV3 {
+    Ae3OriginalManagerInitSession proposed;
+    const Ae3OriginalRouteSourceV3& source;
+    const Ae3OriginalRouteCallsV3& manager;
+    std::string reason;
+    OriginalRouteTargetOwnerV3(
+        const Ae3OriginalManagerInitSession& live,
+        const Ae3OriginalRouteSourceV3& input,
+        const Ae3OriginalRouteCallsV3& owner)
+        : proposed(0),source(input),manager(owner) {
+        proposed.originalRandom=live.originalRandom;
+    }
+    static int apply(void* opaque,uint32_t polygon,std::uint64_t* low64) {
+        auto& self=*static_cast<OriginalRouteTargetOwnerV3*>(opaque);
+        if (!low64 || polygon>=self.source.original.original.original_record_count) {
+            self.reason="original route target polygon outside original source owner";
+            return 0;
+        }
+        if (!self.source.original_polygon_point_counts) {
+            self.reason="original stage 0x1E descriptor vertex counts missing";
+            return 0;
+        }
+        const auto* buffer=static_cast<const std::byte*>(
+            self.source.original.original.original_records70);
+        Ae3OriginalActorTargetRequestV1 request{};
+        request.original_record70=buffer+polygon*0x70;
+        request.original_point_count=self.source.original_polygon_point_counts[polygon];
+        request.original_variant30=self.source.original_controller_variant30;
+        request.original_controller20=self.source.original_controller20;
+        Ae3OriginalActorTargetResultV1 computed{};
+        if (ae3_original_actor_target_57c8ec(
+                &self.proposed,&request,&computed)!=1) {
+            self.reason=ae3_original_manager_init_last_error(&self.proposed);
+            return 0;
+        }
+        // This callback must atomically update the REAL source Player/
+        // Monkey controller. A declined commit cannot publish RNG/output.
+        if (self.manager.commit_original_target_57c8ec(
+                self.manager.user,polygon,computed.original_low64)!=1) {
+            self.reason="real original 0x57C8EC actor target owner refused commit";
+            return 0;
+        }
+        *low64=computed.original_low64;
+        return 1;
+    }
+};
+extern "C" int ae3_original_actor_route_step_v3(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalRouteSourceV3* source,
+    const Ae3OriginalRouteCallsV3* manager,
+    Ae3OriginalRouteResultV1* out) {
+    if (!session) return 0;
+    if (session->busy) {
+        session->error="reentrant original actor route v3 execution rejected";
+        return 0;
+    }
+    if (!source || !manager || !out ||
+        !manager->commit_original_target_57c8ec ||
+        !source->original_polygon_point_counts ||
+        source->original.original.original_record_count==0 ||
+        source->original.original.original_record_count>8192) {
+        session->error="original actor route requires stage point counts and real target commit manager";
+        return 0;
+    }
+    try {
+        OriginalRouteTargetOwnerV3 proposed(*session,*source,*manager);
+        Ae3OriginalRouteCallsV2 targetCallbacks{
+            &proposed,&OriginalRouteTargetOwnerV3::apply
+        };
+        const int succeeded=ae3_original_actor_route_step_v2(
+            session,&source->original,&targetCallbacks,out);
+        if (succeeded!=1) {
+            if (!proposed.reason.empty())
+                session->error=proposed.reason+"; "+session->error;
+            return 0;
+        }
+        // No state publication or random consumption on failed callbacks.
+        session->originalRandom=std::move(proposed.proposed.originalRandom);
+        session->error.clear();
+        return 1;
+    } catch (const std::exception& ex) {
+        session->error=ex.what();
+    } catch (...) {
+        session->error="original actor route v3 failed";
+    }
+    return 0;
+}
