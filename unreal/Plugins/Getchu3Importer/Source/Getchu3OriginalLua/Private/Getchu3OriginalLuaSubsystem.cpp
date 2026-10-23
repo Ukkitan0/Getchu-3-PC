@@ -172,9 +172,11 @@ bool UGetchu3OriginalLuaSubsystem::StartImportedOriginalStage(
         return false;
     }
     FString Schema;
+    bool bCatalogClaimsGameplay = true; // Fail closed if the field is absent.
     if (!Catalog->TryGetStringField(TEXT("schema"), Schema) ||
         Schema != TEXT("getchu3-original-stage-catalog/v1") ||
-        Catalog->GetBoolField(TEXT("gameplay_ready"))) {
+        !Catalog->TryGetBoolField(TEXT("gameplay_ready"), bCatalogClaimsGameplay) ||
+        bCatalogClaimsGameplay) {
         LastError = TEXT("Unsupported or falsely certified original stage catalog");
         return false;
     }
