@@ -67,6 +67,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_native_method_router.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_movement_57bf5c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_manager_tick_bridge_3161b8.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_polygon_selector_30ffd0.cpp"
   # Original actor navigation initializer 0x57BCB8, source route-edge
   # lookup, type-2 target, exact source RNG / VU0 and 0x70 polygon views.
@@ -155,6 +156,18 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalControllerRouted57C388
     COMMAND Getchu3OriginalRouted57C388Tests)
+
+  # One real controller-owned adapter for source 0x3161B8 and
+  # 0x316174, preserving child-slot identity and global depth.
+  add_executable(Getchu3OriginalControllerTickBridgeTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_tick_bridge_3161b8_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_tick_bridge_3161b8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_type2_update_57c554.cpp")
+  target_include_directories(Getchu3OriginalControllerTickBridgeTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalControllerTickBridge3161B8
+    COMMAND Getchu3OriginalControllerTickBridgeTests)
 
   # Genuine original 0x316174 virtual update depth/global and
   # 0x3161B8 child+0x10 pointer/status+0x14 lifecycle.
