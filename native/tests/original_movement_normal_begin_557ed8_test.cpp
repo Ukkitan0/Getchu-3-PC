@@ -35,6 +35,7 @@ struct Owner final:OriginalMovementNormalCalls_557ed8 {
     std::vector<std::string> calls{};
     OriginalMovementChildD0_30c57c* observedChild=nullptr;
     std::uint32_t collisionResult=0;
+    std::uint64_t expectedParentWord14=0x345000u;
     bool failCollision=false, failRecalc=false, failReset=false;
     OriginalManagerResourceFields_317b9c
     read_original_parent_resource_fields(std::uint32_t parentVA) override {
@@ -48,30 +49,31 @@ struct Owner final:OriginalMovementNormalCalls_557ed8 {
         return fields;
     }
     std::uint32_t call_original_276b68(
-        std::uint32_t parentWord14,std::uint32_t resourceVA) override {
-        assert(parentWord14==0x345000u);
+        std::uint64_t parentWord14,std::uint32_t resourceVA) override {
+        assert(parentWord14==expectedParentWord14);
         const auto expected=originalManagerSelectResource_317b9c(fields,2);
         assert(resourceVA==expected);
         calls.emplace_back("276B68");
         if(failCollision) throw std::runtime_error("missing source 276B68");
         return collisionResult;
     }
-    void call_original_2767f4(std::uint32_t parentWord14) override {
-        assert(parentWord14==0x345000u);
+    void call_original_2767f4(std::uint64_t parentWord14) override {
+        assert(parentWord14==expectedParentWord14);
         calls.emplace_back("2767F4");
         if(failRecalc) throw std::runtime_error("missing source 2767F4");
     }
-    void call_original_2773d4(std::uint32_t parentWord14) override {
-        assert(parentWord14==0x345000u);
+    void call_original_2773d4(std::uint64_t parentWord14) override {
+        assert(parentWord14==expectedParentWord14);
         calls.emplace_back("2773D4");
         if(failReset) throw std::runtime_error("missing source 2773D4");
     }
 };
 struct Parent final:OriginalMovementParentRead_557e30 {
     int calls=0;
+    std::uint32_t sourceWord14=0x345000u;
     std::uint32_t read_original_parent_word14(std::uint32_t address) override {
         assert(address==0x234000u);
-        ++calls;return 0x345000u;
+        ++calls;return sourceWord14;
     }
 };
 void cleared(const OriginalMovementChildD0_30c57c& child) {
@@ -149,5 +151,40 @@ int main() {
     // 557F34 translation rather than being silently rolled back.
     assert(source.calls.size()==4);
 
+    // Retail 557E68 LW s4,parent+14 sign extends to 64 bits.
+    // 557EF8, 557F0C, 557F14, 557F18 DADDU copies the
+    // full register to the 276B68/2767F4/2773D4 callbacks.
+    source.expectedParentWord14=0xffffffff81234000ull;
+    source.collisionResult=1u;
+    source.calls.clear();
+    child=makeChild(2);
+    source.observedChild=child.get();
+    originalMovementNormalBegin_557ed8(
+        *child,source.expectedParentWord14,source);
+    assert(source.calls==std::vector<std::string>(
+        {"read-parent","276B68","2767F4","2773D4"}));
+    assert(child->originalByteAt(0xC0)==std::byte{1});
+
+    // Verify the real 557E30 child lifecycle SIGN-EXTENDS the
+    // 32-bit callback result before entering normal setup.
+    Parent signedParent{};
+    signedParent.sourceWord14=0x81234000u;
+    source.calls.clear();
+    OriginalMovementChildLifecycle_557e30 signedLifecycle(
+        makeChild(2),signedParent,&source);
+    source.observedChild=static_cast<OriginalMovementChildD0_30c57c*>(
+        signedLifecycle.originalChildPointer());
+    controller.child10=signedLifecycle.originalChildPointer();
+    controller.word14=0x707u;
+    rejected=false;
+    try{(void)originalManagerChildUpdate_3161b8(
+        controller,0,0,0,depth,signedLifecycle);}
+    catch(const std::logic_error&){rejected=true;}
+    assert(rejected && signedParent.calls==1 && source.calls==
+           std::vector<std::string>({"read-parent","276B68",
+                                     "2767F4","2773D4"}));
+    assert(controller.word14==0x707u &&
+           controller.child10==signedLifecycle.originalChildPointer() &&
+           signedLifecycle.ownsOriginalChild() && depth.depth==0u);
     std::cout<<"ORIGINAL_NORMAL_MOVEMENT_557ED8_SETUP_PASSED\n";
 }
