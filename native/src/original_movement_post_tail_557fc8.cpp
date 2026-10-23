@@ -23,6 +23,33 @@ std::uint32_t originalMovementPostTail_557fc8(
     if(postVector.originalSlot5EarlyStatus)
         throw std::invalid_argument(
             "original 557FC0 slot5 early exit already returned before 557FC8");
+    // Retail 557F54 branches through 558094 -> 36F8C8 when
+    // original child+B8 bit1 is clear. An independently called
+    // post-tail cannot skip that earlier source VU0 regeneration.
+    if((child.originalWordAt(0xB8)&2u)==0u)
+        throw std::logic_error(
+            "original 557FC8 tail requires completed 557F54 bit1 regeneration");
+    // Original 557F8C DMFC2 copies ALL 128 bits of VF2 into EE
+    // s3. The 557FF8 POR then copies that exact same register
+    // to 276538's EE a1. A detached tail must reject inconsistent
+    // caller-provided halves before changing genuine game state.
+    if(postVector.originalGprS3VF2!=postVector.originalVF2After ||
+       postVector.originalGprS3VF2X!=postVector.originalVF2After[0])
+        throw std::invalid_argument(
+            "original 557F8C DMFC2 s3 does not match 557F80 VF2");
+    const auto mode8=child.originalByteAt(8);
+    if(!mode8)
+        throw std::logic_error(
+            "original 557F84 child+8 mode is not initialized");
+    // Source 557F90 BBit032 selects the still-unrecovered tagged
+    // parent route on nonzero child+8. Preserve its ordinary
+    // branch restriction when the post-tail is called directly.
+    if(*mode8!=std::byte{0} &&
+       ((originalParentWord14SignExtended>>32)!=0u ||
+        (originalParentWord14SignExtended&0x80000000ull)!=0u ||
+        (originalParentWord14SignExtended&3u)!=0u))
+        throw std::invalid_argument(
+            "original 557F90 tagged parent cannot enter ordinary 557FC8 tail");
     const auto parentGuestVA=child.originalWordAt(4);
     // Source 557FC8 LW child+B8; 557FD4 BEQZ bit0 ->
     // 558084 JAL genuine 36F83C. Its v0 contains ALL VF1
