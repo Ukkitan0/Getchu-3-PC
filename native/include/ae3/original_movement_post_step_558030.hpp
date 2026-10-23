@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <optional>
 
+namespace ae3 { class OriginalMovementFlag0Owner_36f83c; }
+
+
 namespace ae3 {
 // Source 0x558030..0x558080: retail child slot5 post-movement
 // terminal or ordinary-actor transition. Previous original calls
@@ -29,6 +32,15 @@ public:
         std::uint32_t originalParentGuestVA,
         std::uint32_t exactOriginalFloatBits)=0;
 };
+// Source 0x557FC8 checks child+B8 bit 0. When clear, its
+// 0x558084 JAL must regenerate the original VU0 state through
+// 0x36F83C before the remaining actor processing. Do not
+// fabricate the source guest stack address or VU registers.
+struct OriginalMovementFlag0Binding_36f83c {
+    std::uint64_t genuineChildScratchGuestVA;
+    OriginalMovementFlag0Owner_36f83c* originalOwner;
+};
+
 // A caller may continue to 0x558030 ONLY after authentic upstream
 // 0x557FC8..0x55802C actor/collision processing has completed.
 // This is an explicit original-game state boundary, NOT permission
@@ -36,6 +48,13 @@ public:
 class OriginalMovementPostStepContinuation_558030:
     public OriginalMovementPostStepOwner_558030 {
 public:
+    // Optional source-backed 558084 -> 36F83C regeneration owner.
+    // If bit0 is clear at 557FC8 and there is no valid binding,
+    // the typed lifecycle must refuse rather than jump to 558030.
+    virtual std::optional<OriginalMovementFlag0Binding_36f83c>
+    read_original_flag0_binding_36f83c(
+        const OriginalMovementChildD0_30c57c&) {return std::nullopt;}
+
     // Return nullopt if the actual upstream original game owner
     // cannot establish the source registers and branch provenance.
     // All returned data must reflect the real 0x558030 entry state.
