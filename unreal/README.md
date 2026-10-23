@@ -144,3 +144,24 @@ compiling. On Linux CMake 3.31, the no-CMake upstream source handling was
 tested with a local source override; two structural CTest targets passed
 using synthetic stub sources. **Those tests do not establish that the
 real native Lua engine or the Unreal project compile or run.**
+
+## Recovered original player health routine
+
+A native source-backed gameplay operation is now available:
+`UGetchu3OriginalLuaSubsystem::ApplyOriginalHealthDelta`. It invokes the
+recovered original `ChangeHP` routine on the game's packed
+**1,033-byte PlayerProgress** structure (life at byte offset 8),
+clamping health to the original 0–100 range. Unreal itself does **not**
+invent a second health component.
+
+The caller must have successfully started a source-backed stage with an
+actual Player manager capable of reading and atomically committing the entire
+original PlayerProgress record. The default
+`ReadOriginalPlayerProgress` / `WriteOriginalPlayerProgress` methods
+return false, so **without that original game manager, the operation
+correctly refuses to change player health**. The native C ABI has been
+versioned to v4 and the one-click Windows build runs the added
+`OriginalChangeHPSourceStateReadWrite` regression. It verifies health
+damage/healing, bounds, preservation of unrelated original capture/shop
+bytes, and failed/no-op writes. As always, tests and actual UE5.6 Win64
+build remain unverified here.
