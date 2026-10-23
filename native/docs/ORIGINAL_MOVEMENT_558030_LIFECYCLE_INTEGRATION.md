@@ -177,9 +177,12 @@ Before this correction, the native owner signature
 That **truncated the upper 32 bits of source EE s5**, potentially
 corrupting the real original second argument to `0x314C44`.
 
-These interfaces now use `std::uint64_t` end-to-end. Source
-`0x558054` separately reads the first argument with an actual
-32-bit `LW`, so that callback field **remains** `uint32_t`.
+The original EE `s5` interfaces now use `std::uint64_t`
+end-to-end. Source `0x558054` separately reads parent `+0x1C`
+with a 32-bit `LW`. Its *memory word* remains `uint32_t`,
+but the EE sign-extends that word into a **64-bit a0 argument**,
+so `call_original_314c44` now receives `uint64_t` for
+both a0 and a1.
 The original `a1` 128-bit `POR` argument to `0x30C0A0`
 also remains a full four-lane array; `DADDU` then consumes
 the low 64 bits of that function's **returned** `v0`.
@@ -291,3 +294,63 @@ assertions. The source verifier now also checks these opcodes,
 the wide interface signatures and canonical source-data
 guards. **The full updated C++ CTest suite and native
 Windows game were not executed in this pass.**
+
+## Additional source-authentic argument and state invariants
+
+The standalone `0x557FC8` translation must be used only after
+`0x557F54` has completed its original VU0 normalization and
+published the resulting `VF2` and EE `s3`. The native
+`originalMovementPostTail_557fc8` now explicitly rejects:
+
+- A genuine child's `+0xB8` flag bit1 still clear (the
+  earlier original `558094 -> 36F8C8` regeneration is mandatory)
+- Source `originalGprS3VF2` or scalar compatibility lane
+  that conflicts with the full original `originalVF2After`
+  from `0x557F80/557F8C`
+- An ordinary-path caller whose original mode `child+8`
+  requires the unrecovered `0x557F90` tagged-parent branch
+
+These checks run **before** mutation from `0x36F83C`, the
+`0x30C0A0` callback, or any `0x276538` owner effects.
+The standalone `original_movement_post_tail_557fc8_test.cpp`
+now covers each rejection and asserts that no owner callbacks
+occurred and the original child flags were unchanged.
+
+The source-pinned `0x558054` opcode
+`0x8E24001C` is `LW a0,0x1C(s1)`, which sign-extends
+its 32-bit *memory word* into the 64-bit EE `a0`.
+The native `OriginalMovementPostStepOwner_558030`
+interface therefore retains the source read as `uint32_t`
+but forwards a sign-extended `uint64_t` first argument to
+`call_original_314c44`; its second argument is the existing
+64-bit `s5` returned by `0x30C0A0`. The original
+`558030` unit regression now checks the high-bit memory
+word `0x81234000` arrives as `0xFFFFFFFF81234000`.
+The source verifier checks that original opcode plus the
+native sign-extension interface.
+
+Two additional original VU0 paths now reject negative-pointer
+low words that have been erroneously zero-extended:
+
+- `originalManagerResourceVU0_317b34`: the original
+  `0x317B58` tagged-parent selection cannot be bypassed by
+  presenting `0x81234000` as a positive 64-bit guest VA
+- `originalMovementRegenerate_36f8c8`: source
+  `0x36F8EC LW t7,a0+0xA0` sign-extends the resource
+  pointer before alternate branch tests; the ordinary
+  untagged path rejects both the canonical signed form and
+  erroneous zero-extended high-bit form
+
+The verifier `native/tools/verify_original_movement_handoff_557fc8_558030.py`
+now checks these source instruction words, registers,
+native callback widths and ordinary-branch guards.
+
+**Verification:** the signed-LW/native-C++ conversion pattern
+was compiled and executed in an **isolated six-case** C++20 test
+with GCC and Clang using strict warnings and UndefinedBehaviorSanitizer;
+all twelve compiler/case combinations passed. This is
+**not** a build of the repository sources or a full native
+CTest run. The original executable, game assets and full
+Windows runtime were unavailable for this test, and the
+remaining external original manager functions are still
+unimplemented.
