@@ -145,7 +145,7 @@ with a synthetic boolean success.
 register calculations and input provenance inside `0x57BF5C`,
 the actual source owner methods `0x3176AC`, `0x30C1D4`,
 `0x30C21C`, `0x30C520`, `0x30C57C`, `0x36F5F4`,
-the two original `0x441F40` stack-object initializers, real
+real
 implementations of vtable[5] for every game object, original
 `0x21DB64` diagnostics, and persistent Player/Monkey lifetime.
 The original `0x316174` and `0x3161B8` wrapper bodies are now
@@ -215,9 +215,11 @@ and original game methods; these aren't replaced with host physics:
   metric/SQRT result and strict comparison to genuine
   `0x708A44 = 2.0f`. Eligible early transitions go to
   `{0x57C27C,0}`.
-- Original call ordering `0x441F40` twice (two independent
-  source scratch blocks), then `0x36F5F4`, then real
-  `0x30C57C` child construction. A child published during
+- Original calls `0x441F40` twice, now confirmed as a genuine
+  **no-op** by its complete 12-word ELF window; no external
+  initializer or invented contents are needed. Then genuine
+  `0x36F5F4` fills source-owned scratch and the actual
+  `0x30C57C` child constructor runs. A child published during
   synchronous construction is deleted through its original
   virtual slot 1 before the new child is installed.
 - Original `0x3161B8` update gate; zero means zero return and
@@ -283,3 +285,33 @@ with UndefinedBehaviorSanitizer. The full Windows and Unreal
 project build and actual original game ownership are still
 outstanding. See
 `native/docs/ORIGINAL_MANAGER_UPDATE_316174.md`.
+
+
+### Proven source 0x441F40 no-op and 0x36F5F4 frame extent
+
+The exact original `0x441F40..0x441F70` is 12 MIPS
+instructions (SHA-256
+`4fd423015f167deede14f0a830e898e2e308de5aed3c8974fca56d6e62b84e96`).
+Its only operations are GPR loop bookkeeping, five NOPs, and return;
+there is **no store** to either scratch object. The former native
+interface incorrectly required two game-owner initializer callbacks,
+which have been removed.
+
+At `0x57C148`, actual original `0x36F5F4` receives
+`stack+0x20` as `a0`. Five independent verified source instructions
+write to **`a0+0xA0`, `+0xA4`, `+0xA8`, `+0xAC`**.
+The former two-0x40-array native representation was too short and
+would hide those genuine outputs. The corrected native
+`OriginalMovementScratch_57bf5c` is a full contiguous
+`0x110`-byte source-frame object, with compile-time assertions
+on offsets `+0x40` and `+0x80`, and a complete-object byte view
+allowing original `+0xAC` writes without pointer arithmetic past
+one 0x40 subarray.
+
+The `0x57BF5C` host regression now verifies original +0xA0/+0xAC
+writes supplied by the source `0x36F5F4` callback before genuine
+`0x30C57C` actor construction. Local standalone movement and
+connected dispatcher builds passed GCC and Clang with
+UndefinedBehaviorSanitizer after this correction. The real
+`0x36F5F4` VU0 and runtime child-construction bodies are still
+not translated or provided by this source-frame layout alone.
