@@ -61,6 +61,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   # Verified original controller vtable slot 5: 0x57C620 dispatcher.
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_dispatch_57c620.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_type2_update_57c554.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_manager_route_child_57c27c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_polygon_selector_30ffd0.cpp"
   # Original actor navigation initializer 0x57BCB8, source route-edge
   # lookup, type-2 target, exact source RNG / VU0 and 0x70 polygon views.
@@ -129,6 +130,16 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalActorPolygonSelection30FFD0
     COMMAND Getchu3OriginalActorPolygon30FFD0Tests)
+
+  # Complete, independently hash-pinned 0x57C27C child update.
+  # The original 0x57BF5C..0x57C554 region is FOUR functions.
+  add_executable(Getchu3OriginalRouteChild57C27CTests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_route_child_57c27c_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_route_child_57c27c.cpp")
+  target_include_directories(Getchu3OriginalRouteChild57C27CTests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalRouteChildController57C27C
+    COMMAND Getchu3OriginalRouteChild57C27CTests)
 
   # Original action-type-2 0x57C554 owner child lifecycle/dispatch.
   add_executable(Getchu3OriginalType2Controller57C554Tests
