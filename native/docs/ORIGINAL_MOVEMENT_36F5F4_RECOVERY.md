@@ -259,7 +259,7 @@ side effects and game-owner dependencies are absent.
 The now-recovered ordinary-operand `0x57C148 -> 0x36F5F4`
 first-return path has a single native entrypoint:
 `originalMovementVU0FirstReturn_36f5f4`. It computes and validates
-**all four returned VU0 register vectors** before performing the
+**all seven original VU0 VF1–VF7 register vectors** before performing the
 already verified original `0x36F6A8` scalar/store tail. This avoids
 the previous scalar-only shortcut silently omitting the original
 VF1/VF2/VF3/VF4 updates.
