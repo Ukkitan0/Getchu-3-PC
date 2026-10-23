@@ -139,6 +139,68 @@ int main() {
     assert(ae3_original_stage_nearest_all_21d46c_21da2c(
                session,&source,&result)==1);
     assert(result.original_polygon_index==1);
+    // Stage owner keeps ORIGINAL decoded records across per-frame
+    // queries without re-running 0x21D46C for every actor update.
+    const Ae3OriginalStageSpatialMountSourceV1 mountSource{
+        originalBytes.data(),originalBytes.size(),0x510000,0x6A1000};
+    assert(ae3_original_stage_spatial_mount_21d46c(
+               session,&mountSource)==1);
+    Ae3OriginalVec4 frameQuery{5,0,0,0};
+    assert(ae3_original_stage_spatial_nearest_all_21da2c(
+               session,&frameQuery,&result)==1);
+    assert(result.original_polygon_index==1);
+    Ae3OriginalStageSpatialGridSourceV1 mountedGrid{};
+    mountedGrid.original_origin_x00=0;
+    mountedGrid.original_origin_y04=0;
+    mountedGrid.original_step_x10=1;
+    mountedGrid.original_step_y14=1;
+    mountedGrid.original_dimension_x18=1;
+    mountedGrid.original_dimension_y1c=1;
+    mountedGrid.original_cell_offsets50=cellOffsets.data();
+    mountedGrid.original_cell_offset_count=cellOffsets.size();
+    mountedGrid.original_hit_pool08=hits.data();
+    mountedGrid.original_hit_pool_count=hits.size();
+    mountedGrid.original_resolved_x=0;
+    mountedGrid.original_resolved_y=0;
+    assert(ae3_original_stage_spatial_nearest_grid_21d898(
+               session,&mountedGrid,&frameQuery,&result)==1);
+    assert(result.original_polygon_index==1);
+
+    // Ownership: original loaded source bytes can be modified or freed
+    // after mounting; native records must NOT reference borrowed bytes.
+    put16(originalBytes,0x100+0x16,4);
+    put32(originalBytes,0x24,0x7fffffff);
+    assert(ae3_original_stage_spatial_mount_21d46c(
+               session,&mountSource)==0);
+    result.original_polygon_index=555;
+    assert(ae3_original_stage_spatial_nearest_all_21da2c(
+               session,&frameQuery,&result)==1);
+    assert(result.original_polygon_index==1);
+    // Restore the test fixture and prove another good source mount
+    // replaces the old stage only after successful validation.
+    put32(originalBytes,0x24,2);
+    put16(originalBytes,0x100+0x16,3);
+    assert(ae3_original_stage_spatial_mount_21d46c(
+               session,&mountSource)==1);
+    result.original_polygon_index=555;
+    assert(ae3_original_stage_spatial_nearest_grid_21d898(
+               session,&mountedGrid,&frameQuery,&result)==1);
+    assert(result.original_polygon_index==1);
+
+    // Explicit unmount invalidates queries, but must not consume or
+    // corrupt original RNG session ownership; same session may remount.
+    assert(ae3_original_stage_spatial_unmount(session)==1);
+    result.original_polygon_index=555;
+    assert(ae3_original_stage_spatial_nearest_all_21da2c(
+               session,&frameQuery,&result)==0);
+    assert(result.original_polygon_index==555);
+    assert(ae3_original_stage_spatial_mount_21d46c(
+               session,&mountSource)==1);
+    assert(ae3_original_stage_spatial_nearest_all_21da2c(
+               session,&frameQuery,&result)==1);
+    assert(result.original_polygon_index==1);
+    assert(ae3_original_stage_spatial_unmount(session)==1);
+
     assert(ae3_original_manager_init_destroy(session)==1);
     std::cout<<"ORIGINAL_LOADED_STAGE_21D46C_NEAREST_HOST_ABI_PASSED\n";
     return 0;
