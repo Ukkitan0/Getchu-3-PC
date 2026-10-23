@@ -76,7 +76,10 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
             // through real source callback methods. Parent+0x14
             // came from mandatory 0x557E68 delay-slot load.
             originalMovementNormalBegin_557ed8(
-                *child_,originalParentWord14,*normalOwner_);
+                *child_,static_cast<std::uint64_t>(
+                    static_cast<std::int64_t>(
+                        static_cast<std::int32_t>(originalParentWord14))),
+                *normalOwner_);
             if(metricOwner_) {
                 // Source 0x557F34..0x557F50 executes
                 // original 0x317B34 metric and source 0x36FB18
