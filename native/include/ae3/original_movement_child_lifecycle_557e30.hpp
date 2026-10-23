@@ -6,6 +6,7 @@
 
 namespace ae3 {
 class OriginalMovementNormalCalls_557ed8;
+class OriginalMovementMetricOwner_557f34;
 // Genuine original 0x557E30 child slot5 must read parent+0x14
 // in the delay slot of 0x557E64, EVEN when it returns immediately
 // for controller update bits 0/1. This source parent is another
@@ -28,7 +29,8 @@ public:
     OriginalMovementChildLifecycle_557e30(
         std::unique_ptr<OriginalMovementChildD0_30c57c> originalChild,
         OriginalMovementParentRead_557e30& genuineParent,
-        OriginalMovementNormalCalls_557ed8* optionalGenuineNormalOwner=nullptr);
+        OriginalMovementNormalCalls_557ed8* optionalGenuineNormalOwner=nullptr,
+        OriginalMovementMetricOwner_557f34* optionalGenuineMetricOwner=nullptr);
     void* originalChildPointer() const noexcept;
     bool ownsOriginalChild() const noexcept;
     std::uint32_t call_original_vtable5(
@@ -42,5 +44,6 @@ private:
     // The original 0x317B34 / 0x36FB18 gameplay continuation
     // remains unsupported and must not get a synthetic result.
     OriginalMovementNormalCalls_557ed8* normalOwner_;
+    OriginalMovementMetricOwner_557f34* metricOwner_;
 };
 } // namespace ae3
