@@ -84,3 +84,20 @@ The integrated Windows build now runs both `unreal/tests` and the original PCK e
 The pinned `ae3-sdk gltf` converter resolves image materials by their original TIM2 basename (for example `fur.png`), while the true PCK extractor names members with an archive index (`0003_fur.tm2`). The importer now creates **owner-private, source-pack-local** material aliases after TIM2 decoding. A model from `pck_assets/bg` can only resolve those aliases under its own original `pck_assets/bg` directory, not a different archive or another stage. A duplicate original material name in the same pack with different pixels is explicitly rejected. If a PCK model has no verified pack-local material, its conversion records this limitation instead of borrowing a plausible texture. No original game source file is renamed or changed.
 
 The `material_aliases` directory remains owner-private and is used by the source GLB converter; imported PNG assets continue to retain their original indexed identities.
+
+## Imported stage selection without manual Lua paths
+
+The ISO import pipeline now hashes and validates every extracted source
+`area.luc` referenced in the original stage catalog. It writes an
+owner-private `getchu3_verified_stage_index.json` and records verified script
+counts in `Getchu3ImportStatus.json`. The Unreal original Lua subsystem now
+offers `StartImportedOriginalStage(StageId, SpawnTag, OriginalManager)`, which
+resolves the exact stage from the verified import and checks SHA-256 again
+before executing the actual Lua 5.0 bytecode. Direct arbitrary file-path
+launch is not exposed to Blueprints.
+
+This removes manual source script browsing. The original actor, parameters,
+AI, gadget, collision and progression managers remain unfinished, so it
+**does not enable gameplay or the disabled Play button**. The new integrity
+tests passed locally with synthetic structural scripts; no genuine retail
+ISO or Windows Unreal build has been verified in this environment.
