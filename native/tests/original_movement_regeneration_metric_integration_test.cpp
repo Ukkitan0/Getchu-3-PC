@@ -33,7 +33,7 @@ struct GenuineOwner final:OriginalMovementMetricOwner_557f34,
         assert(va==0x234000u);
         return {0x700000u,1u,std::nullopt};
     }
-    std::uint32_t call_original_276b68(
+    std::uint64_t call_original_276b68(
         std::uint64_t parent,std::uint32_t resource) override {
         assert(parent==0x123000u && resource==0x7001c0u);
         return 0;
