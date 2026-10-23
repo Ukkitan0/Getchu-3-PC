@@ -77,6 +77,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
     "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_flag0_regenerate_36f83c.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_tail_557fc8.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_step_558030.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_36f8c8.cpp"
@@ -588,6 +589,22 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalMovementPostVectorLifecycle557F54
     COMMAND Getchu3OriginalPostVectorLifecycleTests)
+
+  # 26 original source words at 557FC8..558030: original
+  # bit0 flag regen, full 128-bit EE POR to 30C0A0/276538,
+  # 6354E7 diagnostic and genuine post-step status 0/2.
+  add_executable(Getchu3OriginalPostTail557FC8Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_post_tail_557fc8_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_tail_557fc8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_flag0_regenerate_36f83c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_36f8c8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_step_558030.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp")
+  target_include_directories(Getchu3OriginalPostTail557FC8Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementPostTail557FC8
+    COMMAND Getchu3OriginalPostTail557FC8Tests)
 
   # Complete original sibling 0x36F83C flag0 setting.
   # Source 35-word window uses identical VU0+PPACW arithmetic
