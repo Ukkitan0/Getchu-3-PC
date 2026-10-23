@@ -6,7 +6,13 @@
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
-#include "GenericPlatform/GenericPlatformMisc.h"
+// FPlatformMisc::GetSHA256Signature is a fatal stub on Windows in some
+// Unreal versions. Use the Windows CNG SHA-256 provider directly instead.
+#if PLATFORM_WINDOWS
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include <bcrypt.h>
+#include "Windows/HideWindowsPlatformTypes.h"
+#endif
 #include "Dom/JsonObject.h"
 #include "Dom/JsonValue.h"
 #include "Serialization/JsonReader.h"
@@ -229,13 +235,41 @@ bool UGetchu3OriginalLuaSubsystem::StartImportedOriginalStage(
         LastError = TEXT("Owner-original stage script is missing or incomplete");
         return false;
     }
-    FSHA256Signature Digest{};
-    if (!FPlatformMisc::GetSHA256Signature(
-            LuaBytes.GetData(), static_cast<uint32>(LuaBytes.Num()), Digest) ||
-        !Digest.ToString().Equals(SourceHash, ESearchCase::IgnoreCase)) {
+#if !PLATFORM_WINDOWS
+    LastError = TEXT("The original SHA-256 stage verifier is supported on Windows only");
+    return false;
+#else
+    // Windows CNG BCryptHash is available on supported Win10/Win11 systems.
+    // Never call FPlatformMisc::GetSHA256Signature: its generic fallback
+    // raises a fatal Unreal check instead of returning false on Windows.
+    BCRYPT_ALG_HANDLE ShaProvider = nullptr;
+    const NTSTATUS OpenStatus = BCryptOpenAlgorithmProvider(
+        &ShaProvider, BCRYPT_SHA256_ALGORITHM, nullptr, 0);
+    if (OpenStatus < 0 || !ShaProvider) {
+        LastError = TEXT("Windows SHA-256 provider could not be initialized");
+        return false;
+    }
+    uint8 DigestBytes[32] = {};
+    const NTSTATUS HashStatus = BCryptHash(
+        ShaProvider, nullptr, 0, LuaBytes.GetData(),
+        static_cast<ULONG>(LuaBytes.Num()), DigestBytes, sizeof(DigestBytes));
+    const NTSTATUS CloseStatus = BCryptCloseAlgorithmProvider(ShaProvider, 0);
+    if (HashStatus < 0 || CloseStatus < 0) {
+        LastError = TEXT("Windows SHA-256 verification failed");
+        return false;
+    }
+    constexpr TCHAR Hex[] = TEXT("0123456789abcdef");
+    FString ActualDigest;
+    ActualDigest.Reserve(64);
+    for (const uint8 Byte : DigestBytes) {
+        ActualDigest.AppendChar(Hex[Byte >> 4]);
+        ActualDigest.AppendChar(Hex[Byte & 15]);
+    }
+    if (!ActualDigest.Equals(SourceHash, ESearchCase::IgnoreCase)) {
         LastError = TEXT("Original stage Lua SHA-256 differs from verified ISO source");
         return false;
     }
+#endif
 
     return StartOriginalStage(SourceFile, OriginalSpawnTag, SourceManager);
 }
