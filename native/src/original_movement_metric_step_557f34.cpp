@@ -83,11 +83,78 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
                     child,*genuine,plan);
                 step=*plan.originalReturnF0Bits;
             } else {
-                // This first pass must call genuine 36F8C8 to
-                // regenerate VF1. We have NOT mutated child or VF1
-                // through our partial plan: delegate full retail
-                // 36FB18 instead of duplicating first-pass effects.
-                step=owner.call_original_36fb18(child,scaledRaw);
+                // Source 36FBE0 -> 36FC18 regenerates VF1 and
+                // jumps back to 36FB70 with the remaining f20.
+                // This is an opt-in native recovery only when an
+                // original owner can publish the live VU0 VF1 state,
+                // supply the exact 36F8C8 binding and read the new
+                // live VF1 after regeneration. The old owner fallback
+                // remains for an unavailable original register owner.
+                const auto originalBinding=
+                    owner.read_original_regeneration_binding_36f8c8(child);
+                if(!originalBinding) {
+                    step=owner.call_original_36fb18(child,scaledRaw);
+                } else {
+                    if(!originalBinding->originalOwner ||
+                       originalBinding->genuineChildScratchGuestVA!=
+                           genuine->originalChildScratchGuestVA)
+                        throw std::invalid_argument(
+                            "original 36FC18 source regeneration owner/guest child mismatch");
+                    OriginalMovementFlaggedInputs_36fb5c current=*genuine;
+                    bool completed=false;
+                    // Every large pass increases child+A4 by 1/8,
+                    // starting below 1. Source is guaranteed to
+                    // terminate within at most eight large steps
+                    // if its exact finite COP1 arithmetic completes.
+                    for(unsigned iteration=0;iteration<9u;++iteration) {
+                        if(current.originalChildScratchGuestVA!=
+                               originalBinding->genuineChildScratchGuestVA ||
+                           current.originalChildStatusA4Bits!=child.originalWordAt(0xB4) ||
+                           current.originalChildFlagsA8!=child.originalWordAt(0xB8) ||
+                           (current.originalChildFlagsA8&2u)==0u)
+                            throw std::invalid_argument(
+                                "original 36FB70 VF1 owner disagrees with regenerated child");
+                        const auto actual=originalMovementFlaggedPass_36fb5c(current);
+                        owner.publish_original_vf1_after_36fb5c(
+                            actual.originalVF1After);
+                        if(actual.originalReturnF0Bits) {
+                            // Source complete: commits +A4 and clears
+                            // +A8 before returning the real f0.
+                            originalMovementCommitFlaggedReturn_36fb5c(
+                                child,current,actual);
+                            step=*actual.originalReturnF0Bits;
+                            completed=true;
+                            break;
+                        }
+                        if(!actual.requiresOriginal36F8C8)
+                            throw std::logic_error(
+                                "original 36FB70 unexpected incomplete non-regenerating step");
+                        // Genuine source 36FC14 status increment,
+                        // 36FBE4 flag clearing, 36FC18 JAL 36F8C8.
+                        originalMovementCommitFlaggedIteration_36fb5c(
+                            child,current,actual);
+                        (void)originalMovementRegenerateOwned_36f8c8(
+                            child,originalBinding->genuineChildScratchGuestVA,
+                            *originalBinding->originalOwner);
+                        // Source 36FC20 J 36FB70 and 36FC24
+                        // DMFC2 VF1. The owner must supply the
+                        // newly published original live VF1, not
+                        // the previous iteration's register state.
+                        const auto next=owner.read_original_flagged_vf1_36fb5c(
+                            child,actual.originalRemainingF20Bits);
+                        if(!next)
+                            throw std::logic_error(
+                                "original 36FC24 regenerated VF1 owner unavailable");
+                        if(next->originalMovementF12Bits!=
+                               actual.originalRemainingF20Bits)
+                            throw std::invalid_argument(
+                                "original 36FC24 regenerated movement f20 mismatch");
+                        current=*next;
+                    }
+                    if(!completed)
+                        throw std::logic_error(
+                            "original 36FB70 exceeded source 1/8-step iteration bound");
+                }
             }
         } else {
             if(!flagged) {
