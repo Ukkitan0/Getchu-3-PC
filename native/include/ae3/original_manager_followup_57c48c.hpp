@@ -1,5 +1,6 @@
 #pragma once
 #include "ae3/original_manager_child.hpp"
+#include "ae3/original_manager_packed_compare.hpp"
 #include <cstdint>
 namespace ae3 {
 // Original USA 0x57C48C..0x57C554, method installed by 0x57C388.
@@ -14,7 +15,9 @@ public:
         void*& sourceChild10,std::uint32_t originalA1)=0;
     // Source 0x57C508..0x57C51C PCEQW, PPACB, NOR, SLTIU.
     virtual bool call_original_variant_vector_equal_57c508(
-        const OriginalManagerChild70&)=0;
+        const OriginalManagerChild70& originalController) {
+        return originalManagerPackedPceqwEqual_57c1e0(originalController);
+    }
 };
 std::uint32_t originalManagerFollowupUpdate_57c48c(
     OriginalManagerChild70&,std::uint32_t originalA1,
