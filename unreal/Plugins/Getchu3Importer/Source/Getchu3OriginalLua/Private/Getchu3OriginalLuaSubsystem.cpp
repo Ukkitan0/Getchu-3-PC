@@ -6,6 +6,11 @@
 #include "HAL/FileManager.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "GenericPlatform/GenericPlatformMisc.h"
+#include "Dom/JsonObject.h"
+#include "Dom/JsonValue.h"
+#include "Serialization/JsonReader.h"
+#include "Serialization/JsonSerializer.h"
 #include "UObject/UObjectGlobals.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGetchu3OriginalLua, Log, All);
@@ -93,6 +98,147 @@ int CallbackSelectWeapon(void* Context, int Selection) {
     auto* Manager = OriginalManager(Context);
     return Manager && Manager->SelectOriginalPlayerWeapon(Selection) ? 1 : 0;
 }
+}
+
+bool UGetchu3OriginalLuaSubsystem::StartImportedOriginalStage(
+    const FString& OriginalStageId, const FString& OriginalSpawnTag,
+    UGetchu3OriginalManagerProvider* SourceManager)
+{
+    // A successful importer reports authentic source assets, never completed
+    // gameplay. Only a real source-backed manager can start a game stage.
+    if (!IsInGameThread()) {
+        LastError = TEXT("Original Lua stage selection must run on the game thread");
+        return false;
+    }
+    StopOriginalStage();
+    LastError.Empty();
+
+    if (OriginalStageId.IsEmpty() || OriginalStageId.Len() > 64) {
+        LastError = TEXT("Invalid original USA stage identifier");
+        return false;
+    }
+    for (TCHAR Character : OriginalStageId) {
+        if (!((Character >= TEXT('a') && Character <= TEXT('z')) ||
+              (Character >= TEXT('A') && Character <= TEXT('Z')) ||
+              (Character >= TEXT('0') && Character <= TEXT('9')) ||
+              Character == TEXT('_'))) {
+            LastError = TEXT("Stage ID contains characters absent from original source stage names");
+            return false;
+        }
+    }
+
+    const FString PrivateRoot = FPaths::ConvertRelativePathToFull(
+        FPaths::ProjectSavedDir() / TEXT("Getchu3Private"));
+    FString PrivateDir = PrivateRoot;
+    FPaths::NormalizeDirectoryName(PrivateDir);
+    const FString StatePath = PrivateDir / TEXT("Getchu3ImportStatus.json");
+    FString StateText;
+    TSharedPtr<FJsonObject> State;
+    if (!FFileHelper::LoadFileToString(StateText, *StatePath) ||
+        !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(StateText), State) ||
+        !State.IsValid()) {
+        LastError = TEXT("No complete owner-original ISO import status was found");
+        return false;
+    }
+
+    FString Status, Workspace;
+    if (!State->TryGetStringField(TEXT("status"), Status) ||
+        Status != TEXT("original_models_textures_streams_i3c_imported_gameplay_not_implemented") ||
+        !State->TryGetStringField(TEXT("workspace"), Workspace)) {
+        LastError = TEXT("Original ISO import has not completed; cannot launch an unverified stage");
+        return false;
+    }
+    FString WorkspaceDir = FPaths::ConvertRelativePathToFull(Workspace);
+    FPaths::NormalizeDirectoryName(WorkspaceDir);
+    if (!WorkspaceDir.StartsWith(PrivateDir + TEXT("/"), ESearchCase::IgnoreCase) ||
+        WorkspaceDir.Contains(TEXT("..")) || WorkspaceDir == PrivateDir) {
+        LastError = TEXT("Original stage workspace is not inside the owner-private import directory");
+        return false;
+    }
+
+    const FString CatalogPath = WorkspaceDir / TEXT("getchu3_original_stages.json");
+    FString CatalogText;
+    TSharedPtr<FJsonObject> Catalog;
+    if (!FFileHelper::LoadFileToString(CatalogText, *CatalogPath) ||
+        !FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(CatalogText), Catalog) ||
+        !Catalog.IsValid()) {
+        LastError = TEXT("Original stage source catalog missing or invalid");
+        return false;
+    }
+    FString Schema;
+    if (!Catalog->TryGetStringField(TEXT("schema"), Schema) ||
+        Schema != TEXT("getchu3-original-stage-catalog/v1") ||
+        Catalog->GetBoolField(TEXT("gameplay_ready"))) {
+        LastError = TEXT("Unsupported or falsely certified original stage catalog");
+        return false;
+    }
+    const TArray<TSharedPtr<FJsonValue>>* Stages = nullptr;
+    if (!Catalog->TryGetArrayField(TEXT("stages"), Stages) || !Stages) {
+        LastError = TEXT("Original stage catalog has no verified stage list");
+        return false;
+    }
+
+    FString SourceRelative, SourceHash;
+    int32 Found = 0;
+    for (const TSharedPtr<FJsonValue>& Item : *Stages) {
+        if (!Item.IsValid() || Item->Type != EJson::Object) continue;
+        const TSharedPtr<FJsonObject> Stage = Item->AsObject();
+        if (!Stage.IsValid()) continue;
+        FString Id;
+        if (!Stage->TryGetStringField(TEXT("stage"), Id) ||
+            !Id.Equals(OriginalStageId, ESearchCase::IgnoreCase)) continue;
+        const TArray<TSharedPtr<FJsonValue>>* Scripts = nullptr;
+        if (!Stage->TryGetArrayField(TEXT("area_lua_sources"), Scripts) || !Scripts) {
+            LastError = TEXT("Original stage is missing its source area.luc");
+            return false;
+        }
+        for (const TSharedPtr<FJsonValue>& ScriptItem : *Scripts) {
+            if (!ScriptItem.IsValid() || ScriptItem->Type != EJson::Object) continue;
+            const TSharedPtr<FJsonObject> Script = ScriptItem->AsObject();
+            if (!Script.IsValid()) continue;
+            FString Relative, Sha;
+            if (Script->TryGetStringField(TEXT("original_path"), Relative) &&
+                Script->TryGetStringField(TEXT("sha256"), Sha)) {
+                ++Found;
+                SourceRelative = Relative;
+                SourceHash = Sha;
+            }
+        }
+    }
+    if (Found != 1 || SourceHash.Len() != 64) {
+        LastError = TEXT("Source stage ID is missing or maps to multiple original Lua scripts");
+        return false;
+    }
+
+    SourceRelative.ReplaceInline(TEXT("\\"), TEXT("/"));
+    FString ExpectedPrefix = TEXT("debug/us/stage/") + OriginalStageId.ToLower() + TEXT("/");
+    // Paths come from the verified ISO import manifest, but do not trust
+    // arbitrary local JSON to open scripts outside the owner's private tree.
+    if (!SourceRelative.ToLower().StartsWith(ExpectedPrefix) ||
+        !SourceRelative.EndsWith(TEXT("/area.luc"), ESearchCase::IgnoreCase) ||
+        SourceRelative.Contains(TEXT("..")) || SourceRelative.Contains(TEXT(":")) ||
+        SourceRelative.Contains(TEXT("//")) || SourceRelative.StartsWith(TEXT("/"))) {
+        LastError = TEXT("Original Lua source path failed stage-local containment check");
+        return false;
+    }
+    const FString SourceFile = WorkspaceDir / TEXT("original") / TEXT("vfi") / SourceRelative;
+    TArray<uint8> LuaBytes;
+    const int64 Length = IFileManager::Get().FileSize(*SourceFile);
+    if (Length < 14 || Length > 16 * 1024 * 1024 ||
+        !FFileHelper::LoadFileToArray(LuaBytes, *SourceFile) ||
+        LuaBytes.Num() != Length) {
+        LastError = TEXT("Owner-original stage script is missing or incomplete");
+        return false;
+    }
+    FSHA256Signature Digest{};
+    if (!FPlatformMisc::GetSHA256Signature(
+            LuaBytes.GetData(), static_cast<uint32>(LuaBytes.Num()), Digest) ||
+        !Digest.ToString().Equals(SourceHash, ESearchCase::IgnoreCase)) {
+        LastError = TEXT("Original stage Lua SHA-256 differs from verified ISO source");
+        return false;
+    }
+
+    return StartOriginalStage(SourceFile, OriginalSpawnTag, SourceManager);
 }
 
 bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
