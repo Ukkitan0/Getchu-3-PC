@@ -117,3 +117,32 @@ CreateBind addresses and unresolved original callback priorities. A failure
 to produce static evidence is explicitly recorded but does not prevent
 independent geometry import. These are static leads, NOT implementations,
 a complete call graph or proof of behavior.
+
+## Original stage IDs now resolve directly to verified owner-local bytecode
+
+After a SHA-verified USA ISO import, the plugin creates an original stage
+catalog, independently checks each source `area.luc` file's SHA-256 and Lua
+5.0 signature, and writes a private verified stage index. This prevents
+extracted stage scripts being silently substituted after the ISO verification.
+
+Unreal exposes `UGetchu3OriginalLuaSubsystem::StartImportedOriginalStage`
+to Blueprint and native callers: supply the source stage ID, original spawn
+tag and a **real** `UGetchu3OriginalManagerProvider`. The subsystem reads
+the most recent successful import status under `Saved/Getchu3Private`,
+resolves the stage and its unique `area.luc` within that workspace, verifies
+the source SHA-256 again, and only then invokes the recovered original Lua 5.0
+runtime. The previous raw script-path launch method is now a private C++
+implementation detail, not a Blueprint bypass.
+
+Stages without original scripts, duplicate IDs, multiple `area.luc` records,
+hash mismatches and paths escaping the imported owner-private tree are
+explicitly rejected. All imported original stage data remains local.
+No actor, monkey, gameplay save, sound, or camera is fabricated by selecting
+a stage; until the original managers are fully implemented the stage still
+fails to become playable.
+
+Seven local Python stage-integrity regression tests passed (valid source,
+tamper, path escape, symlink escape, ambiguous ID, missing script, and
+source-less stages). Windows Unreal C++ compilation and ISO-level gameplay
+execution still require external verification; this source gate is not a
+claim that any stage can be played.
