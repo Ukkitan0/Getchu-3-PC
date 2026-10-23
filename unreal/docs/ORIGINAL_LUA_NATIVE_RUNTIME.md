@@ -496,3 +496,48 @@ source-object ownership, actor updates, and the Unreal gameplay loop.
 All source paths are committed but these newly added C++ CTests have
 not been executed with the full real Lua/Unreal Windows build. There
 is no claim that the game is playable.
+
+## Genuine original 0x57C8EC target dispatch and atomic actor route (v3)
+
+A new source-backed native C ABI exports the **recovered** portions of
+`0x57C8EC`:
+
+- Original `0x21B788` inside-polygon eligibility with source `0x708A60`
+  margin; when it passes, original controller+0x20 low 64-bit bits
+  are forwarded exactly (the original `0x57C944` fast path).
+- Original `0x57C98C` weighted three-vertex target, reading exact
+  `0x70` record lanes and consuming the actual shared `0x36F3C0` EE
+  game RNG. Its original VU0 operations and source constants are already
+  native C++, not approximations.
+- The original `0x57CA68` candidate VU0 fallback is **not** recovered
+  completely and is always rejected, with no synthesized replacement.
+
+`ae3_original_actor_target_57c8ec` requires the source point count
+from the original `0x1E` polygon descriptor, the exact decoded original
+record, and the original controller+0x20 vector. It preserves the RNG
+and leaves output untouched when a required original dependency fails.
+
+`ae3_original_actor_route_step_v3` integrates target computation
+**inside** recovered `0x57C7CC` route-following and native
+`0x4C1B3C` original polygon raycasting. The route can visit multiple
+original target polygons, therefore the real owning game manager must
+provide all four transaction callbacks: **Begin / Stage / Commit / Abort**.
+Each accepted source target is staged with its exact original low64
+result. The host's controller result and persistent source RNG are
+published only AFTER the entire original actor transaction commits.
+Rejected source math, missing owner, rejected Begin/Stage/Commit, invalid
+polygon count or unfinished fallback aborts the transaction, preserving
+the prior controller and RNG state. The manager is responsible for
+honoring this no-visible-partial-updates contract.
+
+New tests `OriginalActorTarget57C8ECNativeFastAndRandom` and
+`OriginalRoute57C7CCTarget57C8ECNativeCommit` exercise the original
+fast path, real source RNG reproducibility, rejected fallback, owner
+transaction failures, and exact results on repeated seeded calls.
+Both are now included in the one-click Windows CMake/CTest gate.
+
+**Status:** No genuine original Player/Monkey manager has yet supplied
+these transactional callbacks in Unreal, nor are the original
+`0x21B854` and `0x57CA68` math fully recovered. These C++ regression
+targets have not been built/run against genuine MSVC/Lua/Unreal 5.6
+in this environment. This is recovered engine logic, not a playable game.
