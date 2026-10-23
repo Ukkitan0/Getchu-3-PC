@@ -9,7 +9,7 @@ public class Getchu3OriginalLua : ModuleRules
         PublicDependencyModuleNames.AddRange(new[] {
             "Core", "CoreUObject", "Engine"
         });
-        PrivateDependencyModuleNames.AddRange(new[] { "Projects" });
+        PrivateDependencyModuleNames.AddRange(new[] { "Projects", "Json" });
 
         // Use the SAME native bridge C ABI header as the original Lua 5.0 DLL.
         // No copied or alternative ScriptValue representation in Unreal.
