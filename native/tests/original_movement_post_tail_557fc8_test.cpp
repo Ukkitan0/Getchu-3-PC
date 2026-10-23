@@ -17,6 +17,10 @@ struct Owner:OriginalMovementPostTailOwner_557fc8 {
     std::vector<std::string> calls{};
     std::uint32_t publishedRatio{};
     bool diagFirst=false,diagSecond=false,failVF=false;
+    std::uint64_t read_original_child_scratch_guest_va_557fc8(
+        const OriginalMovementChildD0_30c57c&) override {
+        return 0x01FFF020u;
+    }
     std::array<std::array<std::uint32_t,4>,8>
     read_original_vf1_through_vf8(std::uint32_t p) override {
         assert(p==0x234000u);calls.emplace_back("readVF");
