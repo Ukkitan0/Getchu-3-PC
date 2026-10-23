@@ -16,7 +16,6 @@ class OriginalMovementChildD0_30c57c;
 void originalMovementNormalBegin_557ed8(
     OriginalMovementChildD0_30c57c& child,
     std::uint32_t originalParentWord14,
-    const OriginalManagerResourceFields_317b9c& genuineResourceFields,
     OriginalMovementNormalCalls_557ed8& genuineOwner);
 
 // Original 0x30C57C..0x30C670, exactly 61 EE instruction words.
@@ -56,7 +55,6 @@ private:
     // memory patch method or a replacement animation updater.
     friend void originalMovementNormalBegin_557ed8(
         OriginalMovementChildD0_30c57c&,std::uint32_t,
-        const OriginalManagerResourceFields_317b9c&,
         OriginalMovementNormalCalls_557ed8&);
     friend std::unique_ptr<OriginalMovementChildD0_30c57c>
     originalMovementChildCreate_30c57c(
