@@ -434,3 +434,87 @@ unimplemented. The newly authored C++ tests and native
 Windows game binary have not been built in this session;
 static code/linkage inspections are not a replacement for CTest.
 No copyrighted executable bytes were committed.
+
+## Original USA movement vector `0x276538 → 0x274988` now recovered
+
+The private original USA `SCUS_975.01` was retrieved from the
+owner's existing file Library, verified against the repository's
+original SHA-256
+`5a8a73cf741b2e923f652f9bdf35d1798471ff31fb960b63ed010a78d1ac2d63`,
+and analyzed directly. **No executable bytes or extracted game
+data are committed.**
+
+The complete *nine-word* original wrapper at
+`0x276538..0x27655C` has source window SHA-256
+`9fac81a5a29c684c47eb01060fca63b2170cd868e717212e586451296db6a9be`.
+It performs original `ADDIU a0,a0,+0x50`, copies ALL 128
+bits of EE `a1` to its stack with `SQ`, invokes original
+`0x274988` with the stack pointer in the JAL delay slot,
+then returns. The native C++ translation is
+`native/include/ae3/original_movement_forward_276538.hpp`.
+It uses source **32-bit wrap plus 64-bit sign extension** for
+`ADDIU`; it does not perform a host pointer addition or
+drop the upper vector lanes.
+
+The downstream *32-word* source routine
+`0x274988..0x274A08`, original window SHA-256
+`9190ac5270ec67c8803b7b4b08c8276b95c459c4386be2890748b5c79b9474f5`,
+is now implemented for the **exact finite binary32 subset**
+in `native/src/original_movement_normalize_274988.cpp`.
+The actual source sequence is:
+
+- `LQ`, `PEXT LW`, `PCPYUD`, `PCPYLD`, `DMTC2`:
+  original incoming EE `[x,y,z,w]` becomes physical
+  `VF2=[x,+0,z,w]` (**the source intentionally drops y**)
+- `VMUL.xyzw`, `VADDy.xyw`, `VADDz.xyzw`:
+  derive the X/Z-plane squared length. The y-add has a
+  source destination mask; it **preserves the old physical
+  VF1.z** until the subsequent z-add. The owner MUST
+  provide the real prior 128-bit VF1, not invented zeros
+- `SQRT.S`, compare against the real table float
+  at `0x6ED7C0 = 0x2EDBE6FF` (about `1e-10`)
+- If the original near-zero `BC1F` at `0x2749D4`
+  branches directly to `0x274A00 JR`, retain the
+  intermediate physical VU0 register results **without
+  writing parent+0x50 memory**
+- Otherwise load genuine `0x6ED7C4 = 1.0f`,
+  calculate source `DIV.S 1/length`,
+  `VMULx.xyzw` normalize `VF1`, then execute
+  original `0x2749FC SQ VF1,0(a0)`
+  (original `a0` is **parent+0x50 guest VA**)
+
+The `OriginalMovementPostTailOwner_557fc8` default
+`call_original_276538` now connects BOTH native
+recovered functions. It first requests genuine prior VF1
+using `read_original_live_vf1_before_274988`, then sends
+the complete resulting VF2/VF1 and destination guest VA to
+`publish_original_274988_vu0`. Owners whose original
+runtime can already execute these game functions can
+override the callback. The default publication is deliberately
+**unavailable until the native owner wires the real original
+VU0 register and parent memory**.
+
+**Actual executable tests run:** the exact GitHub-blob
+`original_movement_forward_276538.hpp` and standalone
+`original_movement_forward_276538_test.cpp` were compiled
+and executed with both GCC and Clang, C++20
+`-Wall -Wextra -Wpedantic -Werror -fsanitize=undefined`;
+both passed. The exact matching blobs of
+`original_movement_normalize_274988.cpp`,
+its header and its standalone test likewise passed under
+**both** C++ compilers with UndefinedBehaviorSanitizer.
+Both source windows and table constants were verified by
+hash/word extraction directly from the private original
+executable. The standalone normalizer tests include
+masked-off source Y, preserved prior VF1 Z, both epsilon
+branches, correct original destination/no-store behavior,
+inexact irrational square-root and reciprocal rejection,
+and invalid VU0 special inputs.
+
+**Limit:** this is the actual original algorithm translated
+natively for **exact finite operations**. Unknown PS2
+rounding on inexact SQRT/DIV/ADD, complete live VU0 state
+ownership, and `0x30C0A0 / 0x36FC28 / 0x314C44`
+actor-manager implementations remain outside this patch.
+The entire native Windows port and full CTest suite
+still have **not** been compiled/run.
