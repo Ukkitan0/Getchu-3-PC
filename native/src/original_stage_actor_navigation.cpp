@@ -30,6 +30,10 @@ void OriginalStageActorNavigation_57c7cc::setOriginalFallbackQBits_57ca68(
     std::uint32_t sourceQ) {
     pipeline_.setOriginalFallbackQBits_57ca68(sourceQ);
 }
+void OriginalStageActorNavigation_57c7cc::setOriginalFallbackRState_57ca68(
+    OriginalActorFallbackVu0R_57ca68* sourceR) {
+    pipeline_.setOriginalFallbackRState_57ca68(sourceR);
+}
 void OriginalStageActorNavigation_57c7cc::setOriginalTargetAt50(
     const OriginalSpatialRecord70* target) {
     if(target){
