@@ -110,13 +110,13 @@ def check(root: Path) -> dict:
         )
         if "original_movement_child_lifecycle_557e30.cpp" in block
     ]
-    if len(lifecycle_targets) != 6 or any(
+    if len(lifecycle_targets) != 7 or any(
         "original_movement_post_step_558030.cpp" not in b or
         "original_movement_flag0_regenerate_36f83c.cpp" not in b or
         "original_movement_post_tail_557fc8.cpp" not in b
         for b in lifecycle_targets
     ):
-        raise AssertionError("one or more original child lifecycle tests not linked")
+        raise AssertionError("one or more of seven original child lifecycle tests not linked")
     return {
         "retail_opcode_evidence": [
             "0x557F48 MOV.S f20,f0",
