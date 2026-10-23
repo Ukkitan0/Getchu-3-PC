@@ -116,6 +116,7 @@ which opens the owner-private report. The source comparison distinguishes:
 - Original USA ELF CreateBind registrations that still have no host callback;
 - Functions already registered by name but whose **original behavior is not
   verified**;
+  these also count as unresolved native gameplay dependencies, not successes;
 - Original script-defined functions, original actor class literals and
   controller commands per stage; and
 - Source-verified PLC-to-imported-model associations versus unresolved
