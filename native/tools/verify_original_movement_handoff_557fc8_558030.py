@@ -42,6 +42,9 @@ def check(root: Path) -> dict:
     normal = runpy.run_path(
         str(tools / "verify_original_normal_movement_557ed8.py")
     )
+    flagged = runpy.run_path(
+        str(tools / "verify_original_movement_flagged_36fb5c.py")
+    )
 
     # Genuine 557F48: MOV.S f20,f0
     # Genuine 557F60: MOV.S f21,f0 (36FB18's returned f0)
@@ -194,6 +197,46 @@ def check(root: Path) -> dict:
     if "src.originalResourcePointerRegA0&0x80000000ull" not in regenerated:
         raise AssertionError("zero-extended negative VF resource pointer not rejected")
 
+    # Retail iterative positive movement crosses the exact source
+    # 36FC14 ADD.S(status,+1/8), 36FBE4 SW(flags=0),
+    # 36FC18 JAL 36F8C8, 36FC20 J 36FB70 with original
+    # 36FC24 DMFC2 VF1 in the branch delay slot.
+    opcodes=flagged["OPCODES"]
+    for pc,op in {
+        0x36FC14:0x46010000,
+        0x36FBE4:0xAE0000A8,
+        0x36FC18:0x0C0DBE32,
+        0x36FC20:0x1000FFD3,
+        0x36FC24:0x48A20800,
+    }.items():
+        if opcodes[pc]!=op:
+            raise AssertionError(f"retail multi-iteration source changed at {pc:#x}")
+    if (0x36FC20+4+
+        ((opcodes[0x36FC20]&0xFFFF)-0x10000)*4)!=0x36FB70:
+        raise AssertionError("retail 36FC20 iteration returns to wrong instruction")
+    metric_src=(root/"src"/"original_movement_metric_step_557f34.cpp").read_text(
+        encoding="utf-8"
+    )
+    flagged_src=(root/"src"/"original_movement_flagged_36fb5c.cpp").read_text(
+        encoding="utf-8"
+    )
+    metric_hpp=(root/"include"/"ae3"/"original_movement_metric_step_557f34.hpp").read_text(
+        encoding="utf-8"
+    )
+    for operation in (
+        "originalMovementCommitFlaggedIteration_36fb5c(",
+        "originalMovementRegenerateOwned_36f8c8(",
+        "actual.originalRemainingF20Bits",
+        "next->originalLiveVF1!=regenerated.originalVF1After",
+        "read_original_flagged_loop_binding_36fc18(child)",
+    ):
+        if operation not in metric_src:
+            raise AssertionError("native source iterative 36FC18 missing "+operation)
+    if "originalMovementCommitFlaggedIteration_36fb5c(" not in flagged_src:
+        raise AssertionError("source 36FC14 intermediate child commit missing")
+    if "read_original_flagged_loop_binding_36fc18(" not in metric_hpp:
+        raise AssertionError("genuine flagged iterative 36FC18 owner opt-in missing")
+
     # The existing original source windows establish the specialized
     # bit0 regeneration and its source ORI of 1 (not 2).
     if regen["WORDS"][0x36F890] != 0x35EF0001:
@@ -266,6 +309,10 @@ def check(root: Path) -> dict:
             "0x558054 LW a0,parent+0x1C sign-extended",
             "0x36F8EC LW t7,a0+0xA0 sign-extended source pointer",
             "0x317B58 tagged EE parent branch",
+            "0x36FC14 ADD.S child status +1/8",
+            "0x36FBE4 SW flags=0",
+            "0x36FC18 JAL original 36F8C8",
+            "0x36FC20 J original 36FB70 with 36FC24 VF1",
             "0x557E68 LW s4,parent+0x14 sign-extended",
             "0x557FF0 DADDU a0,s4,zero 64-bit",
             "0x557EF8 DADDU a0,s4,zero 64-bit",
@@ -278,6 +325,8 @@ def check(root: Path) -> dict:
         "source_register_provenance_checks_present": True,
         "source_flag0_regeneration_required": True,
         "original_557fc8_55802c_control_translated": True,
+        "original_36fb70_36fc18_iterative_exact_subset_connected": True,
+        "original_inexact_ps2_cop1_rounding_recovered": False,
         "original_external_30c0a0_276538_36fc28_implemented_here": False,
         "windows_game_playable_verified": False,
     }
