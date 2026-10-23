@@ -14,7 +14,8 @@ namespace ae3 {
 struct OriginalMovementPostStep_558030 {
     std::uint32_t originalF21MovementReturnBits;
     std::uint32_t originalF20ResourceMetricBits;
-    std::optional<std::uint32_t> originalS5From30C0A0;
+    // 557FEC DADDU s5,v0,zero: preserve the full 64-bit EE value.
+    std::optional<std::uint64_t> originalS5From30C0A0;
 };
 class OriginalMovementPostStepOwner_558030 {
 public:
@@ -25,7 +26,7 @@ public:
         std::uint32_t originalParentGuestVA)=0;
     virtual void call_original_314c44(
         std::uint32_t originalParentWord1C,
-        std::uint32_t originalS5From30C0A0,
+        std::uint64_t originalS5From30C0A0,
         std::uint32_t originalChildModeByte09)=0;
     // 0x55806C SWC1 parent+0x70 is the return branch delay slot.
     virtual void store_original_parent_float70(
