@@ -22,9 +22,17 @@ struct OriginalMovementScratch_57bf5c {
     std::array<std::byte,0x40> sourceStack20{};
     std::array<std::byte,0x40> sourceStack60{};
     std::array<std::byte,0x90> sourceStackA0{};
-    std::byte* sourceBase20() noexcept {return sourceStack20.data();}
-    const std::byte* sourceBase20() const noexcept {return sourceStack20.data();}
+    // Point to the COMPLETE object representation, not the first
+    // 0x40 array subobject. Source +0xAC is then accessible without
+    // out-of-bounds pointer arithmetic through a smaller array.
+    std::byte* sourceBase20() noexcept {
+        return reinterpret_cast<std::byte*>(this);
+    }
+    const std::byte* sourceBase20() const noexcept {
+        return reinterpret_cast<const std::byte*>(this);
+    }
 };
+static_assert(offsetof(OriginalMovementScratch_57bf5c,sourceStack20)==0);
 static_assert(offsetof(OriginalMovementScratch_57bf5c,sourceStack60)==0x40);
 static_assert(offsetof(OriginalMovementScratch_57bf5c,sourceStackA0)==0x80);
 static_assert(sizeof(OriginalMovementScratch_57bf5c)==0x110);
