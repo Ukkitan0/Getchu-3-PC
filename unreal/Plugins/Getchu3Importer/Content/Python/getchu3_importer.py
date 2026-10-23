@@ -89,7 +89,8 @@ def unpack_original_pck_for_unreal(source: Path, repo: Path) -> dict[str, Any]:
 
 
 def convert_original_models(source: Path, destination: Path, repo: Path,
-                            ae3_cli: str, *, textures: Path | None = None) -> dict[str, Any]:
+                            ae3_cli: str, *, textures: Path | None = None,
+                            pack_texture_aliases: Path | None = None) -> dict[str, Any]:
     if not ae3_cli or (not shutil.which(ae3_cli) and not Path(ae3_cli).is_file()):
         raise FileNotFoundError("The ae3-sdk 'ae3' model converter is not installed; refusing to invent models")
     tools = repo / "native" / "tools"
@@ -99,7 +100,8 @@ def convert_original_models(source: Path, destination: Path, repo: Path,
         # The ae3-sdk --anims auto-pair path is heuristic, NOT original
         # model-to-clip ownership. Avoid silently attaching wrong animations.
         outcome = module.export_models(source, destination, ae3_cli, animations=False,
-                                       textures=textures)
+                                       textures=textures,
+                                       pack_texture_aliases=pack_texture_aliases)
     finally:
         sys.path.remove(str(tools))
     failures = outcome.get("results", {}).get("failed", 0)
@@ -265,12 +267,16 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         converted = folder / "converted"
         from getchu3_media import convert_textures, convert_stream_audio
-        textures = convert_textures(extracted / "vfi", converted / "textures", ae3_cli)
+        textures = convert_textures(extracted / "vfi", converted / "textures", ae3_cli,
+                                    material_alias_root=converted / "material_aliases")
         outcome["textures_converted"] = textures["converted_png_files"]
+        outcome["original_pack_local_material_aliases"] = len(
+            textures["pack_local_material_aliases"])
         outcome["phase"] = "decode_models"
         report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
         models = convert_original_models(extracted / "vfi", converted / "models",
-                                         repo, ae3_cli, textures=converted / "textures")
+                                         repo, ae3_cli, textures=converted / "textures",
+                                         pack_texture_aliases=converted / "material_aliases")
         outcome["models_detected"] = models["original_i3d_bin_files"]
         outcome["phase"] = "original_stage_catalog"
         report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
