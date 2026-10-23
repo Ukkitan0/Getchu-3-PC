@@ -32,7 +32,9 @@ std::uint32_t originalSpatialWordAt10_21b4f0(
 std::uint32_t originalSpatialWordAt1C_21b500(
     const OriginalSpatialWordData&) noexcept;
 
-// 0x4E3C14 still needs porting. This is its already-resolved u16 hit list.
+// The original 0x4E3C14 grid lookup is recovered in
+// original_spatial_support.cpp. This view preserves its u16 candidate
+// order when passed to the original 0x21D898 selector.
 struct OriginalSpatialGridHits {
     std::span<const std::uint16_t> originalRecordIndices;
 };
