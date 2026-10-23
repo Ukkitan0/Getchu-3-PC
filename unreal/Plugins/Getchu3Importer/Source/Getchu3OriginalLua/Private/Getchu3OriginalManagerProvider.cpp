@@ -11,6 +11,13 @@ void UGetchu3OriginalManagerProvider::AbortOriginalStageSetup_Implementation() {
 // The original game manager MUST supply source-recovered implementations.
 // Deliberately no automatic Unreal actor factory, synthetic stage parameters,
 // invented progression values, or plausible-but-incorrect gadget behavior.
+bool UGetchu3OriginalManagerProvider::CollectVerifiedOriginalVoidFunctions_Implementation(
+    TArray<FGetchu3OriginalVoidFunction>& OutFunctions)
+{ OutFunctions.Reset(); return false; }
+
+bool UGetchu3OriginalManagerProvider::InvokeRecoveredOriginalVoidFunction_Implementation(
+    int32, const FString&, const FString&) { return false; }
+
 bool UGetchu3OriginalManagerProvider::CreateOriginalEntity_Implementation(
     const FString&, const FString&, const FString&, const FString&, const FString&)
 { return false; }
