@@ -55,6 +55,7 @@ if (!(Test-Path -LiteralPath $EditorBinary -PathType Leaf)) {
 }
 
 # Pinned MIT ae3-sdk tools, installed to an owner-local virtual environment.
+# A commit-specific ZIP avoids requiring a separate Git command-line install.
 # No original PlayStation data is fetched or distributed by this step.
 if (-not $SkipSDKBootstrap) {
     $Venv = Join-Path $Repo ".getchu3\ae3sdk-venv"
@@ -68,7 +69,7 @@ if (-not $SkipSDKBootstrap) {
         } else {
             throw "Python 3 is needed to install the MIT ae3-sdk resource converter."
         }
-        $PinnedTools = "git+https://github.com/pxdl/ae3-sdk.git@5b2207e3580ae4cc1d588641f4fe3f898350e501#subdirectory=tools"
+        $PinnedTools = "https://github.com/pxdl/ae3-sdk/archive/5b2207e3580ae4cc1d588641f4fe3f898350e501.zip#subdirectory=tools"
         MustRun $SdkPython @("-m", "pip", "install", "--disable-pip-version-check",
                             "Pillow", $PinnedTools) "Pinned MIT ae3-sdk installation failed"
         if (!(Test-Path -LiteralPath $SdkCli -PathType Leaf)) {
