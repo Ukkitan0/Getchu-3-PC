@@ -439,7 +439,14 @@ The native public ABI route test covers all principal branches,
 target-update order, early return, rejected updates, invalid routes, and
 attempted reentrant session destruction. The Windows one-click build runs
 the CTest named OriginalActorRoute57C7CCHostAbi; it is committed but not
-yet executed on genuine MSVC/UE5.6 here. The existing 0x57BCB8 initializer
-API retains its original explicit 0x57C7CC continuation hook; the new
-route entry point can supply the recovered routine, but full automatic
-actor-owner wiring is not yet complete.
+yet executed on genuine MSVC/UE5.6 here. The existing 0x57BCB8 initializer entry point remains available for
+legacy native callers. A second, versioned entry point,
+ae3_original_manager_init_step_v2, NOW calls the recovered 0x57C7CC
+follower inside the 0x57BCB8 initializer, passing the real original
+source route and polygon registry. Its owner callbacks are only the
+genuinely still-missing 0x21B854 projection, 0x4C1B3C ray projection
+and 0x57C8EC target-update effects. Failed callbacks stop initialization
+before output state is published. Native tests check both the single
+source polygon and two-polygon path, missing targets and rejected
+updates. Real actor instances and owner transaction/rollback remain
+to be connected from Unreal; this is not a playable actor factory.
