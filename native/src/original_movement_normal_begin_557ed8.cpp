@@ -1,10 +1,21 @@
 #include "ae3/original_movement_normal_begin_557ed8.hpp"
+#include <stdexcept>
 
 namespace ae3 {
 void originalMovementNormalBegin_557ed8(
     OriginalMovementChildD0_30c57c& child,
     std::uint64_t originalParentWord14SignExtended,
     OriginalMovementNormalCalls_557ed8& calls) {
+    // Original 557E68 LW s4,parent+0x14 is 32-bit and
+    // sign-extends to 64-bit on the Emotion Engine. Refuse
+    // non-canonical caller-provided s4 before source writes.
+    const auto lowParentWord=static_cast<std::uint32_t>(
+        originalParentWord14SignExtended);
+    if(originalParentWord14SignExtended!=
+       static_cast<std::uint64_t>(static_cast<std::int64_t>(
+           static_cast<std::int32_t>(lowParentWord))))
+        throw std::invalid_argument(
+            "original 557E68 parent word s4 was not sign-extended");
     // Source 0x557ED8 MTC1 zero,f20. Source 0x557EE4 SWC1
     // child+0xB4=0. 0x557EEC is 0x557EE8 JAL's delay slot,
     // clearing source child+0xB8 BEFORE 0x317B9C returns.
