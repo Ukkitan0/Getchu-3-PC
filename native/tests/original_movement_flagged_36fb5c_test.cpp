@@ -69,6 +69,14 @@ int main() {
     try {(void)originalMovementFlaggedPass_36fb5c(bad);}
     catch(const std::domain_error&){threw=true;}
     assert(threw);
+    // 1 + 2^-70 rounds to 1 even in binary64. It is NOT an
+    // exact VU0 VADD result and cannot enter the recovered-only path.
+    bad=genuine(0.5f,0.125f);
+    bad.originalLiveVF1={raw(1.0f),raw(0x1p-35f),0u,0u};
+    threw=false;
+    try {(void)originalMovementFlaggedPass_36fb5c(bad);}
+    catch(const std::domain_error&){threw=true;}
+    assert(threw);
     bad=genuine(0.5f,0.125f);
     bad.originalLiveVF1[0]=0x7fc01234u;
     threw=false;
