@@ -618,6 +618,33 @@ if(BUILD_TESTING)
   add_test(NAME OriginalMovementPostTail557FC8
     COMMAND Getchu3OriginalPostTail557FC8Tests)
 
+  # Source-authentic two sequential 557E30 slot5 updates via
+  # 557FC8->558030, preserving original 128-bit EE register
+  # arguments, real 314C44 callback and owned status-zero child.
+  add_executable(Getchu3OriginalPostTailLifecycle557FC8Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_movement_post_tail_lifecycle_557fc8_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_update_316174.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_30c57c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_lifecycle_557e30.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_child_early_36f954.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_normal_begin_557ed8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_selector_317b9c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_float_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_resource_vu0_317b34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_step_fast_36fb18.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_flagged_36fb5c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_36f8c8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_regenerate_owned_36f8c8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_metric_step_557f34.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_vector_557f54.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_flag0_regenerate_36f83c.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_tail_557fc8.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_movement_post_step_558030.cpp")
+  target_include_directories(Getchu3OriginalPostTailLifecycle557FC8Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalMovementPostTailLifecycle557FC8
+    COMMAND Getchu3OriginalPostTailLifecycle557FC8Tests)
+
   # Complete original sibling 0x36F83C flag0 setting.
   # Source 35-word window uses identical VU0+PPACW arithmetic
   # to original 0x36F8C8, with retail flags ORI 1 instead of 2.
