@@ -348,6 +348,27 @@ def run(iso_file: str, *, ae3_cli: str = "ae3", ue: Any = None,
         source_registry = build_asset_registry(stages, imported_sources, registry_path)
         outcome["original_source_registry"] = str(registry_path)
         outcome["source_linked_stage_count"] = len(source_registry["original_stages"])
+        outcome["phase"] = "audit_per_stage_native_gameplay_dependencies"
+        report_file.write_text(json.dumps(outcome, indent=2) + "\n", encoding="utf-8")
+        if outcome.get("original_binding_evidence_status") == "source_checked":
+            try:
+                from getchu3_native_readiness import build_original_native_readiness
+                evidence_path = folder / "getchu3_original_binding_evidence.json"
+                evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+                native_report_path = folder / "getchu3_original_native_stage_readiness.json"
+                native_report = build_original_native_readiness(
+                    stages, evidence, source_registry, native_report_path)
+                outcome["native_stage_readiness_status"] = "source_evidence_only"
+                outcome["native_stage_readiness_report"] = str(native_report_path)
+                outcome["stages_with_unresolved_native_calls"] = (
+                    native_report["stages_with_unresolved_calls"])
+            except (ImportError, OSError, ValueError, TypeError, KeyError, RuntimeError) as exc:
+                outcome["native_stage_readiness_status"] = "blocked"
+                outcome["native_stage_readiness_error"] = (
+                    f"{type(exc).__name__}: {exc}")
+        else:
+            outcome["native_stage_readiness_status"] = (
+                "blocked_original_lua_elf_evidence_unavailable")
         outcome["original_collision_imported"] = False
         outcome["original_lua_bound_to_runtime"] = False
         outcome["phase"] = "asset_import_finished"
