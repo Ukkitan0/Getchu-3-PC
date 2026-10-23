@@ -46,4 +46,4 @@ The owner-private ELF audit `native/tools/verify_original_player_manager_chain.p
 
 Locally the new Player lookup, child-controller C++, and the corrected manager readiness code passed three native optimized C++20 tests **and** the same three tests with UndefinedBehaviorSanitizer. These are unit tests of reconstructed code, **not** a running retail game. Windows compilation / real game startup have not been verified; no GitHub Actions were triggered.
 
-The largest remaining connected dependencies are **0x57BCB8** (vector/world initializer), **0x21D898** (nearest-object selector), and the Player/Monkey update and render loops. The source executable and all game assets stay private.
+The largest remaining dependencies are the real persistent Player/Monkey factory and owner, original **0x21D898** nearest-object selection, original **0x57C620** controller state update, and the full actor update/render/animation loop. Original **0x57BCB8** is translated at source level but is not yet connected to a working live owner. The source executable and all game assets stay private.
