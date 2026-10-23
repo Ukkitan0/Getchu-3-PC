@@ -769,9 +769,9 @@ struct OriginalRouteTargetOwnerV3 {
         }
         // This callback must atomically update the REAL source Player/
         // Monkey controller. A declined commit cannot publish RNG/output.
-        if (self.manager.commit_original_target_57c8ec(
+        if (self.manager.stage_original_target_57c8ec(
                 self.manager.user,polygon,computed.original_low64)!=1) {
-            self.reason="real original 0x57C8EC actor target owner refused commit";
+            self.reason="real original 0x57C8EC actor owner refused staged target";
             return 0;
         }
         *low64=computed.original_low64;
@@ -789,32 +789,77 @@ extern "C" int ae3_original_actor_route_step_v3(
         return 0;
     }
     if (!source || !manager || !out ||
-        !manager->commit_original_target_57c8ec ||
+        !manager->begin_original_actor_update ||
+        !manager->stage_original_target_57c8ec ||
+        !manager->commit_original_actor_update ||
+        !manager->abort_original_actor_update ||
         !source->original_polygon_point_counts ||
         source->original.original.original_record_count==0 ||
         source->original.original.original_record_count>8192) {
-        session->error="original actor route requires stage point counts and real target commit manager";
+        session->error="original actor route needs source geometry and atomic begin/stage/commit/abort owner";
         return 0;
     }
+    // Guard even BEGIN/COMMIT/ABORT callbacks: the real game owner may
+    // synchronously request VM/stage teardown, but this native session
+    // must not be destroyed with a live ABI stack.
+    auto invokeGuarded=[&](auto&& action) -> int {
+        session->busy=true;
+        try {
+            const int accepted=action();
+            session->busy=false;
+            return accepted;
+        } catch (...) {
+            session->busy=false;
+            throw;
+        }
+    };
+    auto abortSafely=[&] {
+        session->busy=true;
+        try {
+            manager->abort_original_actor_update(manager->user);
+        } catch (...) {
+            // C ABI owner callbacks should not throw; preserve original
+            // failure and prevent an exception from crossing this ABI.
+        }
+        session->busy=false;
+    };
+    bool began=false;
     try {
         OriginalRouteTargetOwnerV3 proposed(*session,*source,*manager);
+        began=true; // Even a failed Begin may have allocated owner state.
+        if (invokeGuarded([&] {
+                return manager->begin_original_actor_update(manager->user);
+            })!=1)
+            throw std::runtime_error("original actor owner refused Begin");
         Ae3OriginalRouteCallsV2 targetCallbacks{
             &proposed,&OriginalRouteTargetOwnerV3::apply
         };
+        // The underlying recovered route routine may issue MANY target
+        // updates. It receives a TEMPORARY output; no caller-visible
+        // controller result is published until the owner commits them all.
+        Ae3OriginalRouteResultV1 proposedResult{};
         const int succeeded=ae3_original_actor_route_step_v2(
-            session,&source->original,&targetCallbacks,out);
+            session,&source->original,&targetCallbacks,&proposedResult);
         if (succeeded!=1) {
-            if (!proposed.reason.empty())
-                session->error=proposed.reason+"; "+session->error;
-            return 0;
+            const auto cause=session->error;
+            throw std::runtime_error(proposed.reason.empty() ? cause
+                : proposed.reason+"; "+cause);
         }
-        // No state publication or random consumption on failed callbacks.
+        if (invokeGuarded([&] {
+                return manager->commit_original_actor_update(manager->user);
+            })!=1)
+            throw std::runtime_error("real original actor target owner rejected Commit");
+        began=false;
         session->originalRandom=std::move(proposed.proposed.originalRandom);
+        *out=proposedResult;
         session->error.clear();
         return 1;
     } catch (const std::exception& ex) {
-        session->error=ex.what();
+        const std::string failure=ex.what();
+        if (began) abortSafely();
+        session->error=failure;
     } catch (...) {
+        if (began) abortSafely();
         session->error="original actor route v3 failed";
     }
     return 0;
