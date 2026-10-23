@@ -34,6 +34,5 @@ public:
 void originalMovementNormalBegin_557ed8(
     OriginalMovementChildD0_30c57c& originalChild,
     std::uint32_t originalParentWord14,
-    const OriginalManagerResourceFields_317b9c& genuineResourceFields,
     OriginalMovementNormalCalls_557ed8& originalOwner);
 } // namespace ae3
