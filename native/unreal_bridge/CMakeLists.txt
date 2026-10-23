@@ -63,6 +63,7 @@ set(ORIGINAL_ACTOR_MANAGER_SOURCES
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_type2_update_57c554.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_route_child_57c27c.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_manager_followup_57c48c.cpp"
+  "${ORIGINAL_NATIVE_SOURCE}/original_manager_routed_update_57c388.cpp"
   "${ORIGINAL_NATIVE_SOURCE}/original_actor_polygon_selector_30ffd0.cpp"
   # Original actor navigation initializer 0x57BCB8, source route-edge
   # lookup, type-2 target, exact source RNG / VU0 and 0x70 polygon views.
@@ -141,6 +142,16 @@ if(BUILD_TESTING)
     PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
   add_test(NAME OriginalRouteChildController57C27C
     COMMAND Getchu3OriginalRouteChild57C27CTests)
+
+  # Original 0x57C388 route-child update: 0x57C7CC owner route,
+  # original 0x30C21C child and 0x57C48C next-method installation.
+  add_executable(Getchu3OriginalRouted57C388Tests
+    "${ORIGINAL_NATIVE_ROOT}/tests/original_manager_routed_update_57c388_test.cpp"
+    "${ORIGINAL_NATIVE_SOURCE}/original_manager_routed_update_57c388.cpp")
+  target_include_directories(Getchu3OriginalRouted57C388Tests
+    PRIVATE "${ORIGINAL_NATIVE_INCLUDE}")
+  add_test(NAME OriginalControllerRouted57C388
+    COMMAND Getchu3OriginalRouted57C388Tests)
 
   # Distinct original 0x57C48C controller method, installed by
   # source 0x57C388. Complete 50-instruction original behavior.
