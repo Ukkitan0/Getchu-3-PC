@@ -265,6 +265,32 @@ AE3_LUA_EXPORT int ae3_original_actor_route_step_v2(
     const Ae3OriginalRouteCallsV2* actual_target_manager,
     Ae3OriginalRouteResultV1* output);
 
+/* Version 3: no guessed source target vectors. Call the native
+ * originalActorTargetVector_57c8ec implementation for each route update,
+ * including original 0x21B788 eligibility and 0x57C98C game RNG.
+ * point_counts[] MUST match original 0x1E-byte stage descriptor counts.
+ * Owner commits computed source low64 to its real actor controller.
+ * Reject if original 0x57CA68 fallback VU0 is required or owner refuses.
+ * Return failure without advancing shared original RNG or publishing output.
+ */
+typedef struct Ae3OriginalRouteSourceV3 {
+    Ae3OriginalRouteSourceV2 original;
+    const uint16_t* original_polygon_point_counts;
+    Ae3OriginalVec4 original_controller20;
+    int original_controller_variant30;
+} Ae3OriginalRouteSourceV3;
+typedef struct Ae3OriginalRouteCallsV3 {
+    void* user;
+    int (*commit_original_target_57c8ec)(
+        void* user, uint32_t original_polygon,
+        uint64_t original_target_low64);
+} Ae3OriginalRouteCallsV3;
+AE3_LUA_EXPORT int ae3_original_actor_route_step_v3(
+    Ae3OriginalManagerInitSession* session,
+    const Ae3OriginalRouteSourceV3* source,
+    const Ae3OriginalRouteCallsV3* real_actor_manager,
+    Ae3OriginalRouteResultV1* result);
+
 
 
 
