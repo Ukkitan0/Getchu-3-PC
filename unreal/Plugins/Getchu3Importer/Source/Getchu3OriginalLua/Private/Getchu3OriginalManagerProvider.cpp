@@ -37,5 +37,8 @@ bool UGetchu3OriginalManagerProvider::ReadOriginalPlayerProgress_Implementation(
     TArray<uint8>& PackedSourceBytes)
 { PackedSourceBytes.Reset(); return false; }
 
+bool UGetchu3OriginalManagerProvider::WriteOriginalPlayerProgress_Implementation(
+    const TArray<uint8>&) { return false; }
+
 bool UGetchu3OriginalManagerProvider::SelectOriginalPlayerWeapon_Implementation(
     int32) { return false; }
