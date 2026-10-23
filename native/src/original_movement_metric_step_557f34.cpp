@@ -73,6 +73,15 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
                genuine->originalMovementF12Bits!=scaledRaw)
                 throw std::invalid_argument(
                     "source 36FB5C owner supplied mismatched original child/scale");
+            // Negative progress is legal in the original source,
+            // but its number of 1/8-size passes is unbounded by
+            // our nine-iteration nonnegative proof. Delegate
+            // BEFORE calculating any exact-only VU0 pass: even
+            // the first SQRT can be inexact for genuine input.
+            if(std::bit_cast<float>(
+                   genuine->originalChildStatusA4Bits)<0.0f) {
+                step=owner.call_original_36fb18(child,scaledRaw);
+            } else {
             const auto plan=originalMovementFlaggedPass_36fb5c(*genuine);
             if(plan.originalReturnF0Bits) {
                 // 36FB70 VU0 VF1 mutation must be published BEFORE
@@ -92,14 +101,7 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
                 // remains for an unavailable original register owner.
                 const auto originalBinding=
                     owner.read_original_flagged_loop_binding_36fc18(child);
-                // The retail path accepts negative nonterminal
-                // status too. A fixed nine-pass bound follows
-                // from 1/8 advances ONLY if status initially >=0.
-                // Delegate negative progress to the genuine original
-                // method, preserving behavior without a false bound.
-                const auto initialStatus=std::bit_cast<float>(
-                    genuine->originalChildStatusA4Bits);
-                if(!originalBinding || initialStatus<0.0f) {
+                if(!originalBinding) {
                     step=owner.call_original_36fb18(child,scaledRaw);
                 } else {
                     if(!originalBinding->originalOwner ||
@@ -170,6 +172,7 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
                             "original 36FB70 exceeded source 1/8-step iteration bound");
                 }
             }
+            } // nonnegative original status: at most nine source passes
         } else {
             if(!flagged) {
                 // Genuine retail 36FB64 branch to 36FC18 runs
