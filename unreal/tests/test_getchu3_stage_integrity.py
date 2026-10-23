@@ -1,9 +1,12 @@
 """Owner-original stage SHA-256 and private path verification contract tests."""
 import hashlib
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] /
+                       "Plugins/Getchu3Importer/Content/Python"))
 from getchu3_stage_integrity import source_path, validate_stage_catalog
 
 
