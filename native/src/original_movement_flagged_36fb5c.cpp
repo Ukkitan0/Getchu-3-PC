@@ -123,6 +123,33 @@ OriginalMovementFlaggedPass_36fb5c originalMovementFlaggedPass_36fb5c(
     }
     return out;
 }
+void originalMovementCommitFlaggedIteration_36fb5c(
+    OriginalMovementChildD0_30c57c& child,
+    const OriginalMovementFlaggedInputs_36fb5c& in,
+    const OriginalMovementFlaggedPass_36fb5c& pass) {
+    if(!pass.requiresOriginal36F8C8 || pass.originalReturnF0Bits)
+        throw std::logic_error(
+            "original 36FB5C regeneration commit requires incomplete iteration");
+    if(child.originalWordAt(0xB4)!=in.originalChildStatusA4Bits ||
+       child.originalWordAt(0xB8)!=in.originalChildFlagsA8)
+        throw std::invalid_argument(
+            "original 36FB5C regeneration plan has stale child state");
+    // Before any source writes, reproduce the pinned source VU0
+    // calculations and ensure every stage agrees with genuine input.
+    const auto verified=originalMovementFlaggedPass_36fb5c(in);
+    if(verified.originalVF1After!=pass.originalVF1After ||
+       verified.originalStatusA4AfterBits!=pass.originalStatusA4AfterBits ||
+       verified.originalFlagsA8After!=pass.originalFlagsA8After ||
+       verified.originalReturnF0Bits!=pass.originalReturnF0Bits ||
+       verified.originalRemainingF20Bits!=pass.originalRemainingF20Bits ||
+       verified.requiresOriginal36F8C8!=pass.requiresOriginal36F8C8)
+        throw std::invalid_argument(
+            "original 36FB5C rejected altered 36FC18 regeneration pass");
+    // Source 36FC14 delay slot changes status before 36FBE4 clears
+    // flag +A8 and source 36FC18 enters original 36F8C8.
+    child.writeWord(0xB4,pass.originalStatusA4AfterBits);
+    child.writeWord(0xB8,pass.originalFlagsA8After);
+}
 void originalMovementCommitFlaggedReturn_36fb5c(
     OriginalMovementChildD0_30c57c& child,
     const OriginalMovementFlaggedInputs_36fb5c& in,
