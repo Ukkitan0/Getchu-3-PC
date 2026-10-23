@@ -139,12 +139,44 @@ int main() {
     assert(ae3_original_stage_nearest_all_21d46c_21da2c(
                session,&source,&result)==1);
     assert(result.original_polygon_index==1);
+    // Install two genuine descriptor action requests. These are NOT
+    // gameplay actors: the native stage preserves original type/slot/arg
+    // until the source Player/Monkey manager can perform the real action.
+    put16(originalBytes,0x100+2,2);
+    put16(originalBytes,0x100+0x0A,1);
+    put16(originalBytes,0x100+0x0C,2);
+    put16(originalBytes,0x100+0x10,7);
+    put16(originalBytes,0x100+0x12,8);
     // Stage owner keeps ORIGINAL decoded records across per-frame
     // queries without re-running 0x21D46C for every actor update.
     const Ae3OriginalStageSpatialMountSourceV1 mountSource{
         originalBytes.data(),originalBytes.size(),0x510000,0x6A1000};
     assert(ae3_original_stage_spatial_mount_21d46c(
                session,&mountSource)==1);
+    size_t pendingCount=99;
+    assert(ae3_original_stage_spatial_pending_action_count(
+               session,&pendingCount)==1);
+    assert(pendingCount==2);
+    // Too-small read must publish neither source action nor count.
+    std::array<Ae3OriginalStagePendingActionV1,2> pending{};
+    pending[0].original_argument=0xABCD;
+    pendingCount=99;
+    assert(ae3_original_stage_spatial_pending_actions(
+               session,pending.data(),1,&pendingCount)==0);
+    assert(pendingCount==99 && pending[0].original_argument==0xABCD);
+    assert(ae3_original_stage_spatial_pending_actions(
+               session,pending.data(),pending.size(),&pendingCount)==1);
+    assert(pendingCount==2 &&
+           pending[0].original_record_index==0 &&
+           pending[0].original_action_index==0 &&
+           pending[0].original_action_type==1 &&
+           pending[0].original_argument==7 &&
+           pending[1].original_record_index==0 &&
+           pending[1].original_action_index==1 &&
+           pending[1].original_action_type==2 &&
+           pending[1].original_argument==8 &&
+           pending[0].reserved==0 && pending[1].reserved==0);
+
     Ae3OriginalVec4 frameQuery{5,0,0,0};
     assert(ae3_original_stage_spatial_nearest_all_21da2c(
                session,&frameQuery,&result)==1);
@@ -190,6 +222,10 @@ int main() {
     // Explicit unmount invalidates queries, but must not consume or
     // corrupt original RNG session ownership; same session may remount.
     assert(ae3_original_stage_spatial_unmount(session)==1);
+    pendingCount=99;
+    assert(ae3_original_stage_spatial_pending_action_count(
+               session,&pendingCount)==0);
+    assert(pendingCount==99);
     result.original_polygon_index=555;
     assert(ae3_original_stage_spatial_nearest_all_21da2c(
                session,&frameQuery,&result)==0);
