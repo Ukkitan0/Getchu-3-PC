@@ -8,6 +8,8 @@
 #include <cstring>
 #include <iostream>
 
+struct Ae3OriginalRouteCallsV3;
+
 struct OriginalOwner {
     Ae3OriginalManagerInitSession* activeSession=nullptr;
     const Ae3OriginalRouteSourceV3* activeSource=nullptr;
@@ -20,6 +22,8 @@ struct OriginalOwner {
     // Real host Begin callbacks can synchronously mutate caller-owned buffers.
     // The route invocation must use its pre-Begin original source snapshot.
     bool mutateSourceBeforeStage=false;
+    bool mutateCallbacksDuringBegin=false;
+    Ae3OriginalRouteCallsV3* mutableCalls=nullptr;
     Ae3OriginalRouteSourceV3* mutableSource=nullptr;
     uint16_t* mutableCounts=nullptr;
     uint8_t* mutablePolygon=nullptr;
@@ -28,6 +32,11 @@ struct OriginalOwner {
     uint64_t pendingLow=0,pendingHigh=0,lastLow=0,lastHigh=0;
     uint32_t pendingR=0,lastR=0;
 };
+int rejectedReplacementCommit(void*) {
+    // Callback rebinding while Begin is on the stack must not alter the
+    // current transaction's captured original callback table.
+    return 0;
+}
 int begin(void* opaque) {
     auto& owner=*static_cast<OriginalOwner*>(opaque);
     assert(!owner.inTransaction);
@@ -36,6 +45,10 @@ int begin(void* opaque) {
         owner.destroyDuringBegin=ae3_original_manager_init_destroy(
             owner.activeSession);
     owner.inTransaction=true;
+    if (owner.mutateCallbacksDuringBegin) {
+        assert(owner.mutableCalls);
+        owner.mutableCalls->commit_original_actor_update=&rejectedReplacementCommit;
+    }
     if (owner.mutateSourceBeforeStage) {
         assert(owner.mutableSource && owner.mutableCounts && owner.mutablePolygon);
         owner.mutableSource->original_controller20={90,0,90,1};
@@ -158,6 +171,13 @@ int main() {
     polygon=initialPolygon;
     source.original_controller20=initialController;
     counts[0]=3;
+
+    owner.mutableCalls=&callbacks;
+    owner.mutateCallbacksDuringBegin=true;
+    assert(ae3_original_actor_route_step_v3(a,&source,&callbacks,&result)==1);
+    assert(callbacks.commit_original_actor_update==&rejectedReplacementCommit);
+    owner.mutateCallbacksDuringBegin=false;
+    callbacks.commit_original_actor_update=&commit;
 
     // Original 0x57C98C triangle result lives in GPR HIGH64.
     source.original_controller_variant30=0;
