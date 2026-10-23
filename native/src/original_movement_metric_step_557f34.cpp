@@ -20,10 +20,16 @@ OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
     std::uint32_t metric{};
     if(resource.originalParentWord40==1u || mode==0u)
         metric=originalManagerResourceFloatBits_317b34(resource,mode);
-    else
-        metric=originalManagerResourceVU0_317b34(
-            resource,mode,owner.read_original_resource_vu0_inputs(parentVA)
-        ).originalF0Raw;
+    else {
+        const auto original=originalManagerResourceVU0_317b34(
+            resource,mode,owner.read_original_resource_vu0_inputs(parentVA));
+        // Real original 317B34 mutates VF1 in VU0 BEFORE
+        // returning COP1 f0. A source-owner without VF1
+        // publication cannot claim correct frame continuity.
+        owner.publish_original_vf1_after_317b34(
+            parentVA,original.originalVF1After);
+        metric=original.originalF0Raw;
+    }
 
     // Original 0x557F40 LWC1 f12,parent+0x70, 0x557F48
     // MOV.S f20,f0. Original 0x557F4C JAL 0x36FB18 has
