@@ -121,3 +121,93 @@ The original `0x30C57C` child creation, actor movement
 and collision, persistent Player/Monkey game ownership,
 animation and native Windows startup remain additional
 blocking dependencies.
+
+
+## Source-recovered original VU0 VF1/VF2 scalar arithmetic
+
+The source `0x36F5F4..0x36F664` was examined directly in the
+hash-pinned original USA executable. The actual original COP2 macro
+instructions are now translated in
+`native/src/original_movement_vu0_scalar_36f5f4.cpp` for finite
+ordinary values (including zero). No general-purpose VU emulator
+or substitute gameplay distance query is involved.
+
+The input is the **original 128-bit EE source a1/a2/a3 vectors**,
+not reconstructed host physics coordinates. These are packed at
+`0x57C140`, `0x57C144`, and `0x57C14C` by the real controller.
+Original `0x36F5F4`, `0x36F5FC`, `0x36F604` transfer them
+to VU0 VF3, VF4, VF6 respectively.
+
+| Original PC | Original COP2 opcode | Recovered operation |
+| --- | --- | --- |
+| `0x36F608` | `0x4BE3206C` | `VSUB.xyzw VF1,VF4,VF3` |
+| `0x36F610` | `0x4BE330AC` | `VSUB.xyzw VF2,VF6,VF3` |
+| `0x36F618` | `0x4BE1086A` | `VMUL.xyzw VF1,VF1,VF1` |
+| `0x36F61C` | `0x4BE210AA` | `VMUL.xyzw VF2,VF2,VF2` |
+| `0x36F620` | `0x4BA10841` | `VADDy.xyw VF1,VF1,VF1` |
+| `0x36F624` | `0x4BA21081` | `VADDy.xyw VF2,VF2,VF2` |
+| `0x36F628` | `0x4BE10842` | `VADDz.xyzw VF1,VF1,VF1` |
+| `0x36F62C` | `0x4BE21082` | `VADDz.xyzw VF2,VF2,VF2` |
+
+For the X result consumed by the source, these instructions compute
+the ordered single-precision sums of squared X/Y/Z differences.
+`0x36F630` copies the VF1.x bits for the *first* source
+`C.OLT.S` at `0x36F640`. `0x36F63C` copies VF2.x;
+`0x36F664` installs those bits into COP1 f1, which is
+compared to 1.0f at `0x36F698`. **VF2 comes from source
+A3 minus A1**; mistakenly forwarding the first A2/A1
+distance would change the original movement status.
+
+The implementation preserves the VU source ordering:
+VSUB, VMUL, VADDy, then VADDz, never a fused vector dot
+product with unspecified reassociation. It does not include
+W in the X reduction. Unsupported IEEE/PS2 edge conditions,
+such as subnormal, nonfinite and overflowing XYZ lane operations,
+are refused instead of being guessed to match the PS2's
+nonstandard floating-point behavior.
+
+The native helper
+`originalMovementScratchFromVU0Scalar_36f5f4` connects
+the recovered VU0 VF2.x bits directly to the existing
+`originalMovementScratchScalarTail_36f6a8` for the genuine
+`0x57C148` callsite, including its original `t0=0`,
+guest stack-address restrictions and `+0xA0/+0xA4/+0xA8/+0xAC`
+source writes. The native helper does **not** invent any of the
+other 0x110-byte original scratch data.
+
+Two more native CTest targets are registered:
+`OriginalMovementVU0SourceScalar36F5F4` validates
+both source vector pairings, W independence, comparison
+boundary and unsupported floating-point inputs;
+`OriginalMovementVectorScratchChildChain` executes the
+source sequence **original EE vectors → VU0 VF2.x →
+0x36F6A8 scratch → original 0x30C57C child copy**, including
+unchanged output on invalid inputs. Both tests passed
+locally under GCC and Clang C++20 with
+UndefinedBehaviorSanitizer; the full Windows DLL and
+Unreal runtime have not been tested.
+
+The exact eight original VU0 arithmetic opcodes, their
+operand registers, masks, and low-six-bit opcode IDs
+are now additionally pinned by
+`native/tools/verify_original_movement_scratch_36f5f4.py`.
+Its source-opcode fingerprint
+`b24dbd9ee6c08d78397e803f4e25b1591b95f2b735215ae7f115e66dffed1840`
+was checked against the user's genuine USA ELF.
+
+### Remaining original VU0 work
+
+The full function is still **not** completely recovered.
+Its `0x36F64C..0x36F65C` vector-changing branch and
+`0x36F668..0x36F68C` VF3/VF4/VF5 outputs are not
+represented by the scalar helper. The alternative
+cross-entry paths and hardware-specific rounding,
+overflow, status/MAC flags and source actor ownership
+need further recovery.
+
+The real original `0x36F5F4` engine callback is
+therefore **not automatically replaced** by the scalar
+helper in the live movement-owner path; doing so would
+silently invent the remaining VU0 side effects.
+Only complete and properly sourced actor callbacks
+should drive the real game.
