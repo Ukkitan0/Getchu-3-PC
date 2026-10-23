@@ -2,6 +2,7 @@
 #include "ae3/lua_stage.hpp"
 
 #include <cmath>
+#include <cstring>
 #include <cstdint>
 #include <iomanip>
 #include <limits>
@@ -119,14 +120,16 @@ void requireManagerSuccess(int accepted, const char* operation) {
 } // namespace
 
 struct Ae3LuaRuntime {
-    Ae3LuaManagerV4 callbacks{};
+    Ae3LuaManagerV5 callbacks{};
     ae3::NativeStageWorld stageWorld;
     std::optional<ae3::PlayerProgress> sourceProgress;
     std::unique_ptr<ae3::LuaStage> stage;
     std::string error;
     bool busy = false;
+    bool chunkAttempted = false;
+    std::size_t registeredOriginalVoid = 0;
 
-    explicit Ae3LuaRuntime(const Ae3LuaManagerV4& input) : callbacks(input) {
+    explicit Ae3LuaRuntime(const Ae3LuaManagerV5& input) : callbacks(input) {
         resetStage();
     }
     void resetStage() {
@@ -204,6 +207,8 @@ struct Ae3LuaRuntime {
         }
         created->setNativeBindings(std::move(bindings));
         stage = std::move(created);
+        chunkAttempted = false;
+        registeredOriginalVoid = 0;
     }
 };
 
@@ -234,9 +239,9 @@ int callSafely(Ae3LuaRuntime* runtime, Action&& action) noexcept {
 extern "C" uint32_t ae3_lua_api_version(void) {
     return AE3_LUA_BRIDGE_API_VERSION;
 }
-extern "C" Ae3LuaRuntime* ae3_lua_create(const Ae3LuaManagerV4* manager) {
+extern "C" Ae3LuaRuntime* ae3_lua_create(const Ae3LuaManagerV5* manager) {
     if (!manager || manager->api_version != AE3_LUA_BRIDGE_API_VERSION ||
-        manager->struct_size != sizeof(Ae3LuaManagerV4))
+        manager->struct_size != sizeof(Ae3LuaManagerV5))
         return nullptr;
     // Original stage gameplay requires a real actor AND parameter manager.
     // A stub accepting records would be a false gameplay implementation.
@@ -264,6 +269,45 @@ extern "C" int ae3_lua_reset(Ae3LuaRuntime* runtime) {
         runtime->resetStage();
     });
 }
+extern "C" int ae3_lua_register_original_void(
+    Ae3LuaRuntime* runtime, const char* original_name, uint32_t original_va) {
+    return callSafely(runtime, [&] {
+        if (!runtime->stage || runtime->chunkAttempted ||
+            !runtime->callbacks.invoke_original_void ||
+            runtime->registeredOriginalVoid >= 256 ||
+            original_va == 0 || (original_va & 3u) != 0)
+            throw std::runtime_error(
+                "original void binding requires a live pre-execution VM, verified VA and real manager");
+        if (!original_name)
+            throw std::invalid_argument("original void function name missing");
+        std::size_t length = 0;
+        while (length < 130 && original_name[length] != '\0') ++length;
+        if (length == 0 || length > 128)
+            throw std::invalid_argument("original void function name exceeds valid length");
+        for (std::size_t index = 0; index < length; ++index) {
+            const unsigned char c = static_cast<unsigned char>(original_name[index]);
+            if (!(c == '_' || (c >= 'A' && c <= 'Z') ||
+                  (c >= 'a' && c <= 'z') ||
+                  (index > 0 && c >= '0' && c <= '9')))
+                throw std::invalid_argument("original void function requires an ASCII Lua global name");
+        }
+        const std::string name(original_name, length);
+        // The existing original LuaStage registers only a verified name+VA.
+        // It detects collisions with built-in globals and other original APIs.
+        // Unlike a synthetic callback, the host MUST execute recovered game
+        // behavior and return 1; a missing routine stops the original script.
+        runtime->stage->registerOriginalFunction(
+            name, original_va, [runtime, name, original_va](
+                const std::vector<ae3::ScriptValue>& arguments) {
+                const std::string transport = typedArgs(arguments);
+                requireManagerSuccess(runtime->callbacks.invoke_original_void(
+                    runtime->callbacks.user, original_va, name.c_str(),
+                    transport.c_str()), "verified original void function");
+                return std::vector<ae3::ScriptValue>{};
+            });
+        ++runtime->registeredOriginalVoid;
+    });
+}
 extern "C" int ae3_lua_execute_original_chunk(
     Ae3LuaRuntime* runtime, const void* bytes, size_t length,
     const char* original_chunk_path) {
@@ -277,6 +321,7 @@ extern "C" int ae3_lua_execute_original_chunk(
         if (std::string_view(data, 5) != std::string_view("\x1bLua\x50", 5))
             throw std::invalid_argument(
                 "refusing non-retail Lua source or wrong bytecode version");
+        runtime->chunkAttempted = true; // No late callback injection on error.
         runtime->stage->executeSource(
             std::string_view(data, length), original_chunk_path);
     });
