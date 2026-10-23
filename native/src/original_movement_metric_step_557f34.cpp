@@ -1,0 +1,50 @@
+#include "ae3/original_movement_metric_step_557f34.hpp"
+#include <bit>
+#include <cmath>
+#include <stdexcept>
+
+namespace ae3 {
+OriginalMovementMetricStepResult_557f34 originalMovementMetricStep_557f34(
+    OriginalMovementChildD0_30c57c& child,
+    OriginalMovementMetricOwner_557f34& owner) {
+    // Reached only after source 0x557ED8 setup writes child+C0=1.
+    const auto initialized=child.originalByteAt(0xC0);
+    const auto modeByte=child.originalByteAt(9);
+    if(!initialized || *initialized!=std::byte{1} || !modeByte)
+        throw std::logic_error("original 557F34 must follow real normal child setup");
+    const std::uint32_t parentVA=child.originalWordAt(4);
+
+    // 0x557F30 LBU mode, 0x557F38 JAL real source 317B34.
+    const auto resource=owner.read_original_resource_float_fields(parentVA);
+    const auto mode=std::to_integer<std::uint32_t>(*modeByte);
+    std::uint32_t metric{};
+    if(resource.originalParentWord40==1u || mode==0u)
+        metric=originalManagerResourceFloatBits_317b34(resource,mode);
+    else
+        metric=originalManagerResourceVU0_317b34(
+            resource,mode,owner.read_original_resource_vu0_inputs(parentVA)
+        ).originalF0Raw;
+
+    // Original 0x557F40 LWC1 f12,parent+0x70, 0x557F48
+    // MOV.S f20,f0. Original 0x557F4C JAL 0x36FB18 has
+    // 0x557F50 MUL.S f12=f0*f12 in its delay slot.
+    const auto scaleRaw=owner.read_original_parent_float70(parentVA);
+    const float f0=std::bit_cast<float>(metric);
+    const float scale=std::bit_cast<float>(scaleRaw);
+    if(!std::isfinite(f0)||!std::isfinite(scale) ||
+       std::fpclassify(f0)==FP_SUBNORMAL ||
+       std::fpclassify(scale)==FP_SUBNORMAL)
+        throw std::invalid_argument("original 557F50 requires PS2 COP1 special mode");
+    const volatile float scaled=f0*scale;
+    if(!std::isfinite(scaled) || std::fpclassify(scaled)==FP_SUBNORMAL ||
+       static_cast<double>(scaled)!=
+           static_cast<double>(f0)*static_cast<double>(scale))
+        throw std::domain_error("original 557F50 MUL.S requires PS2 rounding");
+    const auto scaledRaw=std::bit_cast<std::uint32_t>(float(scaled));
+    // Original 36FB18 fast return may be computed without its
+    // movement/collision engine. Otherwise mandatory source owner.
+    const auto fast=originalMovementStepFast_36fb18(child,scaledRaw);
+    const auto step=fast?*fast:owner.call_original_36fb18(child,scaledRaw);
+    return {metric,scaledRaw,step};
+}
+} // namespace ae3
