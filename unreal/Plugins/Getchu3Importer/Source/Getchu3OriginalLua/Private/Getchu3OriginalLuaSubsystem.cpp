@@ -142,6 +142,14 @@ bool UGetchu3OriginalLuaSubsystem::StartImportedOriginalStage(
         return false;
     }
     StopOriginalStage();
+    // Destroy can correctly refuse while an original VM callback still owns
+    // its stack. Never replace its DLL handle/VM with a second instance,
+    // losing the only safe handle needed to retry cleanup after unwind.
+    if (NativeState || NativeLibrary || bOriginalSetupOpen ||
+        bDeferredOriginalStop || Manager) {
+        LastError = TEXT("Previous original Lua stage still owns live native resources; stage replacement refused");
+        return false;
+    }
     LastError.Empty();
 
     if (OriginalStageId.IsEmpty() || OriginalStageId.Len() > 64) {
@@ -305,6 +313,14 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
         return false;
     }
     StopOriginalStage();
+    // Destroy can correctly refuse while an original VM callback still owns
+    // its stack. Never replace its DLL handle/VM with a second instance,
+    // losing the only safe handle needed to retry cleanup after unwind.
+    if (NativeState || NativeLibrary || bOriginalSetupOpen ||
+        bDeferredOriginalStop || Manager) {
+        LastError = TEXT("Previous original Lua stage still owns live native resources; stage replacement refused");
+        return false;
+    }
     LastError.Empty();
 
     if (!IsValid(SourceManager)) {
