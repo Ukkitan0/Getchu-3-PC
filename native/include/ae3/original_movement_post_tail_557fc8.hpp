@@ -21,7 +21,9 @@ public:
         const OriginalMovementChildD0_30c57c& originalChild)=0;
     // Source 557FE4 JAL: original EE a0=parent and complete
     // 128-bit EE a1 from MMI3 POR original child+0x90 or VF1.
-    virtual std::uint32_t call_original_30c0a0(
+    // 557FEC DADDU s5,v0,zero consumes v0's full low 64 bits.
+    // Do not narrow original return state to a 32-bit guest VA.
+    virtual std::uint64_t call_original_30c0a0(
         std::uint32_t originalParentGuestVA,
         const std::array<std::uint32_t,4>& originalEEA1)=0;
     // Source 557FF4 JAL: original a0=parent+0x14, a1=EE s3.
