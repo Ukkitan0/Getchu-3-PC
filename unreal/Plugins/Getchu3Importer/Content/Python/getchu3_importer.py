@@ -145,6 +145,23 @@ def _planned_imports(folder: Path, files: list[Path],
     return plans
 
 
+def _reject_existing_unreal_packages(plans: list[tuple[Path, Path, str, str]],
+                                    ue: Any) -> None:
+    """Never replace a previously imported or user-edited Unreal package."""
+    library = getattr(ue, "EditorAssetLibrary", None)
+    check = getattr(library, "does_asset_exist", None)
+    if not callable(check):
+        # Test doubles may omit the editor API. Real Getchu3 importer requires
+        # EditorScriptingUtilities (also checked for collision saving).
+        return
+    for source, relative, target, name in plans:
+        package_path = target + "/" + name
+        if check(package_path):
+            raise RuntimeError(
+                f"Refusing to overwrite existing Unreal asset: {package_path} "
+                f"(original source {relative})")
+
+
 def _primary_imported_objects(objects: list, ue: Any, suffix: str) -> list:
     """Select only genuine primary Unreal source assets, not reused materials.
 
@@ -177,6 +194,7 @@ def import_assets_in_editor(folder: Path, ue: Any, suffix: str,
     if not files and suffix == ".glb":
         raise RuntimeError("No converted original GLB files were found")
     plans = _planned_imports(folder, files, destination)
+    _reject_existing_unreal_packages(plans, ue)
     imported: list[str] = []
     observed_objects: set[str] = set()
     manager = ue.AssetToolsHelpers.get_asset_tools()
@@ -232,6 +250,7 @@ def import_collision_in_editor(folder: Path, ue: Any, *,
         raise RuntimeError("Unreal StaticMesh collision editing is unavailable")
     # Fail before modifying editor packages on any source filename collision.
     plans = _planned_imports(folder, files, destination)
+    _reject_existing_unreal_packages(plans, ue)
     manager = ue.AssetToolsHelpers.get_asset_tools()
     result = []
     observed_objects: set[str] = set()
