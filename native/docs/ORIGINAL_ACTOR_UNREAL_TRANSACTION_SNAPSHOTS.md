@@ -140,3 +140,43 @@ verifies the pre-initializer controller vector, flags, method pair,
 source near-owner result and unchanged original RNG cursor. This is a
 linked source constructor/initializer path, **not** a complete actor
 factory or Unreal Player/Monkey game instance.
+
+## Source spatial selector 0x21D898 / 0x21DA2C exported for Unreal
+
+The native bridge now exports both already source-recovered actor polygon
+selectors as C ABI functions, using decoded original-stage 0x70 records and
+the original 0x1E polygon descriptor point counts:
+
+- `ae3_original_polygon_nearest_hits_21d898`: consumes the **original
+  0x4E3C14 grid candidate order** supplied by a future genuine source
+  grid owner; applies translated 0x21B788 XZ polygon eligibility,
+  0x21B468 centroid, and 0x21B234 VU0 XYZ distance. Stable strict
+  comparison retains the first minimum in the source hit order.
+- `ae3_original_polygon_nearest_all_21da2c`: scans the original record
+  registry in order with the translated centroid/XYZ distance, without
+  the polygon eligibility filter, matching the distinct source function.
+
+Both return source polygon **indices**, never pointers into invocation-local
+decoded records. An empty 0x21D898 hit list is a successful query with
+`UINT32_MAX` (no eligible polygon). Invalid source candidate indices,
+missing records/descriptors, descriptor counts outside 1..3, nonfinite
+XYZ queries and reentrant use are rejected without publishing output.
+The native session stays guarded until each query is finished.
+
+**Original-system dependency:** the underlying 0x4E3C14 grid candidate
+generation and owner runtime are not fully recovered; the ABI does not
+fabricate hits, stage geometry, player/monkey creation, target motion,
+or Unreal navigation. Host owners MUST supply real decoded original
+navigation/record bytes. These native exports alone do not create actors.
+
+`native/tests/original_polygon_nearest_unreal_abi_test.cpp` exercises
+original grid order versus all-registry order, first-wins distance ties,
+rejected candidate planes, empty hit lists, malformed source indices,
+descriptor validation, nonfinite queries, W-lane independence, and the
+result-publication failure boundary. Its CTest target is
+`OriginalPolygonNearest21D89821DA2CHostAbi` in
+`native/unreal_bridge/CMakeLists.txt`.
+
+These tests and exports are committed as source only; a successful
+Windows DLL build, Unreal Editor integration, and actual ISO-backed
+stage operation still require verification.
