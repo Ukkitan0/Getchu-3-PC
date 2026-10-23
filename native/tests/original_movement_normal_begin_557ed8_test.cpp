@@ -186,5 +186,18 @@ int main() {
     assert(controller.word14==0x707u &&
            controller.child10==signedLifecycle.originalChildPointer() &&
            signedLifecycle.ownsOriginalChild() && depth.depth==0u);
+    // Source 557F08 BEQZ v0 inspects the full EE 64-bit
+    // return, even when ONLY the high 32 bits are nonzero.
+    // Truncation used to incorrectly SKIP original 2767F4.
+    source.collisionResult=0x100000000ull;
+    source.calls.clear();
+    child=makeChild(2);
+    source.observedChild=child.get();
+    originalMovementNormalBegin_557ed8(
+        *child,source.expectedParentWord14,source);
+    assert(source.calls==std::vector<std::string>(
+        {"read-parent","276B68","2767F4","2773D4"}));
+    assert(child->originalByteAt(0xC0)==std::byte{1});
+
     std::cout<<"ORIGINAL_NORMAL_MOVEMENT_557ED8_SETUP_PASSED\n";
 }
