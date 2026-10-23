@@ -43,6 +43,14 @@ public:
     virtual std::optional<OriginalMovementRegenerationBinding_36f8c8>
     read_original_regeneration_binding_36f8c8(
         const OriginalMovementChildD0_30c57c&) {return std::nullopt;}
+    // Optional *second* original 36FC18 regeneration for a
+    // FLAGGED positive-movement pass with remaining f20>0.
+    // Not the initial bit1-clear 36FC18 binding above: the
+    // owner must know current live VU0 registers and original
+    // child scratch VA at each subsequent iteration.
+    virtual std::optional<OriginalMovementRegenerationBinding_36f8c8>
+    read_original_flagged_loop_binding_36fc18(
+        const OriginalMovementChildD0_30c57c&) {return std::nullopt;}
     // Opt-in original 36FB5C flagged positive-movement path:
     // the owner supplies actual 128-bit VF1, source scratch
     // guest address and actual child status/flags. Default
