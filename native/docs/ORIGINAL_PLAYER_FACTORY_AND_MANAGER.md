@@ -141,13 +141,14 @@ tests, source comments and the ELF verifier now reflect these
 verified source returns; zero-valued real `+0x14` is not replaced
 with a synthetic boolean success.
 
-**Still not recovered:** the full 200-instruction original
-`0x57BF5C` function, the actual real source owner methods
-`0x3176AC`, `0x30C1D4`, `0x3161B8`, `0x316174`,
-`0x30C21C`, `0x30C520`, actor-specific VU0 operand publication
-and live Player/Monkey lifetime. The native control-flow
-translations do not produce a playable game until those real
-systems execute. Full Windows/Unreal Editor compilation has
+**Still not recovered in full:** the original owner-specific VU0
+register calculations and input provenance inside `0x57BF5C`,
+the actual source owner methods `0x3176AC`, `0x30C1D4`,
+`0x3161B8`, `0x316174`, `0x30C21C`, `0x30C520`,
+`0x30C57C`, `0x36F5F4`, the two original `0x441F40`
+stack-object initializers and original `0x21DB64` diagnostics,
+and persistent Player/Monkey lifetime. The recovered C++ branch
+sequencing does not make those game-owner bodies complete. Full Windows/Unreal Editor compilation has
 not been verified; no proprietary ELF or ISO was committed.
 
 
@@ -195,3 +196,62 @@ game-owner allocator methods, actor-specific VU0 operands,
 per-frame behavior, full Player/Monkey object lifecycle, native
 renderer or retail-stage gameplay. The complete Windows native
 DLL, CTest suite and Unreal Editor build have not been verified.
+
+
+### Original 0x57BF5C outer movement/child controller recovered
+
+`native/src/original_manager_movement_57bf5c.cpp` now translates
+the original **200-instruction method's branch decisions and
+source child-update sequencing**, using the verified USA executable.
+Its owner-provided inputs are **mandatory** for original VU0 state
+and original game methods; these aren't replaced with host physics:
+
+- Original `C.OLT.S` direction test against source scalar
+  `0x708A40` (exact bits `0xBF34FDF4`), transitioning directly
+  to original `{0x57C27C,0}` when less.
+- Source `0x21B854` projection invoked only along the original
+  controller flag+0x1C branch, followed by the original VU0
+  metric/SQRT result and strict comparison to genuine
+  `0x708A44 = 2.0f`. Eligible early transitions go to
+  `{0x57C27C,0}`.
+- Original call ordering `0x441F40` twice (two independent
+  source scratch blocks), then `0x36F5F4`, then real
+  `0x30C57C` child construction. A child published during
+  synchronous construction is deleted through its original
+  virtual slot 1 before the new child is installed.
+- Original `0x3161B8` update gate; zero means zero return and
+  conditional original `0x21DB64` diagnostics, only when
+  actual `0x6354E7` is nonzero and `0x6354E0` is zero.
+- Successful update dispatches original `word14 != 2` to
+  `{0x57C27C,0}`, or `word14 == 2 && flag1c` to
+  `{0x57C48C,0}`, each invoking actual `0x316174`.
+  Without flag+0x1C, original variant zero returns 2;
+  variant one returns **2** for four-lane source equality,
+  **1** for mismatch using the source `BEQZL/MOVZ` tail.
+
+The existing `originalManagerDispatchNativeMethods_57c620`
+native router now recognizes original method VA `0x57BF5C`
+and dispatches it when an explicit real movement source owner
+is installed. No owner means mandatory fallback to the real
+game-manager callback, which must reject unsupported methods.
+
+The corrected original verification script checks 18 exact
+original movement branch/opcode sites, original PCEQW/MOVZ
+instructions, the real `0x708A30..0x708A44` method/scalar
+constants, all four method-body SHA-256 windows and their
+source JAL edges against SHA-pinned retail `SCUS_975.01`.
+
+`OriginalMovementController57BF5C` was registered as a native
+CTest target and includes original early-transition, projection,
+metric, child creation, update, variant equality and diagnostic
+branches. Local isolated C++20 smoke tests and prior native
+dispatcher integration tests both compiled and passed under
+**GCC and Clang with UndefinedBehaviorSanitizer**. This does
+**not** imply the new full repository CTest, Windows DLL, Unreal
+Editor or the actual original game has been booted successfully.
+
+**Remaining true-game integration:** the original actor owner
+must supply the actual VU0 state and original child/
+animation/movement method bodies; a persistent retail
+Player/Monkey manager must drive this native controller
+through a complete frame with real decoded game assets.
