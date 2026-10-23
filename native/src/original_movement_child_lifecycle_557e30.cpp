@@ -2,6 +2,7 @@
 #include "ae3/original_movement_child_early_36f954.hpp"
 #include "ae3/original_movement_normal_begin_557ed8.hpp"
 #include "ae3/original_movement_metric_step_557f34.hpp"
+#include "ae3/original_movement_post_vector_557f54.hpp"
 #include <stdexcept>
 #include <utility>
 
@@ -10,9 +11,11 @@ OriginalMovementChildLifecycle_557e30::OriginalMovementChildLifecycle_557e30(
     std::unique_ptr<OriginalMovementChildD0_30c57c> child,
     OriginalMovementParentRead_557e30& originalParent,
     OriginalMovementNormalCalls_557ed8* normalOwner,
-    OriginalMovementMetricOwner_557f34* metricOwner)
+    OriginalMovementMetricOwner_557f34* metricOwner,
+    OriginalMovementPostVectorOwner_557f54* postVectorOwner)
     :child_(std::move(child)),parent_(originalParent),
-     normalOwner_(normalOwner),metricOwner_(metricOwner) {
+     normalOwner_(normalOwner),metricOwner_(metricOwner),
+     postVectorOwner_(postVectorOwner) {
     if(!child_ || child_->originalWordAt(0)!=
        OriginalMovementChildD0_30c57c::originalVtableVA)
         throw std::invalid_argument(
@@ -75,6 +78,8 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
                 // still needs source collision/animation recovery.
                 (void)originalMovementMetricStep_557f34(
                     *child_,*metricOwner_);
+                if(const auto early=try_original_post_vector_557f54(originalParentWord14))
+                    return *early;
             }
         }
     }
@@ -89,11 +94,29 @@ std::uint32_t OriginalMovementChildLifecycle_557e30::call_original_vtable5(
         // owner callbacks when the genuine fast path is absent.
         (void)originalMovementMetricStep_557f34(
             *child_,*metricOwner_);
+        if(const auto early=try_original_post_vector_557f54(originalParentWord14))
+            return *early;
     }
     // A successfully executed prefix is NOT a complete actor
     // frame. Original 0x557F54+ collision/animation is missing.
     throw std::logic_error(
         "original 0x557F34 gameplay continuation requires unrecovered source methods");
+}
+std::optional<std::uint32_t> OriginalMovementChildLifecycle_557e30::
+try_original_post_vector_557f54(std::uint32_t originalParentWord14) {
+    if(!postVectorOwner_)
+        return std::nullopt;
+    // Original 557F54 flags+B8 bit1 zero requires original
+    // 558094 JAL 36F8C8. Do not run the bit1-set normalization
+    // on a missing original regenerated VF1 state.
+    if((child_->originalWordAt(0xB8)&2u)==0u)
+        return std::nullopt;
+    const auto source=originalMovementPostVector_557f54(
+        *child_,originalParentWord14);
+    // Source VU0 VF1/VF2/Q/GPR s3 side effects must reach the
+    // original game owner before slot5 can return status1.
+    postVectorOwner_->publish_original_557f54_vu0(source);
+    return source.originalSlot5EarlyStatus;
 }
 void OriginalMovementChildLifecycle_557e30::
 call_original_child_vtable1_delete(void* object) {
