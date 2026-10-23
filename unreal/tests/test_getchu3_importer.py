@@ -160,7 +160,8 @@ class ImporterTests(unittest.TestCase):
             disk=base/'retail.iso'; disk.write_bytes(b'test')
             from getchu3_media import convert_textures
             with patch.object(module,'verify_disc',return_value=module.VerifiedDisc(disk,'a'*64)), \
-                 patch('getchu3_media.convert_textures',return_value={"converted_png_files":2}), \
+                 patch('getchu3_media.convert_textures',return_value={
+                     "converted_png_files":2, "pack_local_material_aliases":[]}), \
                  patch.object(module,'recover_original',return_value={"original_vfi_files_extracted":3994, "original_lua_scripts":168}), \
                  patch.object(module,'unpack_original_pck_for_unreal',return_value={
                      "original_stage_pck_archives": 2, "new_original_members_written": 6,
@@ -175,7 +176,8 @@ class ImporterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             base=Path(d); disk=base/'retail.iso';disk.write_bytes(b'test')
             with patch.object(module,'verify_disc',return_value=module.VerifiedDisc(disk,'b'*64)), \
-                 patch('getchu3_media.convert_textures',return_value={"converted_png_files":2}), \
+                 patch('getchu3_media.convert_textures',return_value={
+                     "converted_png_files":2, "pack_local_material_aliases":[]}), \
                  patch('getchu3_media.convert_stream_audio',return_value={"source_exst":0,"wav_files":[]}), \
                  patch('getchu3_collision.convert_collision',return_value={"original_i3c_files":3}), \
                  patch.object(module,'import_collision_in_editor',return_value=['/Game/Original/Collision']), \
