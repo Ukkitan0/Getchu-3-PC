@@ -18,6 +18,18 @@ int acceptTestPackedProgress(void*, void* destination, size_t bytes) {
     std::memset(destination, 0, bytes); // Test fixture only, never a game save.
     return 1;
 }
+struct ReentrantDestroyProbe {
+    Ae3LuaRuntime* runtime = nullptr;
+    int attempted_result = -1;
+};
+int tryDestroyDuringProgressRead(void* opaque, void*, size_t bytes) {
+    auto* probe = static_cast<ReentrantDestroyProbe*>(opaque);
+    if (!probe || bytes != 1033) return 0;
+    if (probe->runtime)
+        probe->attempted_result = ae3_lua_destroy(probe->runtime);
+    return 0; // Missing owner save still fails closed.
+}
+
 Ae3LuaManagerV2 callbacks() {
     Ae3LuaManagerV2 manager{};
     manager.api_version = AE3_LUA_BRIDGE_API_VERSION;
@@ -93,6 +105,22 @@ int main() {
     runtime = ae3_lua_create(&manager);
     assert(runtime != nullptr);
     assert(ae3_lua_reset(runtime));
-    ae3_lua_destroy(runtime);
+    assert(ae3_lua_destroy(runtime) == 1);
+
+    // A manager callback may try to stop its own VM while reset is still
+    // executing. Destruction must explicitly return 0; the VM and DLL
+    // remain valid and can be destroyed after the callback unwinds.
+    ReentrantDestroyProbe probe{};
+    manager = callbacks();
+    manager.user = &probe;
+    manager.read_original_player_progress = tryDestroyDuringProgressRead;
+    runtime = ae3_lua_create(&manager);
+    assert(runtime != nullptr);
+    probe.runtime = runtime;
+    assert(ae3_lua_reset(runtime) == 1);
+    assert(probe.attempted_result == 0);
+    assert(ae3_lua_declared_entity_count(runtime) == 0);
+    assert(ae3_lua_destroy(runtime) == 1);
+    assert(ae3_lua_destroy(nullptr) == 1);
     return 0;
 }
