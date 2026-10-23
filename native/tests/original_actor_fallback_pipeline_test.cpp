@@ -5,7 +5,6 @@
 #include <cstring>
 #include <fstream>
 #include <iterator>
-#include <iostream>
 #include <limits>
 #include <stdexcept>
 #include <vector>
@@ -30,7 +29,6 @@ struct Missing final:OriginalActorUntranslatedMath_57c7cc {
 struct Candidate:OriginalActorFallbackVU0Transform_57ca68 {
     unsigned calls=0;
     std::array<std::array<std::byte,16>,3> expected{};
-    std::array<std::byte,16> expectedController{};
     OriginalActorFallbackCandidate_57ca68 call_original_57ca68_candidate_VU0(
        const std::array<std::array<std::byte,16>,3>& bytes,
        const std::array<std::byte,16>& originalOwnerA1,
@@ -40,7 +38,7 @@ struct Candidate:OriginalActorFallbackVU0Transform_57ca68 {
         require(originalQ==0x3fc90fdau,"Original VU0 Q not forwarded into fallback candidate");
         require(originalOwnerA1[0]==std::byte(0xab),
             "Original fallback $a1 not actor owner's +0x14->+0x40 vector");
-        require(originalControllerA2==expectedController,
+        require(originalControllerA2[0]==std::byte(0),
             "Original fallback $a2 not controller+0x20 source");
         require(bytes==expected,"Actual original source vertex bytes changed");
         require(index==calls++,"Original six candidate order");
@@ -60,7 +58,6 @@ static void runPolygon(const OriginalSpatialRecord70& original,
     Missing missing;
     OriginalGameRandom_36f3c0 random(5489);
     Candidate candidate;
-    candidate.expectedController=veryFarOutside;
     for(unsigned i=0;i<3;++i)
         candidate.expected[i]=originalSpatialVector_21b458(original,i);
     OriginalActorNavigationPipeline_57c7cc pipeline(
@@ -68,19 +65,14 @@ static void runPolygon(const OriginalSpatialRecord70& original,
     // Distinct source arguments must be explicitly supplied. No fallback
     // may silently substitute controller+0x20 for the actor owner vector.
     bool missingOwnerRejected=false;
-    // The original route routine writes controller+0x50 BEFORE calling
-    // target geometry. A rejected dependency therefore mutates this state;
-    // each negative case needs an independent original initial state.
-    auto missingOwnerState=state;
-    try{(void)pipeline.advance(missingOwnerState);}
+    try{(void)pipeline.advance(state);}
     catch(const std::invalid_argument&){missingOwnerRejected=true;}
     require(missingOwnerRejected,"Missing original owner+0x14->+0x40 vector was silently substituted");
     std::array<std::byte,16> ownerVector{};
     ownerVector[0]=std::byte(0xab);
     pipeline.setOriginalFallbackOwnerVector_57ca68(ownerVector);
     bool missingQRejected=false;
-    auto missingQState=state;
-    try{(void)pipeline.advance(missingQState);}
+    try{(void)pipeline.advance(state);}
     catch(const std::invalid_argument&){missingQRejected=true;}
     require(missingQRejected,"Original VU0 Q was silently guessed or defaulted");
     pipeline.setOriginalFallbackQBits_57ca68(0x3fc90fdau);
@@ -99,6 +91,51 @@ static void runPolygon(const OriginalSpatialRecord70& original,
     require(output.branch==OriginalActorTargetBranch_57c8ec::OriginalFallbackGeometry_57ca68 &&
             output.originalVectorLow64==0x1204,
             "Native original fallback winner did not reach actor target");
+
+    // Connected source-instruction fallback, with no test scoring callback.
+    // The retail PCPYUD result occupies the upper GPR half. Passing only
+    // the previous low 64 bits would have silently dropped the target.
+    OriginalGameRandom_36f3c0 genuineRandom(5489);
+    OriginalActorNavigationPipeline_57c7cc originalNative(
+        records,geometry,veryFarOutside,true,missing,&genuineRandom);
+    originalNative.setOriginalFallbackOwnerVector_57ca68(ownerVector);
+    originalNative.setOriginalFallbackQBits_57ca68(0x3fc90fdau);
+    OriginalActorFallbackVu0R_57ca68 originalR{0xdeadbeefu};
+    originalNative.setOriginalFallbackRState_57ca68(&originalR);
+    OriginalActorRouteFollowerState_57c7cc nativeState{
+        records,route,&records[0],nullptr,true};
+    const auto nativeResult=originalNative.advance(nativeState);
+    require(nativeResult.sourceTargetsApplied==1,
+            "Native original fixed-instruction candidate not dispatched");
+    const auto& nativeTarget=originalNative.sourceTargetResults().front();
+    require(nativeTarget.branch==
+                OriginalActorTargetBranch_57c8ec::OriginalFallbackGeometry_57ca68 &&
+            nativeTarget.originalVectorLow64==0 &&
+            nativeTarget.originalVectorHigh64!=0,
+            "Original PCPYUD winner high-half target lost in movement pipeline");
+    require(genuineRandom.originalCursor()==11,
+            "Native VU0 six-candidate path must consume 12 genuine RNG draws");
+    require(originalR.rawR==0x3f800000u &&
+            originalR.sourceVRINITCalls==12 &&
+            originalR.sourceVRXORCalls==12,
+            "Connected native VU0 R source effects lost during actor advance");
+    require(&originalNative.sourceFallbackRState_57ca68()==&originalR,
+            "Connected VU0 R state did not alias the owner-provided global");
+    // Independently test no explicit R binding: retail VRINIT/VRXOR
+    // still execute and update the native pipeline's R register.
+    OriginalGameRandom_36f3c0 unboundRandom(5489);
+    OriginalActorNavigationPipeline_57c7cc unbound(
+        records,geometry,veryFarOutside,true,missing,&unboundRandom);
+    unbound.setOriginalFallbackOwnerVector_57ca68(ownerVector);
+    unbound.setOriginalFallbackQBits_57ca68(0x3fc90fdau);
+    OriginalActorRouteFollowerState_57c7cc unboundState{
+        records,route,&records[0],nullptr,true};
+    (void)unbound.advance(unboundState);
+    const auto& retained=unbound.sourceFallbackRState_57ca68();
+    require(retained.rawR==0x3f800000u &&
+            retained.sourceVRINITCalls==12 &&
+            retained.sourceVRXORCalls==12,
+            "Native actor fallback skipped original R instructions when not externally bound");
 }
 static unsigned u16(std::span<const std::byte> b,std::size_t at){
     require(at+2<=b.size(),"Original source u16 bounds");
@@ -109,7 +146,6 @@ static unsigned u32(std::span<const std::byte> b,std::size_t at){
     return u16(b,at)|(u16(b,at+2)<<16);
 }
 int main(int argc,char**argv){
-    try {
     require(argc==1||argc==2,"Owner original navigation.pck optional");
     OriginalSpatialRecord70 source{};
     const std::array<OriginalVU0Vec4,3> points{{
@@ -154,10 +190,5 @@ int main(int argc,char**argv){
        }
        require(polygons==59&&links==137&&special==15,
              "All 59 original source polygons and 137 original links");
-    }
-    return 0;
-    } catch(const std::exception& error) {
-        std::cerr<<"ORIGINAL_ACTOR_FALLBACK_PIPELINE_FAILED: "<<error.what()<<'\n';
-        return 1;
     }
 }
