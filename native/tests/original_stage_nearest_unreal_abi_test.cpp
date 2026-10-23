@@ -236,6 +236,63 @@ int main() {
                session,&mountedGrid,&frameQuery,&result)==1);
     assert(result.original_polygon_index==1);
 
+    // Connected actual 0x30FFD0 actor polygon update. The genuine
+    // owner must atomically write the resulting polygon to actor+0x30.
+    // Original eligibility directly adopts a valid incoming polygon,
+    // needing NO grid call or invented fallback actor geometry.
+    Ae3OriginalActorPolygonSelectSourceV1 actor{};
+    actor.original_actor_query={5,0,0,42};
+    actor.original_current_index=0;
+    actor.original_incoming_index=1;
+    Ae3OriginalActorPolygonSelectResultV1 actorResult{999};
+    assert(ae3_original_actor_polygon_select_30ffd0(
+               session,&actor,&actorResult)==1);
+    assert(actorResult.original_current_index==1);
+    // Incoming source polygon zero is ineligible for this query;
+    // the previous polygon one is still eligible and is preserved.
+    actor.original_current_index=1;
+    actor.original_incoming_index=0;
+    assert(ae3_original_actor_polygon_select_30ffd0(
+               session,&actor,&actorResult)==1);
+    assert(actorResult.original_current_index==1);
+
+    // Rejected incoming + absent actor current returns NULL, never
+    // invents a 0x21D898 fallback (original branch 0x31008C).
+    actor.original_current_index=UINT32_MAX;
+    actor.original_incoming_index=0;
+    assert(ae3_original_actor_polygon_select_30ffd0(
+               session,&actor,&actorResult)==1);
+    assert(actorResult.original_current_index==UINT32_MAX);
+
+    // For a rejected existing polygon, the *real* 0x4E3C14 grid
+    // and 0x21D898 source VU0 nearest decision provide replacement.
+    actor.original_current_index=0;
+    actor.original_incoming_index=0;
+    actor.original_grid=&mountedGrid;
+    assert(ae3_original_actor_polygon_select_30ffd0(
+               session,&actor,&actorResult)==1);
+    assert(actorResult.original_current_index==1);
+    actor.original_current_index=UINT32_MAX;
+    actor.original_incoming_index=UINT32_MAX;
+    assert(ae3_original_actor_polygon_select_30ffd0(
+               session,&actor,&actorResult)==1);
+    assert(actorResult.original_current_index==1);
+
+    // Required original grid unavailable on nearest fallback: reject
+    // with NO publication, not an Unreal nearest polygon substitute.
+    actor.original_grid=nullptr;
+    actor.original_current_index=0;
+    actor.original_incoming_index=UINT32_MAX;
+    actorResult.original_current_index=999;
+    assert(ae3_original_actor_polygon_select_30ffd0(
+               session,&actor,&actorResult)==0);
+    assert(actorResult.original_current_index==999);
+    actor.original_grid=&mountedGrid;
+    actor.original_current_index=8192;
+    assert(ae3_original_actor_polygon_select_30ffd0(
+               session,&actor,&actorResult)==0);
+    assert(actorResult.original_current_index==999);
+
     // Ownership: original loaded source bytes can be modified or freed
     // after mounting; native records must NOT reference borrowed bytes.
     put16(originalBytes,0x100+0x16,4);
