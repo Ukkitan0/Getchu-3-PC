@@ -336,6 +336,35 @@ AE3_LUA_EXPORT int ae3_original_stage_spatial_nearest_grid_21d898(
     const Ae3OriginalVec4* original_query,
     Ae3OriginalNearestPolygonResultV1* output);
 
+/* Expose only source-recovered 0x21D46C action descriptors retained
+ * during the mounted original stage's 0x1E-byte header traversal.
+ * These describe ORIGINAL unresolved type-1/type-2 action requests;
+ * reading them does NOT spawn a substitute Unreal entity.
+ *
+ * The caller first obtains exact count, then provides count-sized buffer
+ * to copy all action records in original source order. If capacity is
+ * insufficient or stage has been unmounted, the function returns 0
+ * without publishing any action records or mutating out_count.
+ * For zero pending actions, items may be NULL and capacity zero.
+ * The returned records contain no pointers and remain independent of
+ * the session after this copy. Calls are synchronous on one owner thread.
+ */
+typedef struct Ae3OriginalStagePendingActionV1 {
+    uint32_t original_record_index;
+    uint16_t original_action_index;
+    uint16_t original_action_type;
+    uint16_t original_argument;
+    uint16_t reserved;
+} Ae3OriginalStagePendingActionV1;
+AE3_LUA_EXPORT int ae3_original_stage_spatial_pending_action_count(
+    Ae3OriginalManagerInitSession* session,
+    size_t* out_count);
+AE3_LUA_EXPORT int ae3_original_stage_spatial_pending_actions(
+    Ae3OriginalManagerInitSession* session,
+    Ae3OriginalStagePendingActionV1* output,
+    size_t output_capacity,
+    size_t* out_count);
+
 /* Legacy LOW64-only view of original 0x57C8EC target dispatch.
  * Genuine 0x21B788 eligibility, 0x57C98C three-vertex random blend,
  * persistent 0x36F3C0 RNG, and 0x57CA68 fallback VU0 transformations
