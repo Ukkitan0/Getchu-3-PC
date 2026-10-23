@@ -135,6 +135,20 @@ def verify(path):
     if load_segment(data,0x708A30,0x18)!=struct.pack(
         "<III I I I",0x57C27C,0,0x57C48C,0,0xBF34FDF4,0x40000000):
         raise ValueError("0x57BF5C original 0x708A30 method/scalar table changed")
+    # Both source 0x57C128 / 0x57C130 JAL 0x441F40 appear to
+    # initialize stack scratch, but the complete original callee
+    # 0x441F40..0x441F70 writes NO memory and has NO observable
+    # output. Preserve actual source behavior: do not invent
+    # 0x441F40 host initializer callbacks or fake input vectors.
+    no_op_bytes=load_segment(data,0x441F40,0x30)
+    if hashlib.sha256(no_op_bytes).hexdigest()!=(
+        "4fd423015f167deede14f0a830e898e2e308de5aed3c8974fca56d6e62b84e96"):
+        raise ValueError("original 0x441F40 no-op window changed")
+    no_op_words=struct.unpack("<12I",no_op_bytes)
+    if no_op_words!=(
+        0x240E0003,0x25CEFFFF,0x240FFFFF,0,0,0,0,0,
+        0x55CFFFFA,0x25CEFFFF,0x03E00008,0):
+        raise ValueError("original 0x441F40 unexpected source memory effects")
     total_window = load_segment(data,START,END-START)
     if hashlib.sha256(total_window).hexdigest() != SOURCE_SHA256:
         raise ValueError("combined original four-function region differs")
@@ -168,6 +182,7 @@ def verify(path):
         "direct_jal_sites":len(CALLS),
         "route_update_call_at_57c3d0":"0x57C7CC (belongs to 0x57C388)",
         "complete_57c27c_translated":True,
+        "original_441f40_verified_noop":True,
         "movement_owner_native_recovery_complete":False,
         "playable_windows_game":False,
     }
