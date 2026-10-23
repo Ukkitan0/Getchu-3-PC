@@ -47,7 +47,7 @@ int rejectParameters(void*,const char*) {return 0;}
 
 int main() {
     OwnerProgressFixture owned;
-    Ae3LuaManagerV4 callbacks{};
+    Ae3LuaManagerV5 callbacks{};
     callbacks.api_version = AE3_LUA_BRIDGE_API_VERSION;
     callbacks.struct_size = sizeof callbacks;
     callbacks.user = &owned;
