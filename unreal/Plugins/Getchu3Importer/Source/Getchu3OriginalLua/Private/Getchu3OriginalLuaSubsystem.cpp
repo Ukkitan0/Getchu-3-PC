@@ -268,12 +268,13 @@ bool UGetchu3OriginalLuaSubsystem::StartImportedOriginalStage(
     }
 #endif
 
-    return StartOriginalStage(SourceFile, OriginalSpawnTag, SourceManager);
+    return StartOriginalStage(SourceFile, OriginalSpawnTag, SourceManager, SourceHash);
 }
 
 bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
     const FString& OriginalLuaFilePath, const FString& OriginalSpawnTag,
-    UGetchu3OriginalManagerProvider* SourceManager) {
+    UGetchu3OriginalManagerProvider* SourceManager,
+    const FString& ExpectedOriginalSha256) {
     if (!IsInGameThread()) {
         LastError = TEXT("Original Lua runtime may only execute on Unreal's game thread");
         return false;
@@ -307,6 +308,31 @@ bool UGetchu3OriginalLuaSubsystem::StartOriginalStage(
         LastError = TEXT("Rejected non-original or incompatible Lua bytecode");
         return false;
     }
+    // StageId lookup checks disk once; execute must be bound to these exact
+    // bytes, not a second file read that could have changed in between.
+    if (ExpectedOriginalSha256.Len() != 64) {
+        LastError = TEXT("Original stage script SHA-256 not supplied by verified ISO index");
+        return false;
+    }
+#if PLATFORM_WINDOWS
+    uint8 RecheckedDigest[32] = {};
+    if (!ae3::originalSourceSha256(Chunk.GetData(),
+                                  static_cast<size_t>(Chunk.Num()), RecheckedDigest)) {
+        LastError = TEXT("Could not verify loaded original Lua script bytes");
+        return false;
+    }
+    constexpr TCHAR ShaHex[] = TEXT("0123456789abcdef");
+    FString ActualLoadedSha256;
+    ActualLoadedSha256.Reserve(64);
+    for (const uint8 Byte : RecheckedDigest) {
+        ActualLoadedSha256.AppendChar(ShaHex[Byte >> 4]);
+        ActualLoadedSha256.AppendChar(ShaHex[Byte & 15]);
+    }
+    if (!ActualLoadedSha256.Equals(ExpectedOriginalSha256, ESearchCase::IgnoreCase)) {
+        LastError = TEXT("Original Lua source changed between stage lookup and execution");
+        return false;
+    }
+#endif
 #if !PLATFORM_WINDOWS
     LastError = TEXT("Source-backed original native Lua bridge is currently built for Windows only");
     return false;
